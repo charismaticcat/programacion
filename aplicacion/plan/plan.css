@@ -1,13 +1,14 @@
-@import url('https://fonts.googleapis.com/css?family=IM+Fell+French+Canon+SC|Lato');
+/*@import url('https://fonts.googleapis.com/css?family=IM+Fell+French+Canon+SC|Lato');*/
 
+@import url('https://fonts.googleapis.com/css2?family=Playwrite+ES+Deco:wght@100..400&display=swap');
 :root {
   /* change the values below to your colors from your palette */
 
 
-  --primary-color: #000000  ;
-  --secondary-color: #14213D ;
-  --accent1-color: #118951;
-  --accent2-color: #E5E5E5;
+  --primary-color: #F7D27C  ;
+  --secondary-color: #FEC02E;
+  --accent1-color: #FAFAF6;
+  --accent2-color: #151514;
 
   /* change the values below to your chosen font(s) */
   --heading-font: "IM Fell French Canon SC";
