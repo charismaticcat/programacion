@@ -21,6 +21,24 @@
 const SPREADSHEET_ID =
   "1ROYRM7hLY3qVQGifSKUQhgHgW8HK1iwB";
 
+/*
+ * URL pública fija de la implementación (deployment) de producción.
+ *
+ * IMPORTANTE: ScriptApp.getService().getUrl() NO sirve para esto.
+ * Cuando una función se ejecuta manualmente desde el editor (botón
+ * Ejecutar), esa llamada devuelve la URL /dev en vez de la URL /exec
+ * del deployment publicado — y /dev exige que quien la abra tenga
+ * permiso de edición sobre el script, algo que las instituciones no
+ * tienen. Por eso los enlaces personalizados se construyen siempre
+ * a partir de esta constante, y no de getService().getUrl().
+ *
+ * Si se crea un deployment nuevo (con un deploymentId distinto),
+ * hay que actualizar este valor y volver a ejecutar
+ * actualizarURLsAccesoIE() / generarAccesosIE().
+ */
+const URL_WEBAPP_PRODUCCION =
+  "https://script.google.com/macros/s/AKfycbzeXpV-I2kR-jOetOH_DqaXz0K9QoUfA49ouc5gUNE3rWXhy4fI77EXM4-Y8e08APQy/exec";
+
 const HOJA_OFICIALES =
   "Oficiales";
 
@@ -3337,10 +3355,10 @@ function actualizarURLsAccesoIE() {
   }
 
   /*
-   * URL REAL DEL WEB APP
+   * URL REAL DEL WEB APP (deployment de producción, no /dev).
    */
   const urlBase =
-    ScriptApp.getService().getUrl();
+    URL_WEBAPP_PRODUCCION;
 
   Logger.log(
     "URL BASE DEL WEB APP: " + urlBase
@@ -4117,13 +4135,12 @@ function generarAccesosIE() {
 
         /*
          * =================================================
-         * 7. URL BASE
+         * 7. URL BASE (deployment de producción, no /dev)
          * =================================================
          */
 
         const urlBase =
-            ScriptApp.getService()
-                .getUrl();
+            URL_WEBAPP_PRODUCCION;
 
         if(!urlBase){
 

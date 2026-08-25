@@ -283,7 +283,7 @@ function crearAccesoPrueba1234() {
    * la pantalla de acceso lo valida en backend.
    */
   const urlAcceso =
-    ScriptApp.getService().getUrl() +
+    URL_WEBAPP_PRODUCCION +
     "?t=" +
     encodeURIComponent(token);
 
