@@ -4091,62 +4091,86 @@ function obtenerClaveIdForo(){
 
 function obtenerIdForo(){
 
-    if(!accesoEstaAutorizadoFEM()){
+    if(accesoEstaAutorizadoFEM()){
 
-        throw new Error(
-            "La institución debe autenticarse antes de guardar."
+        const idOficial =
+            String(
+                window.DATOS_ACCESO_FEM.idForo || ""
+            ).trim();
+
+        if(!idOficial){
+
+            throw new Error(
+                "Esta institución no tiene un ID_FORO autorizado. " +
+                "Solicite asistencia a la Secretaría de Educación de Neiva " +
+                "al correo educacion@alcaldianeiva.gov.co " +
+                "o al 318 456 1081."
+            );
+
+        }
+
+
+        const clave =
+            obtenerClaveIdForo();
+
+        const idGuardado =
+            String(
+                localStorage.getItem(clave) || ""
+            ).trim();
+
+
+        /*
+         * Si existe un valor local diferente al oficial,
+         * se corrige inmediatamente. Nunca se conserva
+         * un ID de otra IE.
+         */
+        if(
+            idGuardado &&
+            idGuardado !== idOficial
+        ){
+
+            localStorage.removeItem(clave);
+
+        }
+
+
+        localStorage.setItem(
+            clave,
+            idOficial
         );
 
-    }
-
-
-    const idOficial =
-        String(
-            window.DATOS_ACCESO_FEM.idForo || ""
-        ).trim();
-
-    if(!idOficial){
-
-        throw new Error(
-            "Esta institución no tiene un ID_FORO autorizado. " +
-            "Solicite asistencia a la Secretaría de Educación de Neiva " +
-            "al correo educacion@alcaldianeiva.gov.co " +
-            "o al 318 456 1081."
-        );
+        return idOficial;
 
     }
-
-
-    const clave =
-        obtenerClaveIdForo();
-
-    const idGuardado =
-        String(
-            localStorage.getItem(clave) || ""
-        ).trim();
 
 
     /*
-     * Si existe un valor local diferente al oficial,
-     * se corrige inmediatamente. Nunca se conserva
-     * un ID de otra IE.
+     * La sesión en memoria (window.DATOS_ACCESO_FEM) se perdió —
+     * normalmente porque la página se recargó después de haber
+     * iniciado sesión (por ejemplo, al reabrir la pestaña o al
+     * quedar en segundo plano).
+     *
+     * Si este mismo navegador ya había validado un código para
+     * esta institución, se reutiliza el ID_FORO que quedó
+     * guardado localmente en vez de bloquear el guardado. El
+     * servidor vuelve a validar ese ID_FORO en cada operación
+     * (guardarAvanceForo, subirEvidenciasFEM, etc.), así que esto
+     * no omite ningún control de seguridad real.
      */
-    if(
-        idGuardado &&
-        idGuardado !== idOficial
-    ){
+    const idPersistido =
+        String(
+            localStorage.getItem(
+                obtenerClaveIdForo()
+            ) || ""
+        ).trim();
 
-        localStorage.removeItem(clave);
-
+    if(idPersistido){
+        return idPersistido;
     }
 
-
-    localStorage.setItem(
-        clave,
-        idOficial
+    throw new Error(
+        "La institución debe autenticarse antes de guardar."
     );
-
-    return idOficial;
 
 }
 
