@@ -5535,7 +5535,8 @@ function getCampoValor(id){ const el=document.getElementById(id); return el?Stri
 function getCampoNombreIE(){ return getCampoValor("institucion") || (window.DATOS_ACCESO_FEM?.ie||NOMBRE_IE_ACCESO||""); }
 function getTotalParticipantes(){ return Number(document.getElementById("totalParticipantes")?.textContent||0); }
 
-function renderizarPlenaria(){
+function renderizarPlenaria(opciones){
+    opciones = opciones || {};
     const contenido=document.getElementById("plenariaContenido"); if(!contenido) return;
     const nombre=getCampoNombreIE();
     const total=getTotalParticipantes();
@@ -5571,7 +5572,7 @@ function renderizarPlenaria(){
             if(q[2]==="__S2_ACCIONES__") cuerpo=[1,2,3,4,5].map(i=>["respuestaSesion2Pregunta2Accion"+i,"Acción "+i]).map(x=>`<label class="labelEditorPlenaria">${x[1]}</label><textarea class="editorRespuestaPlenaria" data-campo="${x[0]}" ${sent?'readonly':''}>${escapeHtml(getCampoValor(x[0]))}</textarea>`).join("");
             else if(q[2]==="__S3_ACCIONES__") cuerpo=[1,2,3,4,5].map(i=>["respuestaSesion3Pregunta2Accion"+i,"Acción "+i]).map(x=>`<label class="labelEditorPlenaria">${x[1]}</label><textarea class="editorRespuestaPlenaria" data-campo="${x[0]}" ${sent?'readonly':''}>${escapeHtml(getCampoValor(x[0]))}</textarea>`).join("");
             else cuerpo=`<textarea class="editorRespuestaPlenaria" data-campo="${q[2]}" ${sent?'readonly':''}>${escapeHtml(getCampoValor(q[2]))}</textarea>`;
-            html+=`<div class="plenariaPagina" data-page="${pageIndex}" data-sesion="${grupo.sesion}"><div class="plenariaPregunta"><span>${grupo.titulo}</span><h3>${escapeHtml(q[1])}</h3></div>${cuerpo}<div class="plenariaEditHint">✏️ Modo edición: puede ajustar únicamente las respuestas antes de enviarlas.</div></div>`;
+            html+=`<div class="plenariaPagina${sent?' enviada':''}" data-page="${pageIndex}" data-sesion="${grupo.sesion}"><div class="plenariaPregunta"><span>${grupo.titulo}</span><h3>${escapeHtml(q[1])}</h3></div>${cuerpo}<div class="plenariaEditHint">${sent?'✅ Respuesta enviada definitivamente.':'✏️ Modo edición: puede ajustar únicamente las respuestas antes de enviarlas.'}</div></div>`;
             plenariaPaginas.push({id:q[0],sesion:grupo.sesion,campo:q[2],sent});
         });
     });
@@ -5583,7 +5584,18 @@ function renderizarPlenaria(){
     contenido.querySelectorAll("textarea.editorRespuestaPlenaria").forEach(t=>t.addEventListener("input",function(){
         const original=document.getElementById(this.dataset.campo); if(original){ original.value=this.value; original.dispatchEvent(new Event("input",{bubbles:true})); }
     }));
-    prepararSecuenciaPlenaria();
+    /*
+     * Al reconstruir la plenaria justo después de enviar una
+     * sesión, no debe volver a la portada: debe mostrar de una
+     * vez la primera pregunta pendiente de la siguiente sesión
+     * (o la página de evidencias, si ya no queda ninguna).
+     */
+    let paginaDestino = 0;
+    if(opciones.irASesion){
+        const indice = plenariaPaginas.findIndex(p=>p.sesion===opciones.irASesion);
+        paginaDestino = indice>=0 ? indice : plenariaPaginas.length-1;
+    }
+    prepararSecuenciaPlenaria(paginaDestino);
     actualizarBotonesPlenaria();
 }
 function renderCaracterizacionHTML(){
@@ -5599,21 +5611,55 @@ function renderGraficoParticipacionHTML(){
 function escapeHtml(s){return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");}
 function escapeAttr(s){return escapeHtml(s);}
 function sesionEnviadaLocal(sesion){ return !!window._FEM_SESIONES_ENVIADAS?.[sesion]; }
-function prepararSecuenciaPlenaria(){
-    plenariaPaginaActual=0;
+function prepararSecuenciaPlenaria(paginaInicial){
     const pages=Array.prototype.slice.call(document.querySelectorAll("#plenariaContenido .plenariaPagina"));
-    pages.forEach((p,i)=>{p.classList.toggle("habilitada",i===0);});
+    /*
+     * Una página queda habilitada (se puede llegar a ella con
+     * "Continuar" o con los números de arriba) si es la primera,
+     * si sus respuestas ya fueron enviadas definitivamente (se
+     * muestra solo de referencia), o si la página anterior ya lo
+     * está. Así, después de reenviar una sesión y reconstruir la
+     * plenaria, todo lo ya enviado sigue siendo navegable y la
+     * primera pregunta pendiente queda inmediatamente disponible
+     * — no hace falta volver a "descubrir" nada con el scroll.
+     */
+    pages.forEach((p,i)=>{
+        const meta=plenariaPaginas[i]||{};
+        const previa=plenariaPaginas[i-1];
+        const previaEnviada = i>0 && previa && previa.sent;
+        p.classList.toggle("habilitada", i===0 || !!meta.sent || previaEnviada);
+    });
+    // Siempre se puede llegar, al menos, a la página siguiente a la actual.
+    if(pages[1]) pages[1].classList.add("habilitada");
     pages.forEach((p,i)=>{
         const sentinel=document.createElement("div"); sentinel.className="sentinelPlenaria"; p.appendChild(sentinel);
         const obs=new IntersectionObserver(entries=>{ entries.forEach(en=>{ if(en.isIntersecting && i+1<pages.length){ pages[i+1].classList.add("habilitada"); } }); },{threshold:.15}); obs.observe(sentinel);
     });
+    const destino = (typeof paginaInicial==="number" && pages[paginaInicial]) ? paginaInicial : 0;
+    plenariaPaginaActual = destino;
+    if(pages[destino]){
+        pages[destino].classList.add("habilitada");
+        if(pages[destino+1]) pages[destino+1].classList.add("habilitada");
+        pages[destino].scrollIntoView({behavior:"instant",block:"start"});
+    }
     actualizarBotonesPlenaria();
 }
 function plenariaIrA(i){
     const pages=Array.prototype.slice.call(document.querySelectorAll("#plenariaContenido .plenariaPagina"));
     if(i<0||i>=pages.length) return;
     if(!pages[i].classList.contains("habilitada")) return;
-    plenariaPaginaActual=i; pages[i].scrollIntoView({behavior:"smooth",block:"start"}); actualizarBotonesPlenaria();
+    plenariaPaginaActual=i;
+    /*
+     * Desbloquear de inmediato la página siguiente en vez de
+     * esperar a que el observador de scroll la detecte: con
+     * scrollIntoView({behavior:"instant"}) o con animaciones
+     * cortas el observador no siempre alcanza a dispararse antes
+     * de que el usuario vuelva a hacer clic en "Continuar", y el
+     * botón quedaba sin efecto aparente.
+     */
+    if(pages[i+1]) pages[i+1].classList.add("habilitada");
+    pages[i].scrollIntoView({behavior:"smooth",block:"start"});
+    actualizarBotonesPlenaria();
 }
 function actualizarBotonesPlenaria(){
     const ant=document.getElementById("btnAnteriorPlenaria"), sig=document.getElementById("btnContinuarPlenaria");
@@ -5658,14 +5704,14 @@ function insertarBotonesEnvioSesion(){
             );
             if(!confirmado) return;
             b.disabled=true; b.textContent="Enviando…";
-            try{ const r=await enviarSesionPlenaria(ses); if(!r?.ok) throw new Error(r?.mensaje||"No fue posible enviar la sesión."); window._FEM_SESIONES_ENVIADAS=window._FEM_SESIONES_ENVIADAS||{}; window._FEM_SESIONES_ENVIADAS[ses]=true; renderizarPlenaria(); mostrarEstadoGuardado(`✅ Respuestas de Sesión ${ses} enviadas definitivamente.`); }catch(e){ b.disabled=false; b.textContent=`📤 Enviar respuestas de Sesión ${ses}`; alert(e.message||e); }
+            try{ const r=await enviarSesionPlenaria(ses); if(!r?.ok) throw new Error(r?.mensaje||"No fue posible enviar la sesión."); window._FEM_SESIONES_ENVIADAS=window._FEM_SESIONES_ENVIADAS||{}; window._FEM_SESIONES_ENVIADAS[ses]=true; renderizarPlenaria({irASesion:ses+1}); mostrarEstadoGuardado(`✅ Respuestas de Sesión ${ses} enviadas definitivamente.`); }catch(e){ b.disabled=false; b.textContent=`📤 Enviar respuestas de Sesión ${ses}`; alert(e.message||e); }
         });
     });
 }
 
 // Hook renderizarPlenaria to include session-send controls.
 const _renderizarPlenariaOriginal = renderizarPlenaria;
-renderizarPlenaria = function(){ _renderizarPlenariaOriginal(); insertarBotonesEnvioSesion(); };
+renderizarPlenaria = function(opciones){ _renderizarPlenariaOriginal(opciones); insertarBotonesEnvioSesion(); };
 
 async function generarInformeFinalUI(){
     const btn=document.getElementById("btnGenerarInformeFinal"); if(btn) {btn.disabled=true;btn.textContent="Generando…";}

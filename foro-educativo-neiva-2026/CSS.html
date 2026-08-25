@@ -1825,4 +1825,240 @@ button:disabled{
 #pantallaSesion2 .preguntaCompletadaSesion2 > .tarjetaPregunta h3::after{content:"  ✓";color:var(--verde-neiva);}
 #pantallaSesion2 .bloquePreguntaBloqueada{opacity:.62;}
 
+/* =====================================================
+   PLENARIA — REVISIÓN Y ENVÍO DEFINITIVO
+   (usa la misma paleta y forma de tarjeta que el resto
+   del formulario: fondo blanco, borde de color a la
+   izquierda, radio y sombra de --radio/--sombra)
+   ===================================================== */
+
+.plenariaCabecera{margin-bottom:28px;}
+.plenariaCabecera p{color:var(--gris-texto);line-height:1.7;margin-bottom:12px;}
+.plenariaObjetivo{color:var(--gris-texto);font-style:italic;}
+.plenariaAviso{background:var(--gris-fondo);border-radius:var(--radio);padding:14px 18px;}
+
+.plenariaAdvertencia{
+    background:#FEF6E0;
+    border-left:8px solid var(--amarillo-neiva);
+    border-radius:var(--radio);
+    padding:18px 22px;
+    margin-top:18px;
+    color:var(--gris-texto);
+    line-height:1.6;
+}
+
+.plenariaToolbar{
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+    margin:24px 0;
+}
+.plenariaToolbar button{padding:10px 18px;font-size:15px;}
+
+.plenariaNavegacion{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    padding:14px;
+    margin-bottom:24px;
+    background:var(--gris-fondo);
+    border-radius:var(--radio);
+    position:sticky;
+    top:8px;
+    z-index:5;
+}
+.plenariaNavegacion button{
+    padding:0;
+    width:38px;
+    height:38px;
+    font-size:14px;
+    font-weight:700;
+    background:var(--blanco);
+    color:var(--gris-texto);
+    border:1px solid var(--gris-borde);
+}
+.plenariaNavegacion button:hover{transform:none;background:var(--gris-fondo);}
+.plenariaNavegacion button.activo{
+    background:var(--verde-neiva);
+    color:var(--blanco);
+    border-color:var(--verde-neiva);
+}
+
+#plenariaContenido{display:flex;flex-direction:column;gap:0;}
+
+.plenariaPortada{
+    background:var(--blanco);
+    border-left:8px solid var(--verde-neiva);
+    border-radius:var(--radio);
+    box-shadow:var(--sombra);
+    padding:36px;
+    margin-bottom:32px;
+    text-align:center;
+}
+.plenariaPortada h1{color:var(--verde-neiva);font-size:28px;margin-bottom:10px;}
+.plenariaPortada h2{color:var(--gris-texto);font-weight:normal;font-size:18px;margin-bottom:14px;}
+.plenariaPortada h3{color:var(--gris-texto);font-size:20px;margin-bottom:16px;}
+.plenariaPortada p{color:var(--gris-texto);line-height:1.7;}
+.plenariaPortada .soloLectura{max-width:640px;margin:16px auto 0;}
+
+.plenariaSeparador{
+    background:var(--verde-neiva);
+    color:var(--blanco);
+    border-radius:var(--radio);
+    padding:22px 28px;
+    margin:8px 0 28px;
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+}
+.plenariaSeparador h2{color:var(--blanco);font-size:22px;margin:0;}
+.plenariaSeparador p{color:rgba(255,255,255,.9);margin:6px 0 0;flex-basis:100%;line-height:1.5;}
+
+.btnEnviarSesionPlenaria{
+    background:var(--amarillo-neiva);
+    color:#3a2c00;
+    font-weight:700;
+    white-space:nowrap;
+}
+.btnEnviarSesionPlenaria:hover{background:#ffca28;}
+.btnEnviarSesionPlenaria:disabled{background:#e3d9b8;color:#8a8064;}
+
+.plenariaPagina{
+    background:var(--blanco);
+    border-left:8px solid var(--amarillo-neiva);
+    border-radius:var(--radio);
+    box-shadow:var(--sombra);
+    padding:28px;
+    margin-bottom:28px;
+    scroll-margin-top:70px;
+}
+.plenariaPagina.enviada{border-left-color:var(--verde-neiva);}
+
+.plenariaPregunta{display:flex;flex-direction:column;gap:4px;margin-bottom:16px;}
+.plenariaPregunta span{
+    align-self:flex-start;
+    background:var(--gris-fondo);
+    color:var(--verde-neiva);
+    font-weight:700;
+    font-size:13px;
+    letter-spacing:.5px;
+    text-transform:uppercase;
+    padding:4px 12px;
+    border-radius:20px;
+}
+.plenariaPregunta h3{color:#333;font-size:20px;font-weight:700;line-height:1.5;}
+
+.labelEditorPlenaria{display:block;font-weight:bold;color:var(--verde-neiva);margin:16px 0 8px;}
+.labelEditorPlenaria:first-of-type{margin-top:0;}
+
+.editorRespuestaPlenaria{
+    width:100%;
+    min-height:110px;
+    padding:16px;
+    font-size:16px;
+    font-family:inherit;
+    line-height:1.7;
+    color:#333;
+    border:1px solid #cfd8dc;
+    border-radius:10px;
+    resize:vertical;
+}
+.editorRespuestaPlenaria:focus{
+    outline:none;
+    border-color:var(--verde-neiva);
+    box-shadow:0 0 8px rgba(11,106,68,.20);
+}
+.editorRespuestaPlenaria[readonly]{
+    background:var(--gris-fondo);
+    color:var(--gris-texto);
+    cursor:default;
+}
+
+.plenariaEditHint{
+    margin-top:12px;
+    font-size:14px;
+    color:var(--gris);
+    font-style:italic;
+}
+.plenariaPagina.enviada .plenariaEditHint{color:var(--verde-neiva);font-style:normal;font-weight:600;}
+
+.plenariaPagina.evidenciaInforme p{margin:10px 0;font-size:16px;}
+.plenariaPagina.evidenciaInforme a{color:var(--verde-neiva);font-weight:600;}
+
+.plenariaFooter{
+    display:flex;
+    justify-content:space-between;
+    gap:16px;
+    margin-top:12px;
+    position:sticky;
+    bottom:0;
+    background:var(--blanco);
+    padding:16px 0 4px;
+}
+
+/* Caracterización dentro del informe de plenaria */
+.caracterizacionInforme{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:14px;
+}
+.caracterizacionInforme > div{
+    background:var(--gris-fondo);
+    border-radius:10px;
+    padding:12px 16px;
+}
+.caracterizacionInforme strong{display:block;color:var(--verde-neiva);font-size:13px;margin-bottom:4px;}
+.caracterizacionInforme span{color:#333;font-size:15px;}
+
+/* Gráfico de participación (barras HTML, sin librerías externas) */
+.graficoParticipacionBarras{margin-top:18px;text-align:left;}
+.barraParticipante{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.barraParticipante span{width:140px;flex-shrink:0;font-size:13px;color:var(--gris-texto);text-align:right;}
+.barraParticipante div{flex:1;height:14px;background:var(--gris-fondo);border-radius:20px;overflow:hidden;}
+.barraParticipante i{display:block;height:100%;background:var(--verde-neiva);border-radius:20px;font-style:normal;}
+.barraParticipante b{width:52px;flex-shrink:0;font-size:13px;color:var(--gris-texto);}
+
+@media(max-width:700px){
+    .plenariaNavegacion{position:static;}
+    .plenariaFooter{position:static;}
+    .barraParticipante span{width:96px;font-size:12px;}
+}
+
+/* =====================================================
+   INFORME FINAL / CIERRE DEL FORMULARIO
+   ===================================================== */
+
+.finalCard{max-width:640px;margin:0 auto;text-align:center;}
+.finalIcono{font-size:56px;margin-bottom:12px;}
+.finalCard h3{color:var(--gris-texto);font-weight:normal;font-size:19px;margin-bottom:18px;}
+.finalCard p{color:var(--gris-texto);line-height:1.7;margin-bottom:18px;}
+
+.finalAcciones{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin:24px 0;}
+
+.mensajeEstadoInforme{min-height:24px;font-weight:600;color:var(--verde-neiva);margin-bottom:12px;}
+
+.finalCierre{
+    border-top:1px solid var(--gris-borde);
+    margin-top:24px;
+    padding-top:24px;
+}
+
+.botonEnlaceInforme{
+    display:inline-block;
+    background:var(--verde-neiva);
+    color:var(--blanco);
+    text-decoration:none;
+    padding:16px 35px;
+    border-radius:10px;
+    font-size:18px;
+    font-weight:600;
+    margin:18px 0;
+    transition:.25s;
+}
+.botonEnlaceInforme:hover{background:var(--verdeClaro);transform:translateY(-2px);}
+
+.textoCierre{color:var(--gris-texto);font-style:italic;margin-top:18px;}
+
 </style>
