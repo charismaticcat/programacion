@@ -587,6 +587,8 @@ SESIÓN 1
 
     margin:0;
 
+    max-width:70ch;
+
 }
 
 .tarjetaSintesis{
@@ -836,6 +838,8 @@ SESIÓN 1
 .tarjetaSintesis textarea{
 
     width:100%;
+
+    min-height:150px;
 
     padding:14px;
 
@@ -1948,14 +1952,14 @@ button:disabled{
     padding:4px 12px;
     border-radius:20px;
 }
-.plenariaPregunta h3{color:#333;font-size:20px;font-weight:700;line-height:1.5;}
+.plenariaPregunta h3{color:#333;font-size:20px;font-weight:700;line-height:1.5;max-width:70ch;}
 
 .labelEditorPlenaria{display:block;font-weight:bold;color:var(--verde-neiva);margin:16px 0 8px;}
 .labelEditorPlenaria:first-of-type{margin-top:0;}
 
 .editorRespuestaPlenaria{
     width:100%;
-    min-height:110px;
+    min-height:180px;
     padding:16px;
     font-size:16px;
     font-family:inherit;
@@ -2060,5 +2064,58 @@ button:disabled{
 .botonEnlaceInforme:hover{background:var(--verdeClaro);transform:translateY(-2px);}
 
 .textoCierre{color:var(--gris-texto);font-style:italic;margin-top:18px;}
+
+.calificacionFEM{
+    margin-top:28px;
+    padding-top:24px;
+    border-top:1px solid var(--gris-borde);
+}
+.calificacionFEMTitulo{color:var(--verde-neiva);font-weight:700;font-size:17px;margin-bottom:10px;}
+.calificacionCorazones{display:flex;justify-content:center;gap:8px;}
+.corazonFEM{
+    background:transparent;
+    border:none;
+    padding:4px;
+    font-size:34px;
+    line-height:1;
+    cursor:pointer;
+    transition:transform .15s;
+}
+.corazonFEM:hover{background:transparent;transform:scale(1.15);}
+.corazonFEM.seleccionado{transform:scale(1.05);}
+.calificacionFEMEstado{min-height:20px;color:var(--verde-neiva);font-weight:600;font-size:14px;margin-top:8px;}
+
+/* =====================================================
+   EVIDENCIAS (asistencia por QR + fotografía)
+   ===================================================== */
+
+.evidenciasGrid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+    gap:24px;
+    margin:24px 0;
+}
+.evidenciaCard{
+    background:var(--blanco);
+    border-radius:var(--radio);
+    box-shadow:var(--sombra);
+    padding:24px;
+    text-align:center;
+}
+.evidenciaCard h3{color:var(--verde-neiva);font-size:18px;margin-bottom:12px;}
+.evidenciaCard input[type="file"]{width:100%;}
+.textoAyudaQR{color:var(--gris-texto);font-size:14px;line-height:1.5;margin-bottom:14px;}
+.imagenQrAsistencia{
+    display:block;
+    width:200px;
+    height:200px;
+    margin:0 auto 14px;
+    border:1px solid var(--gris-borde);
+    border-radius:10px;
+    background:var(--gris-fondo);
+}
+.estadoArchivo{margin-top:10px;font-size:14px;color:var(--gris-texto);min-height:20px;}
+.estadoArchivo.ok{color:var(--verde-neiva);font-weight:600;}
+.estadoArchivo.error{color:var(--rojo-neiva);font-weight:600;}
 
 </style>

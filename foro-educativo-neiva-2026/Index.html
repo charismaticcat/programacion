@@ -2127,16 +2127,17 @@ Aspectos para orientar la discusión
     <div class="tarjetaObjetivo">
         <h3>¿Qué haremos?</h3>
         <p>Registraremos las evidencias del desarrollo del Foro antes de iniciar la plenaria. En esta etapa podremos revisar todas las respuestas, añadir o quitar información y dejar listos los soportes documentales del informe institucional.</p>
-        <h3 style="margin-top:18px;">¿Qué debemos subir?</h3>
-        <p>Una fotografía horizontal HD con la mayor cantidad posible de participantes trabajando y el listado oficial de asistencia en PDF.</p>
-        <p style="margin-top:12px;">Cada archivo debe pesar máximo <strong>10 MB</strong>. La asistencia debe ser PDF y la fotografía JPG o PNG.</p>
+        <h3 style="margin-top:18px;">¿Qué debemos registrar?</h3>
+        <p>Una fotografía horizontal HD con la mayor cantidad posible de participantes trabajando, y la asistencia de la jornada — que ya <strong>no se sube en PDF</strong>: cada participante la firma escaneando con su celular el código QR de abajo, en un solo momento de la sesión.</p>
+        <p style="margin-top:12px;">La fotografía debe pesar máximo <strong>10 MB</strong> y ser JPG o PNG.</p>
     </div>
 
     <div class="evidenciasGrid">
         <div class="evidenciaCard">
-            <h3>📄 Listado de asistencia</h3>
-            <input type="file" id="archivoAsistencia" accept="application/pdf">
-            <div id="estadoAsistencia" class="estadoArchivo"></div>
+            <h3>📱 Firma de asistencia por QR</h3>
+            <p class="textoAyudaQR">Cada asistente escanea este código con su celular y completa: Institución Educativa, Nombre completo, Cargo y Número de documento.</p>
+            <img id="qrAsistencia" alt="Código QR para firmar asistencia" class="imagenQrAsistencia">
+            <div id="conteoAsistentesQR" class="estadoArchivo">Cargando…</div>
         </div>
         <div class="evidenciaCard">
             <h3>📷 Fotografía horizontal HD</h3>
@@ -2152,7 +2153,7 @@ Aspectos para orientar la discusión
 
     <div class="botones">
         <button type="button" id="btnVolverSesion3DesdeEvidencias">← Anterior</button>
-        <button type="button" id="btnSubirEvidencias" disabled>⬆️ Subir ambos archivos</button>
+        <button type="button" id="btnSubirEvidencias" disabled>⬆️ Registrar evidencias</button>
         <button type="button" id="btnContinuarDesdeEvidencias" disabled>Continuar →</button>
     </div>
     <div id="mensajeEvidencias" class="mensajeEstadoEvidencias"></div>
@@ -2209,6 +2210,18 @@ Aspectos para orientar la discusión
         <p id="mensajeCierreFEM">Las respuestas definitivas fueron registradas y el acceso de la institución educativa ha quedado cerrado.</p>
         <a id="linkInformeCierre" href="#" target="_blank" class="botonEnlaceInforme">📄 Ver / descargar informe</a>
         <p class="textoCierre">Gracias por el tiempo, la participación y la construcción colectiva de la comunidad educativa.</p>
+
+        <div class="calificacionFEM" id="calificacionFEM">
+            <p class="calificacionFEMTitulo">¿Cómo calificaría esta actividad?</p>
+            <div class="calificacionCorazones" id="calificacionCorazones" role="radiogroup" aria-label="Calificación de la actividad">
+                <button type="button" class="corazonFEM" data-valor="1" aria-label="1 corazón">🤍</button>
+                <button type="button" class="corazonFEM" data-valor="2" aria-label="2 corazones">🤍</button>
+                <button type="button" class="corazonFEM" data-valor="3" aria-label="3 corazones">🤍</button>
+                <button type="button" class="corazonFEM" data-valor="4" aria-label="4 corazones">🤍</button>
+                <button type="button" class="corazonFEM" data-valor="5" aria-label="5 corazones">🤍</button>
+            </div>
+            <p class="calificacionFEMEstado" id="calificacionFEMEstado"></p>
+        </div>
     </div>
 </section>
 
@@ -2219,7 +2232,7 @@ Aspectos para orientar la discusión
         <h2>📌 Antes de comenzar la Sesión 3</h2>
         <p>Por favor tenga listo:</p>
         <ul>
-            <li>📄 El listado de asistencia en un solo archivo PDF de menos de 10 MB.</li>
+            <li>📱 Un código QR para que cada asistente firme la asistencia desde su celular en un solo momento de la sesión (ya no se sube un PDF).</li>
             <li>📷 Una fotografía horizontal en calidad HD de menos de 10 MB.</li>
         </ul>
         <p>Se solicitarán al finalizar la sesión, antes de iniciar la plenaria.</p>
@@ -2247,6 +2260,9 @@ Aspectos para orientar la discusión
 
     const NOMBRE_IE_ACCESO =
         <?!= JSON.stringify(nombreIEAcceso || "") ?>;
+
+    const URL_WEBAPP_PRODUCCION_CLIENTE =
+        <?!= JSON.stringify(urlWebapp || "") ?>;
 </script>
 
 <?!= include('App'); ?>
