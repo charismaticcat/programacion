@@ -4755,8 +4755,8 @@ function generarInformeFEM(idForo,datosCliente){
     encabezadoSeccion_("Evidencias de la jornada");
     const pEv=body.appendParagraph("Los soportes documentales originales se encuentran almacenados en la carpeta institucional de la IE en Google Drive.");
     pEv.editAsText().setForegroundColor(GRIS_TEXTO);
-    if(c.evidenciaAsistenciaUrl?.valor){ const p1=body.appendParagraph(); const t1=p1.appendText("📄 Descargar listado de asistencia"); t1.setLinkUrl(String(c.evidenciaAsistenciaUrl.valor)); t1.setForegroundColor(VERDE); }
-    if(c.evidenciaFotoUrl?.valor){ const p2=body.appendParagraph(); const t2=p2.appendText("📷 Ver fotografía de la plenaria"); t2.setLinkUrl(String(c.evidenciaFotoUrl.valor)); t2.setForegroundColor(VERDE); }
+    if(c.evidenciaAsistenciaUrl?.valor){ const p1=body.appendParagraph("📄 Descargar listado de asistencia"); const t1=p1.editAsText(); t1.setLinkUrl(String(c.evidenciaAsistenciaUrl.valor)); t1.setForegroundColor(VERDE); }
+    if(c.evidenciaFotoUrl?.valor){ const p2=body.appendParagraph("📷 Ver fotografía de la plenaria"); const t2=p2.editAsText(); t2.setLinkUrl(String(c.evidenciaFotoUrl.valor)); t2.setForegroundColor(VERDE); }
 
     doc.saveAndClose();
     const pdfBlob=DriveApp.getFileById(doc.getId()).getAs(MimeType.PDF).setName(nombreArchivo+".pdf");
