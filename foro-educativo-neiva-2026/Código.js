@@ -4664,12 +4664,38 @@ function obtenerGraficoParticipacionBlob_(datos){
 function construirParrafoSesion_(titulo,contenido){return titulo+"\n\n"+String(contenido||"");}
 
 
+/*
+ * Abrir un Documento recién copiado con makeCopy() puede fallar
+ * intermitentemente con "No se puede acceder al documento.
+ * Inténtalo de nuevo más tarde." — Drive todavía no terminó de
+ * propagar el archivo nuevo en el instante en que Apps Script
+ * intenta abrirlo. Se reintenta unas pocas veces con una espera
+ * corta antes de rendirse.
+ */
+function abrirDocumentoConReintento_(fileId, intentos){
+  intentos = intentos || 5;
+  let ultimoError = null;
+  for(let i = 0; i < intentos; i++){
+    try{
+      return DocumentApp.openById(fileId);
+    }catch(error){
+      ultimoError = error;
+      Utilities.sleep(800 * (i + 1));
+    }
+  }
+  throw new Error(
+    "No fue posible abrir el documento del informe después de varios intentos: " +
+    (ultimoError ? ultimoError.message : "error desconocido")
+  );
+}
+
+
 function generarInformeFEM(idForo,datosCliente){
   const lock=LockService.getScriptLock(); lock.waitLock(30000);
   try{
     const estadoFinal=obtenerEstadoSesiones_(idForo); if(!estadoFinal.s1||!estadoFinal.s2||!estadoFinal.s3)throw new Error("Las tres sesiones deben estar enviadas definitivamente antes de generar el informe.");
     const datos=obtenerDatosGuardadosPorIdForo_(idForo)||datosCliente; if(!datos)throw new Error("No hay datos guardados para generar el informe."); const folder=crearCarpetaIE_(datos.institucion||"Institución Educativa");
-    const template=DriveApp.getFileById(TEMPLATE_INFORME_ID); const copy=template.makeCopy("Informe Ejecutivo - "+datos.institucion+" FEM 2026",folder); const doc=DocumentApp.openById(copy.getId()); const body=doc.getBody(); body.clear(); body.setPageWidth(612).setPageHeight(792).setMarginTop(50).setMarginBottom(50).setMarginLeft(48).setMarginRight(48);
+    const template=DriveApp.getFileById(TEMPLATE_INFORME_ID); const copy=template.makeCopy("Informe Ejecutivo - "+datos.institucion+" FEM 2026",folder); const doc=abrirDocumentoConReintento_(copy.getId()); const body=doc.getBody(); body.clear(); body.setPageWidth(612).setPageHeight(792).setMarginTop(50).setMarginBottom(50).setMarginLeft(48).setMarginRight(48);
     const h=doc.getHeader()||doc.addHeader(); h.clear(); const hi=h.appendParagraph(); hi.setAlignment(DocumentApp.HorizontalAlignment.RIGHT); try{hi.appendInlineImage(DriveApp.getFileById(LOGO_ENCABEZADO_ID).getBlob()).setWidth(90).setHeight(50);}catch(e){};
     const footer=doc.getFooter()||doc.addFooter(); footer.clear(); const fp=footer.appendParagraph(); fp.setAlignment(DocumentApp.HorizontalAlignment.CENTER); try{fp.appendInlineImage(DriveApp.getFileById(LOGO_PIE_ID).getBlob()).setWidth(80).setHeight(40);}catch(e){}; footer.appendParagraph("Generado por SEM el "+Utilities.formatDate(new Date(),Session.getScriptTimeZone(),"dd/MM/yyyy 'a las' HH:mm")+". Enviado por "+(datos.campos?.nombre?.valor||"")+" — "+(datos.campos?.correo?.valor||"")+" — "+(datos.campos?.cargo?.valor||""));
     const title=body.appendParagraph("INFORME EJECUTIVO DE "+String(datos.institucion||"").toUpperCase()+" FEM 2026"); title.setHeading(DocumentApp.ParagraphHeading.TITLE); body.appendParagraph("FEM 2026 “Escuela Viva: Voces que construyen territorio”.").setHeading(DocumentApp.ParagraphHeading.HEADING2); body.appendParagraph("Foro Educativo Institucional — Neiva 2026"); body.appendHorizontalRule();

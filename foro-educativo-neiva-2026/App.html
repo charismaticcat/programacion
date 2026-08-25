@@ -5594,6 +5594,19 @@ function renderizarPlenaria(opciones){
     if(opciones.irASesion){
         const indice = plenariaPaginas.findIndex(p=>p.sesion===opciones.irASesion);
         paginaDestino = indice>=0 ? indice : plenariaPaginas.length-1;
+    }else{
+        /*
+         * Si al entrar (o reingresar) las tres sesiones ya estaban
+         * enviadas de antes, no tiene sentido obligar a recorrer
+         * pregunta por pregunta una revisión ya cerrada y de solo
+         * lectura: se va directo a la última página, para que
+         * "Continuar" pase al informe final con un solo clic —
+         * igual que cuando se acaba de enviar la Sesión 3.
+         */
+        const sesionesEnviadas = window._FEM_SESIONES_ENVIADAS || {};
+        if(sesionesEnviadas[1] && sesionesEnviadas[2] && sesionesEnviadas[3]){
+            paginaDestino = plenariaPaginas.length - 1;
+        }
     }
     prepararSecuenciaPlenaria(paginaDestino);
     actualizarBotonesPlenaria();
