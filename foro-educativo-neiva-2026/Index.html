@@ -282,7 +282,7 @@ CONTENEDOR PRINCIPAL
             <li>Información necesaria para el desarrollo del Foro.</li>
             <li>Número de participantes por estamento.</li>
             <li>Fotografía horizontal HD del trabajo de la comunidad educativa.</li>
-            <li>Listado de asistencia en PDF.</li>
+            <li>Un celular por asistente para firmar la asistencia escaneando un código QR (ya no se sube en PDF).</li>
             <li>Un espacio adecuado para el diálogo y la construcción colectiva.</li>
         </ul>
 
@@ -381,10 +381,10 @@ CONTENEDOR PRINCIPAL
             Al finalizar el diligenciamiento de este instrumento, agradecemos su valiosa colaboración cargando los siguientes archivos. Estos aportes contribuirán a fortalecer la sistematización, la memoria institucional y la consolidación de los resultados del <b>Foro Educativo Institucional – Neiva 2026</b>.
         </p>
 
-        <h3 style="color:#0b6a44;">📄 Listado de asistencia</h3>
+        <h3 style="color:#0b6a44;">📱 Asistencia por código QR</h3>
 
         <p>
-            Con el propósito de consolidar las <b>estadísticas de participación</b> y apoyar los procesos de análisis, sistematización y elaboración de los informes generales del Foro Educativo, agradecemos cargar el <b>listado de asistencia de la jornada en formato PDF</b>.
+            Con el propósito de consolidar las <b>estadísticas de participación</b> y apoyar los procesos de análisis, sistematización y elaboración de los informes generales del Foro Educativo, la asistencia de la jornada <b>ya no se carga en PDF</b>: cada asistente la firma escaneando con su celular un código QR, completando institución, nombre completo, cargo, número de documento, correo y teléfono.
         </p>
 
         <p>
@@ -415,7 +415,7 @@ CONTENEDOR PRINCIPAL
 
             <ul>
 
-                <li><b>Listado de asistencia</b> de la jornada en formato <b>PDF</b>.</li>
+                <li>Un celular por asistente para <b>firmar la asistencia escaneando un código QR</b> (ya no se sube en PDF).</li>
 
                 <li><b>Una fotografía de la sesión de plenaria final</b>, en <b>formato horizontal</b> y con <b>calidad HD (alta resolución)</b>.</li>
 
@@ -2128,15 +2128,20 @@ Aspectos para orientar la discusión
         <h3>¿Qué haremos?</h3>
         <p>Registraremos las evidencias del desarrollo del Foro antes de iniciar la plenaria. En esta etapa podremos revisar todas las respuestas, añadir o quitar información y dejar listos los soportes documentales del informe institucional.</p>
         <h3 style="margin-top:18px;">¿Qué debemos registrar?</h3>
-        <p>Una fotografía horizontal HD con la mayor cantidad posible de participantes trabajando, y la asistencia de la jornada — que ya <strong>no se sube en PDF</strong>: cada participante la firma escaneando con su celular el código QR de abajo, en un solo momento de la sesión.</p>
+        <p>Una fotografía horizontal HD con la mayor cantidad posible de participantes trabajando, y la asistencia de la jornada — que ya <strong>no se sube en PDF</strong>: cada participante la firma escaneando con su celular el código QR de abajo, en un solo momento de la sesión, completando institución, nombre, cargo, número de documento, correo y teléfono.</p>
         <p style="margin-top:12px;">La fotografía debe pesar máximo <strong>10 MB</strong> y ser JPG o PNG.</p>
+    </div>
+
+    <div class="avisoAsistenciaQR">
+        ℹ️ Mientras se va completando la asistencia por código QR, ya puede continuar con la revisión de las respuestas, la sesión de plenaria y el envío del formulario — no es necesario esperar a que todos hayan firmado.
     </div>
 
     <div class="evidenciasGrid">
         <div class="evidenciaCard">
             <h3>📱 Firma de asistencia por QR</h3>
-            <p class="textoAyudaQR">Cada asistente escanea este código con su celular y completa: Institución Educativa, Nombre completo, Cargo y Número de documento.</p>
+            <p class="textoAyudaQR">Cada asistente escanea este código con su celular (se abre en una pestaña aparte) y completa: Institución Educativa, Nombre completo, Cargo, Número de documento, Correo electrónico y Teléfono.</p>
             <img id="qrAsistencia" alt="Código QR para firmar asistencia" class="imagenQrAsistencia">
+            <button type="button" id="btnQrPantallaCompleta" class="botonSecundarioFEM">⛶ Ver QR en pantalla completa</button>
             <div id="conteoAsistentesQR" class="estadoArchivo">Cargando…</div>
         </div>
         <div class="evidenciaCard">
@@ -2146,8 +2151,6 @@ Aspectos para orientar la discusión
         </div>
     </div>
 
-    <input type="hidden" id="evidenciaAsistenciaUrl">
-    <input type="hidden" id="evidenciaAsistenciaId">
     <input type="hidden" id="evidenciaFotoUrl">
     <input type="hidden" id="evidenciaFotoId">
 
@@ -2189,6 +2192,9 @@ Aspectos para orientar la discusión
         <h2 class="tituloPrincipal">Informe ejecutivo del FEM 2026</h2>
         <h3 id="tituloInformeFinal"></h3>
         <p>La plenaria ha terminado. El informe ejecutivo reúne la caracterización institucional, la participación y las respuestas definitivas de las tres sesiones.</p>
+        <div class="finalNavegacion">
+            <button type="button" id="btnVolverEvidenciasDesdeFinal" class="botonSecundarioFEM">← Anterior (ver fotografía y QR de asistencia)</button>
+        </div>
         <div class="finalAcciones">
             <button type="button" id="btnGenerarInformeFinal">📄 Generar informe</button>
             <button type="button" id="btnDescargarInformeFinal" disabled>⬇️ Descargar informe</button>
@@ -2211,16 +2217,61 @@ Aspectos para orientar la discusión
         <a id="linkInformeCierre" href="#" target="_blank" class="botonEnlaceInforme">📄 Ver / descargar informe</a>
         <p class="textoCierre">Gracias por el tiempo, la participación y la construcción colectiva de la comunidad educativa.</p>
 
-        <div class="calificacionFEM" id="calificacionFEM">
-            <p class="calificacionFEMTitulo">¿Cómo calificaría esta actividad?</p>
-            <div class="calificacionCorazones" id="calificacionCorazones" role="radiogroup" aria-label="Calificación de la actividad">
-                <button type="button" class="corazonFEM" data-valor="1" aria-label="1 corazón">🤍</button>
-                <button type="button" class="corazonFEM" data-valor="2" aria-label="2 corazones">🤍</button>
-                <button type="button" class="corazonFEM" data-valor="3" aria-label="3 corazones">🤍</button>
-                <button type="button" class="corazonFEM" data-valor="4" aria-label="4 corazones">🤍</button>
-                <button type="button" class="corazonFEM" data-valor="5" aria-label="5 corazones">🤍</button>
+        <div class="valoracionFEM" id="valoracionFEM">
+            <h3 class="valoracionFEMTitulo">📋 Valoración de la actividad</h3>
+            <p class="valoracionFEMIntro">Este espacio lo responde únicamente quien diligenció el formulario.</p>
+
+            <div class="valoracionPregunta" data-pregunta="p1">
+                <p>🏫 ¿La fase del Foro Educativo Institucional permitió generar espacios de diálogo y reflexión sobre los retos y oportunidades de la educación en nuestra comunidad educativa?</p>
+                <div class="valoracionCorazones" role="radiogroup" aria-label="Pregunta 1">
+                    <button type="button" class="corazonValoracion" data-valor="1" aria-label="1 corazón">🤍</button>
+                    <button type="button" class="corazonValoracion" data-valor="2" aria-label="2 corazones">🤍</button>
+                    <button type="button" class="corazonValoracion" data-valor="3" aria-label="3 corazones">🤍</button>
+                    <button type="button" class="corazonValoracion" data-valor="4" aria-label="4 corazones">🤍</button>
+                    <button type="button" class="corazonValoracion" data-valor="5" aria-label="5 corazones">🤍</button>
+                </div>
             </div>
-            <p class="calificacionFEMEstado" id="calificacionFEMEstado"></p>
+
+            <div class="valoracionPregunta" data-pregunta="p2">
+                <p>🤝 ¿Considera que el Foro Educativo Institucional permitió la participación activa de estudiantes, docentes, familias y demás integrantes de la comunidad educativa?</p>
+                <div class="valoracionCorazones" role="radiogroup" aria-label="Pregunta 2">
+                    <button type="button" class="corazonValoracion" data-valor="1" aria-label="1 corazón">🤍</button>
+                    <button type="button" class="corazonValoracion" data-valor="2" aria-label="2 corazones">🤍</button>
+                    <button type="button" class="corazonValoracion" data-valor="3" aria-label="3 corazones">🤍</button>
+                    <button type="button" class="corazonValoracion" data-valor="4" aria-label="4 corazones">🤍</button>
+                    <button type="button" class="corazonValoracion" data-valor="5" aria-label="5 corazones">🤍</button>
+                </div>
+            </div>
+
+            <div class="valoracionPregunta" data-pregunta="p3">
+                <p>💡 ¿Los temas abordados durante el Foro Educativo Institucional aportaron ideas o propuestas que pueden contribuir al mejoramiento de nuestra institución educativa?</p>
+                <div class="valoracionCorazones" role="radiogroup" aria-label="Pregunta 3">
+                    <button type="button" class="corazonValoracion" data-valor="1" aria-label="1 corazón">🤍</button>
+                    <button type="button" class="corazonValoracion" data-valor="2" aria-label="2 corazones">🤍</button>
+                    <button type="button" class="corazonValoracion" data-valor="3" aria-label="3 corazones">🤍</button>
+                    <button type="button" class="corazonValoracion" data-valor="4" aria-label="4 corazones">🤍</button>
+                    <button type="button" class="corazonValoracion" data-valor="5" aria-label="5 corazones">🤍</button>
+                </div>
+            </div>
+
+            <div class="valoracionPregunta" data-pregunta="p4">
+                <p>😊 ¿Qué tan satisfecho(a) se encuentra con el instrumento utilizado para recoger la información y conocer la percepción de la comunidad educativa sobre el Foro Educativo Institucional?</p>
+                <div class="valoracionCorazones" role="radiogroup" aria-label="Pregunta 4">
+                    <button type="button" class="corazonValoracion" data-valor="1" aria-label="1 corazón">🤍</button>
+                    <button type="button" class="corazonValoracion" data-valor="2" aria-label="2 corazones">🤍</button>
+                    <button type="button" class="corazonValoracion" data-valor="3" aria-label="3 corazones">🤍</button>
+                    <button type="button" class="corazonValoracion" data-valor="4" aria-label="4 corazones">🤍</button>
+                    <button type="button" class="corazonValoracion" data-valor="5" aria-label="5 corazones">🤍</button>
+                </div>
+            </div>
+
+            <div class="valoracionPregunta valoracionAbierta">
+                <label for="valoracionP5">💬 ¿Qué sugerencias, recomendaciones o propuestas tiene para fortalecer la organización y desarrollo del Foro Educativo Institucional 2026?</label>
+                <textarea id="valoracionP5" rows="4" placeholder="Escriba aquí su respuesta (opcional)"></textarea>
+            </div>
+
+            <button type="button" id="btnEnviarValoracionFEM">Enviar valoración</button>
+            <p class="calificacionFEMEstado" id="valoracionFEMEstado"></p>
         </div>
     </div>
 </section>

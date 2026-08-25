@@ -2065,25 +2065,64 @@ button:disabled{
 
 .textoCierre{color:var(--gris-texto);font-style:italic;margin-top:18px;}
 
-.calificacionFEM{
+/* Valoración FEMI2026 — 4 preguntas de corazones + 1 abierta,
+   solo la responde quien diligenció el formulario. */
+.valoracionFEM{
     margin-top:28px;
     padding-top:24px;
     border-top:1px solid var(--gris-borde);
+    text-align:left;
 }
-.calificacionFEMTitulo{color:var(--verde-neiva);font-weight:700;font-size:17px;margin-bottom:10px;}
-.calificacionCorazones{display:flex;justify-content:center;gap:8px;}
-.corazonFEM{
+.valoracionFEMTitulo{color:var(--verde-neiva);font-weight:700;font-size:19px;margin-bottom:4px;text-align:center;}
+.valoracionFEMIntro{color:var(--gris-texto);font-size:14px;text-align:center;margin-bottom:20px;}
+.valoracionPregunta{
+    background:var(--gris-fondo);
+    border-radius:var(--radio);
+    padding:18px 20px;
+    margin-bottom:14px;
+}
+.valoracionPregunta p{color:var(--gris-texto);font-size:15px;line-height:1.5;margin-bottom:12px;}
+.valoracionCorazones{display:flex;justify-content:center;gap:8px;}
+.corazonValoracion{
     background:transparent;
     border:none;
     padding:4px;
-    font-size:34px;
+    font-size:30px;
     line-height:1;
     cursor:pointer;
     transition:transform .15s;
 }
-.corazonFEM:hover{background:transparent;transform:scale(1.15);}
-.corazonFEM.seleccionado{transform:scale(1.05);}
-.calificacionFEMEstado{min-height:20px;color:var(--verde-neiva);font-weight:600;font-size:14px;margin-top:8px;}
+.corazonValoracion:hover{background:transparent;transform:scale(1.15);}
+.corazonValoracion.seleccionado{transform:scale(1.05);}
+.valoracionAbierta label{display:block;font-weight:bold;color:var(--verde-neiva);margin-bottom:8px;font-size:15px;}
+.valoracionAbierta textarea{
+    width:100%;
+    min-height:100px;
+    padding:12px;
+    font-size:15px;
+    font-family:inherit;
+    border:1px solid var(--gris-borde);
+    border-radius:10px;
+    resize:vertical;
+}
+#btnEnviarValoracionFEM{display:block;width:100%;margin-top:6px;}
+.calificacionFEMEstado{min-height:20px;color:var(--verde-neiva);font-weight:600;font-size:14px;margin-top:10px;text-align:center;}
+
+/* Aviso de la pantalla de Evidencias: la asistencia por QR no bloquea continuar. */
+.avisoAsistenciaQR{
+    background:#EAF6EF;
+    border-left:8px solid var(--verde-neiva);
+    border-radius:var(--radio);
+    padding:16px 20px;
+    margin:18px 0;
+    color:var(--gris-texto);
+    line-height:1.5;
+}
+
+/* Botón "Anterior" desde el informe final, hacia Evidencias. */
+.finalNavegacion{margin-bottom:18px;text-align:center;}
+.finalNavegacion .botonSecundarioFEM{width:auto;padding:12px 24px;font-size:14px;}
+.evidenciaCard .botonSecundarioFEM{width:auto;padding:10px 18px;font-size:13px;margin-top:6px;}
 
 /* =====================================================
    EVIDENCIAS (asistencia por QR + fotografía)

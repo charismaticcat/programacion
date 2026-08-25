@@ -4581,7 +4581,7 @@ function asegurarColumnasAccesosIE_(){
   const ss=SpreadsheetApp.openById(SPREADSHEET_ID);
   let hoja=ss.getSheetByName(HOJA_ACCESOS);
   if(!hoja) hoja=ss.insertSheet(HOJA_ACCESOS);
-  const requeridas=["ID_ACCESO","IE","DANE","CODIGO_ACCESO","TOKEN","URL_ACCESO","ID_FORO","ESTADO","TOKEN_SESION","DISPOSITIVO_ID","FECHA_GENERACION","FECHA_PRIMER_ACCESO","ULTIMA_ACTIVIDAD","FECHA_ENVIO","EMAIL_IE","EMAIL_RESPONSABLE","TIPO","S1_ENVIADA","S2_ENVIADA","S3_ENVIADA","ID_INFORME","ID_PDF_INFORME","CALIFICACION_ACTIVIDAD","FECHA_CALIFICACION"];
+  const requeridas=["ID_ACCESO","IE","DANE","CODIGO_ACCESO","TOKEN","URL_ACCESO","ID_FORO","ESTADO","TOKEN_SESION","DISPOSITIVO_ID","FECHA_GENERACION","FECHA_PRIMER_ACCESO","ULTIMA_ACTIVIDAD","FECHA_ENVIO","EMAIL_IE","EMAIL_RESPONSABLE","TIPO","S1_ENVIADA","S2_ENVIADA","S3_ENVIADA","ID_INFORME","ID_PDF_INFORME"];
   const last=hoja.getLastColumn();
   const existentes=last?hoja.getRange(1,1,1,last).getValues()[0].map(String):[];
   if(!last){hoja.getRange(1,1,1,requeridas.length).setValues([requeridas]);}
@@ -4688,11 +4688,15 @@ function hacerPublicoSiEsPosible_(file){try{file.setSharing(DriveApp.Access.ANYO
  * completando IE, nombre completo, cargo y documento.
  *****************************************************/
 
+// Mismas categorías de la caracterización, en singular — para el
+// desplegable de "Cargo" que llena cada asistente al firmar por QR.
+const CARGOS_ASISTENCIA_QR=["Rector(a)","Coordinador(a)","Docente","Tutor(a) PTA/PFI 3.0","Orientador(a)","Estudiante","Padre/madre/acudiente","Personal administrativo","Egresado(a)","Sector productivo","Otro"];
+
 function asegurarHojaAsistenciaQR_(){
   const ss=SpreadsheetApp.openById(SPREADSHEET_ID);
   let hoja=ss.getSheetByName(HOJA_ASISTENCIA_QR);
   if(!hoja) hoja=ss.insertSheet(HOJA_ASISTENCIA_QR);
-  const requeridas=["ID_FORO","IE","NOMBRE_COMPLETO","CARGO","NUMERO_DOCUMENTO","FECHA"];
+  const requeridas=["ID_FORO","IE","NOMBRE_COMPLETO","CARGO","NUMERO_DOCUMENTO","CORREO","TELEFONO","FECHA","HORA"];
   const last=hoja.getLastColumn();
   if(!last){ hoja.getRange(1,1,1,requeridas.length).setValues([requeridas]); }
   return hoja;
@@ -4703,7 +4707,7 @@ function asegurarHojaAsistenciaQR_(){
  * No exige sesión ni dispositivo: los asistentes firman desde su
  * propio celular, distinto al que usa quien diligencia el formulario.
  */
-function registrarAsistenciaQR(idForo, nombre, cargo, documento){
+function registrarAsistenciaQR(idForo, nombre, cargo, documento, correo, telefono){
   const lock=LockService.getScriptLock();
   try{
     lock.waitLock(10000);
@@ -4712,9 +4716,11 @@ function registrarAsistenciaQR(idForo, nombre, cargo, documento){
     nombre=String(nombre||"").trim();
     cargo=String(cargo||"").trim();
     documento=String(documento||"").trim();
+    correo=String(correo||"").trim();
+    telefono=String(telefono||"").trim();
 
     if(!idForo) return {ok:false, mensaje:"Enlace de asistencia inválido."};
-    if(!nombre || !cargo || !documento) return {ok:false, mensaje:"Complete institución, nombre, cargo y número de documento."};
+    if(!nombre || !cargo || !documento || !correo) return {ok:false, mensaje:"Complete nombre, cargo, número de documento y correo electrónico."};
 
     const acceso=obtenerAccesoPorIdForo_(idForo);
     if(!acceso) return {ok:false, mensaje:"Este código de asistencia ya no está disponible."};
@@ -4736,7 +4742,13 @@ function registrarAsistenciaQR(idForo, nombre, cargo, documento){
       }
     }
 
-    hoja.appendRow([idForo, acceso.ie, nombre, cargo, documento, new Date()]);
+    const ahora=new Date();
+    const zona=Session.getScriptTimeZone();
+    const fila=new Array(hoja.getLastColumn()).fill("");
+    const valores={ID_FORO:idForo, IE:acceso.ie, NOMBRE_COMPLETO:nombre, CARGO:cargo, NUMERO_DOCUMENTO:documento, CORREO:correo, TELEFONO:telefono,
+      FECHA:Utilities.formatDate(ahora,zona,"dd/MM/yyyy"), HORA:Utilities.formatDate(ahora,zona,"HH:mm:ss")};
+    Object.keys(valores).forEach(k=>{ if(m[k]) fila[m[k]-1]=valores[k]; });
+    hoja.appendRow(fila);
     return {ok:true};
 
   }catch(error){
@@ -4751,19 +4763,25 @@ function obtenerAsistentesQR_(idForo){
   const m=mapaHoja_(hoja);
   const ultimaFila=hoja.getLastRow();
   if(ultimaFila<2) return [];
-  const filas=hoja.getRange(2,1,ultimaFila-1,hoja.getLastColumn()).getValues();
+  const filas=hoja.getRange(2,1,ultimaFila-1,hoja.getLastColumn()).getDisplayValues();
   return filas
     .filter(fila=>String(fila[m.ID_FORO-1]||"").trim()===String(idForo||"").trim())
     .map(fila=>({
       nombre:String(fila[m.NOMBRE_COMPLETO-1]||""),
       cargo:String(fila[m.CARGO-1]||""),
-      documento:String(fila[m.NUMERO_DOCUMENTO-1]||"")
+      documento:String(fila[m.NUMERO_DOCUMENTO-1]||""),
+      correo:String(fila[m.CORREO-1]||""),
+      telefono:String(fila[m.TELEFONO-1]||""),
+      fecha:String(fila[m.FECHA-1]||""),
+      hora:String(fila[m.HORA-1]||"")
     }));
 }
 
 /*
  * Se llama desde la pantalla de Evidencias para mostrar cuántas
- * personas ya firmaron mientras el QR sigue disponible.
+ * personas ya firmaron mientras el QR sigue disponible. La
+ * asistencia se sigue firmando durante toda la jornada, así que
+ * esto NO bloquea continuar a la plenaria — solo informa.
  */
 function contarAsistentesQR(idForo){
   try{
@@ -4774,50 +4792,44 @@ function contarAsistentesQR(idForo){
 }
 
 /*
- * Genera el listado de asistencia (a partir de lo firmado por QR)
- * como un Google Doc exportado a PDF en la carpeta de la IE — el
- * mismo rol que antes cumplía el PDF subido manualmente.
+ * Agrega al informe ejecutivo, después de la fotografía, el
+ * listado de quienes firmaron asistencia por código QR — ya no se
+ * genera como un PDF aparte, va incluido al final del informe.
  */
-function generarListadoAsistenciaPDF_(idForo, institucion, folder){
+function agregarListadoAsistenciaAlInforme_(body, idForo, datos){
   const asistentes=obtenerAsistentesQR_(idForo);
-  const doc=DocumentApp.create("Listado de asistencia (QR) - "+institucion+" FEM 2026");
-  const file=DriveApp.getFileById(doc.getId());
-  folder.addFile(file);
-  try{ DriveApp.getRootFolder().removeFile(file); }catch(e){}
 
-  const body=doc.getBody(); body.clear();
-  const titulo=body.appendParagraph("Listado de asistencia — "+institucion);
-  titulo.setHeading(DocumentApp.ParagraphHeading.TITLE);
+  const titulo=body.appendParagraph("Listado de asistencia (firmado por código QR)");
+  titulo.setHeading(DocumentApp.ParagraphHeading.HEADING1);
   titulo.editAsText().setForegroundColor(COLOR_VERDE_DOC).setBold(true);
 
-  const sub=body.appendParagraph("Foro Educativo Institucional — Neiva 2026. Firmado por código QR el "+Utilities.formatDate(new Date(),Session.getScriptTimeZone(),"dd/MM/yyyy 'a las' HH:mm")+".");
-  sub.editAsText().setForegroundColor(COLOR_GRIS_TEXTO_DOC).setItalic(true);
-
   if(!asistentes.length){
-    const vacio=body.appendParagraph("Aún no hay firmas registradas por código QR.");
+    const vacio=body.appendParagraph("No se registraron firmas de asistencia por código QR.");
     vacio.editAsText().setForegroundColor(COLOR_GRIS_TEXTO_DOC);
-  }else{
-    const t=body.appendTable();
-    t.setBorderColor(COLOR_GRIS_BORDE_DOC); t.setBorderWidth(1);
-    const encabezado=t.appendTableRow();
-    ["Nombre completo","Cargo","Número de documento"].forEach(function(texto){
-      const celda=encabezado.appendTableCell(texto);
-      celda.setBackgroundColor(COLOR_VERDE_DOC);
-      celda.editAsText().setForegroundColor("#FFFFFF").setBold(true).setFontSize(10);
-    });
-    asistentes.forEach(function(a){
-      const r=t.appendTableRow();
-      r.appendTableCell(a.nombre).editAsText().setForegroundColor(COLOR_GRIS_TEXTO_DOC).setFontSize(10);
-      r.appendTableCell(a.cargo).editAsText().setForegroundColor(COLOR_GRIS_TEXTO_DOC).setFontSize(10);
-      r.appendTableCell(a.documento).editAsText().setForegroundColor(COLOR_GRIS_TEXTO_DOC).setFontSize(10);
-    });
+    return;
   }
 
-  doc.saveAndClose();
-  const pdfBlob=DriveApp.getFileById(doc.getId()).getAs(MimeType.PDF).setName("Listado de asistencia (QR) - "+institucion+" FEM 2026.pdf");
-  const pdf=folder.createFile(pdfBlob);
-  hacerPublicoSiEsPosible_(file); hacerPublicoSiEsPosible_(pdf);
-  return {id:pdf.getId(), url:pdf.getUrl(), total:asistentes.length};
+  const t=body.appendTable();
+  t.setBorderColor(COLOR_GRIS_BORDE_DOC); t.setBorderWidth(1);
+  const encabezado=t.appendTableRow();
+  ["Nombre completo","Cargo","N.° documento","Correo","Teléfono","Fecha","Hora"].forEach(function(texto){
+    const celda=encabezado.appendTableCell(texto);
+    celda.setBackgroundColor(COLOR_VERDE_DOC);
+    celda.editAsText().setForegroundColor("#FFFFFF").setBold(true).setFontSize(9);
+  });
+  asistentes.forEach(function(a){
+    const r=t.appendTableRow();
+    [a.nombre,a.cargo,a.documento,a.correo,a.telefono,a.fecha,a.hora].forEach(function(valor){
+      r.appendTableCell(String(valor||"—")).editAsText().setForegroundColor(COLOR_GRIS_TEXTO_DOC).setFontSize(9);
+    });
+  });
+
+  const totalCaracterizacion=totalParticipantesServer_(datos);
+  const resumen=body.appendParagraph(
+    "Total de participantes según firmas de asistencia (QR): "+asistentes.length+"\n"+
+    "Total de participantes según caracterización institucional: "+totalCaracterizacion
+  );
+  resumen.editAsText().setForegroundColor(COLOR_GRIS_TEXTO_DOC).setBold(true);
 }
 
 /*
@@ -4828,6 +4840,10 @@ function generarListadoAsistenciaPDF_(idForo, institucion, folder){
 function paginaAsistenciaQR_(idForo){
   const acceso=obtenerAccesoPorIdForo_(idForo);
   const ie=acceso?acceso.ie:"";
+
+  const opcionesCargo=CARGOS_ASISTENCIA_QR.map(function(c){
+    return '<option value="'+c.replace(/"/g,"&quot;")+'">'+c+'</option>';
+  }).join("");
 
   const html=
     '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'+
@@ -4840,7 +4856,7 @@ function paginaAsistenciaQR_(idForo){
     'h1{color:#0B6A44;font-size:22px;margin:0 0 6px;}'+
     'p{line-height:1.5;}'+
     'label{display:block;font-weight:bold;color:#0B6A44;margin:16px 0 6px;}'+
-    'input{width:100%;padding:12px;font-size:16px;border:1px solid #DADCE0;border-radius:8px;box-sizing:border-box;}'+
+    'input,select{width:100%;padding:12px;font-size:16px;border:1px solid #DADCE0;border-radius:8px;box-sizing:border-box;font-family:inherit;}'+
     'button{width:100%;margin-top:22px;padding:14px;font-size:17px;background:#0B6A44;color:#fff;border:none;border-radius:10px;cursor:pointer;}'+
     'button:disabled{background:#bdbdbd;}'+
     '#estado{margin-top:14px;font-weight:600;min-height:20px;}'+
@@ -4853,9 +4869,13 @@ function paginaAsistenciaQR_(idForo){
     '<label>Nombre completo</label>'+
     '<input id="nombre" autocomplete="name">'+
     '<label>Cargo</label>'+
-    '<input id="cargo" autocomplete="organization-title">'+
+    '<select id="cargo"><option value="">Seleccione…</option>'+opcionesCargo+'</select>'+
     '<label>Número de documento</label>'+
     '<input id="documento" inputmode="numeric" autocomplete="off">'+
+    '<label>Correo electrónico</label>'+
+    '<input id="correo" type="email" autocomplete="email">'+
+    '<label>Teléfono (opcional)</label>'+
+    '<input id="telefono" type="tel" autocomplete="tel">'+
     '<button id="btnFirmar" type="button">Firmar asistencia</button>'+
     '<div id="estado"></div>'+
     '</div>'+
@@ -4865,13 +4885,15 @@ function paginaAsistenciaQR_(idForo){
     'var nombre=document.getElementById("nombre").value.trim();'+
     'var cargo=document.getElementById("cargo").value.trim();'+
     'var documento=document.getElementById("documento").value.trim();'+
-    'if(!nombre||!cargo||!documento){estado.textContent="Complete nombre, cargo y número de documento.";return;}'+
+    'var correo=document.getElementById("correo").value.trim();'+
+    'var telefono=document.getElementById("telefono").value.trim();'+
+    'if(!nombre||!cargo||!documento||!correo){estado.textContent="Complete nombre, cargo, número de documento y correo electrónico.";return;}'+
     'btn.disabled=true; btn.textContent="Firmando…";'+
     'google.script.run.withSuccessHandler(function(res){'+
     'if(res&&res.ok){ btn.textContent=res.yaRegistrado?"Ya habías firmado":"✓ Asistencia firmada"; estado.textContent="¡Gracias! Ya puedes cerrar esta página."; }'+
     'else{ btn.disabled=false; btn.textContent="Firmar asistencia"; estado.textContent=(res&&res.mensaje)||"No fue posible registrar la asistencia."; }'+
     '}).withFailureHandler(function(err){ btn.disabled=false; btn.textContent="Firmar asistencia"; estado.textContent="No fue posible registrar la asistencia: "+(err.message||err); })'+
-    '.registrarAsistenciaQR('+JSON.stringify(idForo)+',nombre,cargo,documento);'+
+    '.registrarAsistenciaQR('+JSON.stringify(idForo)+',nombre,cargo,documento,correo,telefono);'+
     '});'+
     '</script>'+
     '</body></html>';
@@ -4888,8 +4910,10 @@ function subirEvidenciasFEM(idForo,fotoData,fotoName,fotoMime,datos){
   const fotoNombre="Foro 2026 ("+(datos.institucion||acceso.ie)+")."+(fotoMime==="image/png"?"png":"jpg");
   const foto=folder.createFile(Utilities.newBlob(fb,fotoMime,fotoNombre));
   foto.setDescription("Participantes del FEM 2026 | I.E. "+(datos.institucion||acceso.ie)+" | Grupo: "+(datos.campos?.grupo?.valor||"")+" | Fecha y hora de submisión: "+new Date()); hacerPublicoSiEsPosible_(foto);
-  const asistencia=generarListadoAsistenciaPDF_(idForo, datos.institucion||acceso.ie, folder);
-  return {ok:true,asistencia:{id:asistencia.id,url:asistencia.url,total:asistencia.total},foto:{id:foto.getId(),url:foto.getUrl()},folderId:folder.getId()};
+  // La asistencia ya NO produce un archivo aparte: se sigue firmando
+  // por QR durante toda la jornada y se incluye al final del informe
+  // ejecutivo (ver agregarListadoAsistenciaAlInforme_ en generarInformeFEM).
+  return {ok:true,foto:{id:foto.getId(),url:foto.getUrl()},folderId:folder.getId()};
 }
 
 
@@ -5043,10 +5067,11 @@ function generarInformeFEM(idForo,datosCliente){
      * mismo en vez de empezar siempre una hoja nueva.
      */
     encabezadoSeccion_("Evidencias de la jornada");
-    const pEv=body.appendParagraph("Los soportes documentales originales se encuentran almacenados en la carpeta institucional de la IE en Google Drive.");
+    const pEv=body.appendParagraph("La fotografía original se encuentra almacenada en la carpeta institucional de la IE en Google Drive. La asistencia se firmó por código QR durante la jornada; el listado completo se incluye a continuación.");
     pEv.editAsText().setForegroundColor(GRIS_TEXTO);
-    if(c.evidenciaAsistenciaUrl?.valor){ const p1=body.appendParagraph("📄 Descargar listado de asistencia"); const t1=p1.editAsText(); t1.setLinkUrl(String(c.evidenciaAsistenciaUrl.valor)); t1.setForegroundColor(VERDE); }
     if(c.evidenciaFotoUrl?.valor){ const p2=body.appendParagraph("📷 Ver fotografía de la plenaria"); const t2=p2.editAsText(); t2.setLinkUrl(String(c.evidenciaFotoUrl.valor)); t2.setForegroundColor(VERDE); }
+
+    agregarListadoAsistenciaAlInforme_(body, idForo, datos);
 
     doc.saveAndClose();
     const pdfBlob=DriveApp.getFileById(doc.getId()).getAs(MimeType.PDF).setName(nombreArchivo+".pdf");
@@ -5110,29 +5135,59 @@ function finalizarFormularioFEM(idForo,tokenSesion,dispositivoId,pdfId){
 
 
 /*****************************************************
- * CALIFICACIÓN DE LA ACTIVIDAD (1 a 5 corazones)
+ * VALORACIÓN DE LA ACTIVIDAD (FEMI2026)
  *
- * Se guarda en AccesosIE, no bloquea ni exige nada más:
- * es una encuesta opcional en la pantalla de cierre.
+ * Subpantalla que responde únicamente quien diligenció el
+ * formulario, al finalizar. 4 preguntas de escala 1–5
+ * (corazones) + 1 pregunta abierta. Se guarda en una hoja
+ * propia, no bloquea ni exige nada más.
  *****************************************************/
-function guardarCalificacionFEM(idForo, calificacion){
+const HOJA_VALORACION_FEM = "Valoración FEMI2026";
+
+function asegurarHojaValoracionFEM_(){
+  const ss=SpreadsheetApp.openById(SPREADSHEET_ID);
+  let hoja=ss.getSheetByName(HOJA_VALORACION_FEM);
+  if(!hoja) hoja=ss.insertSheet(HOJA_VALORACION_FEM);
+  const requeridas=["ID_FORO","IE","FECHA","P1_DIALOGO_REFLEXION","P2_PARTICIPACION","P3_IDEAS_PROPUESTAS","P4_SATISFACCION_INSTRUMENTO","P5_SUGERENCIAS"];
+  const last=hoja.getLastColumn();
+  if(!last){ hoja.getRange(1,1,1,requeridas.length).setValues([requeridas]); }
+  return hoja;
+}
+
+function guardarValoracionFEM(idForo, respuestas){
   const lock=LockService.getScriptLock();
   try{
     lock.waitLock(10000);
-    calificacion = Number(calificacion);
-    if(!(calificacion>=1 && calificacion<=5)){
-      return {ok:false, mensaje:"La calificación debe ser un número entre 1 y 5."};
+
+    respuestas = respuestas || {};
+    const puntajes = ["p1","p2","p3","p4"].map(k=>Number(respuestas[k]));
+    for(let i=0;i<puntajes.length;i++){
+      if(!(puntajes[i]>=1 && puntajes[i]<=5)){
+        return {ok:false, mensaje:"Las 4 primeras preguntas deben calificarse de 1 a 5 corazones."};
+      }
     }
-    asegurarColumnasAccesosIE_();
-    const ac = obtenerAccesoPorIdForoRaw_(idForo);
-    if(!ac) return {ok:false, mensaje:"El ID_FORO no está autorizado."};
-    if(ac.mapa.CALIFICACION_ACTIVIDAD){
-      ac.hoja.getRange(ac.fila, ac.mapa.CALIFICACION_ACTIVIDAD).setValue(calificacion);
-    }
-    if(ac.mapa.FECHA_CALIFICACION){
-      ac.hoja.getRange(ac.fila, ac.mapa.FECHA_CALIFICACION).setValue(new Date());
-    }
+
+    const acceso=obtenerAccesoPorIdForo_(idForo);
+    if(!acceso) return {ok:false, mensaje:"El ID_FORO no está autorizado."};
+
+    const hoja=asegurarHojaValoracionFEM_();
+    const m=mapaHoja_(hoja);
+    const fila=new Array(hoja.getLastColumn()).fill("");
+    const valores={
+      ID_FORO:String(idForo),
+      IE:acceso.ie,
+      FECHA:new Date(),
+      P1_DIALOGO_REFLEXION:puntajes[0],
+      P2_PARTICIPACION:puntajes[1],
+      P3_IDEAS_PROPUESTAS:puntajes[2],
+      P4_SATISFACCION_INSTRUMENTO:puntajes[3],
+      P5_SUGERENCIAS:String(respuestas.p5||"").trim()
+    };
+    Object.keys(valores).forEach(k=>{ if(m[k]) fila[m[k]-1]=valores[k]; });
+    hoja.appendRow(fila);
+
     return {ok:true};
+
   }catch(error){
     return {ok:false, mensaje:error.message};
   }finally{

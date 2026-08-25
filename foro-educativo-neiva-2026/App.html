@@ -682,7 +682,7 @@ const tarjetasRecorrido = [
         icono: "📷",
         titulo: "Evidencias",
         que: "Registraremos las evidencias del desarrollo del Foro antes de iniciar la plenaria.",
-        preparado: "Una fotografía horizontal HD con la mayor cantidad posible de participantes trabajando y el listado oficial de asistencia en PDF.",
+        preparado: "Una fotografía horizontal HD con la mayor cantidad posible de participantes trabajando. La asistencia se firma por código QR, no en PDF.",
         paraQue: "Respaldar documentalmente el desarrollo del Foro y completar el informe institucional.",
         frase: "Cada evidencia respalda el trabajo realizado."
     },
@@ -4376,9 +4376,13 @@ function aplicarDatosDeBorrador_(datos, mostrarPantalla, mensajeEstado){
     const contEvidenciasBtn =
         document.getElementById("btnContinuarDesdeEvidencias");
 
+    /*
+     * La asistencia ya no es un archivo que se sube: se firma por
+     * QR durante toda la jornada, en paralelo, sin bloquear nada.
+     * "Continuar" depende únicamente de la fotografía.
+     */
     if(
         contEvidenciasBtn &&
-        document.getElementById("evidenciaAsistenciaUrl")?.value &&
         document.getElementById("evidenciaFotoUrl")?.value
     ){
         contEvidenciasBtn.disabled = false;
@@ -5416,9 +5420,19 @@ function inicializarPlenaria(){
     const foto=document.getElementById("archivoFoto");
     if(foto) foto.addEventListener("change",actualizarEstadoEvidencias);
 
+    const btnQrPantallaCompleta=document.getElementById("btnQrPantallaCompleta");
+    if(btnQrPantallaCompleta) btnQrPantallaCompleta.addEventListener("click",async function(){
+        const img=document.getElementById("qrAsistencia");
+        if(!img) return;
+        try{
+            if(!document.fullscreenElement) await img.requestFullscreen();
+            else await document.exitFullscreen();
+        }catch(error){ console.error("No fue posible mostrar el QR en pantalla completa:",error); }
+    });
+
     const subir=document.getElementById("btnSubirEvidencias");
     if(subir) subir.addEventListener("click",subirEvidenciasFEM);
-    if(document.getElementById("evidenciaAsistenciaUrl")?.value && document.getElementById("evidenciaFotoUrl")?.value){
+    if(document.getElementById("evidenciaFotoUrl")?.value){
         const c=document.getElementById("btnContinuarDesdeEvidencias"); if(c)c.disabled=false;
     }
 
@@ -5448,12 +5462,34 @@ function inicializarPlenaria(){
     const ant=document.getElementById("btnAnteriorPlenaria");
     if(ant) ant.addEventListener("click",function(){ plenariaIrA(plenariaPaginaActual-1); });
     const sig=document.getElementById("btnContinuarPlenaria");
-    if(sig) sig.addEventListener("click",function(){
+    if(sig) sig.addEventListener("click",async function(){
         const pages=document.querySelectorAll("#plenariaContenido .plenariaPagina");
         if(plenariaPaginaActual>=pages.length-1){
             const s=window._FEM_SESIONES_ENVIADAS||{};
             if(!s[1]||!s[2]||!s[3]){ alert("Debe enviar definitivamente las respuestas de las tres sesiones antes de continuar al informe final."); return; }
-            cambiarPantalla("pantallaPlenaria","pantallaFinalFEM",11);
+
+            /*
+             * Cierra el envío: guarda en la hoja propia de la IE,
+             * actualiza participación y gráficos, y marca ESTADO =
+             * ENVIADO en AccesosIE. Sin esto, nada de eso queda
+             * registrado — enviarRespuestasSesion solo toca
+             * AvancesForo — y "Finalizar" más adelante fallaría
+             * porque exige ese ESTADO.
+             */
+            sig.disabled=true; sig.textContent="Preparando informe…";
+            try{
+                const datos=obtenerDatosFormularioActual_();
+                const r=await new Promise((resolve,reject)=>{
+                    google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)
+                        .enviarForoDefinitivo(datos.idForo, window.DATOS_ACCESO_FEM?.tokenSesion||"", window.DATOS_ACCESO_FEM?.dispositivoId||obtenerDispositivoIdFEM(), datos);
+                });
+                if(!r || !r.ok) throw new Error(r?.mensaje||"No fue posible finalizar el envío.");
+                cambiarPantalla("pantallaPlenaria","pantallaFinalFEM",11);
+            }catch(error){
+                alert(error.message||error);
+            }finally{
+                sig.disabled=false; sig.textContent="Continuar →";
+            }
             return;
         }
         plenariaIrA(plenariaPaginaActual+1);
@@ -5468,59 +5504,90 @@ function inicializarPlenaria(){
     const finalizar=document.getElementById("btnFinalizarFEM");
     if(finalizar) finalizar.addEventListener("click",finalizarFEMUI);
 
-    inicializarCalificacionFEM_();
+    inicializarValoracionFEM_();
+
+    const volverFinal=document.getElementById("btnVolverEvidenciasDesdeFinal");
+    if(volverFinal) volverFinal.addEventListener("click",function(){ cambiarPantalla("pantallaFinalFEM","pantallaEvidencias",9); });
 }
 
 
 /*
- * Calificación de la actividad con 5 corazones, en la pantalla de
- * cierre. Es una encuesta opcional: no bloquea nada, solo guarda
- * la calificación elegida.
+ * Valoración FEMI2026, en la pantalla de cierre — la responde
+ * únicamente quien diligenció el formulario. 4 preguntas con
+ * escala de 1 a 5 corazones (se guarda como número entero, no
+ * texto) + 1 pregunta abierta. Es una encuesta que no bloquea
+ * nada: se envía con su propio botón, una sola vez.
  */
-function inicializarCalificacionFEM_(){
-    const corazones=Array.prototype.slice.call(document.querySelectorAll("#calificacionCorazones .corazonFEM"));
-    if(!corazones.length) return;
+function inicializarValoracionFEM_(){
+    const contenedor=document.getElementById("valoracionFEM");
+    if(!contenedor || contenedor.dataset.valoracionInicializada==="1") return;
+    contenedor.dataset.valoracionInicializada="1";
 
-    corazones.forEach(function(btn){
-        if(btn.dataset.calificacionInicializada==="1") return;
-        btn.dataset.calificacionInicializada="1";
-        btn.addEventListener("click",function(){
-            const valor=Number(this.dataset.valor);
+    const puntajes={p1:0,p2:0,p3:0,p4:0};
 
-            corazones.forEach(function(b){
-                const v=Number(b.dataset.valor);
-                b.textContent=v<=valor?"❤️":"🤍";
-                b.classList.toggle("seleccionado",v===valor);
+    contenedor.querySelectorAll(".valoracionPregunta[data-pregunta]").forEach(function(bloque){
+        const pregunta=bloque.dataset.pregunta;
+        const corazones=Array.prototype.slice.call(bloque.querySelectorAll(".corazonValoracion"));
+
+        corazones.forEach(function(btn){
+            btn.addEventListener("click",function(){
+                const valor=Number(this.dataset.valor);
+                puntajes[pregunta]=valor;
+                corazones.forEach(function(b){
+                    const v=Number(b.dataset.valor);
+                    b.textContent=v<=valor?"❤️":"🤍";
+                    b.classList.toggle("seleccionado",v===valor);
+                });
             });
-
-            const estado=document.getElementById("calificacionFEMEstado");
-
-            let idForo="";
-            try{
-                idForo=obtenerIdForo();
-            }catch(error){
-                idForo=String(localStorage.getItem(obtenerClaveIdForo())||"").trim();
-            }
-
-            if(!idForo){
-                if(estado) estado.textContent="No fue posible identificar el registro para guardar la calificación.";
-                return;
-            }
-
-            if(estado) estado.textContent="Guardando…";
-
-            google.script.run
-                .withSuccessHandler(function(res){
-                    if(!estado) return;
-                    estado.textContent=(res && res.ok)
-                        ? "¡Gracias por tu calificación!"
-                        : (res && res.mensaje ? res.mensaje : "No fue posible guardar la calificación.");
-                })
-                .withFailureHandler(function(error){
-                    if(estado) estado.textContent="No fue posible guardar la calificación: "+(error.message||error);
-                })
-                .guardarCalificacionFEM(idForo, valor);
         });
+    });
+
+    const btnEnviar=document.getElementById("btnEnviarValoracionFEM");
+    if(!btnEnviar) return;
+
+    btnEnviar.addEventListener("click",function(){
+        const estado=document.getElementById("valoracionFEMEstado");
+
+        if(!puntajes.p1||!puntajes.p2||!puntajes.p3||!puntajes.p4){
+            if(estado) estado.textContent="Seleccione de 1 a 5 corazones en las cuatro preguntas antes de enviar.";
+            return;
+        }
+
+        let idForo="";
+        try{
+            idForo=obtenerIdForo();
+        }catch(error){
+            idForo=String(localStorage.getItem(obtenerClaveIdForo())||"").trim();
+        }
+
+        if(!idForo){
+            if(estado) estado.textContent="No fue posible identificar el registro para guardar la valoración.";
+            return;
+        }
+
+        btnEnviar.disabled=true; btnEnviar.textContent="Enviando…";
+        if(estado) estado.textContent="Guardando…";
+
+        const respuestas={
+            p1:puntajes.p1, p2:puntajes.p2, p3:puntajes.p3, p4:puntajes.p4,
+            p5:document.getElementById("valoracionP5")?.value||""
+        };
+
+        google.script.run
+            .withSuccessHandler(function(res){
+                if(res && res.ok){
+                    if(estado) estado.textContent="¡Gracias por tu valoración!";
+                    btnEnviar.textContent="✓ Valoración enviada";
+                }else{
+                    btnEnviar.disabled=false; btnEnviar.textContent="Enviar valoración";
+                    if(estado) estado.textContent=(res && res.mensaje) || "No fue posible guardar la valoración.";
+                }
+            })
+            .withFailureHandler(function(error){
+                btnEnviar.disabled=false; btnEnviar.textContent="Enviar valoración";
+                if(estado) estado.textContent="No fue posible guardar la valoración: "+(error.message||error);
+            })
+            .guardarValoracionFEM(idForo, respuestas);
     });
 }
 
@@ -5611,14 +5678,12 @@ async function subirEvidenciasFEM(){
             );
         });
         if(!resultado || !resultado.ok) throw new Error(resultado?.mensaje||"No fue posible registrar las evidencias.");
-        document.getElementById("evidenciaAsistenciaUrl").value=resultado.asistencia.url;
-        document.getElementById("evidenciaAsistenciaId").value=resultado.asistencia.id;
         document.getElementById("evidenciaFotoUrl").value=resultado.foto.url;
         document.getElementById("evidenciaFotoId").value=resultado.foto.id;
-        const campos=["evidenciaAsistenciaUrl","evidenciaAsistenciaId","evidenciaFotoUrl","evidenciaFotoId"];
+        const campos=["evidenciaFotoUrl","evidenciaFotoId"];
         campos.forEach(id=>document.getElementById(id)?.dispatchEvent(new Event("change")));
         guardarBorradorLocal({silencioso:true});
-        mostrarMensajeEvidencias("✓ Evidencias registradas correctamente ("+(resultado.asistencia.total||0)+" firmas de asistencia). Ya puede continuar a la plenaria.");
+        mostrarMensajeEvidencias("✓ Fotografía registrada. La asistencia se sigue firmando por QR — puede continuar a la plenaria mientras tanto.");
         document.getElementById("btnContinuarDesdeEvidencias").disabled=false;
         btn.textContent="✓ Evidencias registradas";
     }catch(e){
@@ -5671,7 +5736,7 @@ function renderizarPlenaria(opciones){
             plenariaPaginas.push({id:q[0],sesion:grupo.sesion,campo:q[2],sent});
         });
     });
-    html+=`<div class="plenariaPagina evidenciaInforme"><h2>Evidencias</h2><p>📄 <a href="${escapeAttr(getCampoValor("evidenciaAsistenciaUrl"))}" target="_blank">Ver listado de asistencia</a></p><p>📷 <a href="${escapeAttr(getCampoValor("evidenciaFotoUrl"))}" target="_blank">Ver fotografía del Foro</a></p></div>`;
+    html+=`<div class="plenariaPagina evidenciaInforme"><h2>Evidencias</h2><p>📷 <a href="${escapeAttr(getCampoValor("evidenciaFotoUrl"))}" target="_blank">Ver fotografía del Foro</a></p><p>✅ La asistencia se firmó por código QR durante la jornada. El listado completo se incluye al final del informe ejecutivo.</p></div>`;
     contenido.innerHTML=html;
     const nav=document.getElementById("plenariaNavegacion");
     if(nav) nav.innerHTML=plenariaPaginas.map((p,i)=>`<button type="button" data-nav="${i}">${i+1}</button>`).join("");
