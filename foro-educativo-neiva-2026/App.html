@@ -901,6 +901,19 @@ function cambiarPantalla(actual,nueva,paso){
 
     nuevaPantalla.classList.add("visible");
 
+    /*
+     * Sin esto, el navegador conserva la posición de scroll de
+     * la pantalla anterior. Como todas las pantallas viven en el
+     * mismo documento largo, el usuario podía terminar viendo un
+     * punto intermedio o el final de la pantalla nueva y creer
+     * que el botón "Atrás"/"Continuar" no hizo nada.
+     */
+    try{
+        nuevaPantalla.scrollIntoView({behavior:"instant",block:"start"});
+    }catch(error){
+        window.scrollTo(0,0);
+    }
+
     pantallaActual = Number(paso);
 
     actualizarBarra();
@@ -4312,6 +4325,109 @@ function guardarBorradorLocal(opciones){
 }
 
 
+/*
+ * Aplica al formulario un objeto "datos" con la misma forma que
+ * construye construirDatosBorrador() ({campos, pantallaActual, ...}),
+ * sin importar si vino de localStorage o del respaldo en la nube
+ * (AvancesForo, vía obtenerAvanceForo). Ambos casos comparten
+ * exactamente esta lógica.
+ */
+function aplicarDatosDeBorrador_(datos, mostrarPantalla, mensajeEstado){
+
+    Object.keys(datos.campos || {})
+        .forEach(function(id){
+
+            const campo =
+                document.getElementById(id);
+
+            if(!campo) return;
+
+            const informacion =
+                datos.campos[id];
+
+            if(informacion.tipo === "checkbox"){
+
+                campo.checked =
+                    Boolean(informacion.valor);
+
+            }else{
+
+                campo.value =
+                    informacion.valor ?? "";
+
+            }
+
+        });
+
+    /*
+     * Si ya se habían subido las evidencias en una sesión
+     * anterior (el navegador se recargó, se reingresó con el
+     * código, o se continuó desde otro dispositivo), habilitar
+     * "Continuar" en la pantalla de evidencias. El único chequeo
+     * que existía para esto corría una sola vez al cargar la
+     * página, antes de que hubiera datos que restaurar, así que
+     * el botón quedaba deshabilitado para siempre aunque las
+     * evidencias ya estuvieran subidas.
+     */
+    const contEvidenciasBtn =
+        document.getElementById("btnContinuarDesdeEvidencias");
+
+    if(
+        contEvidenciasBtn &&
+        document.getElementById("evidenciaAsistenciaUrl")?.value &&
+        document.getElementById("evidenciaFotoUrl")?.value
+    ){
+        contEvidenciasBtn.disabled = false;
+    }
+
+    // Recalcular datos derivados.
+    if(typeof actualizarTotalParticipantes === "function"){
+        actualizarTotalParticipantes();
+    }
+
+    // Restaurar correctamente el estado del consentimiento.
+    if(typeof actualizarEstadoConsentimiento === "function"){
+        actualizarEstadoConsentimiento();
+    }
+
+    if(typeof mostrarResumen === "function"){
+        mostrarResumen(false);
+    }
+
+    const respuesta =
+        document.getElementById("respuestaSesion1");
+
+    if(respuesta){
+        respuesta.dispatchEvent(
+            new Event("input")
+        );
+    }
+
+    if(
+        mostrarPantalla &&
+        datos.pantallaActual &&
+        datos.pantallaActual >= 1 &&
+        datos.pantallaActual <= TOTAL_PANTALLAS
+    ){
+
+        pantallaActual =
+            Number(datos.pantallaActual);
+
+        mostrarPantallaGuardada(
+            pantallaActual
+        );
+
+    }
+
+    cambioPendiente = false;
+
+    mostrarEstadoGuardado(
+        mensajeEstado || "🔄 Avance recuperado"
+    );
+
+}
+
+
 function restaurarBorradorLocal(opciones){
 
     opciones = opciones || {};
@@ -4331,74 +4447,9 @@ function restaurarBorradorLocal(opciones){
         const datos =
             JSON.parse(guardado);
 
-
-        Object.keys(datos.campos || {})
-            .forEach(function(id){
-
-                const campo =
-                    document.getElementById(id);
-
-                if(!campo) return;
-
-                const informacion =
-                    datos.campos[id];
-
-                if(informacion.tipo === "checkbox"){
-
-                    campo.checked =
-                        Boolean(informacion.valor);
-
-                }else{
-
-                    campo.value =
-                        informacion.valor ?? "";
-
-                }
-
-            });
-
-        // Recalcular datos derivados.
-        if(typeof actualizarTotalParticipantes === "function"){
-            actualizarTotalParticipantes();
-        }
-
-        // Restaurar correctamente el estado del consentimiento.
-        if(typeof actualizarEstadoConsentimiento === "function"){
-            actualizarEstadoConsentimiento();
-        }
-
-        if(typeof mostrarResumen === "function"){
-            mostrarResumen(false);
-        }
-
-        const respuesta =
-            document.getElementById("respuestaSesion1");
-
-        if(respuesta){
-            respuesta.dispatchEvent(
-                new Event("input")
-            );
-        }
-
-        if(
-            mostrarPantalla &&
-            datos.pantallaActual &&
-            datos.pantallaActual >= 1 &&
-            datos.pantallaActual <= TOTAL_PANTALLAS
-        ){
-
-            pantallaActual =
-                Number(datos.pantallaActual);
-
-            mostrarPantallaGuardada(
-                pantallaActual
-            );
-
-        }
-
-        cambioPendiente = false;
-
-        mostrarEstadoGuardado(
+        aplicarDatosDeBorrador_(
+            datos,
+            mostrarPantalla,
             "🔄 Avance recuperado"
         );
 
@@ -4414,6 +4465,80 @@ function restaurarBorradorLocal(opciones){
         return false;
 
     }
+
+}
+
+
+/*
+ * Recuperar el avance guardado en el servidor (AvancesForo) cuando
+ * NO hay nada en este navegador — típicamente al continuar desde
+ * un dispositivo distinto al que se usó para empezar. El respaldo
+ * en la nube ya se venía guardando en cada autoguardado
+ * (guardarAvanceForo), pero nunca se leía de vuelta: si alguien
+ * abría su enlace en otro equipo, el formulario empezaba en blanco
+ * aunque sus respuestas SÍ estuvieran a salvo en la hoja de cálculo.
+ *
+ * callback(encontrado) se invoca siempre, exista o no un avance
+ * guardado, para que quien llama decida qué pantalla mostrar.
+ */
+function restaurarAvanceDesdeServidor_(idForo, callback){
+
+    if(!idForo){
+        callback(false);
+        return;
+    }
+
+    google.script.run
+        .withSuccessHandler(function(resultado){
+
+            if(
+                !resultado ||
+                !resultado.ok ||
+                !resultado.encontrado ||
+                !resultado.datos
+            ){
+                callback(false);
+                return;
+            }
+
+            try{
+
+                localStorage.setItem(
+                    obtenerClaveBorradorForo(),
+                    JSON.stringify(resultado.datos)
+                );
+
+                aplicarDatosDeBorrador_(
+                    resultado.datos,
+                    true,
+                    "☁️ Avance recuperado desde la nube"
+                );
+
+                callback(true);
+
+            }catch(error){
+
+                console.error(
+                    "No fue posible aplicar el avance recuperado de la nube:",
+                    error
+                );
+
+                callback(false);
+
+            }
+
+        })
+        .withFailureHandler(function(error){
+
+            console.error(
+                "No fue posible consultar el avance en la nube:",
+                error
+            );
+
+            callback(false);
+
+        })
+        .obtenerAvanceForo(idForo);
 
 }
 
@@ -5122,18 +5247,38 @@ try{
 
                 /*
                  * Continuar desde el último punto guardado.
-                 * Si no existe borrador, comenzar en Bienvenida.
+                 *
+                 * Si no hay nada en este navegador, es probable que
+                 * la institución esté continuando desde otro
+                 * dispositivo: se consulta el respaldo en la nube
+                 * (AvancesForo) antes de asumir que no hay nada
+                 * guardado. Solo si tampoco existe ahí, se comienza
+                 * en Bienvenida.
                  */
                 if(!avanceRestaurado){
-                    document.querySelectorAll(".pantalla").forEach(function(pantalla){
-                        pantalla.classList.remove("visible");
-                    });
 
-                    const bienvenida = document.getElementById("pantallaBienvenida");
-                    if(bienvenida) bienvenida.classList.add("visible");
+                    restaurarAvanceDesdeServidor_(
+                        resultado.idForo,
+                        function(encontradoEnNube){
 
-                    pantallaActual = 1;
-                    actualizarBarra();
+                            if(!encontradoEnNube){
+
+                                document.querySelectorAll(".pantalla").forEach(function(pantalla){
+                                    pantalla.classList.remove("visible");
+                                });
+
+                                const bienvenida = document.getElementById("pantallaBienvenida");
+                                if(bienvenida) bienvenida.classList.add("visible");
+
+                                pantallaActual = 1;
+
+                            }
+
+                            actualizarBarra();
+
+                        }
+                    );
+
                 }
 
                 /*
@@ -5474,7 +5619,14 @@ function actualizarBotonesPlenaria(){
     const ant=document.getElementById("btnAnteriorPlenaria"), sig=document.getElementById("btnContinuarPlenaria");
     const pages=document.querySelectorAll("#plenariaContenido .plenariaPagina");
     if(ant) ant.disabled=plenariaPaginaActual<=0;
-    if(sig) sig.disabled=plenariaPaginaActual>=pages.length-1 || !pages[plenariaPaginaActual+1]?.classList.contains("habilitada");
+    /*
+     * En la última página, "Continuar" no avanza a otra página de
+     * la plenaria: dispara el paso al informe final (ver el click
+     * handler). Por eso NO debe deshabilitarse ahí — solo cuando
+     * SÍ existe una página siguiente y todavía no se desbloqueó
+     * con el scroll.
+     */
+    if(sig) sig.disabled=plenariaPaginaActual<pages.length-1 && !pages[plenariaPaginaActual+1]?.classList.contains("habilitada");
     document.querySelectorAll("#plenariaNavegacion button").forEach((b,i)=>b.classList.toggle("activo",i===plenariaPaginaActual));
 }
 function alternarModoLecturaPlenaria(){
