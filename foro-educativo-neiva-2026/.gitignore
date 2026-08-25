@@ -1,0 +1,6 @@
+# Credenciales de clasp/Google — nunca deben subirse a este repo.
+# Viven en el home del usuario (~/.clasprc.json), pero por si acaso alguna
+# herramienta las copia dentro de esta carpeta, se ignoran explícitamente.
+.clasprc.json
+.clasprc.json.bak
+node_modules/

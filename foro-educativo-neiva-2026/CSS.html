@@ -1,0 +1,1828 @@
+<style>
+
+/* =====================================================
+CONFIGURACIÓN GENERAL
+===================================================== */
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+:root{
+
+    --verde:#0b6a44;
+    --verdeClaro:#2b8d63;
+    --gris:#666;
+    --grisClaro:#f4f6f8;
+    --blanco:#ffffff;
+
+}
+/* =====================================================
+   PALETA OFICIAL - FORO EDUCATIVO NEIVA 2026
+===================================================== */
+
+:root{
+
+    --verde-neiva:#0B6A44;
+    --amarillo-neiva:#F4B400;
+    --rojo-neiva:#C62828;
+
+    --blanco:#FFFFFF;
+
+    --gris-fondo:#F7F8FA;
+    --gris-borde:#DADCE0;
+    --gris-texto:#4A4A4A;
+
+    --sombra:0 4px 14px rgba(0,0,0,.08);
+
+    --radio:12px;
+
+}
+
+body{
+
+    font-family:Arial, Helvetica, sans-serif;
+
+    background:#eef4ef;
+
+    color:#333;
+
+    min-height:100vh;
+
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+    background-attachment:fixed;
+
+}
+
+/* =====================================================
+ENCABEZADO
+===================================================== */
+
+.header{
+
+    position:sticky;
+
+    top:0;
+
+    z-index:999;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    background:white;
+
+    padding:18px 40px;
+
+    box-shadow:0 4px 20px rgba(0,0,0,.12);
+
+}
+
+.logoIzquierdo,
+.logoDerecho{
+
+    width:180px;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+}
+
+.logoIzquierdo img,
+.logoDerecho img{
+
+    max-width:150px;
+
+    max-height:90px;
+
+}
+
+.tituloHeader{
+
+    flex:1;
+
+    text-align:center;
+
+}
+
+.tituloHeader h1{
+
+    color:var(--verde);
+
+    font-size:34px;
+
+    letter-spacing:1px;
+
+}
+
+.tituloHeader h2{
+
+    margin-top:5px;
+
+    color:#777;
+
+    font-size:22px;
+
+    font-weight:normal;
+
+}
+
+/* =====================================================
+BARRA DE PROGRESO
+===================================================== */
+
+.barraSuperior{
+
+    height:8px;
+
+    background:#d9d9d9;
+
+}
+
+#barraProgreso{
+
+    width:8%;
+
+    height:100%;
+
+    background:var(--verde);
+
+    transition:.5s;
+
+}
+
+/* =====================================================
+CONTENEDOR
+===================================================== */
+
+#contenedorPrincipal{
+
+    width:92%;
+
+    max-width:1050px;
+
+    margin:40px auto;
+
+}
+
+/* =====================================================
+PANTALLAS
+===================================================== */
+
+.pantalla{
+
+    display:none;
+
+    background:white;
+
+    border-radius:20px;
+
+    padding:50px;
+
+    box-shadow:0 15px 35px rgba(0,0,0,.15);
+
+    animation:aparecer .4s;
+
+}
+
+.visible{
+
+    display:block;
+
+}
+
+@keyframes aparecer{
+
+    from{
+
+        opacity:0;
+
+        transform:translateY(15px);
+
+    }
+
+    to{
+
+        opacity:1;
+
+        transform:translateY(0);
+
+    }
+
+}
+
+/* =====================================================
+TEXTOS
+===================================================== */
+
+.tituloPrincipal{
+
+    text-align:center;
+
+    font-size:44px;
+
+    color:var(--verde);
+
+    margin-bottom:10px;
+
+}
+
+.subtitulo{
+
+    text-align:center;
+
+    font-size:30px;
+
+    color:#666;
+
+    margin-bottom:35px;
+
+}
+
+.textoCentro{
+
+    text-align:center;
+
+    font-size:20px;
+
+    margin-bottom:18px;
+
+    line-height:1.7;
+
+}
+
+/* =====================================================
+CAJAS DE TEXTO
+===================================================== */
+
+.grupo{
+
+    margin-bottom:24px;
+
+}
+
+.grupo label{
+
+    display:block;
+
+    margin-bottom:8px;
+
+    font-weight:bold;
+
+    color:var(--verde);
+
+}
+
+.ayudaCampo{
+
+    font-size:13px;
+
+    font-weight:normal;
+
+    color:#777;
+
+    font-style:italic;
+
+    margin-left:6px;
+
+}
+
+.grupo input,
+.grupo select,
+.grupo textarea{
+
+    width:100%;
+
+    padding:14px;
+
+    font-size:16px;
+
+    border:1px solid #cfcfcf;
+
+    border-radius:10px;
+
+    transition:.25s;
+
+}
+
+.grupo input:focus,
+.grupo select:focus,
+.grupo textarea:focus{
+
+    outline:none;
+
+    border-color:var(--verde);
+
+    box-shadow:0 0 8px rgba(11,106,68,.25);
+
+}
+
+/* =====================================================
+CONSENTIMIENTO
+===================================================== */
+
+.cajaTexto{
+
+    border:1px solid #d9d9d9;
+
+    border-radius:10px;
+
+    padding:22px;
+
+    height:500px;
+
+    overflow-y:auto;
+
+    line-height:1.8;
+
+    margin:25px 0;
+
+}
+
+.grupoCheck{
+
+    margin:25px 0;
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+}
+
+.grupoCheck input{
+
+    transform:scale(1.3);
+
+}
+
+/* =====================================================
+BOTONES
+===================================================== */
+
+.botones{
+
+    margin-top:35px;
+
+    display:flex;
+
+    justify-content:space-between;
+
+}
+
+button{
+
+    background:var(--verde);
+
+    color:white;
+
+    border:none;
+
+    border-radius:10px;
+
+    padding:16px 35px;
+
+    font-size:18px;
+
+    cursor:pointer;
+
+    transition:.25s;
+
+}
+
+button:hover{
+
+    background:var(--verdeClaro);
+
+    transform:translateY(-2px);
+
+}
+
+button:disabled{
+
+    background:#bdbdbd;
+
+    cursor:not-allowed;
+
+}
+
+/* =====================================================
+RESPONSIVE
+===================================================== */
+
+@media(max-width:900px){
+
+.header{
+
+    flex-direction:column;
+
+    gap:15px;
+
+}
+
+.logoIzquierdo,
+.logoDerecho{
+
+    width:auto;
+
+}
+
+.tituloHeader h1{
+
+    font-size:28px;
+
+}
+
+.tituloPrincipal{
+
+    font-size:34px;
+
+}
+
+.pantalla{
+
+    padding:30px;
+
+}
+
+.botones{
+
+    flex-direction:column;
+
+    gap:15px;
+
+}
+
+button{
+
+    width:100%;
+
+}
+
+}
+.campoError{
+
+    border:2px solid #d32f2f !important;
+
+    background:#fff8f8;
+
+}/* =====================================================
+SESIÓN 1
+===================================================== */
+
+.panelSesion{
+
+    display:grid;
+
+    grid-template-columns:repeat(4,1fr);
+
+    gap:18px;
+
+    margin:25px 0 35px 0;
+
+}
+
+.datoSesion{
+
+    background:#f8fafb;
+
+    border-left:5px solid var(--verde);
+
+    border-radius:10px;
+
+    padding:18px;
+
+    text-align:center;
+
+    box-shadow:0 3px 10px rgba(0,0,0,.08);
+
+}
+
+.datoSesion strong{
+
+    display:block;
+
+    color:var(--verde);
+
+    margin-bottom:8px;
+
+}
+
+/* =====================================================
+   TARJETAS
+===================================================== */
+
+.tarjetaObjetivo,
+.tarjetaDesarrollo,
+.tarjetaPregunta,
+.tarjetaSintesis{
+
+    background:var(--blanco);
+
+    border-radius:var(--radio);
+
+    padding:28px;
+
+    margin-bottom:28px;
+
+    box-shadow:var(--sombra);
+
+    transition:.25s;
+
+}
+
+.tarjetaObjetivo{
+
+    background:#ffffff;
+
+    border-left:8px solid var(--verde-neiva);
+
+    padding:30px;
+
+    margin:35px 0 25px;
+
+}
+
+.tarjetaPregunta{
+
+    background:#ffffff;
+
+    border-left:8px solid var(--amarillo-neiva);
+
+    padding:30px;
+
+    margin:0 0 55px;
+
+}
+.tarjetaPregunta h3,
+.tarjetaObjetivo h3{
+
+    margin:0 0 15px;
+
+    font-size:22px;
+
+    font-weight:700;
+
+}
+
+.textoPregunta{
+
+    font-size:20px;
+
+    line-height:1.8;
+
+    font-weight:500;
+
+    color:#333;
+
+    margin:0;
+
+}
+
+.tarjetaSintesis{
+
+    border-left:6px solid var(--rojo-neiva);
+
+}
+
+.tarjetaObjetivo h3,
+.tarjetaDesarrollo h3,
+.tarjetaPregunta h3,
+.tarjetaSintesis h3{
+
+    margin:0 0 14px 0;
+
+    color:var(--verde-neiva);
+
+    font-size:20px;
+
+    font-weight:700;
+
+}
+
+.tarjetaObjetivo p,
+.tarjetaDesarrollo p,
+.tarjetaPregunta p,
+.tarjetaSintesis p{
+
+    color:var(--gris-texto);
+
+    line-height:1.7;
+
+    margin:0;
+
+}
+
+.contenedorTrabajoSesion{
+
+    display:grid;
+
+    grid-template-columns:25% 75%;
+
+    gap:25px;
+
+    margin:30px 0;
+
+}
+
+.panelGuia{
+
+    background:#f7faf7;
+
+    border:1px solid #dce7dd;
+
+    border-radius:14px;
+
+    padding:25px;
+
+    position:sticky;
+
+    top:130px;
+
+    align-self:start;
+
+}
+
+.panelGuia h3{
+
+    color:var(--verde);
+
+    margin-bottom:18px;
+
+}
+
+.panelGuia ul{
+
+    list-style:none;
+
+    padding:0;
+
+    margin:20px 0 0;
+
+}
+
+.panelGuia li{
+
+    position:relative;
+
+    padding-left:28px;
+
+    margin-bottom:16px;
+
+    line-height:1.6;
+
+}
+.panelGuia li::before{
+
+    content:"✓";
+
+    position:absolute;
+
+    left:0;
+
+    top:0;
+
+    color:var(--verde-neiva);
+
+    font-weight:bold;
+
+    font-size:18px;
+
+}
+
+.panelRespuesta{
+
+    background:#ffffff;
+
+    border-radius:14px;
+
+    padding:25px;
+
+    box-shadow:0 5px 18px rgba(0,0,0,.08);
+
+}
+
+.barraHerramientas{
+
+    display:flex;
+
+    gap:12px;
+
+    flex-wrap:wrap;
+
+    margin-bottom:35px;
+
+}
+
+.barraHerramientas button{
+
+    padding:10px 18px;
+
+    font-size:15px;
+
+}
+
+.panelRespuesta textarea{
+
+    width:100%;
+
+    min-height:560px;
+
+    resize:vertical;
+
+    padding:18px;
+
+    font-size:17px;
+
+    line-height:1.8;
+
+    border:1px solid #cfd8dc;
+
+    border-radius:12px;
+
+}
+
+.panelRespuesta textarea:focus{
+
+    outline:none;
+
+    border-color:var(--verde);
+
+    box-shadow:0 0 10px rgba(11,106,68,.25);
+
+}
+.contadorPalabras{
+
+    display:flex;
+
+    justify-content:flex-end;
+
+    align-items:center;
+
+    margin-top:20px;
+
+    font-size:18px;
+
+    font-weight:700;
+
+    transition:.3s;
+
+}
+.barraPalabras{
+
+    width:100%;
+
+    height:10px;
+
+    background:#E6E6E6;
+
+    border-radius:20px;
+
+    overflow:hidden;
+
+    margin-top:10px;
+
+    margin-bottom:30px;
+
+}
+
+#progresoPalabrasSesion1{
+
+    width:0%;
+
+    height:100%;
+
+    background:#C62828;
+
+    border-radius:20px;
+
+    transition:width .35s ease,
+               background-color .35s ease;
+
+}
+
+.textoAyuda{
+
+    color:#666;
+
+    margin-bottom:25px;
+
+}
+
+.tarjetaSintesis label{
+
+    display:block;
+
+    font-weight:bold;
+
+    color:var(--verde);
+
+    margin-top:20px;
+
+    margin-bottom:8px;
+
+}
+
+.tarjetaSintesis textarea{
+
+    width:100%;
+
+    padding:14px;
+
+    font-size:16px;
+
+    border:1px solid #cfd8dc;
+
+    border-radius:10px;
+
+    resize:vertical;
+
+}
+
+.tarjetaSintesis textarea:focus{
+
+    outline:none;
+
+    border-color:var(--verde);
+
+    box-shadow:0 0 8px rgba(11,106,68,.20);
+
+}
+
+/* =====================================================
+RESPONSIVE SESIÓN 1
+===================================================== */
+
+@media(max-width:1000px){
+
+.panelSesion{
+
+    grid-template-columns:repeat(2,1fr);
+
+}
+
+.contenedorTrabajoSesion{
+
+    grid-template-columns:1fr;
+
+}
+
+.panelGuia{
+
+    position:relative;
+
+    top:auto;
+
+}
+
+}
+
+@media(max-width:700px){
+
+.panelSesion{
+
+    grid-template-columns:1fr;
+
+}
+
+.barraHerramientas{
+
+    flex-direction:column;
+
+}
+
+.barraHerramientas button{
+
+    width:100%;
+
+}
+
+}/*=====================================================
+RESUMEN
+=====================================================*/
+
+.tarjetaResumen{
+
+    background:#ffffff;
+
+    border-radius:16px;
+
+    padding:35px;
+
+    box-shadow:0 8px 20px rgba(0,0,0,.08);
+
+}
+
+.tablaResumen{
+
+    width:100%;
+
+    border-collapse:collapse;
+
+    margin-top:20px;
+
+}
+
+.tablaResumen th{
+
+    width:35%;
+
+    text-align:left;
+
+    padding:14px;
+
+    background:#f2f6f8;
+
+    color:var(--verde);
+
+    border-bottom:1px solid #ddd;
+
+}
+
+.tablaResumen td{
+
+    padding:14px;
+
+    border-bottom:1px solid #ddd;
+
+}/*=====================================================
+CONSENTIMIENTO INFORMADO
+=====================================================*/
+
+.seccionConsentimiento{
+
+    margin-bottom:28px;
+
+}
+
+.seccionConsentimiento h3{
+
+    color:#0b6a44;
+
+    margin-bottom:12px;
+
+    padding-bottom:8px;
+
+    border-bottom:2px solid #d9eadf;
+
+}
+
+.seccionConsentimiento p{
+
+    text-align:justify;
+
+    line-height:1.9;
+
+}
+
+/*=====================================================
+AVISO IMPORTANTE
+=====================================================*/
+
+.avisoImportante{
+
+    margin-top:30px;
+
+    padding:24px;
+
+    background:#eef8f1;
+
+    border-left:6px solid #0b6a44;
+
+    border-radius:12px;
+
+}
+
+.avisoImportante h4{
+
+    color:#0b6a44;
+
+    margin-bottom:12px;
+
+}
+
+.avisoImportante p{
+
+    text-align:justify;
+
+    line-height:1.8;
+
+}
+
+.avisoImportante ul{
+
+    margin:15px 0 15px 25px;
+
+}
+
+.avisoImportante li{
+
+    margin-bottom:10px;
+
+}
+/* BOTONES DESHABILITADOS */
+
+button:disabled{
+
+    opacity:.45;
+
+    cursor:not-allowed;
+
+    filter:grayscale(20%);
+
+}
+.mensajeContador{
+
+    margin-top:12px;
+
+    font-size:15px;
+
+    font-weight:600;
+
+    text-align:right;
+
+    transition:.3s;
+
+}
+/* =====================================================
+   RECORRIDO DEL FORO
+   Módulo 1 - Conozca el recorrido
+   ===================================================== */
+
+#pantallaRecorrido {
+    text-align: center;
+}
+
+/* Título */
+
+#pantallaRecorrido .recorridoTitulo {
+    color: #0B6A44;
+    margin-bottom: 10px;
+}
+
+#pantallaRecorrido .recorridoSubtitulo {
+    font-size: 18px;
+    font-weight: 500;
+    margin-bottom: 12px;
+}
+
+#pantallaRecorrido .recorridoIntro {
+    max-width: 850px;
+    margin: 0 auto 25px auto;
+    line-height: 1.6;
+}
+
+/* Tarjeta */
+
+.recorridoTarjeta {
+    max-width: 820px;
+    min-height: 300px;
+    margin: 0 auto;
+    padding: 30px 40px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+    text-align: left;
+    box-sizing: border-box;
+}
+
+/* Icono */
+
+.recorridoIcono {
+    text-align: center;
+    font-size: 42px;
+    margin-bottom: 8px;
+}
+
+/* Título de tarjeta */
+
+.recorridoTarjeta h3 {
+    text-align: center;
+    color: #0B6A44;
+    font-size: 24px;
+    margin: 5px 0 22px 0;
+}
+
+/* Preguntas */
+
+.recorridoPregunta {
+    font-weight: bold;
+    color: #0B6A44;
+    margin-top: 18px;
+    margin-bottom: 5px;
+}
+
+.recorridoTarjeta p {
+    line-height: 1.55;
+    margin-top: 5px;
+}
+
+/* Listas */
+
+.recorridoTarjeta ul {
+    margin-top: 8px;
+    padding-left: 25px;
+}
+
+.recorridoTarjeta li {
+    margin-bottom: 5px;
+}
+
+/* Frase final */
+
+.recorridoFrase {
+    margin-top: 22px;
+    padding-top: 15px;
+    border-top: 1px solid #e5e5e5;
+    color: #666666;
+    font-style: italic;
+    text-align: center;
+}
+
+/* Navegación */
+
+.recorridoNavegacion {
+    max-width: 820px;
+    margin: 20px auto 15px auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+}
+
+.recorridoNavegacion button {
+    border: none;
+    background: transparent;
+    color: #0B6A44;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px 14px;
+}
+
+.recorridoNavegacion button:hover {
+    transform: scale(1.08);
+}
+
+#contadorRecorrido {
+    min-width: 70px;
+    font-weight: bold;
+    color: #555555;
+}
+
+/* Lista de preparación */
+
+.recorridoPreparacion {
+    max-width: 820px;
+    margin: 15px auto 25px auto;
+    padding: 18px 25px;
+    background: #f7f9f8;
+    border-radius: 12px;
+    text-align: left;
+}
+
+.recorridoPreparacion h4 {
+    color: #0B6A44;
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.recorridoPreparacion ul {
+    margin: 0;
+    padding-left: 22px;
+}
+
+.recorridoPreparacion li {
+    margin-bottom: 5px;
+}
+
+/* Botón */
+
+#btnIniciarRecorrido {
+    margin-top: 10px;
+}
+/* =====================================================
+   TRANSICIÓN DE TARJETAS DEL RECORRIDO
+   ===================================================== */
+
+.recorridoTarjeta.transicionSalida {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.recorridoTarjeta.transicionEntrada {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.recorridoTarjeta.transicionSalida {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.recorridoTarjeta.transicionEntrada {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+/* =====================================================
+   PARTICIPACIÓN EN EL FORO
+   ===================================================== */
+
+.participacionForo {
+    margin-top: 40px;
+    margin-bottom: 35px;
+    padding: 30px;
+    background: #f8fafb;
+    border: 1px solid #dfe7e3;
+    border-radius: 16px;
+}
+
+/* TÍTULO */
+
+.tituloParticipacion {
+    margin: 0 0 10px 0;
+    text-align: center;
+    color: var(--verde);
+    font-size: 26px;
+}
+
+/* TEXTO INTRODUCTORIO */
+
+.textoParticipacion {
+    margin: 0 auto 28px auto;
+    max-width: 750px;
+    text-align: center;
+    color: #555;
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+/* TABLA */
+
+.tablaParticipacion {
+    width: 100%;
+    border: 1px solid #d8e2dd;
+    border-radius: 12px;
+    overflow: hidden;
+    background: white;
+}
+
+/* ENCABEZADO */
+
+.encabezadoParticipacion {
+    display: grid;
+    grid-template-columns: 1fr 190px;
+    background: var(--verde);
+    color: white;
+    font-weight: bold;
+    padding: 14px 20px;
+    text-align: center;
+}
+
+.encabezadoParticipacion div:first-child {
+    text-align: left;
+}
+
+/* FILAS */
+
+.filaParticipacion {
+    display: grid;
+    grid-template-columns: 1fr 190px;
+    align-items: center;
+    min-height: 68px;
+    padding: 10px 20px;
+    border-bottom: 1px solid #e5e5e5;
+    column-gap: 20px;
+}
+
+.filaParticipacion:last-child {
+    border-bottom: none;
+}
+
+/* NOMBRE DEL ESTAMENTO */
+
+.filaParticipacion label {
+    margin: 0;
+    color: #333;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* CAMPOS NUMÉRICOS */
+
+.inputParticipantes {
+    width: 100% !important;
+    box-sizing: border-box;
+    padding: 11px 14px !important;
+    margin: 0 !important;
+
+    border: 1px solid #cfcfcf;
+    border-radius: 8px;
+
+    font-size: 16px;
+    text-align: center;
+
+    background: white;
+}
+
+/* FOCO */
+
+.inputParticipantes:focus {
+    outline: none;
+    border-color: var(--verde);
+    box-shadow: 0 0 0 3px rgba(11,106,68,.12);
+}
+
+/* TOTAL */
+
+.totalParticipacion {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 15px;
+
+    margin-top: 18px;
+    padding: 16px 20px;
+
+    background: var(--verde);
+    color: white;
+
+    border-radius: 10px;
+
+    font-size: 18px;
+}
+
+.totalParticipacion strong {
+    min-width: 55px;
+    padding: 6px 12px;
+
+    background: white;
+    color: var(--verde);
+
+    border-radius: 7px;
+
+    text-align: center;
+    font-size: 20px;
+}
+
+/* =====================================================
+   RESPONSIVE
+   ===================================================== */
+
+@media(max-width:700px){
+
+    .participacionForo {
+        padding: 18px;
+    }
+
+    .encabezadoParticipacion,
+    .filaParticipacion {
+        grid-template-columns: 1fr 120px;
+    }
+
+    .filaParticipacion {
+        padding: 10px 12px;
+        column-gap: 10px;
+    }
+
+    .filaParticipacion label {
+        font-size: 14px;
+    }
+
+    .encabezadoParticipacion {
+        font-size: 14px;
+        padding: 12px;
+    }
+
+    .totalParticipacion {
+        justify-content: space-between;
+        font-size: 16px;
+    }
+}
+/* =====================================================
+   MODO LECTURA
+   ===================================================== */
+
+#pantallaSesion1.modoLectura {
+    background: #ffffff;
+}
+
+/* Ocultar elementos que no necesitamos durante la lectura */
+
+#pantallaSesion1.modoLectura .panelGuia,
+#pantallaSesion1.modoLectura .contadorPalabras,
+#pantallaSesion1.modoLectura .barraPalabras,
+#pantallaSesion1.modoLectura .textoAyuda,
+#pantallaSesion1.modoLectura .mensajeContador,
+#pantallaSesion1.modoLectura .botones {
+    display: none;
+}
+
+
+/* Mantener visible la barra de herramientas */
+
+#pantallaSesion1.modoLectura .barraHerramientas {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+
+    width: 100%;
+    max-width: 1200px;
+
+    margin: 20px auto 0 auto;
+}
+
+
+/* Ocultar Guardar y Pantalla completa */
+
+#pantallaSesion1.modoLectura #btnGuardarSesion1,
+#pantallaSesion1.modoLectura #btnPantallaCompleta {
+    display: none;
+}
+
+
+/* Mantener visible Modo lectura */
+
+#pantallaSesion1.modoLectura #btnModoLectura {
+    display: inline-block;
+}
+
+
+/* Área de trabajo */
+
+#pantallaSesion1.modoLectura .contenedorTrabajoSesion {
+    display: block;
+
+    width: 100%;
+    max-width: 1200px;
+
+    margin: 0 auto;
+}
+
+
+/* Panel de respuesta */
+
+#pantallaSesion1.modoLectura .panelRespuesta {
+    width: 100%;
+    max-width: 1200px;
+
+    margin: 10px auto 40px auto;
+
+    padding: 0;
+
+    border: none;
+    box-shadow: none;
+
+    background: transparent;
+}
+
+
+/* TEXTO GRANDE Y LEGIBLE */
+
+#pantallaSesion1.modoLectura textarea {
+    width: 100%;
+
+    min-height: 70vh;
+
+    box-sizing: border-box;
+
+    padding: 45px 55px;
+
+    border: none;
+    outline: none;
+    resize: none;
+
+    background: white;
+
+    color: #222;
+
+    font-family: Arial, sans-serif;
+
+    font-size: 26px;
+
+    line-height: 1.8;
+
+    letter-spacing: 0.2px;
+
+    box-shadow: none;
+}
+
+
+/* Quitar apariencia de campo editable */
+
+#pantallaSesion1.modoLectura textarea:focus {
+    border: none;
+    outline: none;
+    box-shadow: none;
+}
+/*****************************************************
+ * MODO LECTURA — SESIÓN 1
+ *****************************************************/
+
+#pantallaSesion1.modoLectura{
+
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 9999;
+
+    background: #ffffff;
+
+    width: 100vw;
+
+    height: 100vh;
+
+    max-width: none;
+
+    margin: 0;
+
+    padding: 40px 7vw;
+
+    overflow-y: auto;
+
+    box-sizing: border-box;
+
+}
+#pantallaSesion1.modoLectura
+#btnGuardarSesion1,
+#pantallaSesion1.modoLectura
+#btnPantallaCompleta{
+
+    display: none;
+
+}
+
+/*****************************************************
+ * OCULTAR ELEMENTOS INNECESARIOS
+ *****************************************************/
+
+#pantallaSesion1.modoLectura
+.barraHerramientas{
+
+    display: flex;
+
+    justify-content: flex-end;
+
+    background: transparent;
+
+    border: none;
+
+    box-shadow: none;
+
+}
+
+#pantallaSesion1.modoLectura
+.contadorPalabras{
+
+    font-size: 18px;
+
+    margin-top: 15px;
+
+}
+
+
+/*****************************************************
+ * RESPUESTA EN MODO LECTURA
+ *****************************************************/
+
+#pantallaSesion1.modoLectura
+#respuestaSesion1{
+
+    width: 100%;
+
+    min-height: 65vh;
+
+    border: none;
+
+    outline: none;
+
+    resize: none;
+
+    background: transparent;
+
+    font-size: 26px;
+
+    line-height: 1.8;
+
+    color: #222;
+
+    padding: 20px 0;
+
+    box-sizing: border-box;
+
+}
+
+
+/*****************************************************
+ * OCULTAR NAVEGACIÓN
+ *****************************************************/
+
+#pantallaSesion1.modoLectura
+.botones{
+
+    display: none;
+
+}
+
+
+#pantallaSesion1.modoLectura
+.barraPalabras{
+
+    display: none;
+
+}
+
+
+#pantallaSesion1.modoLectura
+.mensajeContador{
+
+    display: none;
+
+}
+/*****************************************************
+ * SCROLL EN PANTALLA COMPLETA
+ *****************************************************/
+
+#pantallaSesion1:fullscreen{
+
+    overflow-y: auto !important;
+
+    overflow-x: hidden !important;
+
+    width: 100vw;
+
+    height: 100vh;
+
+    box-sizing: border-box;
+
+}
+/*****************************************************
+ * TRANSICIONES DE LAS MICRO PANTALLAS DEL RECORRIDO
+ *****************************************************/
+
+.recorridoTarjeta{
+
+    position: relative;
+
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s ease;
+
+}
+
+
+.recorridoTarjeta.recorridoSalida{
+
+    opacity: 0;
+
+    transform:
+        translateX(-25px);
+
+}
+
+
+.recorridoTarjeta.recorridoEntrada{
+
+    animation:
+        recorridoEntrada
+        0.35s ease
+        both;
+
+}
+
+
+@keyframes recorridoEntrada{
+
+    from{
+
+        opacity: 0;
+
+        transform:
+            translateX(25px);
+
+    }
+
+    to{
+
+        opacity: 1;
+
+        transform:
+            translateX(0);
+
+    }
+
+}
+
+
+/*****************************************************
+ * FLECHAS DEL RECORRIDO
+ *****************************************************/
+
+.recorridoNavegacion{
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 25px;
+
+    margin-top: 25px;
+
+}
+
+
+.recorridoNavegacion button{
+
+    width: 48px;
+
+    height: 48px;
+
+    border-radius: 50%;
+
+    border: none;
+
+    cursor: pointer;
+
+    font-size: 26px;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    transition:
+        transform 0.2s ease,
+        opacity 0.2s ease;
+
+}
+
+
+.recorridoNavegacion button:hover:not(:disabled){
+
+    transform:
+        scale(1.08);
+
+}
+
+
+.recorridoNavegacion button:disabled{
+
+    opacity: 0.35;
+
+    cursor: not-allowed;
+
+}
+
+
+#contadorRecorrido{
+
+    min-width: 65px;
+
+    text-align: center;
+
+    font-weight: 700;
+
+}
+
+/* =====================================================
+   MODAL RECORDATORIO SESIÓN 3
+   ===================================================== */
+.modalFEM{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.48);}
+.modalFEM.visible{display:flex;}
+.modalFEMContenido{position:relative;width:min(620px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:18px;padding:34px;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+.modalFEMContenido h2{margin:0 40px 18px 0;color:var(--verde-neiva);}
+.modalFEMContenido p,.modalFEMContenido li{line-height:1.65;color:var(--gris-texto);}
+.modalFEMContenido ul{padding-left:24px;margin:12px 0 24px;}
+.modalFEMContenidoConfirmar{width:min(440px,100%);text-align:center;}
+.modalFEMContenidoConfirmar h2{margin:0 0 12px;}
+.modalFEMContenidoConfirmar p{margin:0 0 26px;}
+.modalConfirmarAcciones{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.modalConfirmarAcciones button{border:none;border-radius:10px;padding:12px 22px;font-weight:600;cursor:pointer;font-size:.95rem;}
+.botonPrincipalFEM{background:var(--verde-neiva);color:#fff;}
+.botonSecundarioFEM{background:#eef1ef;color:var(--gris-texto);}
+.modalCerrar{position:absolute;top:12px;right:12px;width:42px;height:42px;padding:0;border-radius:50%;font-size:28px;line-height:42px;}
+/* =====================================================
+   COLAPSADO — SESIÓN 2
+   ===================================================== */
+#pantallaSesion2 .preguntaColapsadaSesion2{margin-bottom:14px;}
+#pantallaSesion2 .preguntaColapsadaSesion2 > .tarjetaPregunta{margin-bottom:0;cursor:pointer;}
+#pantallaSesion2 .preguntaCompletadaSesion2 > .tarjetaPregunta h3::after{content:"  ✓";color:var(--verde-neiva);}
+#pantallaSesion2 .bloquePreguntaBloqueada{opacity:.62;}
+
+</style>

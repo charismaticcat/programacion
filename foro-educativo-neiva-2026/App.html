@@ -1,0 +1,5745 @@
+<script>
+
+/*****************************************************
+ * APP FORO EDUCATIVO INSTITUCIONAL
+ * Neiva 2026
+ *****************************************************/
+
+/*****************************************************
+ * VARIABLES GLOBALES
+ *****************************************************/
+
+let instituciones = {};
+let institucionSeleccionada = "";
+let pantallaActual = 1;
+
+const TOTAL_PANTALLAS = 11;
+/*****************************************************
+ * GRUPOS DE TRABAJO — CARACTERIZACIÓN
+ *****************************************************/
+
+const GRUPOS_INSTITUCIONES = {
+
+    G1: [
+        "AIPECITO",
+        "LICEO DE SANTA LIBRADA",
+        "INEM JULIAM MOTTA SALAS",
+        "I.E. CLARETIANO GUSTAVO TORRES PARRA",
+        "PROMOCION SOCIAL",
+        "CHAPINERO"
+    ],
+
+    G2: [
+        "MARIA CRISTINA ARANGO DE PASTRANA.",
+        "LUIS IGNACIO ANDRADE",
+        "GABRIEL GARCIA MARQUEZ",
+        "EDUARDO SANTOS",
+        "MARIA AUXILIADORA FORTALECILLAS",
+        "JAIRO MOSQUERA MORENO"
+    ],
+
+    G3: [
+        "TECNICO SUPERIOR",
+        "DEPARTAMENTAL TIERRA DE PROMISIÓN",
+        "SANTA LIBRADA",
+        "RICARDO BORRERO ALVAREZ",
+        "ANGEL MARIA PAREDES",
+        "CEINAR"
+    ],
+
+    G4: [
+        "JOSE EUSTASIO RIVERA",
+        "ATANASIO GIRARDOT",
+        "MISAEL PASTRANA BORRERO",
+        "HUMBERTO TAFUR CHARRY",
+        "ENRIQUE OLAYA HERRERA",
+        "ROBERTO DURAN ALVIRA"
+    ],
+
+    G5: [
+        "SANTA TERESA",
+        "ESCUELA NORMAL SUPERIOR",
+        "INSTITUTO TECNICO IPC ANDRES ROSA",
+        "JUAN DE CABRERA",
+        "JAIRO MORERA LIZCANO",
+        "SAN ANTONIO DE ANACONIA"
+    ],
+
+    G6: [
+        "OLIVERIO LARA BORRERO",
+        "AGUSTIN CODAZZI",
+        "EL LIMONAR",
+        "RODRIGO LARA BONILLA",
+        "EL CAGUAN",
+        "SAN LUIS BELTRAN"
+    ]
+
+};
+
+
+/*****************************************************
+ * OBTENER GRUPO DE LA INSTITUCIÓN
+ *****************************************************/
+
+function obtenerGrupoInstitucion(nombreInstitucion){
+
+    if(!nombreInstitucion){
+        return "";
+    }
+
+    function normalizar(texto){
+
+        return texto
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[.,]/g, "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .toLowerCase();
+
+    }
+
+    const nombreNormalizado =
+        normalizar(nombreInstitucion);
+
+
+    for(const grupo in GRUPOS_INSTITUCIONES){
+
+        const encontrada =
+            GRUPOS_INSTITUCIONES[grupo].some(
+                function(nombreIE){
+
+                    return normalizar(nombreIE)
+                        === nombreNormalizado;
+
+                }
+            );
+
+        if(encontrada){
+            return grupo;
+        }
+
+    }
+
+    console.warn(
+        "No se encontró grupo para:",
+        nombreInstitucion
+    );
+
+    return "";
+
+}
+
+/*****************************************************
+ * INICIAR
+ *****************************************************/
+
+window.onload = iniciarApp;
+
+function iniciarApp(){
+
+    /*
+     * =================================================
+     * 1. DETERMINAR EL MODO DE ACCESO
+     * =================================================
+     */
+
+    const existeToken =
+        typeof TOKEN_ACCESO !== "undefined" &&
+        String(TOKEN_ACCESO || "").trim() !== "";
+
+    /*
+     * En un enlace personalizado, la pantalla de
+     * acceso debe ser la primera pantalla.
+     *
+     * NO restauramos el borrador antes de autenticar.
+     */
+    if(existeToken){
+
+        try{
+
+            inicializarAccesoFEM();
+
+        }catch(error){
+
+            console.error(
+                "Error en inicializarAccesoFEM:",
+                error
+            );
+
+        }
+
+    }else{
+
+        /*
+         * Modo de desarrollo sin token.
+         * Se conserva el comportamiento normal.
+         */
+        try{
+
+            restaurarBorradorLocal({
+                mostrarPantalla: true
+            });
+
+        }catch(error){
+
+            console.error(
+                "Error al restaurar el borrador:",
+                error
+            );
+
+        }
+
+    }
+
+
+    /*
+     * =================================================
+     * 2. INICIALIZAR MÓDULOS
+     * =================================================
+     */
+
+    const inicializadores = [
+        ["cargarImagenes", cargarImagenes],
+        ["configurarBotones", configurarBotones]
+    ];
+
+    if(!existeToken){
+        inicializadores.push(["cargarInstituciones", cargarInstituciones]);
+    }
+
+    inicializadores.push(
+        ["actualizarBarra", actualizarBarra],
+        ["inicializarContadoresSesion1", inicializarContadoresSesion1],
+        ["inicializarParticipacion", inicializarParticipacion],
+        ["inicializarSesion2", inicializarSesion2],
+        ["inicializarSesion3", inicializarSesion3],
+        ["inicializarPlenaria", inicializarPlenaria],
+        ["activarHerramientasSesion1", activarHerramientasSesion1],
+        ["activarGuardadoAutomatico", activarGuardadoAutomatico]
+    );
+
+
+    inicializadores.forEach(function(item){
+
+        try{
+
+            item[1]();
+
+        }catch(error){
+
+            console.error(
+                "Error al iniciar " + item[0] + ":",
+                error
+            );
+
+        }
+
+    });
+
+
+    /*
+     * =================================================
+     * 3. RECONSTRUIR RESPUESTAS DERIVADAS
+     * =================================================
+     */
+
+    try{
+        actualizarRespuestaPregunta3Sesion2();
+    }catch(error){
+        console.error(error);
+    }
+
+    try{
+        actualizarRespuestaPregunta5Sesion2();
+    }catch(error){
+        console.error(error);
+    }
+
+    try{
+        actualizarInterfazOtroSesion2();
+    }catch(error){
+        console.error(error);
+    }
+
+
+    /*
+     * =================================================
+     * 4. RECALCULAR ELEMENTOS DERIVADOS
+     * =================================================
+     */
+
+    try{
+        actualizarTotalParticipantes();
+    }catch(error){
+        console.error(error);
+    }
+
+    try{
+        inicializarContadoresSesion1();
+    }catch(error){
+        console.error(error);
+    }
+
+    try{
+        actualizarEstadoSesion2();
+    }catch(error){
+        console.error(error);
+    }
+
+    try{
+        actualizarEstadoSesion3();
+    }catch(error){
+        console.error(error);
+    }
+
+    try{
+        actualizarBarra();
+    }catch(error){
+        console.error(error);
+    }
+
+}
+
+/*****************************************************
+ * IMÁGENES
+ *****************************************************/
+
+function cargarImagenes(){
+
+    if(typeof LOGO_SEM !== "undefined"){
+        document.getElementById("logoSEM").src = LOGO_SEM;
+    }
+
+    if(typeof LOGO_FEM !== "undefined"){
+        document.getElementById("logoFEM").src = LOGO_FEM;
+    }
+
+    if(typeof MARCO !== "undefined"){
+        document.body.style.backgroundImage = `url(${MARCO})`;
+    }
+
+}
+
+/*****************************************************
+ * BOTONES
+ *****************************************************/
+
+function configurarBotones(){
+
+    // BIENVENIDA
+    document.getElementById("btnComenzar")
+        .addEventListener("click",function(){
+
+            cambiarPantalla(
+                "pantallaBienvenida",
+            "pantallaRecorrido",
+                2
+            );
+
+        });
+
+
+    // CONSENTIMIENTO
+   
+const cajaConsentimiento =
+    document.getElementById("textoConsentimiento");
+
+const check =
+    document.getElementById("acepto");
+
+const continuar =
+    document.getElementById("btnContinuar");
+
+// El checkbox inicia deshabilitado
+check.disabled = true;
+
+// El botón también
+continuar.disabled = true;
+
+// Cuando llegue al final del texto...
+cajaConsentimiento.addEventListener("scroll", function(){
+    actualizarEstadoConsentimiento();
+});
+
+// Cuando marque el consentimiento...
+check.addEventListener("change",function(){
+
+    continuar.disabled = !this.checked;
+
+});
+
+
+    document.getElementById("btnContinuar")
+        .addEventListener("click",function(){
+
+            cambiarPantalla(
+                "pantallaConsentimiento",
+                "pantallaCaracterizacion",
+                3
+            );
+
+        });
+
+
+    // REGRESAR
+    document.getElementById("btnAnterior")
+        .addEventListener("click",function(){
+
+            cambiarPantalla(
+                "pantallaCaracterizacion",
+                "pantallaConsentimiento",
+                2
+            );
+
+        });
+// VOLVER AL RESUMEN
+const volverSesion1 =
+    document.getElementById("btnVolverResumen");
+
+if(volverSesion1){
+
+    volverSesion1.addEventListener("click",function(){
+
+
+        cambiarPantalla(
+            "pantallaSesion1",
+            "pantallaResumen",
+            5
+        );
+
+    });
+
+}
+
+    // SIGUIENTE
+    document.getElementById("btnSesion1")
+        .addEventListener("click",validarCaracterizacion);
+
+
+    // VOLVER DESDE EL RESUMEN
+    const volver =
+        document.getElementById("btnVolverCaracterizacion");
+
+    if(volver){
+
+        volver.addEventListener("click",function(){
+
+            cambiarPantalla(
+                "pantallaResumen",
+                "pantallaCaracterizacion",
+                3
+            );
+
+        });
+
+    }
+
+
+    // INICIAR SESIÓN 1
+    const iniciar =
+        document.getElementById("btnIniciarSesion1");
+
+    if(iniciar){
+
+        iniciar.addEventListener("click",function(){
+
+            cambiarPantalla(
+                "pantallaResumen",
+                "pantallaSesion1",
+                6
+            );
+
+        });
+
+    }
+    /*****************************************************
+ * CONTINUAR — SESIÓN 1 → SESIÓN 2
+ *****************************************************/
+
+const btnSesion2 =
+    document.getElementById("btnSesion2");
+
+if(btnSesion2){
+
+    btnSesion2.addEventListener(
+        "click",
+        function(){
+
+            cambiarPantalla(
+                "pantallaSesion1",
+                "pantallaSesion2",
+                7
+            );
+
+        }
+    );
+
+}
+
+        /*****************************************************
+     * HERRAMIENTAS — SESIÓN 2
+     *****************************************************/
+
+    // GUARDAR SESIÓN 2
+
+    const btnGuardarSesion2 =
+        document.getElementById("btnGuardarSesion2");
+
+    if(btnGuardarSesion2){
+
+        btnGuardarSesion2.addEventListener(
+            "click",
+            function(){
+
+                guardarBorradorLocal();
+
+                console.log(
+                    "Sesión 2 guardada correctamente."
+                );
+
+            }
+        );
+
+    }
+
+
+    // PANTALLA COMPLETA + MODO LECTURA — SESIÓN 2
+    const btnPantallaCompletaSesion2 = document.getElementById("btnPantallaCompletaSesion2");
+    if(btnPantallaCompletaSesion2 && btnPantallaCompletaSesion2.dataset.herramientaInicializada !== "1"){
+        btnPantallaCompletaSesion2.addEventListener("click",async function(){
+            try{
+                if(!document.fullscreenElement){ await document.documentElement.requestFullscreen(); }
+                else { await document.exitFullscreen(); }
+            }catch(e){ console.error("No fue posible activar pantalla completa:",e); }
+        });
+        btnPantallaCompletaSesion2.dataset.herramientaInicializada="1";
+    }
+    const btnModoLecturaSesion2 = document.getElementById("btnModoLecturaSesion2");
+    if(btnModoLecturaSesion2 && btnModoLecturaSesion2.dataset.herramientaInicializada !== "1"){
+        btnModoLecturaSesion2.addEventListener("click",function(){
+            const pantalla=document.getElementById("pantallaSesion2"); if(!pantalla) return;
+            pantalla.classList.toggle("modoLecturaSesion2");
+            btnModoLecturaSesion2.textContent=pantalla.classList.contains("modoLecturaSesion2")?"✏️ Volver a edición":"📖 Modo lectura";
+        });
+        btnModoLecturaSesion2.dataset.herramientaInicializada="1";
+    }
+
+    // VOLVER A SESIÓN 1
+    const volverSesion1DesdeSesion2 =
+        document.getElementById("btnVolverSesion1");
+
+    if(volverSesion1DesdeSesion2){
+
+        volverSesion1DesdeSesion2.addEventListener("click",function(){
+
+            cambiarPantalla(
+                "pantallaSesion2",
+                "pantallaSesion1",
+                6
+            );
+
+        });
+
+    }
+
+    // CONTINUAR A SESIÓN 3
+    const btnSesion3 =
+        document.getElementById("btnSesion3");
+
+    if(btnSesion3){
+        btnSesion3.addEventListener("click",function(){
+            if(!validarSesion2()){
+                return;
+            }
+
+            cambiarPantalla(
+                "pantallaSesion2",
+                "pantallaSesion3",
+                8
+            );
+        });
+    }
+
+    /*****************************************************
+     * HERRAMIENTAS — SESIÓN 3
+     *****************************************************/
+
+    const btnGuardarSesion3 =
+        document.getElementById("btnGuardarSesion3");
+
+    if(btnGuardarSesion3){
+        btnGuardarSesion3.addEventListener("click",function(){
+            guardarBorradorLocal();
+        });
+    }
+
+    const btnPantallaCompletaSesion3 = document.getElementById("btnPantallaCompletaSesion3");
+    if(btnPantallaCompletaSesion3 && btnPantallaCompletaSesion3.dataset.herramientaInicializada !== "1"){
+        btnPantallaCompletaSesion3.addEventListener("click",async function(){
+            try{
+                if(!document.fullscreenElement){ await document.documentElement.requestFullscreen(); }
+                else { await document.exitFullscreen(); }
+            }catch(e){ console.error("No fue posible activar pantalla completa:",e); }
+        });
+        btnPantallaCompletaSesion3.dataset.herramientaInicializada="1";
+    }
+    const btnModoLecturaSesion3 = document.getElementById("btnModoLecturaSesion3");
+    if(btnModoLecturaSesion3 && btnModoLecturaSesion3.dataset.herramientaInicializada !== "1"){
+        btnModoLecturaSesion3.addEventListener("click",function(){
+            const pantalla=document.getElementById("pantallaSesion3"); if(!pantalla) return;
+            pantalla.classList.toggle("modoLecturaSesion3");
+            btnModoLecturaSesion3.textContent=pantalla.classList.contains("modoLecturaSesion3")?"✏️ Volver a edición":"📖 Modo lectura";
+        });
+        btnModoLecturaSesion3.dataset.herramientaInicializada="1";
+    }
+
+    const btnVolverSesion2DesdeSesion3 =
+        document.getElementById("btnVolverSesion2DesdeSesion3");
+
+    if(btnVolverSesion2DesdeSesion3){
+        btnVolverSesion2DesdeSesion3.addEventListener("click",function(){
+            cambiarPantalla(
+                "pantallaSesion3",
+                "pantallaSesion2",
+                7
+            );
+        });
+    }
+
+    const btnFinalizarSesion3 =
+        document.getElementById("btnFinalizarSesion3");
+
+    if(btnFinalizarSesion3){
+        btnFinalizarSesion3.addEventListener("click",function(){
+            if(!validarSesion3()) return;
+            guardarBorradorLocal({silencioso:true});
+            cambiarPantalla("pantallaSesion3","pantallaEvidencias",9);
+        });
+    }
+
+/*****************************************************
+ * RECORRIDO DEL FORO
+ *****************************************************/
+
+const tarjetasRecorrido = [
+
+    {
+        icono: "🎯",
+        titulo: "Objetivo del Foro",
+        que: "Identificaremos necesidades, construiremos propuestas y estableceremos acuerdos para fortalecer la educación desde la realidad de cada comunidad educativa.",
+        preparado: "Disposición para participar, dialogar y construir consensos.",
+        paraQue: "Comprender el propósito del Foro y orientar el trabajo colectivo.",
+        frase: "Cada aporte fortalece la transformación educativa de Neiva."
+    },
+
+    {
+        icono: "📋",
+        titulo: "Consentimiento",
+        que: "Confirmaremos la participación voluntaria y las condiciones para el tratamiento de la información recopilada durante el Foro.",
+        preparado: "Nada adicional.",
+        paraQue: "Formalizar la participación en el proceso.",
+        frase: "Su participación fortalece este proceso."
+    },
+
+    {
+        icono: "🏫",
+        titulo: "Información Institucional y Participación",
+        que: "Registraremos la participación de los diferentes estamentos de la comunidad educativa presentes en el Foro.",
+        preparado: "El número de participantes de cada estamento: directivos docentes, docentes, estudiantes, padres de familia, personal administrativo, egresados, sector productivo y otros.",
+        paraQue: "Conocer quiénes participaron y contextualizar los resultados del Foro.",
+        frase: "Una participación representativa fortalece la construcción colectiva."
+    },
+
+    {
+        icono: "💬",
+        titulo: "Sesión 1",
+        que: "Analizaremos la realidad educativa de nuestra institución, identificando fortalezas, necesidades y desafíos.",
+        preparado: "Las experiencias y conocimientos de la comunidad educativa.",
+        paraQue: "Reconocer los aspectos de nuestra realidad que requieren atención y transformación.",
+        frase: "Comprender la realidad es el primer paso para transformarla."
+    },
+
+    {
+        icono: "💡",
+        titulo: "Sesión 2",
+        que: "Construiremos propuestas frente a las situaciones identificadas en la sesión anterior.",
+        preparado: "Ideas, experiencias y alternativas que puedan contribuir a mejorar nuestra realidad educativa.",
+        paraQue: "Transformar las necesidades identificadas en propuestas concretas.",
+        frase: "Toda propuesta nace del diálogo."
+    },
+
+    {
+        icono: "⭐",
+        titulo: "Sesión 3",
+        que: "Analizaremos y priorizaremos las propuestas construidas para identificar aquellas que consideramos más relevantes.",
+        preparado: "Disposición para argumentar, escuchar y llegar a acuerdos.",
+        paraQue: "Definir las acciones que la comunidad educativa considera prioritarias.",
+        frase: "Priorizar también es construir."
+    },
+
+    {
+        icono: "📷",
+        titulo: "Evidencias",
+        que: "Registraremos las evidencias del desarrollo del Foro antes de iniciar la plenaria.",
+        preparado: "Una fotografía horizontal HD con la mayor cantidad posible de participantes trabajando y el listado oficial de asistencia en PDF.",
+        paraQue: "Respaldar documentalmente el desarrollo del Foro y completar el informe institucional.",
+        frase: "Cada evidencia respalda el trabajo realizado."
+    },
+
+    {
+        icono: "🗣️",
+        titulo: "Plenaria y cierre",
+        que: "Socializaremos las respuestas construidas, revisaremos los aportes de la comunidad educativa y validaremos las conclusiones y acuerdos.",
+        preparado: "Disposición para leer, dialogar y validar colectivamente los resultados.",
+        paraQue: "Consolidar los aportes de la comunidad educativa y cerrar el proceso.",
+        frase: "Los mejores acuerdos nacen de la participación."
+    }
+
+];
+
+
+let tarjetaRecorridoActual = 0;
+
+
+function mostrarTarjetaRecorrido(){
+
+    const tarjeta =
+        tarjetasRecorrido[tarjetaRecorridoActual];
+
+    const contenedor =
+        document.querySelector(".recorridoTarjeta");
+
+    if(!contenedor) return;
+
+
+    /* SALIDA */
+
+    contenedor.classList.remove("transicionEntrada");
+    contenedor.classList.add("transicionSalida");
+
+
+    setTimeout(function(){
+
+        /* CAMBIAR CONTENIDO */
+
+        contenedor.innerHTML = `
+
+            <div class="recorridoIcono">
+                ${tarjeta.icono}
+            </div>
+
+            <h3>
+                ${tarjeta.titulo}
+            </h3>
+
+            <p class="recorridoPregunta">
+                ¿Qué haremos?
+            </p>
+
+            <p>
+                ${tarjeta.que}
+            </p>
+
+            <p class="recorridoPregunta">
+                ¿Qué debemos tener listo?
+            </p>
+
+            <p>
+                ${tarjeta.preparado}
+            </p>
+
+            <p class="recorridoPregunta">
+                ¿Para qué sirve esta etapa?
+            </p>
+
+            <p>
+                ${tarjeta.paraQue}
+            </p>
+
+            <p class="recorridoFrase">
+                ${tarjeta.frase}
+            </p>
+
+        `;
+
+
+        /* ACTUALIZAR CONTADOR */
+
+        document.getElementById("contadorRecorrido")
+            .textContent =
+            (tarjetaRecorridoActual + 1) +
+            " de " +
+            tarjetasRecorrido.length;
+
+
+        /* BOTÓN ANTERIOR */
+
+        document.getElementById("btnRecorridoAnterior")
+            .disabled =
+            tarjetaRecorridoActual === 0;
+
+
+        /* ÚLTIMA TARJETA */
+
+        if(
+            tarjetaRecorridoActual ===
+            tarjetasRecorrido.length - 1
+        ){
+
+            document.getElementById(
+                "btnRecorridoSiguiente"
+            ).style.display = "none";
+
+            document.getElementById(
+                "btnIniciarRecorrido"
+            ).style.display = "inline-block";
+
+        }else{
+
+            document.getElementById(
+                "btnRecorridoSiguiente"
+            ).style.display = "inline-block";
+
+            document.getElementById(
+                "btnIniciarRecorrido"
+            ).style.display = "none";
+
+        }
+
+
+        /* ENTRADA */
+
+        contenedor.classList.remove("transicionSalida");
+
+        /* Forzar el navegador a reconocer el estado inicial */
+        void contenedor.offsetWidth;
+
+        contenedor.classList.add("transicionEntrada");
+
+    }, 250);
+
+}
+
+
+/* SIGUIENTE */
+
+document.getElementById("btnRecorridoSiguiente")
+    .addEventListener("click",function(){
+
+        if(tarjetaRecorridoActual < tarjetasRecorrido.length - 1){
+
+            tarjetaRecorridoActual++;
+
+            mostrarTarjetaRecorrido();
+        }
+
+    });
+
+
+/* ANTERIOR */
+
+document.getElementById("btnRecorridoAnterior")
+    .addEventListener("click",function(){
+
+        if(tarjetaRecorridoActual > 0){
+
+            tarjetaRecorridoActual--;
+
+            mostrarTarjetaRecorrido();
+        }
+
+    });
+
+
+/* COMENZAR EL FORO */
+
+document.getElementById("btnIniciarRecorrido")
+    .addEventListener("click",function(){
+
+        cambiarPantalla(
+            "pantallaRecorrido",
+            "pantallaConsentimiento",
+            2
+        );
+
+    });
+
+
+/* INICIAR */
+
+mostrarTarjetaRecorrido();
+}
+
+/*****************************************************
+ * CAMBIAR PANTALLA
+ *****************************************************/
+
+function cambiarPantalla(actual,nueva,paso){
+
+    if(accesoEstaAutorizadoFEM()){
+
+        guardarBorradorLocal({
+            silencioso:true
+        });
+
+    }
+
+    document
+        .querySelectorAll(".pantalla")
+        .forEach(function(pantalla){
+            pantalla.classList.remove("visible");
+        });
+
+    const nuevaPantalla =
+        document.getElementById(nueva);
+
+    if(!nuevaPantalla){
+        console.error("No existe la pantalla:", nueva);
+        return;
+    }
+
+    nuevaPantalla.classList.add("visible");
+
+    pantallaActual = Number(paso);
+
+    actualizarBarra();
+
+    guardarBorradorLocal({silencioso:true});
+
+    if(nueva === "pantallaSesion3") {
+        setTimeout(mostrarRecordatorioSesion3, 120);
+    }
+
+    if(nueva === "pantallaPlenaria") {
+        setTimeout(renderizarPlenaria, 80);
+    }
+
+}
+
+/*****************************************************
+ * BARRA
+ *****************************************************/
+
+function actualizarBarra(){
+
+    const porcentaje =
+        ((pantallaActual-1)/(TOTAL_PANTALLAS-1))*100;
+
+    document.getElementById("barraProgreso")
+        .style.width = porcentaje + "%";
+
+}
+/*****************************************************
+ * CARGAR INSTITUCIONES
+ *****************************************************/
+function cargarInstituciones(){
+
+    google.script.run
+        .withSuccessHandler(recibirInstituciones)
+        .withFailureHandler(function(error){
+
+            const detalle =
+                error && error.message
+                    ? error.message
+                    : String(error || "Error desconocido");
+
+            console.error(
+                "No fue posible cargar las instituciones:",
+                detalle,
+                error
+            );
+
+            const aviso = document.getElementById("mensajeInstituciones");
+            if(aviso){
+                aviso.textContent =
+                    "No fue posible cargar automáticamente las instituciones. " + detalle;
+                aviso.style.display = "block";
+            }
+
+        })
+        .obtenerInstitucionesJSON();
+
+}
+
+
+/*****************************************************
+ * RECIBIR INSTITUCIONES
+ *****************************************************/
+
+function recibirInstituciones(json){
+
+    try{
+
+        instituciones =
+            typeof json === "string"
+                ? JSON.parse(json)
+                : (json || {});
+
+    }catch(error){
+
+        console.error(
+            "Error interpretando las instituciones:",
+            error
+        );
+
+        instituciones = {};
+
+        return;
+
+    }
+
+
+    const lista =
+        document.getElementById(
+            "listaInstituciones"
+        );
+
+    if(lista){
+
+        lista.innerHTML = "";
+
+        Object.keys(instituciones)
+            .sort()
+            .forEach(function(nombre){
+
+                const option =
+                    document.createElement("option");
+
+                option.value =
+                    nombre;
+
+                lista.appendChild(option);
+
+            });
+
+    }
+
+
+    const campo =
+        document.getElementById(
+            "institucion"
+        );
+
+    if(campo){
+
+        /*
+         * input cubre la selección de datalist
+         * y change cubre otros navegadores.
+         */
+        if(
+            campo.dataset.institucionListeners !== "1"
+        ){
+
+            campo.addEventListener(
+                "input",
+                seleccionarInstitucion
+            );
+
+            campo.addEventListener(
+                "change",
+                seleccionarInstitucion
+            );
+
+            campo.dataset.institucionListeners =
+                "1";
+
+        }
+
+    }
+
+
+    /*
+     * Si la autenticación ya ocurrió antes de
+     * terminar de cargar Oficiales, completar
+     * ahora los datos de la IE.
+     */
+    if(
+        window.DATOS_ACCESO_FEM &&
+        window.DATOS_ACCESO_FEM.ok === true
+    ){
+
+        aplicarDatosAccesoFEM();
+
+    }
+
+}
+
+
+/*****************************************************
+ * APLICAR DATOS DEL ACCESO AUTORIZADO
+ *****************************************************/
+
+function aplicarDatosAccesoFEM(){
+
+    const acceso =
+        window.DATOS_ACCESO_FEM;
+
+    if(
+        !acceso ||
+        acceso.ok !== true
+    ){
+
+        return false;
+
+    }
+
+
+    const ie =
+        String(
+            acceso.ie || ""
+        ).trim();
+
+    if(!ie){
+        return false;
+    }
+
+
+    const datosIE =
+        acceso.datosIE ||
+        instituciones[ie] ||
+        {};
+
+
+    institucionSeleccionada =
+        ie;
+
+
+    const campoInstitucion =
+        document.getElementById(
+            "institucion"
+        );
+
+    if(campoInstitucion){
+
+        campoInstitucion.value =
+            ie;
+
+        /*
+         * En un enlace personalizado la IE
+         * no puede ser cambiada.
+         */
+        campoInstitucion.readOnly =
+            true;
+
+    }
+
+
+    const dane =
+        document.getElementById("dane");
+
+    if(dane){
+
+        dane.value =
+            String(
+                acceso.dane ||
+                datosIE.dane ||
+                ""
+            ).trim();
+
+        dane.readOnly = true;
+
+    }
+
+
+    const rector =
+        document.getElementById("rector");
+
+    if(rector){
+
+        rector.value =
+            datosIE.rector || "";
+
+    }
+
+
+    const direccion =
+        document.getElementById("direccion");
+
+    if(direccion){
+
+        direccion.value =
+            datosIE.direccion || "";
+
+    }
+
+
+    const zona =
+        document.getElementById("zona");
+
+    if(zona){
+
+        zona.value =
+            datosIE.zona || "";
+
+    }
+
+
+    const comuna =
+        document.getElementById("comuna");
+
+    if(comuna){
+
+        comuna.value =
+            datosIE.comuna || "";
+
+    }
+
+
+    const correoIE =
+        document.getElementById("correoIE");
+
+    if(correoIE){
+
+        correoIE.value =
+            datosIE.correo || "";
+
+    }
+
+
+    const grupo =
+        document.getElementById("grupo");
+
+    if(grupo){
+
+        grupo.value =
+            obtenerGrupoInstitucion(
+                ie
+            );
+
+    }
+
+
+    /*
+     * Recalcular resumen y total.
+     */
+    try{
+        actualizarTotalParticipantes();
+    }catch(error){
+        console.error(error);
+    }
+
+
+    return true;
+
+}
+
+
+/********************************************************
+ * SELECCIONAR INSTITUCIÓN
+ ********************************************************/
+
+function seleccionarInstitucion(){
+
+    const campo =
+        document.getElementById(
+            "institucion"
+        );
+
+
+    if(!campo) return;
+
+
+    const nombre =
+        campo.value
+            .trim();
+
+
+    /*
+     * Si está vacío,
+     * limpiar todos los datos.
+     */
+
+    if(nombre === ""){
+
+        limpiarDatosInstitucion();
+
+        return;
+
+    }
+
+
+    /*
+     * Buscar coincidencia exacta.
+     */
+
+    let datosEncontrados =
+        instituciones[nombre];
+
+
+    /*
+     * Si no existe exactamente,
+     * buscar ignorando mayúsculas/minúsculas.
+     */
+
+    if(!datosEncontrados){
+
+        const clave =
+            Object.keys(
+                instituciones
+            ).find(
+                function(nombreInstitucion){
+
+                    return nombreInstitucion
+                        .trim()
+                        .toLowerCase()
+                        ===
+                        nombre
+                            .toLowerCase();
+
+                }
+            );
+
+
+        if(clave){
+
+            datosEncontrados =
+                instituciones[
+                    clave
+                ];
+
+        }
+
+    }
+
+
+    /*
+     * Si no encontramos la institución,
+     * limpiar.
+     */
+
+    if(!datosEncontrados){
+
+        limpiarDatosInstitucion();
+
+        return;
+
+    }
+
+
+    /*
+     * Guardar institución seleccionada.
+     */
+
+    institucionSeleccionada =
+        Object.keys(
+            instituciones
+        ).find(
+            function(nombreInstitucion){
+
+                return nombreInstitucion
+                    .trim()
+                    .toLowerCase()
+                    ===
+                    nombre
+                        .toLowerCase();
+
+            }
+        ) || nombre;
+        /*****************************************************
+ * GRUPO DE TRABAJO
+ *****************************************************/
+
+const grupo =
+    document.getElementById(
+        "grupo"
+    );
+
+if(grupo){
+
+    grupo.value =
+        obtenerGrupoInstitucion(
+            institucionSeleccionada
+        );
+
+}
+
+
+    /*
+     * =====================================================
+     * DANE
+     * =====================================================
+     */
+
+    const dane =
+        document.getElementById(
+            "dane"
+        );
+
+    if(dane){
+
+        dane.value =
+            datosEncontrados.dane || "";
+
+    }
+
+
+    /*
+     * =====================================================
+     * RECTOR(A)
+     * =====================================================
+     *
+     * Se carga desde la columna H,
+     * pero el input permanece editable.
+     */
+
+    const rector =
+        document.getElementById(
+            "rector"
+        );
+
+    if(rector){
+
+        rector.value =
+            datosEncontrados.rector || "";
+
+    }
+
+
+    /*
+     * =====================================================
+     * DIRECCIÓN
+     * =====================================================
+     */
+
+    const direccion =
+        document.getElementById(
+            "direccion"
+        );
+
+    if(direccion){
+
+        direccion.value =
+            datosEncontrados.direccion || "";
+
+    }
+
+
+    /*
+     * =====================================================
+     * ZONA
+     * =====================================================
+     */
+
+    const zona =
+        document.getElementById(
+            "zona"
+        );
+
+    if(zona){
+
+        zona.value =
+            datosEncontrados.zona || "";
+
+    }
+
+
+    /*
+     * =====================================================
+     * COMUNA
+     * =====================================================
+     */
+
+    const comuna =
+        document.getElementById(
+            "comuna"
+        );
+
+    if(comuna){
+
+        comuna.value =
+            datosEncontrados.comuna || "";
+
+    }
+
+
+    /*
+     * =====================================================
+     * CORREO INSTITUCIONAL
+     * =====================================================
+     */
+
+    const correoIE =
+        document.getElementById(
+            "correoIE"
+        );
+
+    if(correoIE){
+
+        correoIE.value =
+            datosEncontrados.correo || "";
+
+    }
+
+}
+/*****************************************************
+ * VALIDAR CARACTERIZACIÓN
+ *****************************************************/
+function validarCaracterizacion(){
+
+    const campos = [
+
+        {id:"institucion", nombre:"Institución Educativa"},
+        {id:"nombre", nombre:"Nombre de quien diligencia el instrumento"},
+        {id:"correo", nombre:"Correo electrónico personal"},
+        {id:"cargo", nombre:"Cargo"}
+
+    ];
+
+    let errores = [];
+
+    document
+        .querySelectorAll(".campoError")
+        .forEach(function(c){
+
+            c.classList.remove("campoError");
+
+        });
+
+    campos.forEach(function(c){
+
+        const control = document.getElementById(c.id);
+
+        if(control.value.trim() == ""){
+
+            errores.push(c.nombre);
+
+            control.classList.add("campoError");
+
+        }
+
+    });
+
+    const mensaje =
+        document.getElementById("mensajeValidacion");
+
+    if(errores.length){
+
+        mensaje.style.display = "block";
+
+        mensaje.innerHTML =
+            "<b>Debe completar los siguientes campos:</b><br><br>• "
+            + errores.join("<br>• ");
+
+        return;
+
+    }
+
+    mensaje.style.display = "none";
+
+    mostrarResumen();
+    }
+
+/*****************************************************
+ * MOSTRAR RESUMEN
+ *****************************************************/
+
+function mostrarResumen(navegar){
+
+    if(navegar === undefined){
+        navegar = true;
+    }
+
+    const camposResumen = {
+        rInstitucion: "institucion",
+        rDane: "dane",
+        rRector: "rector",
+        rDireccion: "direccion",
+        rZona: "zona",
+        rComuna: "comuna",
+        rGrupo: "grupo",
+        rCorreoIE: "correoIE",
+        rNombre: "nombre",
+        rCorreo: "correo",
+        rCargo: "cargo"
+    };
+
+    Object.keys(camposResumen).forEach(function(idResumen){
+
+        const resumen = document.getElementById(idResumen);
+        const campo = document.getElementById(camposResumen[idResumen]);
+
+        if(resumen && campo){
+            resumen.textContent = campo.value || "";
+        }
+
+    });
+
+    const participantes = [
+        "Rector",
+        "Coordinador",
+        "Docentes",
+        "TutorPTA",
+        "Orientador",
+        "Estudiantes",
+        "Padres",
+        "Administrativos",
+        "Egresados",
+        "Sector",
+        "Otros"
+    ];
+
+    let total = 0;
+
+    participantes.forEach(function(tipo){
+
+        const campo =
+            document.getElementById("participantes" + tipo);
+
+        const resumen =
+            document.getElementById("rParticipantes" + tipo);
+
+        const valor = campo ? (parseInt(campo.value,10) || 0) : 0;
+
+        total += valor;
+
+        if(resumen){
+            resumen.textContent = valor;
+        }
+
+    });
+
+    const totalCampo = document.getElementById("totalParticipantes");
+    if(totalCampo){
+        totalCampo.textContent = total;
+    }
+
+    const totalResumen = document.getElementById("rTotalParticipantes");
+    if(totalResumen){
+        totalResumen.textContent = total;
+    }
+
+    if(navegar){
+        cambiarPantalla(
+            "pantallaCaracterizacion",
+            "pantallaResumen",
+            5
+        );
+    }
+
+}
+
+/*****************************************************
+ * REINICIAR FORMULARIO (FUTURO)
+ *****************************************************/
+function reiniciarFormulario(){
+
+    document.getElementById("institucion").value = "";
+    document.getElementById("dane").value = "";
+    document.getElementById("rector").value = "";
+    document.getElementById("direccion").value = "";
+    document.getElementById("zona").value = "";
+    document.getElementById("comuna").value = "";
+    document.getElementById("correoIE").value = "";
+
+    document.getElementById("nombre").value = "";
+    document.getElementById("correo").value = "";
+    document.getElementById("cargo").selectedIndex = 0;
+
+}
+
+/********************************************************
+ * LIMPIAR DATOS INSTITUCIÓN
+ ********************************************************/
+
+function limpiarDatosInstitucion(){
+
+ const campos = [
+    "dane",
+    "rector",
+    "direccion",
+    "zona",
+    "comuna",
+    "grupo",
+    "correoIE"
+];
+
+
+    campos.forEach(
+        function(id){
+
+            const elemento =
+                document.getElementById(
+                    id
+                );
+
+
+            if(elemento){
+
+                elemento.value =
+                    "";
+
+            }
+
+        }
+    );
+
+
+    institucionSeleccionada =
+        "";
+
+}
+/*****************************************************
+ * CONTADORES Y CONTROL DE LAS PREGUNTAS — SESIÓN 1
+ *****************************************************/
+
+const MINIMO_PALABRAS_SESION = 200;
+const MAXIMO_PALABRAS_SESION = 400;
+
+
+/*****************************************************
+ * CONTAR PALABRAS
+ *****************************************************/
+
+function contarPalabras(texto){
+
+    if(!texto || !String(texto).trim()){
+        return 0;
+    }
+
+    // Unicode: reconoce tildes, ñ y otros caracteres de alfabetos
+    // sin separar una palabra por sus caracteres especiales.
+    const coincidencias = String(texto).match(/[\p{L}\p{M}\p{N}]+(?:[’'\-][\p{L}\p{M}\p{N}]+)*/gu);
+
+    return coincidencias ? coincidencias.length : 0;
+
+}
+/*****************************************************
+ * ACTUALIZAR CONTADOR PREGUNTA 1
+ *****************************************************/
+
+function actualizarContadorPregunta1(){
+
+    const campo =
+        document.getElementById(
+            "respuestaSesion1"
+        );
+
+    const contador =
+        document.getElementById(
+            "contadorSesion1"
+        );
+
+    const barra =
+        document.getElementById(
+            "progresoPalabrasSesion1"
+        );
+
+    const mensaje =
+        document.getElementById(
+            "mensajeContador"
+        );
+
+
+    if(!campo){
+        return;
+    }
+
+
+    const palabras =
+        contarPalabras(
+            campo.value
+        );
+
+
+    /*
+     * CONTADOR
+     */
+
+    if(contador){
+
+        contador.textContent =
+            palabras +
+            " / " +
+            MAXIMO_PALABRAS_SESION +
+            " palabras";
+
+    }
+
+
+    /*
+     * BARRA DE PROGRESO
+     */
+
+    if(barra){
+
+        const porcentaje =
+            Math.min(
+                (palabras / MAXIMO_PALABRAS_SESION) * 100,
+                100
+            );
+
+        barra.style.width =
+            porcentaje + "%";
+
+    }
+
+
+    /*
+     * MENSAJE
+     */
+
+    if(mensaje){
+
+        if(palabras < MINIMO_PALABRAS_SESION){
+
+            mensaje.textContent =
+                "⚠ Debe escribir al menos 200 palabras.";
+
+            mensaje.style.color =
+                "#C62828";
+
+        }else if(palabras <= MAXIMO_PALABRAS_SESION){
+
+            mensaje.textContent =
+                "✓ Longitud adecuada. Puede continuar.";
+
+            mensaje.style.color =
+                "#0B6A44";
+
+        }else{
+
+            mensaje.textContent =
+                "⚠ Ha superado el máximo de 400 palabras.";
+
+            mensaje.style.color =
+                "#C62828";
+
+        }
+
+    }
+    /*
+     * Cada cambio en la Pregunta 1
+     * revisa si se puede habilitar
+     * la Pregunta 2.
+     */
+
+    actualizarEstadoPregunta2();
+
+}
+
+/*****************************************************
+ * ACTUALIZAR CONTADOR PREGUNTA 2
+ *****************************************************/
+
+function actualizarContadorPregunta2(){
+
+    const campo =
+        document.getElementById(
+            "respuestaSesion1Pregunta2"
+        );
+
+    const contador =
+        document.getElementById(
+            "contadorSesion1Pregunta2"
+        );
+
+    const barra =
+        document.getElementById(
+            "progresoPalabrasSesion1Pregunta2"
+        );
+
+    const mensaje =
+        document.getElementById(
+            "mensajeContadorPregunta2"
+        );
+
+
+    if(!campo){
+        return;
+    }
+
+
+    const palabras =
+        contarPalabras(
+            campo.value
+        );
+
+
+    /*
+     * CONTADOR
+     */
+
+    if(contador){
+
+        contador.textContent =
+            palabras +
+            " / " +
+            MAXIMO_PALABRAS_SESION +
+            " palabras";
+
+    }
+
+
+    /*
+     * BARRA
+     */
+
+    if(barra){
+
+        const porcentaje =
+            Math.min(
+                (palabras / MAXIMO_PALABRAS_SESION) * 100,
+                100
+            );
+
+        barra.style.width =
+            porcentaje + "%";
+
+    }
+
+
+    /*
+     * MENSAJE
+     */
+
+    if(mensaje){
+
+        if(palabras < MINIMO_PALABRAS_SESION){
+
+            mensaje.textContent =
+                "⚠ Debe escribir al menos 200 palabras.";
+
+            mensaje.style.color =
+                "#C62828";
+
+        }else if(palabras <= MAXIMO_PALABRAS_SESION){
+
+            mensaje.textContent =
+                "✓ Longitud adecuada. Puede continuar.";
+
+            mensaje.style.color =
+                "#0B6A44";
+
+        }else{
+
+            mensaje.textContent =
+                "⚠ Ha superado el máximo de 400 palabras.";
+
+            mensaje.style.color =
+                "#C62828";
+
+        }
+
+    }
+
+
+    /*
+     * Revisar botón Continuar.
+     */
+
+    actualizarEstadoContinuar();
+
+}
+
+
+/*****************************************************
+ * HABILITAR / BLOQUEAR PREGUNTA 2
+ *****************************************************/
+
+function actualizarEstadoPregunta2(){
+
+    const campo =
+        document.getElementById(
+            "respuestaSesion1"
+        );
+
+    const bloque =
+        document.getElementById(
+            "bloquePregunta2"
+        );
+
+
+    if(!campo || !bloque){
+        return;
+    }
+
+
+    const palabras =
+        contarPalabras(
+            campo.value
+        );
+
+
+    /*
+     * Pregunta 2 solamente aparece
+     * cuando la Pregunta 1 alcanza
+     * el mínimo requerido.
+     */
+
+    if(
+        palabras >= MINIMO_PALABRAS_SESION &&
+        palabras <= MAXIMO_PALABRAS_SESION
+    ){
+
+        bloque.classList.remove(
+            "bloquePreguntaBloqueada"
+        );
+
+        bloque.classList.add(
+            "bloquePreguntaHabilitada"
+        );
+
+    }else{
+
+        bloque.classList.remove(
+            "bloquePreguntaHabilitada"
+        );
+
+        bloque.classList.add(
+            "bloquePreguntaBloqueada"
+        );
+
+    }
+
+}
+/*****************************************************
+ * CONTROL DEL BOTÓN CONTINUAR
+ *****************************************************/
+
+function actualizarEstadoContinuar(){
+
+    const pregunta1 =
+        document.getElementById(
+            "respuestaSesion1"
+        );
+
+    const pregunta2 =
+        document.getElementById(
+            "respuestaSesion1Pregunta2"
+        );
+
+    const boton =
+        document.getElementById(
+            "btnSesion2"
+        );
+
+
+    if(!boton){
+        return;
+    }
+
+
+    const palabras1 =
+        pregunta1
+            ? contarPalabras(
+                pregunta1.value
+            )
+            : 0;
+
+
+    const palabras2 =
+        pregunta2
+            ? contarPalabras(
+                pregunta2.value
+            )
+            : 0;
+
+
+    /*
+     * Las dos preguntas deben cumplir
+     * el mínimo y máximo permitido.
+     */
+
+    const pregunta1Valida =
+        palabras1 >= MINIMO_PALABRAS_SESION &&
+        palabras1 <= MAXIMO_PALABRAS_SESION;
+
+
+    const pregunta2Valida =
+        palabras2 >= MINIMO_PALABRAS_SESION &&
+        palabras2 <= MAXIMO_PALABRAS_SESION;
+
+
+    boton.disabled =
+        !(pregunta1Valida && pregunta2Valida);
+
+}
+
+
+/*****************************************************
+ * INICIALIZAR CONTADORES DE SESIÓN 1
+ *****************************************************/
+
+function inicializarContadoresSesion1(){
+
+    const pregunta1 = document.getElementById("respuestaSesion1");
+    const pregunta2 = document.getElementById("respuestaSesion1Pregunta2");
+
+    // Evita registrar el mismo listener más de una vez.
+    if(pregunta1 && !pregunta1.dataset.contadorInicializado){
+        pregunta1.addEventListener("input", actualizarContadorPregunta1);
+        pregunta1.addEventListener("change", actualizarContadorPregunta1);
+        pregunta1.dataset.contadorInicializado = "1";
+    }
+
+    if(pregunta2 && !pregunta2.dataset.contadorInicializado){
+        pregunta2.addEventListener("input", actualizarContadorPregunta2);
+        pregunta2.addEventListener("change", actualizarContadorPregunta2);
+        pregunta2.dataset.contadorInicializado = "1";
+    }
+
+    actualizarContadorPregunta1();
+    actualizarContadorPregunta2();
+    actualizarEstadoContinuar();
+}
+
+/*****************************************************
+ * ACTUALIZAR TOTAL DE PARTICIPANTES
+ *****************************************************/
+
+function actualizarTotalParticipantes(){
+
+    const campos = [
+        "participantesRector",
+        "participantesCoordinador",
+        "participantesDocentes",
+        "participantesTutorPTA",
+        "participantesOrientador",
+        "participantesEstudiantes",
+        "participantesPadres",
+        "participantesAdministrativos",
+        "participantesEgresados",
+        "participantesSector",
+        "participantesOtros"
+    ];
+
+    let total = 0;
+
+    campos.forEach(function(id){
+
+        const campo = document.getElementById(id);
+
+        if(!campo) return;
+
+        let valor = parseInt(campo.value, 10);
+
+        if(isNaN(valor) || valor < 0){
+            valor = 0;
+        }
+
+        valor = Math.floor(valor);
+        campo.value = valor;
+        total += valor;
+
+    });
+
+    const totalElemento =
+        document.getElementById("totalParticipantes");
+
+    if(totalElemento){
+        totalElemento.textContent = total;
+    }
+
+    const totalResumen =
+        document.getElementById("rTotalParticipantes");
+
+    if(totalResumen){
+        totalResumen.textContent = total;
+    }
+
+    return total;
+
+}
+/*****************************************************
+ * ACTIVAR CÁLCULO DE PARTICIPANTES
+ *****************************************************/
+
+function inicializarParticipacion(){
+
+    const campos = document.querySelectorAll(".inputParticipantes");
+
+    campos.forEach(function(campo){
+
+        if(campo.dataset.sumaInicializada === "1"){
+            return;
+        }
+
+        campo.addEventListener("input", actualizarTotalParticipantes);
+        campo.addEventListener("change", actualizarTotalParticipantes);
+        campo.dataset.sumaInicializada = "1";
+    });
+
+    actualizarTotalParticipantes();
+}
+/*****************************************************
+ * PRUEBA DE VALIDACIÓN - CÓDIGO CORRECTO
+ *****************************************************/
+
+function probarValidacion1234() {
+
+  const ss =
+    SpreadsheetApp.openById(
+      SPREADSHEET_ID
+    );
+
+  const hoja =
+    ss.getSheetByName(
+      "AccesosIE"
+    );
+
+  if (!hoja) {
+
+    throw new Error(
+      'No existe la hoja "AccesosIE".'
+    );
+
+  }
+
+  const datos =
+    hoja
+      .getDataRange()
+      .getValues();
+
+  const cabeceras =
+    datos[0];
+
+  const colIE =
+    cabeceras.indexOf("IE");
+
+  const colToken =
+    cabeceras.indexOf("TOKEN");
+
+  if (
+    colIE === -1 ||
+    colToken === -1
+  ) {
+
+    throw new Error(
+      "No se encontraron las columnas IE o TOKEN."
+    );
+
+  }
+
+  let tokenPrueba = "";
+
+  for (
+    let i = 1;
+    i < datos.length;
+    i++
+  ) {
+
+    if (
+      String(
+        datos[i][colIE] || ""
+      ).trim() ===
+      "IE PRUEBA 1234"
+    ) {
+
+      tokenPrueba =
+        String(
+          datos[i][colToken] || ""
+        ).trim();
+
+      break;
+
+    }
+
+  }
+
+  if (
+    tokenPrueba === ""
+  ) {
+
+    throw new Error(
+      "No se encontró IE PRUEBA 1234."
+    );
+
+  }
+
+  const resultado =
+    validarAccesoIE(
+      tokenPrueba,
+      "1234"
+    );
+
+  Logger.log(
+    JSON.stringify(
+      resultado,
+      null,
+      2
+    )
+  );
+
+  return resultado;
+
+}
+
+
+/*****************************************************
+ * PRUEBA DE VALIDACIÓN - CÓDIGO INCORRECTO
+ *****************************************************/
+
+function probarCodigoIncorrecto1234() {
+
+  const ss =
+    SpreadsheetApp.openById(
+      SPREADSHEET_ID
+    );
+
+  const hoja =
+    ss.getSheetByName(
+      "AccesosIE"
+    );
+
+  if (!hoja) {
+
+    throw new Error(
+      'No existe la hoja "AccesosIE".'
+    );
+
+  }
+
+  const datos =
+    hoja
+      .getDataRange()
+      .getValues();
+
+  const cabeceras =
+    datos[0];
+
+  const colIE =
+    cabeceras.indexOf("IE");
+
+  const colToken =
+    cabeceras.indexOf("TOKEN");
+
+  if (
+    colIE === -1 ||
+    colToken === -1
+  ) {
+
+    throw new Error(
+      "No se encontraron las columnas IE o TOKEN."
+    );
+
+  }
+
+  let tokenPrueba = "";
+
+  for (
+    let i = 1;
+    i < datos.length;
+    i++
+  ) {
+
+    if (
+      String(
+        datos[i][colIE] || ""
+      ).trim() ===
+      "IE PRUEBA 1234"
+    ) {
+
+      tokenPrueba =
+        String(
+          datos[i][colToken] || ""
+        ).trim();
+
+      break;
+
+    }
+
+  }
+
+  if (
+    tokenPrueba === ""
+  ) {
+
+    throw new Error(
+      "No se encontró IE PRUEBA 1234."
+    );
+
+  }
+
+  const resultado =
+    validarAccesoIE(
+      tokenPrueba,
+      "9999"
+    );
+
+  Logger.log(
+    JSON.stringify(
+      resultado,
+      null,
+      2
+    )
+  );
+
+  return resultado;
+
+}
+/*****************************************************
+ * HERRAMIENTAS DE LA SESIÓN 1
+ * Guardado + pantalla completa + modo lectura.
+ * La barra queda preparada para permanecer visible
+ * durante el desplazamiento. El acabado visual se hará
+ * posteriormente en CSS.
+ *****************************************************/
+function activarHerramientasSesion1(){
+
+    const barra = document.querySelector(
+        "#pantallaSesion1 .barraHerramientas"
+    );
+
+    if(barra){
+        barra.classList.add("barraHerramientasDeslizable");
+        // Comportamiento funcional desde App; el aspecto final se ajustará en CSS.
+        barra.style.position = "sticky";
+        barra.style.top = "0";
+        barra.style.zIndex = "1000";
+    }
+
+    const guardar = document.getElementById("btnGuardarSesion1");
+    if(guardar && guardar.dataset.guardadoInicializado !== "1"){
+        guardar.addEventListener("click",function(){
+            const datos = guardarBorradorLocal({silencioso:false});
+            if(datos){
+                mostrarEstadoGuardado("🟢 Avance guardado correctamente");
+            }
+        });
+        guardar.dataset.guardadoInicializado = "1";
+    }
+
+    const botonesPantalla = document.querySelectorAll("#btnPantallaCompleta");
+    botonesPantalla.forEach(function(boton){
+        if(boton.dataset.pantallaCompletaInicializada === "1") return;
+
+        boton.addEventListener("click",async function(){
+            try{
+                if(!document.fullscreenElement){
+                    await document.documentElement.requestFullscreen();
+                    botonesPantalla.forEach(function(b){
+                        b.textContent = "✕ Salir de pantalla completa";
+                    });
+                }else{
+                    await document.exitFullscreen();
+                }
+            }catch(error){
+                console.error("No fue posible activar pantalla completa:",error);
+            }
+        });
+        boton.dataset.pantallaCompletaInicializada = "1";
+    });
+
+    if(!document.documentElement.dataset.fullscreenListener){
+        document.addEventListener("fullscreenchange",function(){
+            const activo = !!document.fullscreenElement;
+            botonesPantalla.forEach(function(b){
+                b.textContent = activo
+                    ? "✕ Salir de pantalla completa"
+                    : "⛶ Pantalla completa";
+            });
+        });
+        document.documentElement.dataset.fullscreenListener = "1";
+    }
+
+    const botonesLectura = document.querySelectorAll("#btnModoLectura");
+    botonesLectura.forEach(function(boton){
+        if(boton.dataset.modoLecturaInicializado === "1") return;
+
+        boton.addEventListener("click",function(){
+            const pantalla = document.getElementById("pantallaSesion1");
+            if(!pantalla) return;
+
+            pantalla.classList.toggle("modoLectura");
+            const activo = pantalla.classList.contains("modoLectura");
+
+            botonesLectura.forEach(function(b){
+                b.textContent = activo
+                    ? "✏️ Volver a edición"
+                    : "📖 Modo lectura";
+            });
+        });
+        boton.dataset.modoLecturaInicializado = "1";
+    });
+}
+
+/*****************************************************
+ * COMPATIBILIDAD CON LAS FUNCIONES ANTERIORES
+ *****************************************************/
+function activarPantallaCompleta(){
+    activarHerramientasSesion1();
+}
+
+function activarModoLectura(){
+    activarHerramientasSesion1();
+}
+
+/*****************************************************
+ * ACTUALIZAR ESTADO DEL CONSENTIMIENTO
+ *****************************************************/
+
+function actualizarEstadoConsentimiento(){
+
+    const caja =
+        document.getElementById("textoConsentimiento");
+
+    const check =
+        document.getElementById("acepto");
+
+    const continuar =
+        document.getElementById("btnContinuar");
+
+    if(!caja || !check || !continuar) return;
+
+    const llegoAlFinal =
+        caja.scrollTop + caja.clientHeight >=
+        caja.scrollHeight - 5;
+
+    check.disabled = !llegoAlFinal;
+    continuar.disabled = !check.checked;
+
+    const mensaje =
+        document.getElementById("mensajeLectura");
+
+    if(mensaje && llegoAlFinal){
+        mensaje.innerHTML =
+            "✅ <b>Gracias.</b> Ya puede aceptar el consentimiento y continuar.";
+        mensaje.style.color = "#0b6a44";
+    }
+
+}
+
+/*****************************************************
+ * SESIÓN 2 — CURRÍCULO Y PERTINENCIA TERRITORIAL
+ *****************************************************/
+
+const MIN_P1_S2 = 50;
+const MAX_P1_S2 = 200;
+const MIN_ACCION_S2 = 20;
+const MAX_ACCION_S2 = 100;
+const MIN_P4_S2 = 30;
+const MAX_P4_S2 = 100;
+
+const opcionesEquiposP3 = {
+    equipoSesion2_consejoAcademico: "Consejo Académico",
+    equipoSesion2_consejoDirectivo: "Consejo Directivo",
+    equipoSesion2_comisionEvaluacion: "Comisión de Evaluación y Promoción",
+    equipoSesion2_preescolar: "Equipo de Preescolar",
+    equipoSesion2_basicaPrimaria: "Equipo de Básica Primaria",
+    equipoSesion2_basicaSecundariaMedia: "Equipo de Básica Secundaria y Media",
+    equipoSesion2_comitesArea: "Comités de área",
+    equipoSesion2_educacionInclusiva: "Equipo de Educación Inclusiva / NEE",
+    equipoSesion2_gestionAcademica: "Equipo de Gestión Académica",
+    equipoSesion2_autoevaluacion: "Equipo de Autoevaluación Institucional",
+    equipoSesion2_calidad: "Equipo de Calidad / Mejoramiento Continuo",
+    equipoSesion2_seguimientoEgresados: "Equipo de Seguimiento a Egresados",
+    equipoSesion2_sistematizacion: "Equipo de Sistematización de la Información",
+    equipoSesion2_evaluacionInstitucional: "Equipo de Evaluación Institucional",
+    equipoSesion2_consejoEstudiantil: "Consejo Estudiantil",
+    equipoSesion2_consejoPadres: "Consejo de Padres de Familia",
+    equipoSesion2_personero: "Personero(a) Estudiantil",
+    equipoSesion2_mesaCurriculoComunidad: "Mesa de Diálogo Currículo-Comunidad",
+    equipoSesion2_comiteCurricular: "Comité Curricular Institucional"
+};
+
+const opcionesMecanismosP5 = {
+    mecanismoSesion2_auditoria: "Auditoría curricular inicial frente a DBA y Lineamientos del MEN",
+    mecanismoSesion2_pruebasSaber: "Análisis de resultados de Pruebas Saber e ICFES",
+    mecanismoSesion2_mapeoCompetencias: "Mapeo de competencias enseñadas vs. evaluadas",
+    mecanismoSesion2_consejoAcademico: "Consejo Académico",
+    mecanismoSesion2_comitesArea: "Comités de área o núcleos de formación",
+    mecanismoSesion2_pei: "Articulación con el PEI",
+    mecanismoSesion2_matrices: "Matrices de seguimiento curricular",
+    mecanismoSesion2_actas: "Actas de reunión de área",
+    mecanismoSesion2_rubricas: "Rúbricas de observación de clase",
+    mecanismoSesion2_portafolios: "Portafolios docentes",
+    mecanismoSesion2_tasaDBA: "Tasa de cobertura de estándares/DBA",
+    mecanismoSesion2_comparacion: "Comparación histórica de resultados internos y externos",
+    mecanismoSesion2_encuestas: "Encuestas de satisfacción docente y estudiantil",
+    mecanismoSesion2_reprobacion: "Tasa de deserción/reprobación por asignatura",
+    mecanismoSesion2_plataformas: "Plataformas de gestión académica (SIMAT, Q10, Phidias, Master 2000)",
+    mecanismoSesion2_dashboards: "Tableros de control (dashboards)",
+    mecanismoSesion2_evidencia: "Bancos de evidencia digital",
+    mecanismoSesion2_phva: "Ciclos PHVA",
+    mecanismoSesion2_autoevaluacion: "Autoevaluación institucional anual",
+    mecanismoSesion2_mesas: "Mesas de trabajo con padres y estudiantes",
+    mecanismoSesion2_visitas: "Visitas de las Secretarías de Educación",
+    mecanismoSesion2_reportes: "Reportes al MEN / Planes de Mejoramiento Institucional",
+    mecanismoSesion2_mesasCalidad: "Mesas de Calidad Educativa territoriales"
+};
+
+const IDS_PREGUNTAS_S2 = [
+    "bloqueSesion2Pregunta1",
+    "bloqueSesion2Pregunta2",
+    "bloqueSesion2Pregunta3",
+    "bloqueSesion2Pregunta4",
+    "bloqueSesion2Pregunta5"
+];
+
+function estadoPalabrasSesion2(campo,min,max){
+    if(!campo) return false;
+    const n = contarPalabras(campo.value);
+    return n >= min && n <= max;
+}
+
+function actualizarContadorSesion2(idCampo,idContador,idBarra,idMensaje,min,max){
+    const campo = document.getElementById(idCampo);
+    if(!campo) return false;
+
+    const n = contarPalabras(campo.value);
+    const contador = document.getElementById(idContador);
+    const barra = document.getElementById(idBarra);
+    const mensaje = document.getElementById(idMensaje);
+
+    if(contador) contador.textContent = n + " / " + max + " palabras";
+    if(barra) barra.style.width = Math.min((n / max) * 100,100) + "%";
+
+    if(mensaje){
+        if(n < min){
+            mensaje.textContent = "⚠ Debe escribir al menos " + min + " palabras.";
+            mensaje.style.color = "#C62828";
+        }else if(n <= max){
+            mensaje.textContent = "✓ Longitud adecuada. Puede continuar.";
+            mensaje.style.color = "#0B6A44";
+        }else{
+            mensaje.textContent = "⚠ Ha superado el máximo de " + max + " palabras.";
+            mensaje.style.color = "#C62828";
+        }
+    }
+    return n >= min && n <= max;
+}
+
+function habilitarBloqueSesion2(idBloque,habilitado){
+    const bloque = document.getElementById(idBloque);
+    if(!bloque) return;
+    bloque.classList.toggle("bloquePreguntaBloqueada",!habilitado);
+    bloque.classList.toggle("bloquePreguntaHabilitada",habilitado);
+}
+
+function habilitarCampoSesion2(idCampo,habilitado){
+    const campo = document.getElementById(idCampo);
+    if(campo) campo.disabled = !habilitado;
+}
+
+function habilitarControlesDentroSesion2(idBloque,habilitado){
+    const bloque = document.getElementById(idBloque);
+    if(!bloque) return;
+    bloque.querySelectorAll("input, textarea, select, button").forEach(function(campo){
+        campo.disabled = !habilitado;
+    });
+}
+
+function validarAccionSesion2(numero){
+    return estadoPalabrasSesion2(
+        document.getElementById("respuestaSesion2Pregunta2Accion" + numero),
+        MIN_ACCION_S2,
+        MAX_ACCION_S2
+    );
+}
+
+function crearRespuestaPregunta3Sesion2(){
+    const bloque = document.getElementById("bloqueSesion2Pregunta3");
+    if(!bloque || document.getElementById("respuestaSesion2Pregunta3")) return;
+
+    const guia = bloque.querySelector(".panelGuia");
+    if(!guia) return;
+
+    const trabajo = document.createElement("div");
+    trabajo.className = "contenedorTrabajoSesion";
+
+    const panelRespuesta = document.createElement("div");
+    panelRespuesta.className = "panelRespuesta";
+
+    const titulo = document.createElement("h3");
+    titulo.textContent = "Equipos conformados para liderar la transformación curricular";
+
+    const textarea = document.createElement("textarea");
+    textarea.id = "respuestaSesion2Pregunta3";
+    textarea.rows = 12;
+    textarea.readOnly = true;
+    textarea.placeholder = "Las opciones seleccionadas aparecerán aquí. Puede ampliar o complementar la respuesta...";
+
+    panelRespuesta.appendChild(titulo);
+    panelRespuesta.appendChild(textarea);
+
+    trabajo.appendChild(guia);
+    trabajo.appendChild(panelRespuesta);
+    bloque.appendChild(trabajo);
+}
+
+function limpiarLineasGeneradas(campo,clave){
+    if(!campo) return [];
+
+    const generadas = JSON.parse(campo.dataset[clave] || "[]");
+    const lineas = campo.value
+        .split(/\r?\n/)
+        .map(function(x){ return x.trim(); })
+        .filter(Boolean);
+
+    return lineas.filter(function(linea){
+        return generadas.indexOf(linea) === -1;
+    });
+}
+
+function actualizarRespuestaSeleccionMultiple(
+    campoId,
+    opciones,
+    clave,
+    otroId,
+    otroTextoId,
+    prefijo
+){
+
+    const campo = document.getElementById(campoId);
+    if(!campo) return;
+
+    /*
+     * IMPORTANTE:
+     * No reconstruimos el textarea perdiendo el contenido
+     * que el usuario ya escribió.
+     *
+     * Primero recuperamos las líneas que fueron generadas
+     * en la actualización anterior y las retiramos.
+     * Todo lo demás se conserva como texto del usuario.
+     */
+
+    let generadasAnteriores = [];
+
+    try{
+        generadasAnteriores =
+            JSON.parse(campo.dataset[clave] || "[]");
+    }catch(e){
+        generadasAnteriores = [];
+    }
+
+    const lineasActuales =
+        campo.value
+            .split(/\r?\n/)
+            .map(function(linea){
+                return linea.trim();
+            })
+            .filter(Boolean);
+
+
+    /*
+     * Conservar solamente el contenido que NO fue generado
+     * por el sistema en la actualización anterior.
+     */
+    const contenidoUsuario =
+        lineasActuales.filter(function(linea){
+
+            return generadasAnteriores.indexOf(linea) === -1;
+
+        });
+
+
+    const nuevas = [];
+
+
+    /*
+     * OPCIONES NORMALES ACTUALMENTE SELECCIONADAS
+     */
+    Object.keys(opciones).forEach(function(id){
+
+        const check =
+            document.getElementById(id);
+
+        if(
+            check &&
+            check.checked &&
+            id !== otroId
+        ){
+
+            const texto =
+                opciones[id];
+
+            if(
+                nuevas.indexOf(texto) === -1
+            ){
+
+                nuevas.push(texto);
+
+            }
+
+        }
+
+    });
+
+
+    /*
+     * OTRO
+     *
+     * Si está seleccionado, conservamos el texto
+     * que ya existe en el campo "Otro".
+     *
+     * Si por alguna razón el campo de Otro está vacío,
+     * intentamos recuperar el texto que ya estaba en
+     * el textarea.
+     */
+
+    const otro =
+        document.getElementById(otroId);
+
+    const textoOtro =
+        document.getElementById(otroTextoId);
+
+    if(
+        otro &&
+        otro.checked
+    ){
+
+        let texto = "";
+
+        if(
+            textoOtro &&
+            textoOtro.value.trim()
+        ){
+
+            texto =
+                textoOtro.value.trim();
+
+        }else{
+
+            const lineaOtro =
+                lineasActuales.find(function(linea){
+
+                    return linea
+                        .toLowerCase()
+                        .indexOf(
+                            prefijo.trim().toLowerCase()
+                        ) === 0;
+
+                });
+
+            if(lineaOtro){
+
+                texto =
+                    lineaOtro
+                        .substring(prefijo.length)
+                        .trim();
+
+            }
+
+        }
+
+        const lineaOtroNueva =
+            prefijo + texto;
+
+        if(
+            nuevas.indexOf(lineaOtroNueva) === -1
+        ){
+
+            nuevas.push(lineaOtroNueva);
+
+        }
+
+    }
+
+
+    /*
+     * Mantener el texto escrito manualmente por el usuario.
+     *
+     * Primero van las opciones seleccionadas,
+     * después Otro y finalmente cualquier texto
+     * que el usuario hubiera escrito manualmente.
+     */
+
+    const resultado = [];
+
+    nuevas.forEach(function(linea){
+
+        if(
+            resultado.indexOf(linea) === -1
+        ){
+
+            resultado.push(linea);
+
+        }
+
+    });
+
+
+    contenidoUsuario.forEach(function(linea){
+
+        /*
+         * No duplicar una opción generada.
+         */
+        if(
+            resultado.indexOf(linea) === -1
+        ){
+
+            resultado.push(linea);
+
+        }
+
+    });
+
+
+    campo.value =
+        resultado.join("\n");
+
+
+    /*
+     * Guardar SOLO las líneas que el sistema generó.
+     * Esto permite que en la siguiente modificación
+     * sepamos qué debemos reemplazar y qué pertenece
+     * al usuario.
+     */
+
+    campo.dataset[clave] =
+        JSON.stringify(nuevas);
+
+}
+function actualizarRespuestaPregunta3Sesion2(){
+    actualizarRespuestaSeleccionMultiple(
+        'respuestaSesion2Pregunta3',
+        opcionesEquiposP3,
+        'generadasP3',
+        'equipoSesion2_otro',
+        'equipoSesion2_otroTexto',
+        'Otro: '
+    );
+}
+
+function actualizarRespuestaPregunta5Sesion2(){
+    actualizarRespuestaSeleccionMultiple(
+        'respuestaSesion2Pregunta5',
+        opcionesMecanismosP5,
+        'generadasP5',
+        'mecanismoSesion2_otro',
+        'mecanismoSesion2_otroTexto',
+        'Otro: '
+    );
+}
+
+/*****************************************************
+ * VALIDAR PREGUNTA 3 — SESIÓN 2
+ *
+ * Es válida si:
+ *
+ * 1. Hay al menos una opción seleccionada, O
+ * 2. Hay texto escrito/pegado directamente en
+ *    el textarea.
+ *
+ * Si se selecciona "Otro", debe especificarse
+ * el texto correspondiente.
+ *****************************************************/
+
+function validarPregunta3Sesion2(){
+
+    const haySeleccionNormal = Object.keys(opcionesEquiposP3).some(function(id){
+        const check = document.getElementById(id);
+        return !!(check && check.checked);
+    });
+
+    const otro = document.getElementById('equipoSesion2_otro');
+    const textoOtro = document.getElementById('equipoSesion2_otroTexto');
+
+    return haySeleccionNormal || !!(otro && otro.checked);
+}
+
+/*****************************************************
+ * VALIDAR PREGUNTA 5 — SESIÓN 2
+ *
+ * Es válida si:
+ *
+ * 1. Hay al menos una opción seleccionada, O
+ * 2. Hay texto escrito/pegado directamente en
+ *    el textarea.
+ *
+ * Si se selecciona "Otro", debe especificarse
+ * el texto correspondiente.
+ *****************************************************/
+
+function validarPregunta5Sesion2(){
+
+    const haySeleccionNormal = Object.keys(opcionesMecanismosP5).some(function(id){
+        const check = document.getElementById(id);
+        return !!(check && check.checked);
+    });
+
+    const otro = document.getElementById('mecanismoSesion2_otro');
+    const textoOtro = document.getElementById('mecanismoSesion2_otroTexto');
+
+    return haySeleccionNormal || !!(otro && otro.checked);
+}
+
+/*****************************************************
+ * PREPARAR COLAPSADO — SESIÓN 2
+ *
+ * La pregunta NO se cierra automáticamente.
+ * Solo se prepara para que pueda abrirse/cerrarse
+ * cuando el usuario haga clic en su encabezado.
+ *****************************************************/
+
+function prepararColapsadoPreguntaSesion2(
+    idBloque,
+    completada
+){
+
+    const bloque =
+        document.getElementById(idBloque);
+
+    if(!bloque){
+        return;
+    }
+
+
+    const encabezado =
+        bloque.querySelector(
+            ":scope > .tarjetaPregunta"
+        );
+
+    if(!encabezado){
+        return;
+    }
+
+
+    encabezado.classList.add(
+        "encabezadoPreguntaSesion2"
+    );
+
+    encabezado.style.cursor = "pointer";
+
+
+    encabezado.title =
+        completada
+        ? "Pregunta respondida. Haga clic para continuar o editar."
+        : "Pregunta disponible.";
+
+
+    /*
+     * Registrar el clic UNA sola vez.
+     */
+
+    if(
+        !encabezado.dataset.colapsoInicializado
+    ){
+
+        encabezado.addEventListener(
+            "click",
+            function(){
+
+                /*
+                 * Si la pregunta todavía está bloqueada,
+                 * no se puede abrir.
+                 */
+
+                if(
+                    bloque.classList.contains(
+                        "bloquePreguntaBloqueada"
+                    )
+                ){
+                    return;
+                }
+
+
+                /*
+                 * El usuario hizo clic.
+                 * AHORA sí se recoge la pregunta
+                 * anterior y se abre esta.
+                 */
+
+                abrirPreguntaSesion2(
+                    idBloque
+                );
+
+            }
+        );
+
+
+        encabezado.dataset.colapsoInicializado =
+            "1";
+
+    }
+
+
+    /*
+     * Marcar visualmente como respondida,
+     * pero SIN cerrarla.
+     */
+
+    if(completada){
+
+        bloque.classList.add(
+            "preguntaCompletadaSesion2"
+        );
+
+    }else{
+
+        bloque.classList.remove(
+            "preguntaCompletadaSesion2"
+        );
+
+    }
+
+}
+
+
+/*****************************************************
+ * CERRAR UNA PREGUNTA — SESIÓN 2
+ *****************************************************/
+
+function cerrarPreguntaSesion2(
+    idBloque
+){
+
+    const bloque =
+        document.getElementById(idBloque);
+
+    if(!bloque){
+        return;
+    }
+
+
+    const encabezado =
+        bloque.querySelector(
+            ":scope > .tarjetaPregunta"
+        );
+
+    if(!encabezado){
+        return;
+    }
+
+
+    /*
+     * Ocultar todo excepto el encabezado.
+     */
+
+    Array.from(
+        bloque.children
+    ).forEach(function(hijo){
+
+        if(hijo !== encabezado){
+
+            hijo.dataset.ocultoPorColapso =
+                "1";
+
+            hijo.style.display =
+                "none";
+
+        }
+
+    });
+
+
+    bloque.classList.add(
+        "preguntaColapsadaSesion2"
+    );
+
+}
+
+
+/*****************************************************
+ * ABRIR UNA PREGUNTA — SESIÓN 2
+ *
+ * Esta función solamente se ejecuta cuando
+ * el usuario hace clic en una pregunta.
+ *****************************************************/
+
+function abrirPreguntaSesion2(
+    idBloque
+){
+
+    const bloqueObjetivo =
+        document.getElementById(
+            idBloque
+        );
+
+    if(!bloqueObjetivo){
+        return;
+    }
+
+
+    /*
+     * No permitir abrir preguntas bloqueadas.
+     */
+
+    if(
+        bloqueObjetivo.classList.contains(
+            "bloquePreguntaBloqueada"
+        )
+    ){
+        return;
+    }
+
+
+    /*
+     * Cerrar las demás preguntas.
+     *
+     * Esto ocurre SOLO porque el usuario
+     * hizo clic para abrir una pregunta.
+     */
+
+    IDS_PREGUNTAS_S2.forEach(
+        function(id){
+
+            if(id !== idBloque){
+
+                cerrarPreguntaSesion2(
+                    id
+                );
+
+            }
+
+        }
+    );
+
+
+    /*
+     * Mostrar nuevamente el contenido
+     * de la pregunta seleccionada.
+     */
+
+    Array.from(
+        bloqueObjetivo.children
+    ).forEach(function(hijo){
+
+        if(
+            hijo.dataset.ocultoPorColapso ===
+            "1"
+        ){
+
+            hijo.style.display =
+                "";
+
+            delete hijo.dataset
+                .ocultoPorColapso;
+
+        }
+
+    });
+
+
+    bloqueObjetivo.classList.remove(
+        "preguntaColapsadaSesion2"
+    );
+
+
+    /*
+     * Llevar la pregunta seleccionada
+     * al área visible.
+     */
+
+    bloqueObjetivo.scrollIntoView({
+        behavior:"smooth",
+        block:"start"
+    });
+
+}
+
+/*****************************************************
+ * ACTUALIZAR ESTADO DE COLAPSADO — SESIÓN 2
+ *
+ * MUY IMPORTANTE:
+ *
+ * Esta función se ejecuta mientras el usuario
+ * escribe o selecciona opciones.
+ *
+ * Por eso NO debe cerrar ninguna pregunta.
+ *
+ * Únicamente:
+ * 1. Marca las preguntas completadas.
+ * 2. Actualiza sus encabezados.
+ * 3. Deja que actualizarEstadoSesion2()
+ *    habilite la pregunta siguiente.
+ *****************************************************/
+
+
+/*****************************************************
+ * COLAPSAR / ABRIR PREGUNTAS — SESIÓN 2
+ *****************************************************/
+
+/*****************************************************
+ * ACTUALIZAR ESTADO DE COLAPSADO — SESIÓN 2
+ *
+ * Las preguntas NO se cierran automáticamente.
+ *
+ * La pregunta actual permanece abierta mientras
+ * el usuario escribe o selecciona opciones.
+ *
+ * Solo se cierra cuando el usuario hace clic
+ * en otra pregunta.
+ *****************************************************/
+
+function actualizarColapsoPreguntasSesion2(
+    estados
+){
+
+    IDS_PREGUNTAS_S2.forEach(
+        function(id, indice){
+
+            const completada =
+                !!estados[indice];
+
+
+            prepararColapsadoPreguntaSesion2(
+                id,
+                completada
+            );
+
+        }
+    );
+
+
+    /*
+     * IMPORTANTE:
+     *
+     * No llamar aquí:
+     *
+     * cerrarPreguntaSesion2()
+     * abrirPreguntaSesion2()
+     *
+     * porque esta función se ejecuta cada vez
+     * que el usuario escribe o selecciona algo.
+     *
+     * Por eso únicamente actualizamos el estado
+     * visual de cada pregunta.
+     */
+
+}
+
+
+
+/*****************************************************
+ * ACTUALIZAR ESTADO — SESIÓN 2
+ *****************************************************/
+
+function actualizarEstadoSesion2(){
+
+    crearRespuestaPregunta3Sesion2();
+
+    /* =================================================
+       PREGUNTA 1
+       ================================================= */
+
+    const p1 = actualizarContadorSesion2(
+        "respuestaSesion2Pregunta1",
+        "contadorSesion2Pregunta1",
+        "progresoPalabrasSesion2Pregunta1",
+        "mensajeContadorSesion2Pregunta1",
+        MIN_P1_S2,
+        MAX_P1_S2
+    );
+
+    habilitarBloqueSesion2(
+        "bloqueSesion2Pregunta2",
+        p1
+    );
+
+
+    /* =================================================
+       PREGUNTA 2
+       ================================================= */
+
+    const a1 = validarAccionSesion2(1);
+    const a2 = validarAccionSesion2(2);
+    const a3 = validarAccionSesion2(3);
+    const a4 = validarAccionSesion2(4);
+
+    habilitarCampoSesion2(
+        "respuestaSesion2Pregunta2Accion1",
+        p1
+    );
+
+    habilitarBloqueSesion2(
+        "contenedorAccion2Sesion2",
+        a1
+    );
+
+    habilitarCampoSesion2(
+        "respuestaSesion2Pregunta2Accion2",
+        a1
+    );
+
+    habilitarBloqueSesion2(
+        "contenedorAccion3Sesion2",
+        a1 && a2
+    );
+
+    habilitarCampoSesion2(
+        "respuestaSesion2Pregunta2Accion3",
+        a1 && a2
+    );
+
+    const opcionalesHabilitadasS2 = a1 && a2 && a3;
+
+    habilitarBloqueSesion2(
+        "contenedorAccion4Sesion2",
+        opcionalesHabilitadasS2
+    );
+
+    habilitarCampoSesion2(
+        "respuestaSesion2Pregunta2Accion4",
+        opcionalesHabilitadasS2
+    );
+
+    habilitarBloqueSesion2(
+        "contenedorAccion5Sesion2",
+        opcionalesHabilitadasS2
+    );
+
+    habilitarCampoSesion2(
+        "respuestaSesion2Pregunta2Accion5",
+        opcionalesHabilitadasS2
+    );
+
+
+    [1,2,3].forEach(function(n){
+
+        actualizarContadorSesion2(
+            "respuestaSesion2Pregunta2Accion" + n,
+            "contadorSesion2Pregunta2Accion" + n,
+            "progresoPalabrasSesion2Pregunta2Accion" + n,
+            "mensajeContadorSesion2Pregunta2Accion" + n,
+            MIN_ACCION_S2,
+            MAX_ACCION_S2
+        );
+
+    });
+
+
+    /* =================================================
+       PREGUNTA 3
+       ================================================= */
+
+    const accionesCompletas =
+        a1 && a2 && a3;
+
+    habilitarBloqueSesion2(
+        "bloqueSesion2Pregunta3",
+        accionesCompletas
+    );
+
+    habilitarControlesDentroSesion2(
+        "bloqueSesion2Pregunta3",
+        accionesCompletas
+    );
+
+    /* Después validar */
+    const p3 =
+        validarPregunta3Sesion2();
+
+
+    /* =================================================
+       PREGUNTA 4
+       ================================================= */
+
+    const puedeP4 =
+        accionesCompletas && p3;
+
+    habilitarBloqueSesion2(
+        "bloqueSesion2Pregunta4",
+        puedeP4
+    );
+
+    habilitarCampoSesion2(
+        "respuestaSesion2Pregunta4",
+        puedeP4
+    );
+
+
+    const p4 = actualizarContadorSesion2(
+        "respuestaSesion2Pregunta4",
+        "contadorSesion2Pregunta4",
+        "progresoPalabrasSesion2Pregunta4",
+        "mensajeContadorSesion2Pregunta4",
+        MIN_P4_S2,
+        MAX_P4_S2
+    );
+
+
+    /* =================================================
+       PREGUNTA 5
+       ================================================= */
+
+    const puedeP5 =
+        accionesCompletas &&
+        p3 &&
+        p4;
+
+    habilitarBloqueSesion2(
+        "bloqueSesion2Pregunta5",
+        puedeP5
+    );
+
+    habilitarControlesDentroSesion2(
+        "bloqueSesion2Pregunta5",
+        puedeP5
+    );
+
+
+    /* Validar P5 */
+    const p5 =
+        validarPregunta5Sesion2();
+
+
+    /* =================================================
+       BOTÓN SESIÓN 3
+       ================================================= */
+
+    const boton3 =
+        document.getElementById(
+            "btnSesion3"
+        );
+
+    if(boton3){
+
+        boton3.disabled =
+            !(
+                p1 &&
+                accionesCompletas &&
+                p3 &&
+                p4 &&
+                p5
+            );
+
+    }
+
+
+    /* =================================================
+       COLAPSADO
+       ================================================= */
+
+    actualizarColapsoPreguntasSesion2([
+        p1,
+        accionesCompletas,
+        p3,
+        p4,
+        p5
+    ]);
+
+}
+function inicializarColapsoSesion2(){
+
+    if(!Array.isArray(IDS_PREGUNTAS_S2) || !IDS_PREGUNTAS_S2.length){
+        return;
+    }
+
+    IDS_PREGUNTAS_S2.forEach(function(id){
+        prepararColapsadoPreguntaSesion2(id, false);
+    });
+
+    const primera = document.getElementById(IDS_PREGUNTAS_S2[0]);
+    if(primera){
+        Array.from(primera.children).forEach(function(hijo){
+            if(hijo.dataset && hijo.dataset.ocultoPorColapso === "1"){
+                hijo.style.display = "";
+                delete hijo.dataset.ocultoPorColapso;
+            }
+        });
+        primera.classList.remove("preguntaColapsadaSesion2");
+    }
+}
+
+function inicializarSesion2(){
+    crearRespuestaPregunta3Sesion2();
+
+    const campos = [
+        "respuestaSesion2Pregunta1",
+        "respuestaSesion2Pregunta2Accion1",
+        "respuestaSesion2Pregunta2Accion2",
+        "respuestaSesion2Pregunta2Accion3",
+        "respuestaSesion2Pregunta2Accion4",
+        "respuestaSesion2Pregunta2Accion5",
+        "respuestaSesion2Pregunta3",
+        "respuestaSesion2Pregunta4",
+        "respuestaSesion2Pregunta5"
+    ];
+
+    campos.forEach(function(id){
+        const campo = document.getElementById(id);
+        if(!campo || campo.dataset.sesion2Inicializado === "1") return;
+
+        campo.addEventListener("input",actualizarEstadoSesion2);
+        campo.addEventListener("change",actualizarEstadoSesion2);
+        campo.addEventListener("blur",function(){
+            actualizarEstadoSesion2();
+        });
+        campo.dataset.sesion2Inicializado = "1";
+    });
+
+  configurarCheckboxesSesion2();
+
+actualizarInterfazOtroSesion2();
+
+inicializarColapsoSesion2();
+
+actualizarEstadoSesion2();
+    
+}
+function configurarCheckboxesSesion2(){
+
+    /* PREGUNTA 3: opciones normales + Otro */
+    document.querySelectorAll('#bloqueSesion2Pregunta3 input[type="checkbox"]').forEach(function(check){
+        if(check.dataset.sesion2CheckInicializado === '1') return;
+
+        check.addEventListener('change', function(){
+            actualizarRespuestaPregunta3Sesion2();
+            actualizarInterfazOtroSesion2();
+            actualizarEstadoSesion2();
+            guardarBorradorLocal({silencioso:true});
+        });
+
+        check.dataset.sesion2CheckInicializado = '1';
+    });
+
+    /* PREGUNTA 5: opciones normales + Otro */
+    document.querySelectorAll('#bloqueSesion2Pregunta5 input[type="checkbox"]').forEach(function(check){
+        if(check.dataset.sesion2CheckInicializado === '1') return;
+
+        check.addEventListener('change', function(){
+            actualizarRespuestaPregunta5Sesion2();
+            actualizarInterfazOtroSesion2();
+            actualizarEstadoSesion2();
+            guardarBorradorLocal({silencioso:true});
+        });
+
+        check.dataset.sesion2CheckInicializado = '1';
+    });
+
+    const texto3 = document.getElementById('equipoSesion2_otroTexto');
+    if(texto3 && texto3.dataset.sesion2OtroInicializado !== '1'){
+        texto3.addEventListener('input', function(){
+            actualizarRespuestaPregunta3Sesion2();
+            actualizarEstadoSesion2();
+            guardarBorradorLocal({silencioso:true});
+        });
+        texto3.dataset.sesion2OtroInicializado = '1';
+    }
+
+    const texto5 = document.getElementById('mecanismoSesion2_otroTexto');
+    if(texto5 && texto5.dataset.sesion2OtroInicializado !== '1'){
+        texto5.addEventListener('input', function(){
+            actualizarRespuestaPregunta5Sesion2();
+            actualizarEstadoSesion2();
+            guardarBorradorLocal({silencioso:true});
+        });
+        texto5.dataset.sesion2OtroInicializado = '1';
+    }
+}
+
+function actualizarEdicionRespuestasSesion2(){
+    actualizarInterfazOtroSesion2();
+}
+
+function validarSesion2(){
+    actualizarEstadoSesion2();
+
+    const p1 = estadoPalabrasSesion2(document.getElementById("respuestaSesion2Pregunta1"),MIN_P1_S2,MAX_P1_S2);
+    const a1 = validarAccionSesion2(1);
+    const a2 = validarAccionSesion2(2);
+    const a3 = validarAccionSesion2(3);
+    const p3 = validarPregunta3Sesion2();
+    const p4 = estadoPalabrasSesion2(document.getElementById("respuestaSesion2Pregunta4"),MIN_P4_S2,MAX_P4_S2);
+    const p5 = validarPregunta5Sesion2();
+    const valida = p1 && a1 && a2 && a3 && p3 && p4 && p5;
+
+    const boton = document.getElementById("btnSesion3");
+    if(boton) boton.disabled = !valida;
+    return valida;
+}
+function actualizarInterfazOtroSesion2(){
+
+    const otro3 = document.getElementById('equipoSesion2_otro');
+    const respuesta3 = document.getElementById('respuestaSesion2Pregunta3');
+    const otro5 = document.getElementById('mecanismoSesion2_otro');
+    const respuesta5 = document.getElementById('respuestaSesion2Pregunta5');
+
+    if(respuesta3){
+        respuesta3.readOnly = !(otro3 && otro3.checked);
+    }
+
+    if(respuesta5){
+        respuesta5.readOnly = !(otro5 && otro5.checked);
+    }
+}
+
+/*****************************************************
+ * SESIÓN 3
+ * Por un gobierno en instituciones educativas donde
+ * participar signifique decidir
+ *****************************************************/
+
+const MIN_P1_S3 = 40;
+const MAX_P1_S3 = 200;
+const MIN_ACCION_S3 = 20;
+const MAX_ACCION_S3 = 100;
+const opcionesEquiposP3S3 = {
+    equipoSesion3_gobiernoEscolar: "Gobierno Escolar",
+    equipoSesion3_consejoDirectivo: "Consejo Directivo",
+    equipoSesion3_consejoAcademico: "Consejo Académico",
+    equipoSesion3_consejoEstudiantil: "Consejo Estudiantil",
+    equipoSesion3_personero: "Personero Estudiantil",
+    equipoSesion3_contralor: "Contralor Estudiantil",
+    equipoSesion3_consejoPadres: "Consejo de Padres de Familia",
+    equipoSesion3_asociacionPadres: "Asociación de Padres de Familia",
+    equipoSesion3_comiteConvivencia: "Comité Escolar de Convivencia",
+    equipoSesion3_comisionEvaluacion: "Comisión de Evaluación y Promoción",
+    equipoSesion3_comiteCalidad: "Comité de Calidad / Equipo de Gestión Institucional"
+};
+
+const opcionesMecanismosP4S3 = {
+    mecanismoSesion3_reunionesGobierno: "Reuniones periódicas con entes de gobierno escolar (consejo estudiantil, asociación de padres de familia, consejo académico, consejo directivo, comité de convivencia escolar)",
+    mecanismoSesion3_eleccionesEstudiantiles: "Elecciones estudiantiles.",
+    mecanismoSesion3_eleccionDocentesDirectivo: "Elección de docentes para consejo directivo.",
+    mecanismoSesion3_eleccionDocentesAcademico: "Elección de docentes para consejo académico.",
+    mecanismoSesion3_autoevaluacion: "Autoevaluación institucional anual (Guía 34 – MEN)",
+    mecanismoSesion3_pmi: "Plan de Mejoramiento Institucional (PMI)",
+    mecanismoSesion3_seguimientoPMI: "Seguimiento periódico al Plan de Mejoramiento",
+    mecanismoSesion3_valoracionGobierno: "Valoración por instancias del Gobierno Escolar",
+    mecanismoSesion3_ajustePEI: "Actualización y ajuste permanente del PEI",
+    mecanismoSesion3_culturaClima: "Seguimiento al componente de Cultura Institucional y Clima Escolar",
+    mecanismoSesion3_informesDirectivo: "Informes de gestión del Consejo Directivo",
+    mecanismoSesion3_verificacionSecretaria: "Verificación del funcionamiento del Gobierno Escolar por la Secretaría de Educación."
+};
+
+const IDS_PREGUNTAS_S3 = [
+    "bloqueSesion3Pregunta1",
+    "bloqueSesion3Pregunta2",
+    "bloqueSesion3Pregunta3",
+    "bloqueSesion3Pregunta4"
+];
+
+function estadoPalabrasSesion3(campo,min,max){
+    if(!campo) return false;
+    const n = contarPalabras(campo.value);
+    return n >= min && n <= max;
+}
+
+function actualizarContadorSesion3(idCampo,idContador,idBarra,idMensaje,min,max){
+    const campo = document.getElementById(idCampo);
+    if(!campo) return false;
+
+    const n = contarPalabras(campo.value);
+    const contador = document.getElementById(idContador);
+    const barra = document.getElementById(idBarra);
+    const mensaje = document.getElementById(idMensaje);
+
+    if(contador) contador.textContent = n + " / " + max + " palabras";
+    if(barra) barra.style.width = Math.min((n / max) * 100,100) + "%";
+
+    if(mensaje){
+        if(n < min){
+            mensaje.textContent = "⚠ Debe escribir al menos " + min + " palabras.";
+            mensaje.style.color = "#C62828";
+        }else if(n <= max){
+            mensaje.textContent = "✓ Longitud adecuada. Puede continuar.";
+            mensaje.style.color = "#0B6A44";
+        }else{
+            mensaje.textContent = "⚠ Ha superado el máximo de " + max + " palabras.";
+            mensaje.style.color = "#C62828";
+        }
+    }
+
+    return n >= min && n <= max;
+}
+
+function habilitarBloqueSesion3(idBloque,habilitado){
+    const bloque = document.getElementById(idBloque);
+    if(!bloque) return;
+    bloque.classList.toggle("bloquePreguntaBloqueada",!habilitado);
+    bloque.classList.toggle("bloquePreguntaHabilitada",habilitado);
+}
+
+function habilitarCampoSesion3(idCampo,habilitado){
+    const campo = document.getElementById(idCampo);
+    if(campo) campo.disabled = !habilitado;
+}
+
+function validarAccionSesion3(numero){
+    return estadoPalabrasSesion3(
+        document.getElementById("respuestaSesion3Pregunta2Accion" + numero),
+        MIN_ACCION_S3,
+        MAX_ACCION_S3
+    );
+}
+
+function prepararColapsadoPreguntaSesion3(idBloque,completada){
+    const bloque = document.getElementById(idBloque);
+    if(!bloque) return;
+
+    const encabezado = bloque.querySelector(":scope > .tarjetaPregunta");
+    if(!encabezado) return;
+
+    encabezado.classList.add("encabezadoPreguntaSesion3");
+    encabezado.style.cursor = "pointer";
+    encabezado.title = completada
+        ? "Pregunta respondida. Haga clic para continuar o editar."
+        : "Pregunta disponible.";
+
+    if(!encabezado.dataset.colapsoSesion3Inicializado){
+        encabezado.addEventListener("click",function(){
+            if(bloque.classList.contains("bloquePreguntaBloqueada")) return;
+            abrirPreguntaSesion3(idBloque);
+        });
+        encabezado.dataset.colapsoSesion3Inicializado = "1";
+    }
+
+    bloque.classList.toggle("preguntaCompletadaSesion3",!!completada);
+}
+
+function cerrarPreguntaSesion3(idBloque){
+    const bloque = document.getElementById(idBloque);
+    if(!bloque) return;
+
+    const encabezado = bloque.querySelector(":scope > .tarjetaPregunta");
+    if(!encabezado) return;
+
+    Array.from(bloque.children).forEach(function(hijo){
+        if(hijo !== encabezado){
+            hijo.dataset.ocultoPorColapsoSesion3 = "1";
+            hijo.style.display = "none";
+        }
+    });
+
+    bloque.classList.add("preguntaColapsadaSesion3");
+}
+
+function abrirPreguntaSesion3(idBloque){
+    const bloqueObjetivo = document.getElementById(idBloque);
+    if(!bloqueObjetivo) return;
+    if(bloqueObjetivo.classList.contains("bloquePreguntaBloqueada")) return;
+
+    IDS_PREGUNTAS_S3.forEach(function(id){
+        if(id !== idBloque) cerrarPreguntaSesion3(id);
+    });
+
+    Array.from(bloqueObjetivo.children).forEach(function(hijo){
+        if(hijo.dataset.ocultoPorColapsoSesion3 === "1"){
+            hijo.style.display = "";
+            delete hijo.dataset.ocultoPorColapsoSesion3;
+        }
+    });
+
+    bloqueObjetivo.classList.remove("preguntaColapsadaSesion3");
+    bloqueObjetivo.scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+function actualizarColapsoPreguntasSesion3(estados){
+    IDS_PREGUNTAS_S3.forEach(function(id,indice){
+        prepararColapsadoPreguntaSesion3(id,!!estados[indice]);
+    });
+}
+
+function inicializarColapsoSesion3(){
+    IDS_PREGUNTAS_S3.forEach(function(id){
+        prepararColapsadoPreguntaSesion3(id,false);
+    });
+
+    const primera = document.getElementById(IDS_PREGUNTAS_S3[0]);
+    if(primera){
+        Array.from(primera.children).forEach(function(hijo){
+            if(hijo.dataset && hijo.dataset.ocultoPorColapsoSesion3 === "1"){
+                hijo.style.display = "";
+                delete hijo.dataset.ocultoPorColapsoSesion3;
+            }
+        });
+        primera.classList.remove("preguntaColapsadaSesion3");
+    }
+}
+
+function actualizarEstadoSesion3(){
+    /*
+     * P1: 40–200 palabras.
+     */
+    const p1 = actualizarContadorSesion3(
+        "respuestaSesion3Pregunta1",
+        "contadorSesion3Pregunta1",
+        "progresoPalabrasSesion3Pregunta1",
+        "mensajeContadorSesion3Pregunta1",
+        MIN_P1_S3,
+        MAX_P1_S3
+    );
+
+    habilitarBloqueSesion3("bloqueSesion3Pregunta2",p1);
+    habilitarCampoSesion3("respuestaSesion3Pregunta2Accion1",p1);
+
+    /*
+     * P2:
+     * Acciones 1, 2 y 3: obligatorias, 20–100 palabras.
+     * Acciones 4 y 5: opcionales, SIN límite de palabras.
+     */
+    const a1 = validarAccionSesion3(1);
+    const a2 = validarAccionSesion3(2);
+    const a3 = validarAccionSesion3(3);
+
+    habilitarBloqueSesion3("contenedorAccion2Sesion3",a1);
+    habilitarCampoSesion3("respuestaSesion3Pregunta2Accion2",a1);
+
+    habilitarBloqueSesion3("contenedorAccion3Sesion3",a1 && a2);
+    habilitarCampoSesion3("respuestaSesion3Pregunta2Accion3",a1 && a2);
+
+    const opcionalesHabilitadas = a1 && a2 && a3;
+
+    habilitarBloqueSesion3("contenedorAccion4Sesion3",opcionalesHabilitadas);
+    habilitarCampoSesion3(
+        "respuestaSesion3Pregunta2Accion4",
+        opcionalesHabilitadas
+    );
+
+    habilitarBloqueSesion3("contenedorAccion5Sesion3",opcionalesHabilitadas);
+    habilitarCampoSesion3(
+        "respuestaSesion3Pregunta2Accion5",
+        opcionalesHabilitadas
+    );
+
+    /*
+     * Las acciones 1–3 sí tienen contador.
+     * Las acciones 4–5 no tienen límite ni validación
+     * por cantidad de palabras.
+     */
+    [1,2,3].forEach(function(n){
+        actualizarContadorSesion3(
+            "respuestaSesion3Pregunta2Accion" + n,
+            "contadorSesion3Pregunta2Accion" + n,
+            "progresoPalabrasSesion3Pregunta2Accion" + n,
+            "mensajeContadorSesion3Pregunta2Accion" + n,
+            MIN_ACCION_S3,
+            MAX_ACCION_S3
+        );
+    });
+
+    marcarAccionesOpcionalesSesion3();
+
+    const accionesCompletas = a1 && a2 && a3;
+
+    habilitarBloqueSesion3(
+        "bloqueSesion3Pregunta3",
+        accionesCompletas
+    );
+
+    habilitarControlesSesion3Seleccion(
+        "bloqueSesion3Pregunta3",
+        accionesCompletas
+    );
+
+    const p3 = validarPregunta3Sesion3();
+
+    const puedeP4 = accionesCompletas && p3;
+
+    habilitarBloqueSesion3(
+        "bloqueSesion3Pregunta4",
+        puedeP4
+    );
+
+    habilitarControlesSesion3Seleccion(
+        "bloqueSesion3Pregunta4",
+        puedeP4
+    );
+
+    const p4 = validarPregunta4Sesion3();
+
+    /*
+     * P3 y P4 se validan por selección, no por número
+     * de palabras.
+     */
+    const completa =
+        p1 &&
+        accionesCompletas &&
+        p3 &&
+        p4;
+
+    const boton =
+        document.getElementById("btnFinalizarSesion3");
+
+    if(boton){
+        boton.disabled = !completa;
+        boton.textContent = "Continuar →";
+    }
+
+    actualizarColapsoPreguntasSesion3([
+        p1,
+        accionesCompletas,
+        p3,
+        p4
+    ]);
+}
+
+/*****************************************************
+ * OPCIONES 4 Y 5 — SESIÓN 3
+ *
+ * Son opcionales y no tienen límite de palabras.
+ *****************************************************/
+function marcarAccionesOpcionalesSesion3(){
+
+    [4,5].forEach(function(n){
+
+        const campo =
+            document.getElementById(
+                "respuestaSesion3Pregunta2Accion" + n
+            );
+
+        if(!campo) return;
+
+        /*
+         * La marca de agua desaparece automáticamente
+         * cuando la persona empieza a escribir.
+         */
+        campo.placeholder = "Esta respuesta es opcional";
+
+        /*
+         * Si existiera un contador heredado de otra
+         * versión, no debe mostrar un límite de 100.
+         */
+        const contador =
+            document.getElementById(
+                "contadorSesion3Pregunta2Accion" + n
+            );
+
+        if(contador){
+            contador.textContent =
+                "Respuesta opcional · sin límite de palabras";
+        }
+
+        const mensaje =
+            document.getElementById(
+                "mensajeContadorSesion3Pregunta2Accion" + n
+            );
+
+        if(mensaje){
+            mensaje.textContent =
+                "Respuesta opcional. Puede dejar este campo vacío.";
+            mensaje.style.color = "#0B6A44";
+        }
+
+        const barra =
+            document.getElementById(
+                "progresoPalabrasSesion3Pregunta2Accion" + n
+            );
+
+        if(barra){
+            barra.style.width = "0%";
+        }
+    });
+}
+
+/*****************************************************
+ * PRESENTACIÓN — SESIÓN 3
+ *
+ * Mantiene la misma proporción de trabajo utilizada
+ * en Sesión 2: guía 25% / respuesta 75%.
+ *
+ * No modifica la estructura ni los estilos de Sesión 1
+ * o Sesión 2.
+ *****************************************************/
+function ajustarPresentacionSesion3(){
+
+    if(document.getElementById("estiloSesion3Ajustado")){
+        return;
+    }
+
+    const estilo =
+        document.createElement("style");
+
+    estilo.id = "estiloSesion3Ajustado";
+
+    estilo.textContent = `
+        #pantallaSesion3 .contenedorTrabajoSesion{
+            display:grid !important;
+            grid-template-columns:25% minmax(0, 1fr) !important;
+            gap:25px !important;
+            width:100% !important;
+            box-sizing:border-box !important;
+        }
+
+        #pantallaSesion3 .panelGuia{
+            width:100% !important;
+            min-width:0 !important;
+            box-sizing:border-box !important;
+        }
+
+        #pantallaSesion3 .panelRespuesta{
+            width:100% !important;
+            min-width:0 !important;
+            box-sizing:border-box !important;
+        }
+
+        #pantallaSesion3 .panelRespuesta textarea{
+            width:100% !important;
+            max-width:none !important;
+            min-width:0 !important;
+            box-sizing:border-box !important;
+            display:block !important;
+        }
+
+        #pantallaSesion3 #respuestaSesion3Pregunta1,
+        #pantallaSesion3 #respuestaSesion3Pregunta2Accion1,
+        #pantallaSesion3 #respuestaSesion3Pregunta2Accion2,
+        #pantallaSesion3 #respuestaSesion3Pregunta2Accion3,
+        #pantallaSesion3 #respuestaSesion3Pregunta2Accion4,
+        #pantallaSesion3 #respuestaSesion3Pregunta2Accion5,
+        #pantallaSesion3 #respuestaSesion3Pregunta3,
+        #pantallaSesion3 #respuestaSesion3Pregunta4{
+            width:100% !important;
+            max-width:none !important;
+            box-sizing:border-box !important;
+        }
+    `;
+
+    document.head.appendChild(estilo);
+}
+
+function inicializarSesion3(){
+    ajustarPresentacionSesion3();
+    const campos = [
+        "respuestaSesion3Pregunta1",
+        "respuestaSesion3Pregunta2Accion1",
+        "respuestaSesion3Pregunta2Accion2",
+        "respuestaSesion3Pregunta2Accion3",
+        "respuestaSesion3Pregunta2Accion4",
+        "respuestaSesion3Pregunta2Accion5",
+        "respuestaSesion3Pregunta3",
+        "respuestaSesion3Pregunta4",
+        "equipoSesion3_otroTexto",
+        "mecanismoSesion3_otroTexto"
+    ];
+
+    campos.forEach(function(id){
+        const campo = document.getElementById(id);
+        if(!campo || campo.dataset.sesion3Inicializado === "1") return;
+
+        campo.addEventListener("input",function(){
+            actualizarEstadoSesion3();
+            guardarBorradorLocal({silencioso:true});
+        });
+        campo.addEventListener("change",actualizarEstadoSesion3);
+        campo.addEventListener("blur",actualizarEstadoSesion3);
+        campo.dataset.sesion3Inicializado = "1";
+    });
+
+    configurarOpcionesSesion3();
+    inicializarColapsoSesion3();
+    actualizarEstadoSesion3();
+}
+
+function habilitarControlesSesion3Seleccion(idBloque,habilitado){
+    const bloque=document.getElementById(idBloque);
+    if(!bloque) return;
+    bloque.querySelectorAll('input[type="checkbox"]').forEach(function(c){ c.disabled=!habilitado; });
+    const otros=bloque.querySelectorAll('input[type="text"]');
+    otros.forEach(function(c){
+        const id=c.id;
+        const check=id==='equipoSesion3_otroTexto'
+            ? document.getElementById('equipoSesion3_otro')
+            : document.getElementById('mecanismoSesion3_otro');
+        c.disabled=!habilitado || !(check && check.checked);
+    });
+    const textarea=bloque.querySelector('textarea');
+    if(textarea) textarea.disabled=!habilitado;
+}
+
+function actualizarInterfazOpcionesSesion3(){
+    const o3=document.getElementById('equipoSesion3_otro');
+    const t3=document.getElementById('equipoSesion3_otroTexto');
+    const o4=document.getElementById('mecanismoSesion3_otro');
+    const t4=document.getElementById('mecanismoSesion3_otroTexto');
+    if(t3) t3.disabled=!(o3 && o3.checked);
+    if(t4) t4.disabled=!(o4 && o4.checked);
+}
+
+function actualizarRespuestaPregunta3Sesion3(){
+    actualizarRespuestaSeleccionMultiple(
+        'respuestaSesion3Pregunta3',opcionesEquiposP3S3,'generadasP3S3',
+        'equipoSesion3_otro','equipoSesion3_otroTexto','Otro: '
+    );
+}
+
+function actualizarRespuestaPregunta4Sesion3(){
+    actualizarRespuestaSeleccionMultiple(
+        'respuestaSesion3Pregunta4',opcionesMecanismosP4S3,'generadasP4S3',
+        'mecanismoSesion3_otro','mecanismoSesion3_otroTexto','Otro: '
+    );
+}
+
+function validarPregunta3Sesion3(){
+    return Object.keys(opcionesEquiposP3S3).some(function(id){
+        const c=document.getElementById(id); return !!(c && c.checked);
+    }) || !!(document.getElementById('equipoSesion3_otro')?.checked);
+}
+
+function validarPregunta4Sesion3(){
+    return Object.keys(opcionesMecanismosP4S3).some(function(id){
+        const c=document.getElementById(id); return !!(c && c.checked);
+    }) || !!(document.getElementById('mecanismoSesion3_otro')?.checked);
+}
+
+function configurarOpcionesSesion3(){
+    document.querySelectorAll('#bloqueSesion3Pregunta3 input[type="checkbox"]').forEach(function(check){
+        if(check.dataset.s3CheckInicializado==='1') return;
+        check.addEventListener('change',function(){
+            actualizarRespuestaPregunta3Sesion3();
+            actualizarInterfazOpcionesSesion3();
+            actualizarEstadoSesion3();
+            guardarBorradorLocal({silencioso:true});
+        });
+        check.dataset.s3CheckInicializado='1';
+    });
+    document.querySelectorAll('#bloqueSesion3Pregunta4 input[type="checkbox"]').forEach(function(check){
+        if(check.dataset.s3CheckInicializado==='1') return;
+        check.addEventListener('change',function(){
+            actualizarRespuestaPregunta4Sesion3();
+            actualizarInterfazOpcionesSesion3();
+            actualizarEstadoSesion3();
+            guardarBorradorLocal({silencioso:true});
+        });
+        check.dataset.s3CheckInicializado='1';
+    });
+    const t3=document.getElementById('equipoSesion3_otroTexto');
+    const t4=document.getElementById('mecanismoSesion3_otroTexto');
+    if(t3) t3.addEventListener('input',function(){ actualizarRespuestaPregunta3Sesion3(); actualizarEstadoSesion3(); guardarBorradorLocal({silencioso:true}); });
+    if(t4) t4.addEventListener('input',function(){ actualizarRespuestaPregunta4Sesion3(); actualizarEstadoSesion3(); guardarBorradorLocal({silencioso:true}); });
+    actualizarRespuestaPregunta3Sesion3();
+    actualizarRespuestaPregunta4Sesion3();
+    actualizarInterfazOpcionesSesion3();
+}
+
+function validarSesion3(){
+    actualizarEstadoSesion3();
+
+    const p1 = estadoPalabrasSesion3(document.getElementById("respuestaSesion3Pregunta1"),MIN_P1_S3,MAX_P1_S3);
+    const a1 = validarAccionSesion3(1);
+    const a2 = validarAccionSesion3(2);
+    const a3 = validarAccionSesion3(3);
+    const p3 = validarPregunta3Sesion3();
+    const p4 = validarPregunta4Sesion3();
+
+    const valida = p1 && a1 && a2 && a3 && p3 && p4;
+    const boton = document.getElementById("btnFinalizarSesion3");
+    if(boton) boton.disabled = !valida;
+    return valida;
+}
+
+/*****************************************************
+ * GUARDADO AUTOMÁTICO LOCAL + SINCRONIZACIÓN
+ *a
+ * El navegador guarda inmediatamente una copia local.
+ * Esto protege el avance ante pérdida de Internet,
+ * cierre de pestaña y cortes de energía una vez que
+ * los datos ya fueron introducidos.
+ *
+ * Cuando vuelve Internet, el borrador se sincroniza
+ * con Google Sheets mediante guardarAvanceForo().
+ *****************************************************/
+
+const CLAVE_BORRADOR_FORO_BASE =
+    "foroEducativoNeiva2026_borrador";
+
+const CLAVE_ID_FORO_BASE =
+    "foroEducativoNeiva2026_id";
+
+let temporizadorSincronizacion = null;
+let sincronizacionEnCurso = false;
+let cambioPendiente = false;
+
+
+/*****************************************************
+ * ESTADO DE AUTENTICACIÓN
+ *****************************************************/
+
+function accesoEstaAutorizadoFEM(){
+
+    return !!(
+        window.DATOS_ACCESO_FEM &&
+        window.DATOS_ACCESO_FEM.ok === true &&
+        String(
+            window.DATOS_ACCESO_FEM.idForo || ""
+        ).trim() !== ""
+    );
+
+}
+
+
+function obtenerSufijoAccesoLocal(){
+
+    const token =
+        typeof TOKEN_ACCESO !== "undefined"
+            ? String(
+                TOKEN_ACCESO || ""
+              ).trim()
+            : "";
+
+    if(!token){
+        return "";
+    }
+
+    /*
+     * El TOKEN es único por IE.
+     * Se utiliza para que dos IE no compartan
+     * el mismo borrador en el mismo navegador.
+     */
+    return "_" +
+        encodeURIComponent(token)
+            .replace(/%/g,"_");
+
+}
+
+
+function obtenerClaveBorradorForo(){
+
+    return (
+        CLAVE_BORRADOR_FORO_BASE +
+        obtenerSufijoAccesoLocal()
+    );
+
+}
+
+
+function obtenerClaveIdForo(){
+
+    return (
+        CLAVE_ID_FORO_BASE +
+        obtenerSufijoAccesoLocal()
+    );
+
+}
+
+
+/*****************************************************
+ * OBTENER ID_FORO OFICIAL
+ *
+ * El ID_FORO NO se genera en el navegador.
+ *
+ * Cada IE tiene un único ID_FORO asignado en
+ * la hoja AccesosIE.
+ *****************************************************/
+
+function obtenerIdForo(){
+
+    if(!accesoEstaAutorizadoFEM()){
+
+        throw new Error(
+            "La institución debe autenticarse antes de guardar."
+        );
+
+    }
+
+
+    const idOficial =
+        String(
+            window.DATOS_ACCESO_FEM.idForo || ""
+        ).trim();
+
+    if(!idOficial){
+
+        throw new Error(
+            "Esta institución no tiene un ID_FORO autorizado. " +
+            "Solicite asistencia a la Secretaría de Educación de Neiva " +
+            "al correo educacion@alcaldianeiva.gov.co " +
+            "o al 318 456 1081."
+        );
+
+    }
+
+
+    const clave =
+        obtenerClaveIdForo();
+
+    const idGuardado =
+        String(
+            localStorage.getItem(clave) || ""
+        ).trim();
+
+
+    /*
+     * Si existe un valor local diferente al oficial,
+     * se corrige inmediatamente. Nunca se conserva
+     * un ID de otra IE.
+     */
+    if(
+        idGuardado &&
+        idGuardado !== idOficial
+    ){
+
+        localStorage.removeItem(clave);
+
+    }
+
+
+    localStorage.setItem(
+        clave,
+        idOficial
+    );
+
+    return idOficial;
+
+}
+
+
+function construirDatosBorrador(){
+
+    const datos = {
+        idForo: obtenerIdForo(),
+        pantallaActual: pantallaActual,
+        fechaInicio: null,
+        fechaGuardado: new Date().toISOString(),
+        institucion: "",
+        dane: "",
+        campos: {}
+    };
+
+    const guardadoAnterior =
+        localStorage.getItem(obtenerClaveBorradorForo());
+
+    if(guardadoAnterior){
+
+        try{
+
+            const anterior =
+                JSON.parse(guardadoAnterior);
+
+            datos.fechaInicio =
+                anterior.fechaInicio || null;
+
+        }catch(error){
+            // Se ignora un borrador anterior inválido.
+        }
+
+    }
+
+    if(!datos.fechaInicio){
+        datos.fechaInicio = datos.fechaGuardado;
+    }
+
+    document
+        .querySelectorAll("input, textarea, select")
+        .forEach(function(campo){
+
+            if(!campo.id) return;
+
+            // Los archivos no se pueden restaurar desde localStorage.
+            if(campo.type === "file") return;
+
+            if(campo.type === "checkbox"){
+
+                datos.campos[campo.id] = {
+                    tipo: "checkbox",
+                    valor: campo.checked
+                };
+
+            }else{
+
+                datos.campos[campo.id] = {
+                    tipo: campo.type,
+                    valor: campo.value
+                };
+
+            }
+
+        });
+
+    const campoInstitucion =
+        document.getElementById("institucion");
+
+    const campoDane =
+        document.getElementById("dane");
+
+    if(campoInstitucion){
+        datos.institucion = campoInstitucion.value || "";
+    }
+
+    if(campoDane){
+        datos.dane = campoDane.value || "";
+    }
+
+    return datos;
+
+}
+
+
+function guardarBorradorLocal(opciones){
+
+    opciones = opciones || {};
+
+    /*
+     * Antes de autenticar no existe un ID_FORO válido.
+     * No mostramos error ni intentamos sincronizar.
+     */
+    if(!accesoEstaAutorizadoFEM()){
+
+        return null;
+
+    }
+
+    try{
+
+        const datos =
+            construirDatosBorrador();
+
+        localStorage.setItem(
+            obtenerClaveBorradorForo(),
+            JSON.stringify(datos)
+        );
+
+        cambioPendiente = true;
+
+        if(!opciones.silencioso){
+
+            mostrarEstadoGuardado(
+                "🟢 Avance guardado en este dispositivo"
+            );
+
+        }
+
+        programarSincronizacion();
+
+        return datos;
+
+    }catch(error){
+
+        console.error(
+            "No fue posible guardar el avance local:",
+            error
+        );
+
+        mostrarEstadoGuardado(
+            "⚠️ No se pudo guardar localmente"
+        );
+
+        return null;
+
+    }
+
+}
+
+
+function restaurarBorradorLocal(opciones){
+
+    opciones = opciones || {};
+
+    const mostrarPantalla =
+        opciones.mostrarPantalla === true;
+
+    try{
+
+        const guardado =
+            localStorage.getItem(
+                obtenerClaveBorradorForo()
+            );
+
+        if(!guardado) return false;
+
+        const datos =
+            JSON.parse(guardado);
+
+
+        Object.keys(datos.campos || {})
+            .forEach(function(id){
+
+                const campo =
+                    document.getElementById(id);
+
+                if(!campo) return;
+
+                const informacion =
+                    datos.campos[id];
+
+                if(informacion.tipo === "checkbox"){
+
+                    campo.checked =
+                        Boolean(informacion.valor);
+
+                }else{
+
+                    campo.value =
+                        informacion.valor ?? "";
+
+                }
+
+            });
+
+        // Recalcular datos derivados.
+        if(typeof actualizarTotalParticipantes === "function"){
+            actualizarTotalParticipantes();
+        }
+
+        // Restaurar correctamente el estado del consentimiento.
+        if(typeof actualizarEstadoConsentimiento === "function"){
+            actualizarEstadoConsentimiento();
+        }
+
+        if(typeof mostrarResumen === "function"){
+            mostrarResumen(false);
+        }
+
+        const respuesta =
+            document.getElementById("respuestaSesion1");
+
+        if(respuesta){
+            respuesta.dispatchEvent(
+                new Event("input")
+            );
+        }
+
+        if(
+            mostrarPantalla &&
+            datos.pantallaActual &&
+            datos.pantallaActual >= 1 &&
+            datos.pantallaActual <= TOTAL_PANTALLAS
+        ){
+
+            pantallaActual =
+                Number(datos.pantallaActual);
+
+            mostrarPantallaGuardada(
+                pantallaActual
+            );
+
+        }
+
+        cambioPendiente = false;
+
+        mostrarEstadoGuardado(
+            "🔄 Avance recuperado"
+        );
+
+        return true;
+
+    }catch(error){
+
+        console.error(
+            "No fue posible restaurar el avance:",
+            error
+        );
+
+        return false;
+
+    }
+
+}
+
+
+function mostrarPantallaGuardada(paso){
+
+    const pantallas = {
+        1: "pantallaBienvenida",
+        2: "pantallaRecorrido",
+        3: "pantallaConsentimiento",
+        4: "pantallaCaracterizacion",
+        5: "pantallaResumen",
+        6: "pantallaSesion1",
+        7: "pantallaSesion2",
+        8: "pantallaSesion3",
+        9: "pantallaEvidencias",
+        10: "pantallaPlenaria",
+        11: "pantallaFinalFEM"
+    };
+
+    const id =
+        pantallas[paso];
+
+    if(!id) return;
+
+    document
+        .querySelectorAll(".pantalla")
+        .forEach(function(pantalla){
+            pantalla.classList.remove("visible");
+        });
+
+    const pantalla =
+        document.getElementById(id);
+
+    if(pantalla){
+        pantalla.classList.add("visible");
+    }
+
+        
+    if(id === "pantallaResumen"){
+        mostrarResumen(false);
+    }
+
+    if(id === "pantallaPlenaria"){
+        setTimeout(renderizarPlenaria, 80);
+    }
+
+    actualizarBarra();
+
+}
+function programarSincronizacion(){
+
+    if(temporizadorSincronizacion){
+        clearTimeout(temporizadorSincronizacion);
+    }
+
+    temporizadorSincronizacion =
+        setTimeout(function(){
+            sincronizarBorradorConServidor();
+        }, 2000);
+
+}
+
+
+function sincronizarBorradorConServidor(){
+
+    if(!accesoEstaAutorizadoFEM()){
+        return;
+    }
+
+    if(sincronizacionEnCurso) return;
+
+    if(!navigator.onLine){
+
+        mostrarEstadoGuardado(
+            "🟠 Sin Internet: avance guardado en este dispositivo"
+        );
+
+        return;
+
+    }
+
+    const guardado =
+        localStorage.getItem(
+            obtenerClaveBorradorForo()
+        );
+
+    if(!guardado) return;
+
+    let datos;
+
+    try{
+        datos = JSON.parse(guardado);
+    }catch(error){
+        return;
+    }
+
+    sincronizacionEnCurso = true;
+
+    google.script.run
+        .withSuccessHandler(function(respuesta){
+
+            sincronizacionEnCurso = false;
+
+            if(respuesta && respuesta.ok){
+
+                cambioPendiente = false;
+
+                if(respuesta.idForo){
+                    localStorage.setItem(
+                        obtenerClaveIdForo(),
+                        respuesta.idForo
+                    );
+                }
+
+                mostrarEstadoGuardado(
+                    "☁️ Avance respaldado"
+                );
+
+            }else{
+
+                mostrarEstadoGuardado(
+                    "🟢 Guardado localmente; pendiente de respaldo"
+                );
+
+            }
+
+        })
+        .withFailureHandler(function(error){
+
+            sincronizacionEnCurso = false;
+
+            console.log(
+                "No fue posible sincronizar el borrador:",
+                error
+            );
+
+            mostrarEstadoGuardado(
+                "🟠 Sin Internet: avance guardado en este dispositivo"
+            );
+
+        })
+        .guardarAvanceForo(datos);
+
+}
+
+
+function activarGuardadoAutomatico(){
+
+    document.addEventListener(
+        "input",
+        function(){
+            if(accesoEstaAutorizadoFEM()){
+                guardarBorradorLocal({silencioso:true});
+            }
+        }
+    );
+
+    document.addEventListener(
+        "change",
+        function(){
+            if(accesoEstaAutorizadoFEM()){
+                guardarBorradorLocal({silencioso:true});
+            }
+        }
+    );
+
+    // Guardar inmediatamente al abandonar la página.
+    window.addEventListener(
+        "beforeunload",
+        function(){
+            if(accesoEstaAutorizadoFEM()){
+                guardarBorradorLocal({silencioso:true});
+            }
+        }
+    );
+
+    // pagehide es especialmente útil en móviles.
+    window.addEventListener(
+        "pagehide",
+        function(){
+            if(accesoEstaAutorizadoFEM()){
+                guardarBorradorLocal({silencioso:true});
+            }
+        }
+    );
+
+    // Si la pestaña pasa a segundo plano, guardar.
+    document.addEventListener(
+        "visibilitychange",
+        function(){
+
+            if(document.visibilityState === "hidden"){
+                if(accesoEstaAutorizadoFEM()){
+                guardarBorradorLocal({silencioso:true});
+            }
+            }
+
+        }
+    );
+
+    // Cuando vuelve Internet, intentar respaldar lo pendiente.
+    window.addEventListener(
+        "online",
+        function(){
+
+            mostrarEstadoGuardado(
+                "🌐 Internet restablecido; sincronizando…"
+            );
+
+            sincronizarBorradorConServidor();
+
+        }
+    );
+
+    // Informar sin perder el avance local.
+    window.addEventListener(
+        "offline",
+        function(){
+
+            if(accesoEstaAutorizadoFEM()){
+                guardarBorradorLocal({silencioso:true});
+            }
+
+            mostrarEstadoGuardado(
+                "🟠 Sin Internet: avance guardado en este dispositivo"
+            );
+
+        }
+    );
+
+    // Respaldo periódico mientras la página está abierta.
+    setInterval(function(){
+
+        if(cambioPendiente){
+            if(accesoEstaAutorizadoFEM()){
+                guardarBorradorLocal({silencioso:true});
+            }
+        }
+
+    }, 30000);
+
+}
+
+
+function mostrarEstadoGuardado(mensaje){
+
+    let indicador =
+        document.getElementById(
+            "estadoGuardado"
+        );
+
+    if(!indicador){
+
+        indicador =
+            document.createElement("div");
+
+        indicador.id =
+            "estadoGuardado";
+
+        indicador.style.position =
+            "fixed";
+
+        indicador.style.bottom =
+            "15px";
+
+        indicador.style.right =
+            "20px";
+
+        indicador.style.zIndex =
+            "9999";
+
+        indicador.style.background =
+            "#ffffff";
+
+        indicador.style.padding =
+            "8px 14px";
+
+        indicador.style.borderRadius =
+            "20px";
+
+        indicador.style.boxShadow =
+            "0 3px 12px rgba(0,0,0,.15)";
+
+        indicador.style.fontSize =
+            "13px";
+
+        indicador.style.color =
+            "#0b6a44";
+
+        document.body.appendChild(
+            indicador
+        );
+
+    }
+
+    indicador.textContent =
+        mensaje;
+
+}
+/*****************************************************
+ * ACCESO PERSONALIZADO FEM 2026
+ *****************************************************/
+
+function inicializarAccesoFEM(){
+
+    const pantallaAcceso =
+        document.getElementById(
+            "pantallaAccesoFEM"
+        );
+
+    const pantallaBienvenida =
+        document.getElementById(
+            "pantallaBienvenida"
+        );
+
+    const titulo =
+        document.getElementById(
+            "tituloAccesoIE"
+        );
+
+    const boton =
+        document.getElementById(
+            "btnIngresarFEM"
+        );
+
+    const campoCodigo =
+        document.getElementById(
+            "codigoAccesoFEM"
+        );
+
+    const mensaje =
+        document.getElementById(
+            "mensajeAccesoFEM"
+        );
+
+
+    /*
+     * Verificar elementos.
+     */
+
+    if(
+        !pantallaAcceso ||
+        !boton ||
+        !campoCodigo ||
+        !mensaje
+    ){
+
+        console.warn(
+            "No fue posible inicializar la pantalla de acceso FEM."
+        );
+
+        return;
+
+    }
+
+
+    /*
+     * Determinar si existe un TOKEN.
+     */
+
+    const token =
+        typeof TOKEN_ACCESO !== "undefined"
+            ? String(
+                TOKEN_ACCESO || ""
+              ).trim()
+            : "";
+
+
+    /*
+     * Si NO existe TOKEN,
+     * mantener el funcionamiento normal
+     * de la aplicación durante desarrollo.
+     */
+
+    if(!token){
+
+        return;
+
+    }
+
+
+    /*
+     * Obtener nombre de la IE.
+     */
+
+    const nombreIE =
+        typeof NOMBRE_IE_ACCESO !== "undefined"
+            ? String(
+                NOMBRE_IE_ACCESO || ""
+              ).trim()
+            : "";
+
+
+    /*
+     * Mostrar nombre de la IE.
+     */
+
+    if(
+        titulo &&
+        nombreIE
+    ){
+
+        titulo.textContent =
+            "🔐 Acceso de la Institución Educativa " +
+            nombreIE +
+            " al FEM 2026.";
+
+    }
+
+
+    /*
+     * Mostrar exclusivamente
+     * la pantalla de acceso.
+     */
+
+    document
+        .querySelectorAll(".pantalla")
+        .forEach(function(pantalla){
+
+            pantalla.classList.remove(
+                "visible"
+            );
+
+        });
+
+
+    pantallaAcceso.classList.add(
+        "visible"
+    );
+
+
+    /*
+     * Evitar registrar listeners
+     * más de una vez.
+     */
+
+    if(
+        boton.dataset.accesoInicializado === "1"
+    ){
+
+        campoCodigo.focus();
+
+        return;
+
+    }
+
+
+    /*
+     * Botón INGRESAR.
+     */
+
+    boton.addEventListener(
+        "click",
+        validarCodigoAccesoFEM
+    );
+
+
+    /*
+     * ENTER en el campo de código.
+     */
+
+    campoCodigo.addEventListener(
+        "keydown",
+        function(evento){
+
+            if(
+                evento.key === "Enter"
+            ){
+
+                validarCodigoAccesoFEM();
+
+            }
+
+        }
+    );
+
+
+    boton.dataset.accesoInicializado =
+        "1";
+
+
+    campoCodigo.focus();
+
+}
+
+
+/*****************************************************
+ * VALIDAR CÓDIGO DE ACCESO FEM
+ *****************************************************/
+
+function validarCodigoAccesoFEM(){
+
+    const campoCodigo =
+        document.getElementById(
+            "codigoAccesoFEM"
+        );
+
+    const boton =
+        document.getElementById(
+            "btnIngresarFEM"
+        );
+
+    const mensaje =
+        document.getElementById(
+            "mensajeAccesoFEM"
+        );
+
+
+    if(
+        !campoCodigo ||
+        !boton ||
+        !mensaje
+    ){
+
+        return;
+
+    }
+
+
+    const codigo =
+        String(
+            campoCodigo.value || ""
+        ).trim();
+
+
+    /*
+     * Código obligatorio.
+     */
+
+    if(!codigo){
+
+        mensaje.style.display =
+            "block";
+
+        mensaje.textContent =
+            "Ingrese el código de acceso.";
+
+        campoCodigo.focus();
+
+        return;
+
+    }
+
+
+    /*
+     * Obtener TOKEN.
+     */
+
+    const token =
+        typeof TOKEN_ACCESO !== "undefined"
+            ? String(
+                TOKEN_ACCESO || ""
+              ).trim()
+            : "";
+
+
+    if(!token){
+
+        mensaje.style.display =
+            "block";
+
+        mensaje.textContent =
+            "El enlace de acceso no es válido.";
+
+        return;
+
+    }
+
+
+    /*
+     * Bloquear botón mientras
+     * se valida en el servidor.
+     */
+
+    boton.disabled =
+        true;
+
+    boton.textContent =
+        "VALIDANDO...";
+
+    mensaje.style.display =
+        "none";
+
+
+    /*
+     * Validación REAL en servidor.
+     */
+
+    google.script.run
+
+        .withSuccessHandler(
+            function(resultado){
+
+                boton.disabled =
+                    false;
+
+                boton.textContent =
+                    "INGRESAR";
+
+
+                /*
+                 * Código incorrecto
+                 * o acceso rechazado.
+                 */
+
+                if(
+                    !resultado ||
+                    resultado.ok !== true
+                ){
+
+                    mensaje.style.display =
+                        "block";
+
+                    mensaje.textContent =
+                        resultado &&
+                        resultado.mensaje
+                            ? resultado.mensaje
+                            : "No fue posible validar el acceso.";
+
+                    campoCodigo.focus();
+
+                    return;
+
+                }
+
+
+                /*
+                 * =================================================
+                 * ACCESO AUTORIZADO
+                 * =================================================
+                 */
+
+                window.DATOS_ACCESO_FEM =
+                    resultado;
+                window._FEM_SESIONES_ENVIADAS = {
+                    1: !!(resultado.sesiones && resultado.sesiones.s1),
+                    2: !!(resultado.sesiones && resultado.sesiones.s2),
+                    3: !!(resultado.sesiones && resultado.sesiones.s3)
+                };
+
+                try{
+                    aplicarDatosAccesoFEM();
+                }catch(error){
+                    console.error(
+                        "Error aplicando los datos de la IE autenticada:",
+                        error
+                    );
+                }
+
+
+                /*
+                 * Aplicar inmediatamente los datos oficiales
+                 * de la institución al formulario.
+                 */
+                try{
+
+                    aplicarDatosAccesoFEM();
+
+                }catch(error){
+
+                    console.error(
+                        "Error aplicando datos de la IE:",
+                        error
+                    );
+
+                }
+
+
+                /*
+                 * Guardar ID_FORO reservado.
+                 *
+                 * El servidor es la fuente oficial.
+                 */
+
+                if(
+                    resultado.idForo
+                ){
+
+                    localStorage.setItem(
+                        obtenerClaveIdForo(),
+                        resultado.idForo
+                    );
+
+                }
+/*
+ * Ahora que la IE está autenticada,
+ * podemos recuperar su borrador local.
+ */
+
+let avanceRestaurado = false;
+
+try{
+
+    avanceRestaurado = restaurarBorradorLocal({
+        mostrarPantalla: true
+    });
+
+    try{
+        actualizarRespuestaPregunta3Sesion2();
+        actualizarRespuestaPregunta5Sesion2();
+        actualizarInterfazOtroSesion2();
+        actualizarEstadoSesion2();
+        actualizarEstadoSesion3();
+    }catch(error){
+        console.error(
+            "Error recalculando el estado después de recuperar el borrador:",
+            error
+        );
+    }
+
+}catch(error){
+
+    console.error(
+        "Error al restaurar el borrador después de autenticar:",
+        error
+    );
+
+}
+
+                /*
+                 * Continuar desde el último punto guardado.
+                 * Si no existe borrador, comenzar en Bienvenida.
+                 */
+                if(!avanceRestaurado){
+                    document.querySelectorAll(".pantalla").forEach(function(pantalla){
+                        pantalla.classList.remove("visible");
+                    });
+
+                    const bienvenida = document.getElementById("pantallaBienvenida");
+                    if(bienvenida) bienvenida.classList.add("visible");
+
+                    pantallaActual = 1;
+                    actualizarBarra();
+                }
+
+                /*
+                 * Actualizar barra.
+                 */
+
+                try{
+
+                    actualizarBarra();
+
+                }catch(error){
+
+                    console.error(
+                        "Error actualizando barra:",
+                        error
+                    );
+
+                }
+
+            }
+        )
+
+        .withFailureHandler(
+            function(error){
+
+                boton.disabled =
+                    false;
+
+                boton.textContent =
+                    "INGRESAR";
+
+                mensaje.style.display =
+                    "block";
+
+                mensaje.textContent =
+                    "No fue posible validar el acceso. Intente nuevamente.";
+
+                console.error(
+                    "Error validando acceso:",
+                    error
+                );
+
+            }
+        )
+
+        .validarAccesoIE(
+            token,
+            codigo,
+            obtenerDispositivoIdFEM()
+        );
+
+}
+
+
+/*****************************************************
+ * EVIDENCIAS + PLENARIA + INFORME FINAL
+ *****************************************************/
+
+let plenariaPaginas = [];
+let plenariaPaginaActual = 0;
+let informeFinalData = null;
+let plenariaModoLectura = false;
+
+function obtenerDatosFormularioActual_(){
+    try{
+        return construirDatosBorrador();
+    }catch(e){
+        console.error(e);
+        return null;
+    }
+}
+
+function mostrarRecordatorioSesion3(){
+    const modal=document.getElementById("modalRecordatorioSesion3");
+    if(!modal) return;
+    const clave=(obtenerClaveBorradorForo ? obtenerClaveBorradorForo()+"_recordatorio_s3" : "recordatorio_s3");
+    if(localStorage.getItem(clave)==="1") return;
+    modal.classList.add("visible");
+    modal.setAttribute("aria-hidden","false");
+}
+
+function cerrarRecordatorioSesion3(){
+    const modal=document.getElementById("modalRecordatorioSesion3");
+    if(modal){ modal.classList.remove("visible"); modal.setAttribute("aria-hidden","true"); }
+    try{ localStorage.setItem(obtenerClaveBorradorForo()+"_recordatorio_s3","1"); }catch(e){}
+}
+
+function confirmarFEM(mensaje, opciones){
+    return new Promise(function(resolve){
+        const modal=document.getElementById("modalConfirmarFEM");
+        if(!modal){ resolve(window.confirm(mensaje)); return; }
+        const titulo=document.getElementById("modalConfirmarTitulo");
+        const texto=document.getElementById("modalConfirmarMensaje");
+        const btnOk=document.getElementById("btnModalConfirmarAceptar");
+        const btnCancelar=document.getElementById("btnModalConfirmarCancelar");
+        if(titulo) titulo.textContent=(opciones&&opciones.titulo)||"¿Está seguro?";
+        if(texto) texto.textContent=mensaje;
+        if(btnOk) btnOk.textContent=(opciones&&opciones.textoAceptar)||"Sí, enviar";
+        if(btnCancelar) btnCancelar.textContent=(opciones&&opciones.textoCancelar)||"Cancelar";
+
+        function cerrar(resultado){
+            modal.classList.remove("visible");
+            modal.setAttribute("aria-hidden","true");
+            btnOk.removeEventListener("click",onOk);
+            btnCancelar.removeEventListener("click",onCancelar);
+            resolve(resultado);
+        }
+        function onOk(){ cerrar(true); }
+        function onCancelar(){ cerrar(false); }
+
+        btnOk.addEventListener("click",onOk);
+        btnCancelar.addEventListener("click",onCancelar);
+        modal.classList.add("visible");
+        modal.setAttribute("aria-hidden","false");
+    });
+}
+
+function inicializarPlenaria(){
+    const cerrar=document.getElementById("btnCerrarRecordatorioSesion3");
+    const aceptar=document.getElementById("btnAceptarRecordatorioSesion3");
+    if(cerrar) cerrar.addEventListener("click",cerrarRecordatorioSesion3);
+    if(aceptar) aceptar.addEventListener("click",cerrarRecordatorioSesion3);
+
+    const volver=document.getElementById("btnVolverSesion3DesdeEvidencias");
+    if(volver) volver.addEventListener("click",function(){ cambiarPantalla("pantallaEvidencias","pantallaSesion3",8); });
+
+    const pdf=document.getElementById("archivoAsistencia");
+    const foto=document.getElementById("archivoFoto");
+    if(pdf) pdf.addEventListener("change",actualizarEstadoEvidencias);
+    if(foto) foto.addEventListener("change",actualizarEstadoEvidencias);
+
+    const subir=document.getElementById("btnSubirEvidencias");
+    if(subir) subir.addEventListener("click",subirEvidenciasFEM);
+    if(document.getElementById("evidenciaAsistenciaUrl")?.value && document.getElementById("evidenciaFotoUrl")?.value){
+        const c=document.getElementById("btnContinuarDesdeEvidencias"); if(c)c.disabled=false;
+    }
+
+    const cont=document.getElementById("btnContinuarDesdeEvidencias");
+    if(cont) cont.addEventListener("click",function(){
+        const datos=obtenerDatosFormularioActual_();
+        google.script.run.withSuccessHandler(function(res){
+            if(res && res.ok){
+                cambiarPantalla("pantallaEvidencias","pantallaPlenaria",10);
+            }else{
+                mostrarMensajeEvidencias(res && res.mensaje ? res.mensaje : "No fue posible preparar la plenaria.");
+            }
+        }).withFailureHandler(function(err){ mostrarMensajeEvidencias("No fue posible preparar la plenaria: "+(err.message||err)); }).guardarAvanceForo(datos);
+    });
+
+    const guardar=document.getElementById("btnGuardarPlenaria");
+    if(guardar) guardar.addEventListener("click",function(){ guardarBorradorLocal(); });
+
+    const lectura=document.getElementById("btnModoLecturaPlenaria");
+    if(lectura) lectura.addEventListener("click",alternarModoLecturaPlenaria);
+
+    const completa=document.getElementById("btnPantallaCompletaPlenaria");
+    if(completa) completa.addEventListener("click",async function(){
+        try{ if(!document.fullscreenElement) await document.documentElement.requestFullscreen(); else await document.exitFullscreen(); }catch(e){console.error(e);}
+    });
+
+    const ant=document.getElementById("btnAnteriorPlenaria");
+    if(ant) ant.addEventListener("click",function(){ plenariaIrA(plenariaPaginaActual-1); });
+    const sig=document.getElementById("btnContinuarPlenaria");
+    if(sig) sig.addEventListener("click",function(){
+        const pages=document.querySelectorAll("#plenariaContenido .plenariaPagina");
+        if(plenariaPaginaActual>=pages.length-1){
+            const s=window._FEM_SESIONES_ENVIADAS||{};
+            if(!s[1]||!s[2]||!s[3]){ alert("Debe enviar definitivamente las respuestas de las tres sesiones antes de continuar al informe final."); return; }
+            cambiarPantalla("pantallaPlenaria","pantallaFinalFEM",11);
+            return;
+        }
+        plenariaIrA(plenariaPaginaActual+1);
+    });
+
+    const gen=document.getElementById("btnGenerarInformeFinal");
+    if(gen) gen.addEventListener("click",generarInformeFinalUI);
+    const desc=document.getElementById("btnDescargarInformeFinal");
+    if(desc) desc.addEventListener("click",descargarInformeFinalUI);
+    const enviar=document.getElementById("btnEnviarInformeFinal");
+    if(enviar) enviar.addEventListener("click",enviarInformeFinalUI);
+    const finalizar=document.getElementById("btnFinalizarFEM");
+    if(finalizar) finalizar.addEventListener("click",finalizarFEMUI);
+}
+
+function actualizarEstadoEvidencias(){
+    const pdf=document.getElementById("archivoAsistencia")?.files?.[0];
+    const foto=document.getElementById("archivoFoto")?.files?.[0];
+    const subir=document.getElementById("btnSubirEvidencias");
+    const okPdf=pdf && pdf.type==="application/pdf" && pdf.size<=10*1024*1024;
+    const okFoto=foto && ["image/jpeg","image/png"].includes(foto.type) && foto.size<=10*1024*1024;
+    pintarEstadoArchivo("estadoAsistencia",pdf,okPdf,"PDF válido.","Seleccione un PDF de máximo 10 MB.");
+    pintarEstadoArchivo("estadoFoto",foto,okFoto,"Imagen válida.","Seleccione JPG/PNG de máximo 10 MB.");
+    if(subir) subir.disabled=!(okPdf&&okFoto);
+}
+function pintarEstadoArchivo(id,file,ok,si,no){
+    const el=document.getElementById(id); if(!el) return;
+    if(!file){el.textContent="";return;}
+    el.textContent=(ok?"✓ ":"⚠ ")+file.name+" — "+(file.size/1024/1024).toFixed(2)+" MB. "+(ok?si:no);
+    el.className="estadoArchivo "+(ok?"ok":"error");
+}
+function mostrarMensajeEvidencias(msg){ const el=document.getElementById("mensajeEvidencias"); if(el){el.textContent=msg;el.style.display="block";} }
+function leerArchivoDataURL(file){
+    return new Promise((resolve,reject)=>{ const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(file); });
+}
+async function subirEvidenciasFEM(){
+    const pdf=document.getElementById("archivoAsistencia")?.files?.[0];
+    const foto=document.getElementById("archivoFoto")?.files?.[0];
+    const btn=document.getElementById("btnSubirEvidencias");
+    if(!pdf||!foto){actualizarEstadoEvidencias();return;}
+    btn.disabled=true; btn.textContent="Subiendo…";
+    try{
+        const datos=obtenerDatosFormularioActual_();
+        if(!datos || !String(datos.idForo||"").trim()){
+            /*
+             * DIAGNOSTICO TEMPORAL: si esto vuelve a fallar, el mensaje
+             * de error incluira el estado real de window.DATOS_ACCESO_FEM
+             * en ese momento para saber la causa exacta en vez de adivinar.
+             */
+            let diagnostico="";
+            try{
+                diagnostico=" [diag: DATOS_ACCESO_FEM="+JSON.stringify(window.DATOS_ACCESO_FEM)+"]";
+            }catch(diagErr){
+                diagnostico=" [diag: no se pudo serializar DATOS_ACCESO_FEM: "+(diagErr&&diagErr.message)+"]";
+            }
+            throw new Error("No fue posible recuperar el ID_FORO de la institución autenticada. Regrese al acceso e ingrese nuevamente el código."+diagnostico);
+        }
+        const pdfData=await leerArchivoDataURL(pdf);
+        const fotoData=await leerArchivoDataURL(foto);
+        const resultado=await new Promise((resolve,reject)=>{
+            google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).subirEvidenciasFEM(
+                datos.idForo, pdfData, "Listado de asistencia a foro educativo.pdf", "application/pdf", fotoData, foto.name, foto.type, datos
+            );
+        });
+        if(!resultado || !resultado.ok) throw new Error(resultado?.mensaje||"No fue posible subir las evidencias.");
+        document.getElementById("evidenciaAsistenciaUrl").value=resultado.asistencia.url;
+        document.getElementById("evidenciaAsistenciaId").value=resultado.asistencia.id;
+        document.getElementById("evidenciaFotoUrl").value=resultado.foto.url;
+        document.getElementById("evidenciaFotoId").value=resultado.foto.id;
+        const campos=["evidenciaAsistenciaUrl","evidenciaAsistenciaId","evidenciaFotoUrl","evidenciaFotoId"];
+        campos.forEach(id=>document.getElementById(id)?.dispatchEvent(new Event("change")));
+        guardarBorradorLocal({silencioso:true});
+        mostrarMensajeEvidencias("✓ Evidencias subidas correctamente. Ya puede continuar a la plenaria.");
+        document.getElementById("btnContinuarDesdeEvidencias").disabled=false;
+        btn.textContent="✓ Archivos subidos";
+    }catch(e){
+        console.error(e); mostrarMensajeEvidencias("⚠ "+(e.message||e)); btn.disabled=false; btn.textContent="⬆️ Subir ambos archivos";
+    }
+}
+
+function getCampoValor(id){ const el=document.getElementById(id); return el?String(el.value||""):""; }
+function getCampoNombreIE(){ return getCampoValor("institucion") || (window.DATOS_ACCESO_FEM?.ie||NOMBRE_IE_ACCESO||""); }
+function getTotalParticipantes(){ return Number(document.getElementById("totalParticipantes")?.textContent||0); }
+
+function renderizarPlenaria(){
+    const contenido=document.getElementById("plenariaContenido"); if(!contenido) return;
+    const nombre=getCampoNombreIE();
+    const total=getTotalParticipantes();
+    const preguntas=[
+        {sesion:1,titulo:"Sesión 1",preguntas:[
+            ["S1_P1","¿Cómo hemos avanzado, desde nuestra institución educativa, en el logro de los retos y propósitos planteados en el FEM2025?","respuestaSesion1"],
+            ["S1_P2","¿Cómo hemos avanzado, desde nuestra institución educativa, en la implementación de los nuevos grados del nivel de preescolar (jardín, prejardín)?","respuestaSesion1Pregunta2"]
+        ]},
+        {sesion:2,titulo:"Sesión 2",preguntas:[
+            ["S2_P1","¿Consideran que los currículos actuales que se desarrollan en las instituciones educativas son pertinentes con sus realidades territoriales (sociales, culturales, productivas)? ¿Por qué?","respuestaSesion2Pregunta1"],
+            ["S2_P2","¿Qué acciones se están implementando para la transformación de los currículos, haciéndolos más pertinentes y contextualizados en la Institución Educativa? (mínimo 3 y máximo 5 acciones)","__S2_ACCIONES__"],
+            ["S2_P3","¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar estas acciones?","respuestaSesion2Pregunta3"],
+            ["S2_P4","¿Cómo se están articulando estos equipos de trabajo para lograr currículos más pertinentes territorialmente?","respuestaSesion2Pregunta4"],
+            ["S2_P5","¿Qué mecanismos de seguimiento se están implementando para que dichas acciones se cumplan?","respuestaSesion2Pregunta5"]
+        ]},
+        {sesion:3,titulo:"Sesión 3",preguntas:[
+            ["S3_P1","¿Consideran que la toma de decisiones en las instituciones educativas actualmente es participativa y democrática? ¿Por qué?","respuestaSesion3Pregunta1"],
+            ["S3_P2","¿Qué tipo de acciones se están implementando para que las comunidades y diferentes actores interesados en la educación puedan participar de manera más incidente en el desarrollo y el enfoque institucional? (mínimo 3 y máximo 5 acciones)","__S3_ACCIONES__"],
+            ["S3_P3","¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar las estrategias y mecanismos de participación escolar?","respuestaSesion3Pregunta3"],
+            ["S3_P4","¿Qué mecanismos de seguimiento se están implementando para garantizar las acciones encaminadas a promover gobiernos educativos democráticos?","respuestaSesion3Pregunta4"]
+        ]}
+    ];
+    plenariaPaginas=[];
+    let html=`<div class="plenariaPortada"><h1>INFORME EJECUTIVO DE FORO MUNICIPAL EDUCATIVO NEIVA 2026</h1><h2>FEM 2026 “Escuela Viva: Voces que construyen territorio”.</h2><h3>${escapeHtml(nombre)}</h3><p>Participantes totales: <strong>${total}</strong></p><div class="graficoParticipacionHTML">${renderGraficoParticipacionHTML()}</div><p class="soloLectura">La institución educativa ${escapeHtml(nombre)} construyó colectivamente las conclusiones que se presentan a continuación con la participación de ${total} integrantes de su comunidad educativa.</p></div>`;
+    html+=`<div class="plenariaPagina" data-page="0"><h2>Caracterización institucional</h2>${renderCaracterizacionHTML()}</div>`;
+    plenariaPaginas.push({id:"caracterizacion",sesion:0,sent:false});
+    preguntas.forEach(grupo=>{
+        html+=`<div class="plenariaSeparador"><h2>${grupo.titulo}</h2><p>Revise las respuestas, realice las correcciones necesarias y, cuando exista consenso, envíe esta sesión. Después del envío no será posible modificarla.</p></div>`;
+        grupo.preguntas.forEach(q=>{
+            const sent=sesionEnviadaLocal(grupo.sesion);
+            const pageIndex=plenariaPaginas.length;
+            let cuerpo="";
+            if(q[2]==="__S2_ACCIONES__") cuerpo=[1,2,3,4,5].map(i=>["respuestaSesion2Pregunta2Accion"+i,"Acción "+i]).map(x=>`<label class="labelEditorPlenaria">${x[1]}</label><textarea class="editorRespuestaPlenaria" data-campo="${x[0]}" ${sent?'readonly':''}>${escapeHtml(getCampoValor(x[0]))}</textarea>`).join("");
+            else if(q[2]==="__S3_ACCIONES__") cuerpo=[1,2,3,4,5].map(i=>["respuestaSesion3Pregunta2Accion"+i,"Acción "+i]).map(x=>`<label class="labelEditorPlenaria">${x[1]}</label><textarea class="editorRespuestaPlenaria" data-campo="${x[0]}" ${sent?'readonly':''}>${escapeHtml(getCampoValor(x[0]))}</textarea>`).join("");
+            else cuerpo=`<textarea class="editorRespuestaPlenaria" data-campo="${q[2]}" ${sent?'readonly':''}>${escapeHtml(getCampoValor(q[2]))}</textarea>`;
+            html+=`<div class="plenariaPagina" data-page="${pageIndex}" data-sesion="${grupo.sesion}"><div class="plenariaPregunta"><span>${grupo.titulo}</span><h3>${escapeHtml(q[1])}</h3></div>${cuerpo}<div class="plenariaEditHint">✏️ Modo edición: puede ajustar únicamente las respuestas antes de enviarlas.</div></div>`;
+            plenariaPaginas.push({id:q[0],sesion:grupo.sesion,campo:q[2],sent});
+        });
+    });
+    html+=`<div class="plenariaPagina evidenciaInforme"><h2>Evidencias</h2><p>📄 <a href="${escapeAttr(getCampoValor("evidenciaAsistenciaUrl"))}" target="_blank">Ver listado de asistencia</a></p><p>📷 <a href="${escapeAttr(getCampoValor("evidenciaFotoUrl"))}" target="_blank">Ver fotografía del Foro</a></p></div>`;
+    contenido.innerHTML=html;
+    const nav=document.getElementById("plenariaNavegacion");
+    if(nav) nav.innerHTML=plenariaPaginas.map((p,i)=>`<button type="button" data-nav="${i}">${i+1}</button>`).join("");
+    nav?.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>plenariaIrA(Number(b.dataset.nav))));
+    contenido.querySelectorAll("textarea.editorRespuestaPlenaria").forEach(t=>t.addEventListener("input",function(){
+        const original=document.getElementById(this.dataset.campo); if(original){ original.value=this.value; original.dispatchEvent(new Event("input",{bubbles:true})); }
+    }));
+    prepararSecuenciaPlenaria();
+    actualizarBotonesPlenaria();
+}
+function renderCaracterizacionHTML(){
+    const ids=["institucion","dane","rector","direccion","zona","comuna","grupo","correoIE","nombre","correo","cargo"];
+    return `<div class="caracterizacionInforme">${ids.map(id=>`<div><strong>${etiquetaCampo(id)}:</strong><span>${escapeHtml(getCampoValor(id)||"—")}</span></div>`).join("")}</div>`;
+}
+function etiquetaCampo(id){ const m={institucion:"Institución Educativa",dane:"Código DANE",rector:"Rector(a)",direccion:"Dirección",zona:"Zona",comuna:"Comuna / Corregimiento",grupo:"Grupo de trabajo",correoIE:"Correo institucional",nombre:"Responsable del informe",correo:"Correo del responsable",cargo:"Cargo"}; return m[id]||id; }
+function renderGraficoParticipacionHTML(){
+    const defs=["Rector","Coordinador","Docentes","TutorPTA","Orientador","Estudiantes","Padres","Administrativos","Egresados","Sector","Otros"];
+    const total=getTotalParticipantes()||1;
+    return `<div class="graficoParticipacionBarras">${defs.map(d=>{const n=Number(document.getElementById("participantes"+d)?.value||0);const p=(n/total*100);return `<div class="barraParticipante"><span>${escapeHtml(d)}</span><div><i style="width:${p.toFixed(2)}%"></i></div><b>${p.toFixed(1)}%</b></div>`}).join("")}</div>`;
+}
+function escapeHtml(s){return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");}
+function escapeAttr(s){return escapeHtml(s);}
+function sesionEnviadaLocal(sesion){ return !!window._FEM_SESIONES_ENVIADAS?.[sesion]; }
+function prepararSecuenciaPlenaria(){
+    plenariaPaginaActual=0;
+    const pages=Array.prototype.slice.call(document.querySelectorAll("#plenariaContenido .plenariaPagina"));
+    pages.forEach((p,i)=>{p.classList.toggle("habilitada",i===0);});
+    pages.forEach((p,i)=>{
+        const sentinel=document.createElement("div"); sentinel.className="sentinelPlenaria"; p.appendChild(sentinel);
+        const obs=new IntersectionObserver(entries=>{ entries.forEach(en=>{ if(en.isIntersecting && i+1<pages.length){ pages[i+1].classList.add("habilitada"); } }); },{threshold:.15}); obs.observe(sentinel);
+    });
+    actualizarBotonesPlenaria();
+}
+function plenariaIrA(i){
+    const pages=Array.prototype.slice.call(document.querySelectorAll("#plenariaContenido .plenariaPagina"));
+    if(i<0||i>=pages.length) return;
+    if(!pages[i].classList.contains("habilitada")) return;
+    plenariaPaginaActual=i; pages[i].scrollIntoView({behavior:"smooth",block:"start"}); actualizarBotonesPlenaria();
+}
+function actualizarBotonesPlenaria(){
+    const ant=document.getElementById("btnAnteriorPlenaria"), sig=document.getElementById("btnContinuarPlenaria");
+    const pages=document.querySelectorAll("#plenariaContenido .plenariaPagina");
+    if(ant) ant.disabled=plenariaPaginaActual<=0;
+    if(sig) sig.disabled=plenariaPaginaActual>=pages.length-1 || !pages[plenariaPaginaActual+1]?.classList.contains("habilitada");
+    document.querySelectorAll("#plenariaNavegacion button").forEach((b,i)=>b.classList.toggle("activo",i===plenariaPaginaActual));
+}
+function alternarModoLecturaPlenaria(){
+    plenariaModoLectura=!plenariaModoLectura;
+    const p=document.getElementById("pantallaPlenaria"); p?.classList.toggle("modoLecturaPlenaria",plenariaModoLectura);
+    document.querySelectorAll(".editorRespuestaPlenaria").forEach(t=>t.readOnly=plenariaModoLectura || sesionEnviadaLocal(Number(t.closest(".plenariaPagina")?.dataset.sesion||0)));
+    const b=document.getElementById("btnModoLecturaPlenaria"); if(b) b.textContent=plenariaModoLectura?"✏️ Volver a edición":"📖 Modo lectura";
+}
+
+function enviarSesionPlenaria(sesion){
+    const datos=obtenerDatosFormularioActual_();
+    return new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).enviarRespuestasSesion(datos.idForo,window.DATOS_ACCESO_FEM?.tokenSesion||"",window.DATOS_ACCESO_FEM?.dispositivoId||obtenerDispositivoIdFEM(),sesion,datos));
+}
+function insertarBotonesEnvioSesion(){
+    const cont=document.getElementById("plenariaContenido"); if(!cont) return;
+    [1,2,3].forEach(s=>{
+        const marker=cont.querySelector(`.plenariaSeparador:nth-of-type(${s})`);
+    });
+    // Insertamos un botón al final de cada grupo mediante títulos de sesión.
+    const seps=Array.prototype.slice.call(cont.querySelectorAll(".plenariaSeparador"));
+    seps.forEach((sep,idx)=>{
+        const ses=idx+1; const b=document.createElement("button"); b.type="button"; b.className="btnEnviarSesionPlenaria"; b.dataset.sesion=ses; b.textContent=window._FEM_SESIONES_ENVIADAS?.[ses]?`✅ Respuestas de Sesión ${ses} enviadas`:`📤 Enviar respuestas de Sesión ${ses}`;
+        sep.appendChild(b); b.disabled=ses>1 && !window._FEM_SESIONES_ENVIADAS?.[ses-1];
+        b.addEventListener("click",async()=>{
+            if(window._FEM_SESIONES_ENVIADAS?.[ses]) return;
+                        const confirmado=await confirmarFEM(
+                "¿Está seguro de enviar sus respuestas? Una vez enviadas no podrán modificarse.",
+                {titulo:`Enviar respuestas de Sesión ${ses}`}
+            );
+            if(!confirmado) return;
+            b.disabled=true; b.textContent="Enviando…";
+            try{ const r=await enviarSesionPlenaria(ses); if(!r?.ok) throw new Error(r?.mensaje||"No fue posible enviar la sesión."); window._FEM_SESIONES_ENVIADAS=window._FEM_SESIONES_ENVIADAS||{}; window._FEM_SESIONES_ENVIADAS[ses]=true; renderizarPlenaria(); mostrarEstadoGuardado(`✅ Respuestas de Sesión ${ses} enviadas definitivamente.`); }catch(e){ b.disabled=false; b.textContent=`📤 Enviar respuestas de Sesión ${ses}`; alert(e.message||e); }
+        });
+    });
+}
+
+// Hook renderizarPlenaria to include session-send controls.
+const _renderizarPlenariaOriginal = renderizarPlenaria;
+renderizarPlenaria = function(){ _renderizarPlenariaOriginal(); insertarBotonesEnvioSesion(); };
+
+async function generarInformeFinalUI(){
+    const btn=document.getElementById("btnGenerarInformeFinal"); if(btn) {btn.disabled=true;btn.textContent="Generando…";}
+    try{
+        const datos=obtenerDatosFormularioActual_();
+        const r=await new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).generarInformeFEM(datos.idForo,datos));
+        if(!r?.ok) throw new Error(r?.mensaje||"No fue posible generar el informe.");
+        informeFinalData=r;
+        const d=document.getElementById("btnDescargarInformeFinal"); if(d) d.disabled=false;
+        const e=document.getElementById("btnEnviarInformeFinal"); if(e) e.disabled=false;
+        const f=document.getElementById("tituloInformeFinal"); if(f) f.textContent=getCampoNombreIE();
+        mostrarEstadoInformeFinal("✓ Informe generado y guardado en Drive.");
+        if(btn) btn.textContent="✓ Informe generado";
+    }catch(err){if(btn){btn.disabled=false;btn.textContent="📄 Generar informe";}mostrarEstadoInformeFinal("⚠ "+(err.message||err));}
+}
+function mostrarEstadoInformeFinal(msg){const e=document.getElementById("estadoInformeFinal");if(e)e.textContent=msg;}
+function descargarInformeFinalUI(){ if(!informeFinalData?.pdfUrl)return; window.open(informeFinalData.pdfUrl,"_blank"); informeFinalData.descargado=true; document.getElementById("btnFinalizarFEM").disabled=!informeFinalData.enviado; }
+async function enviarInformeFinalUI(){
+    if(!informeFinalData?.pdfId)return;
+    const b=document.getElementById("btnEnviarInformeFinal"); b.disabled=true; b.textContent="Enviando…";
+    try{const datos=obtenerDatosFormularioActual_();const r=await new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).enviarInformeFEM(datos.idForo,datos,informeFinalData.pdfId));if(!r?.ok)throw new Error(r?.mensaje||"No fue posible enviar el informe.");informeFinalData.enviado=true;mostrarEstadoInformeFinal("✓ Informe enviado por correo.");b.textContent="✓ Informe enviado";document.getElementById("btnFinalizarFEM").disabled=!informeFinalData.descargado;}catch(e){b.disabled=false;b.textContent="✉️ Enviar informe";mostrarEstadoInformeFinal("⚠ "+(e.message||e));}}
+async function finalizarFEMUI(){
+    if(!informeFinalData?.descargado||!informeFinalData?.enviado){mostrarEstadoInformeFinal("Debe descargar y enviar el informe antes de finalizar.");return;}
+    const b=document.getElementById("btnFinalizarFEM");b.disabled=true;b.textContent="Cerrando…";
+    try{const datos=obtenerDatosFormularioActual_();const r=await new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).finalizarFormularioFEM(datos.idForo,window.DATOS_ACCESO_FEM?.tokenSesion||"",window.DATOS_ACCESO_FEM?.dispositivoId||obtenerDispositivoIdFEM(),informeFinalData.pdfId));if(!r?.ok)throw new Error(r?.mensaje||"No fue posible cerrar el formulario.");document.querySelectorAll(".pantalla").forEach(p=>p.classList.remove("visible"));document.getElementById("pantallaCierreFEM")?.classList.add("visible");pantallaActual=11;actualizarBarra();const link=document.getElementById("linkInformeCierre");if(link)link.href=informeFinalData.pdfUrl;localStorage.removeItem(obtenerClaveBorradorForo());}catch(e){b.disabled=false;b.textContent="🔒 Finalizar y cerrar el formulario";mostrarEstadoInformeFinal("⚠ "+(e.message||e));}}
+
+function obtenerDispositivoIdFEM(){
+    const k="foroEducativoNeiva2026_dispositivo";
+    let id=localStorage.getItem(k);
+    if(!id){
+        id="FEM-DEV-"+Date.now().toString(36).toUpperCase()+"-"+Math.random().toString(36).slice(2,8).toUpperCase();
+        localStorage.setItem(k,id);
+    }
+    return id;
+}
+</script>

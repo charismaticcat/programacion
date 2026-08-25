@@ -1,0 +1,2255 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<base target="_top">
+
+<title>Foro Educativo Institucional 2026</title>
+
+<?!= include('CSS'); ?>
+
+</head>
+
+<body>
+  
+<!-- =====================================================
+ENCABEZADO
+===================================================== -->
+
+<header class="header">
+
+    <div class="logoIzquierdo">
+
+        <img id="logoSEM" alt="Secretaría de Educación">
+
+    </div>
+
+    <div class="tituloHeader">
+
+        <h1>FORO EDUCATIVO INSTITUCIONAL</h1>
+
+        <h2>Neiva 2026</h2>
+
+    </div>
+
+    <div class="logoDerecho">
+
+        <img id="logoFEM" alt="Foro Educativo">
+
+    </div>
+
+</header>
+
+
+<!-- =====================================================
+BARRA DE PROGRESO
+===================================================== -->
+
+<div class="barraSuperior">
+
+    <div id="barraProgreso"></div>
+
+</div>
+
+
+<!-- =====================================================
+CONTENEDOR PRINCIPAL
+===================================================== -->
+
+<main id="contenedorPrincipal">
+  <!-- =====================================================
+     ACCESO PERSONALIZADO FEM 2026
+     ===================================================== -->
+
+<section
+    id="pantallaAccesoFEM"
+    class="pantalla <?!= tokenAcceso ? 'visible' : '' ?>"
+>
+
+    <div class="contenedorAccesoFEM">
+
+        <h1 class="tituloPrincipal">
+            Foro Educativo Institucional
+        </h1>
+
+        <h2>
+            Neiva 2026
+        </h2>
+
+        <div
+            id="tituloAccesoIE"
+            class="tituloAccesoFEM"
+        >
+            🔐 Acceso de la Institución Educativa al FEM 2026.
+        </div>
+
+        <div class="bloqueCodigoAccesoFEM">
+
+            <label
+                for="codigoAccesoFEM"
+            >
+                Código de acceso
+            </label>
+
+            <input
+                type="text"
+                id="codigoAccesoFEM"
+                autocomplete="off"
+                inputmode="text"
+                maxlength="30"
+                placeholder="Escriba su código"
+            >
+
+            <button
+                type="button"
+                id="btnIngresarFEM"
+            >
+                INGRESAR
+            </button>
+
+            <div
+                id="mensajeAccesoFEM"
+                class="mensajeAccesoFEM"
+                style="display:none;"
+            ></div>
+
+        </div>
+
+        <div class="contactoAccesoFEM">
+
+            <p>
+                ¿Tiene dificultades para ingresar?
+            </p>
+
+            <strong>
+                Secretaría de Educación de Neiva
+            </strong>
+
+            <br>
+
+            educacion@alcaldianeiva.gov.co
+
+            <br>
+
+            318 456 1081
+
+        </div>
+
+    </div>
+
+</section>
+
+<!-- =================== BIENVENIDA =================== -->
+
+<section id="pantallaBienvenida" class="pantalla <?!= tokenAcceso ? '' : 'visible' ?>">
+
+    <h1 class="tituloPrincipal">
+
+        Foro Educativo Institucional
+
+    </h1>
+
+    <h2 class="subtitulo">
+
+        Neiva 2026
+
+    </h2>
+
+    <p class="textoCentro">
+
+        Bienvenido(a).
+
+    </p>
+
+    <p class="textoCentro">
+
+        Su participación contribuirá al fortalecimiento de las políticas públicas educativas del Municipio de Neiva.
+
+    </p>
+
+    <div class="botones">
+
+        <button id="btnComenzar">
+
+            COMENZAR
+
+        </button>
+
+    </div>
+
+</section>
+<!-- =================== RECORRIDO DEL FORO =================== -->
+
+<section id="pantallaRecorrido" class="pantalla">
+
+    <h2 class="recorridoTitulo">
+        Conozca el recorrido del Foro
+    </h2>
+
+    <p class="recorridoIntro">
+        Durante los próximos minutos conocerá las etapas del Foro Educativo
+        Institucional. Le recomendamos leerlas brevemente para organizar el
+        trabajo de su comunidad educativa y aprovechar al máximo el tiempo
+        destinado a la reflexión y la construcción colectiva.
+    </p>
+
+
+    <!-- TARJETA DEL RECORRIDO -->
+
+    <div class="recorridoTarjeta">
+
+        <div class="recorridoIcono">
+            🎯
+        </div>
+
+        <h3>
+            Objetivo del Foro
+        </h3>
+
+        <p class="recorridoPregunta">
+            ¿Qué haremos?
+        </p>
+
+        <p>
+            Identificaremos necesidades, construiremos propuestas y
+            estableceremos acuerdos para fortalecer la educación desde
+            la realidad de cada comunidad educativa.
+        </p>
+
+        <p class="recorridoPregunta">
+            ¿Qué debemos tener listo?
+        </p>
+
+        <p>
+            Disposición para participar, dialogar y construir consensos.
+        </p>
+
+        <p class="recorridoPregunta">
+            ¿Para qué sirve esta etapa?
+        </p>
+
+        <p>
+            Para comprender el propósito del Foro y orientar el trabajo
+            colectivo.
+        </p>
+
+        <p class="recorridoFrase">
+            Cada aporte fortalece la transformación educativa de Neiva.
+        </p>
+
+    </div>
+
+
+    <!-- NAVEGACIÓN -->
+
+    <div class="recorridoNavegacion">
+
+        <button
+            type="button"
+            id="btnRecorridoAnterior"
+            aria-label="Etapa anterior">
+            ←
+        </button>
+
+        <span id="contadorRecorrido">
+            1 de 8
+        </span>
+
+        <button
+            type="button"
+            id="btnRecorridoSiguiente"
+            aria-label="Siguiente etapa">
+            →
+        </button>
+
+    </div>
+
+
+    <!-- PREPARACIÓN -->
+
+    <div class="recorridoPreparacion">
+
+        <h4>
+            Antes de iniciar, verifique que dispone de:
+        </h4>
+
+        <ul>
+            <li>Información necesaria para el desarrollo del Foro.</li>
+            <li>Número de participantes por estamento.</li>
+            <li>Fotografía horizontal HD del trabajo de la comunidad educativa.</li>
+            <li>Listado de asistencia en PDF.</li>
+            <li>Un espacio adecuado para el diálogo y la construcción colectiva.</li>
+        </ul>
+
+    </div>
+
+
+    <!-- BOTÓN -->
+
+    <div class="botones">
+
+        <button
+            type="button"
+            id="btnIniciarRecorrido">
+            Comenzar el Foro
+        </button>
+
+    </div>
+
+</section>
+
+<!-- =================== CONSENTIMIENTO =================== -->
+
+<section id="pantallaConsentimiento" class="pantalla">
+
+    <h2 class="tituloPrincipal">
+        Consentimiento informado
+    </h2>
+
+    <div class="cajaTexto" id="textoConsentimiento">
+
+        <h2 style="color:#0b6a44;text-align:center;margin-bottom:25px;">
+            CONSENTIMIENTO INFORMADO PARA LA PARTICIPACIÓN Y EL TRATAMIENTO DE LA INFORMACIÓN
+        </h2>
+
+        <div class="seccionConsentimiento">
+
+            <h3>🎯 Objetivo</h3>
+
+            <p>
+                El presente instrumento tiene como propósito recoger las reflexiones, propuestas y conclusiones construidas colectivamente durante el <b>Foro Educativo Institucional – Neiva 2026</b>. La información recopilada servirá como insumo para fortalecer los procesos de análisis, planeación y formulación de acciones orientadas al mejoramiento de la calidad educativa en el municipio de Neiva.
+            </p>
+
+        </div>
+
+        <div class="seccionConsentimiento">
+
+            <h3>👥 Participación</h3>
+
+            <p>
+                La participación en este instrumento corresponde al trabajo colectivo desarrollado por los equipos de las instituciones educativas durante la jornada académica del Foro Educativo Institucional, cuya duración aproximada es de <b>seis (6) horas</b>. Las respuestas representan las reflexiones y acuerdos construidos por cada mesa de trabajo o grupo focal.
+            </p>
+
+        </div>
+
+        <div class="seccionConsentimiento">
+
+            <h3>🔒 Tratamiento de la información</h3>
+
+            <p>
+                La información suministrada será utilizada exclusivamente con fines académicos, estadísticos, institucionales y de formulación de políticas públicas educativas. Su tratamiento se realizará conforme a la legislación colombiana sobre protección de datos personales y a las disposiciones institucionales aplicables.
+            </p>
+
+            <p>
+                Los resultados podrán presentarse de forma consolidada, sin afectar la confidencialidad de las personas participantes.
+            </p>
+
+        </div>
+
+        <div class="seccionConsentimiento">
+
+            <h3>🤝 Confidencialidad</h3>
+
+            <p>
+                La Secretaría de Educación de Neiva adoptará las medidas necesarias para garantizar el adecuado tratamiento de la información recopilada. Los resultados serán utilizados únicamente para fines relacionados con el fortalecimiento del sistema educativo y la construcción de propuestas derivadas del Foro Educativo.
+            </p>
+
+        </div>
+
+        <div class="seccionConsentimiento">
+
+            <h3>✅ Aceptación</h3>
+
+            <p>
+                Al seleccionar la opción <b>"He leído y acepto participar"</b>, manifiesto que he leído este consentimiento informado, comprendo el propósito del instrumento y autorizo el tratamiento de la información suministrada conforme a las condiciones aquí descritas.
+            </p>
+
+        </div>
+
+        <hr style="margin:35px 0;">
+
+        <h2 style="color:#0b6a44;">
+            Información complementaria
+        </h2>
+
+        <p>
+            Al finalizar el diligenciamiento de este instrumento, agradecemos su valiosa colaboración cargando los siguientes archivos. Estos aportes contribuirán a fortalecer la sistematización, la memoria institucional y la consolidación de los resultados del <b>Foro Educativo Institucional – Neiva 2026</b>.
+        </p>
+
+        <h3 style="color:#0b6a44;">📄 Listado de asistencia</h3>
+
+        <p>
+            Con el propósito de consolidar las <b>estadísticas de participación</b> y apoyar los procesos de análisis, sistematización y elaboración de los informes generales del Foro Educativo, agradecemos cargar el <b>listado de asistencia de la jornada en formato PDF</b>.
+        </p>
+
+        <p>
+            La información será utilizada exclusivamente con fines estadísticos e institucionales para la consolidación de los resultados del Foro Educativo.
+        </p>
+
+        <h3 style="color:#0b6a44;">📷 Fotografía de la plenaria final</h3>
+
+        <p>
+            Con el fin de construir la memoria visual del <b>Foro Educativo Institucional – Neiva 2026</b>, agradecemos cargar <b>una fotografía correspondiente a la sesión de plenaria final</b>, en <b>formato horizontal</b> y en <b>calidad HD (alta resolución)</b>.
+        </p>
+
+        <p>
+            Se recomienda que la imagen refleje la participación de los asistentes durante la socialización de las conclusiones construidas colectivamente.
+        </p>
+
+        <p>
+            Las fotografías podrán ser utilizadas por la Secretaría de Educación de Neiva en memorias institucionales, informes técnicos y publicaciones relacionadas con el Foro Educativo.
+        </p>
+
+        <div class="avisoImportante">
+
+            <h4>📝 Antes de finalizar</h4>
+
+            <p>
+                Para facilitar el envío exitoso de este instrumento, le recomendamos tener preparados los siguientes archivos antes de concluir el diligenciamiento.
+            </p>
+
+            <ul>
+
+                <li><b>Listado de asistencia</b> de la jornada en formato <b>PDF</b>.</li>
+
+                <li><b>Una fotografía de la sesión de plenaria final</b>, en <b>formato horizontal</b> y con <b>calidad HD (alta resolución)</b>.</li>
+
+            </ul>
+
+            <p>
+                Tener estos archivos disponibles permitirá completar el proceso de envío de forma ágil y contribuirá a la consolidación de la memoria institucional del <b>Foro Educativo Institucional – Neiva 2026</b>.
+            </p>
+
+        </div>
+
+    </div>
+
+    <p id="mensajeLectura" class="mensajeLectura">
+
+        📖 Desplácese hasta el final del consentimiento para habilitar la aceptación.
+
+    </p>
+
+    <div class="grupoCheck">
+
+        <input
+            type="checkbox"
+            id="acepto"
+            disabled>
+
+        <label for="acepto">
+
+            He leído y acepto participar.
+
+        </label>
+
+    </div>
+
+    <div class="botones">
+
+        <button
+            id="btnContinuar"
+            disabled>
+
+            CONTINUAR
+
+        </button>
+
+    </div>
+
+</section>
+
+
+<!-- =================== CARACTERIZACIÓN =================== -->
+
+<section id="pantallaCaracterizacion" class="pantalla">
+
+<h2>
+
+Información de la Institución Educativa
+
+</h2>
+
+<!-- INSTITUCIÓN -->
+
+<div class="grupo">
+
+<label>
+
+Institución Educativa *
+<span class="ayudaCampo">(Escriba el nombre de su I.E.)</span>
+
+</label>
+
+<input
+id="institucion"
+list="listaInstituciones"
+autocomplete="off"
+spellcheck="false">
+
+<div id="mensajeInstituciones" class="mensajeError" style="display:none;"></div>
+
+<datalist id="listaInstituciones">
+
+</datalist>
+
+</div>
+
+<!-- CÓDIGO DANE -->
+
+<div class="grupo">
+
+<label>
+
+Código DANE
+
+</label>
+
+<input
+id="dane"
+readonly>
+
+</div>
+
+<!-- RECTOR(A) -->
+
+<div class="grupo">
+
+    <label for="rector">
+        Rector(a) ✏️
+    </label>
+
+    <input
+        type="text"
+        id="rector"
+        name="rector"
+        placeholder="Nombre del rector(a)"
+    >
+
+</div>
+
+<!-- DIRECCIÓN -->
+
+<div class="grupo">
+
+<label>
+
+Dirección
+
+</label>
+
+<input
+id="direccion"
+readonly>
+
+</div>
+
+<!-- ZONA -->
+
+<div class="grupo">
+
+<label>
+
+Zona
+
+</label>
+
+<input
+id="zona"
+readonly>
+
+</div>
+
+<!-- COMUNA -->
+
+<div class="grupo">
+
+<label>
+
+Comuna / Corregimiento
+
+</label>
+
+<input
+id="comuna"
+readonly>
+
+</div>
+<!-- GRUPO DE TRABAJO -->
+
+<div class="grupo">
+
+<label>
+    Grupo de trabajo
+</label>
+
+<input
+    id="grupo"
+    readonly
+    placeholder="Se asignará automáticamente según la institución educativa">
+
+</div>
+
+<!-- CORREO IE -->
+
+<div class="grupo">
+
+<label>
+
+Correo electrónico institucional
+
+</label>
+
+<input
+id="correoIE"
+readonly>
+
+</div>
+
+<hr style="margin:40px 0;">
+
+<h2>
+
+Información de quien diligencia el instrumento
+
+</h2>
+
+<!-- NOMBRE -->
+
+<div class="grupo">
+
+<label>
+
+Nombre de quien diligencia el instrumento *
+
+</label>
+
+<input
+type="text"
+id="nombre"
+autocomplete="name">
+
+</div>
+
+<!-- CORREO PERSONAL -->
+
+<div class="grupo">
+
+<label>
+
+Correo electrónico personal *
+
+</label>
+
+<input
+type="email"
+id="correo">
+
+</div>
+
+<!-- CARGO -->
+
+<div class="grupo">
+
+<label>
+
+Cargo *
+
+</label>
+
+<select id="cargo">
+
+<option value="">
+
+Seleccione...
+
+</option>
+
+<option>Docente</option>
+
+<option>Rector(a)</option>
+
+<option>Coordinador(a)</option>
+
+<option>Tutor(a) PTA/FI 3.0</option>
+
+<option>Orientador(a) Escolar</option>
+
+<option>Padre de familia</option>
+
+<option>Madre de familia</option>
+
+<option>Estudiante</option>
+
+<option>Administrativo(a)</option>
+
+<option>Otro</option>
+
+</select>
+
+</div>
+
+<div id="mensajeValidacion" class="mensajeError"></div>
+<!-- =====================================================
+     PARTICIPACIÓN EN EL FORO
+     ===================================================== -->
+
+<div class="participacionForo">
+
+    <h3 class="tituloParticipacion">
+        Participación en el Foro
+    </h3>
+
+    <p class="textoParticipacion">
+        Registre el número de participantes presentes en el Foro
+        según cada estamento de la comunidad educativa.
+    </p>
+
+    <div class="tablaParticipacion">
+
+        <!-- ENCABEZADOS -->
+        <div class="encabezadoParticipacion">
+            <div>Estamento</div>
+            <div>Participantes</div>
+        </div>
+
+        <!-- RECTOR(A) -->
+        <div class="filaParticipacion">
+            <label for="participantesRector">
+                Rector(a)
+            </label>
+
+            <input
+                type="number"
+                id="participantesRector"
+                class="inputParticipantes"
+                min="0"
+                step="1"
+                value="0"
+                inputmode="numeric">
+        </div>
+
+        <!-- COORDINADOR(A) -->
+        <div class="filaParticipacion">
+            <label for="participantesCoordinador">
+                Coordinador(a)
+            </label>
+
+            <input
+                type="number"
+                id="participantesCoordinador"
+                class="inputParticipantes"
+                min="0"
+                step="1"
+                value="0"
+                inputmode="numeric">
+        </div>
+
+        <!-- DOCENTES -->
+        <div class="filaParticipacion">
+            <label for="participantesDocentes">
+                Docentes
+            </label>
+
+            <input
+                type="number"
+                id="participantesDocentes"
+                class="inputParticipantes"
+                min="0"
+                step="1"
+                value="0"
+                inputmode="numeric">
+        </div>
+
+        <!-- TUTOR PTA PFI/3.0 -->
+        <div class="filaParticipacion">
+            <label for="participantesTutorPTA">
+                Tutor PTA PFI/3.0
+            </label>
+
+            <input
+                type="number"
+                id="participantesTutorPTA"
+                class="inputParticipantes"
+                min="0"
+                step="1"
+                value="0"
+                inputmode="numeric">
+        </div>
+
+        <!-- ORIENTADOR(A) ESCOLAR -->
+        <div class="filaParticipacion">
+            <label for="participantesOrientador">
+                Orientador(a) escolar
+            </label>
+
+            <input
+                type="number"
+                id="participantesOrientador"
+                class="inputParticipantes"
+                min="0"
+                step="1"
+                value="0"
+                inputmode="numeric">
+        </div>
+
+        <!-- ESTUDIANTES -->
+        <div class="filaParticipacion">
+            <label for="participantesEstudiantes">
+                Estudiantes
+            </label>
+
+            <input
+                type="number"
+                id="participantesEstudiantes"
+                class="inputParticipantes"
+                min="0"
+                step="1"
+                value="0"
+                inputmode="numeric">
+        </div>
+
+        <!-- PADRES/MADRES/ACUDIENTES -->
+        <div class="filaParticipacion">
+            <label for="participantesPadres">
+                Padres/madres de familia/acudientes
+            </label>
+
+            <input
+                type="number"
+                id="participantesPadres"
+                class="inputParticipantes"
+                min="0"
+                step="1"
+                value="0"
+                inputmode="numeric">
+        </div>
+
+        <!-- PERSONAL ADMINISTRATIVO -->
+        <div class="filaParticipacion">
+            <label for="participantesAdministrativos">
+                Personal administrativo
+            </label>
+
+            <input
+                type="number"
+                id="participantesAdministrativos"
+                class="inputParticipantes"
+                min="0"
+                step="1"
+                value="0"
+                inputmode="numeric">
+        </div>
+
+        <!-- EGRESADOS -->
+        <div class="filaParticipacion">
+            <label for="participantesEgresados">
+                Egresados
+            </label>
+
+            <input
+                type="number"
+                id="participantesEgresados"
+                class="inputParticipantes"
+                min="0"
+                step="1"
+                value="0"
+                inputmode="numeric">
+        </div>
+
+        <!-- SECTOR PRODUCTIVO -->
+        <div class="filaParticipacion">
+            <label for="participantesSector">
+                Sector productivo
+            </label>
+
+            <input
+                type="number"
+                id="participantesSector"
+                class="inputParticipantes"
+                min="0"
+                step="1"
+                value="0"
+                inputmode="numeric">
+        </div>
+
+        <!-- OTROS -->
+        <div class="filaParticipacion">
+            <label for="participantesOtros">
+                Otros
+            </label>
+
+            <input
+                type="number"
+                id="participantesOtros"
+                class="inputParticipantes"
+                min="0"
+                step="1"
+                value="0"
+                inputmode="numeric">
+        </div>
+    </div>
+
+    <!-- TOTAL -->
+    <div class="totalParticipacion">
+        <span>Total de participantes</span>
+        <strong id="totalParticipantes">0</strong>
+    </div>
+
+</div>
+
+<div class="botones">
+
+<button id="btnAnterior">
+
+Anterior
+
+</button>
+
+<button id="btnSesion1">
+
+Siguiente
+
+</button>
+
+</div>
+
+</section>
+<!-- =================== RESUMEN =================== -->
+
+<!-- =================== RESUMEN =================== -->
+
+<section id="pantallaResumen" class="pantalla">
+
+<h2 class="tituloPrincipal">
+
+Confirmación de la caracterización
+
+</h2>
+
+<p class="textoCentro">
+
+Revise cuidadosamente la información antes de continuar.
+
+</p>
+
+<div class="tarjetaResumen">
+
+<h3>
+
+Información de la Institución Educativa
+
+</h3>
+
+<table class="tablaResumen">
+
+<tr>
+<th>Institución Educativa</th>
+<td id="rInstitucion"></td>
+</tr>
+
+<tr>
+<th>Código DANE</th>
+<td id="rDane"></td>
+</tr>
+
+<tr>
+<th>Rector(a)</th>
+<td id="rRector"></td>
+</tr>
+
+<tr>
+<th>Dirección</th>
+<td id="rDireccion"></td>
+</tr>
+
+<tr>
+<th>Zona</th>
+<td id="rZona"></td>
+</tr>
+
+<tr>
+<th>Comuna / Corregimiento</th>
+<td id="rComuna"></td>
+</tr>
+
+<tr>
+<th>Grupo de trabajo</th>
+<td id="rGrupo"></td>
+</tr>
+
+<tr>
+<th>Correo institucional</th>
+<td id="rCorreoIE"></td>
+</tr>
+
+</table>
+
+<br>
+
+<h3>
+
+Información de quien diligencia el instrumento
+
+</h3>
+
+<table class="tablaResumen">
+
+<tr>
+<th>Nombre</th>
+<td id="rNombre"></td>
+</tr>
+
+<tr>
+<th>Correo electrónico personal</th>
+<td id="rCorreo"></td>
+</tr>
+
+<tr>
+<th>Cargo</th>
+<td id="rCargo"></td>
+</tr>
+
+</table>
+<br>
+
+<h3>
+    Participación en el Foro
+</h3>
+
+<table class="tablaResumen">
+
+<tr>
+<th>Rector(a)</th>
+<td id="rParticipantesRector">0</td>
+</tr>
+
+<tr>
+<th>Coordinador(a)</th>
+<td id="rParticipantesCoordinador">0</td>
+</tr>
+
+<tr>
+<th>Docentes</th>
+<td id="rParticipantesDocentes">0</td>
+</tr>
+
+<tr>
+<th>Tutor PTA PFI/3.0</th>
+<td id="rParticipantesTutorPTA">0</td>
+</tr>
+
+<tr>
+<th>Orientador(a) escolar</th>
+<td id="rParticipantesOrientador">0</td>
+</tr>
+
+<tr>
+<th>Estudiantes</th>
+<td id="rParticipantesEstudiantes">0</td>
+</tr>
+
+<tr>
+<th>Padres/madres de familia/acudientes</th>
+<td id="rParticipantesPadres">0</td>
+</tr>
+
+<tr>
+<th>Personal administrativo</th>
+<td id="rParticipantesAdministrativos">0</td>
+</tr>
+
+<tr>
+<th>Egresados</th>
+<td id="rParticipantesEgresados">0</td>
+</tr>
+
+<tr>
+<th>Sector productivo</th>
+<td id="rParticipantesSector">0</td>
+</tr>
+
+<tr>
+<th>Otros</th>
+<td id="rParticipantesOtros">0</td>
+</tr>
+
+<tr>
+<th><strong>Total de participantes</strong></th>
+<td id="rTotalParticipantes"><strong>0</strong></td>
+</tr>
+
+</table>
+
+<br>
+<br>
+
+<div class="botones">
+
+<button id="btnVolverCaracterizacion">
+
+✏️ Corregir información
+
+</button>
+
+<button id="btnIniciarSesion1">
+
+Continuar a la Primera Sesión →
+
+</button>
+
+</div>
+
+</div>
+
+</section>
+
+<!-- =================== SESIÓN 1 =================== -->
+
+<section id="pantallaSesion1" class="pantalla">
+
+<h2 class="tituloPrincipal">
+Primera Sesión
+</h2>
+
+<h3 class="subtitulo">
+Reflexión sobre los avances del FEM2025 y las políticas públicas educativas
+</h3>
+
+<!-- INTRODUCCIÓN -->
+
+<div class="tarjetaObjetivo">
+
+    <h3>🎯 OBJETIVO</h3>
+
+    <p>
+        Reflexionar sobre los avances alcanzados por la institución educativa frente a los retos y propósitos definidos en el <strong>Foro Educativo Municipal FEM2025</strong>.
+    </p>
+
+    <p style="margin-top:12px;">
+        El relator registrará únicamente los consensos construidos durante la discusión colectiva <strong>de las dos preguntas</strong>.
+    </p>
+    <!-- =====================================================
+     DOCUMENTOS DE APOYO — SESIÓN 1
+     ===================================================== -->
+
+<div class="documentos-apoyo-sesion1">
+
+    <div class="documentos-apoyo-titulo">
+        📚 Documentos de apoyo para la sesión
+    </div>
+
+    <p class="documentos-apoyo-texto">
+        Para fundamentar mejor sus respuestas, pueden consultar
+        los documentos del <strong>Foro Educativo Municipal – FEM 2025</strong>.
+        Allí encontrarán las respuestas, conclusiones y acuerdos
+        construidos durante el proceso anterior. Pueden descargarlos
+        y utilizarlos como referencia para analizar los avances logrados
+        y argumentar sus respuestas a partir de lo trabajado por la
+        institución el año anterior.
+    </p>
+
+    <div class="documentos-apoyo-botones">
+
+        <a
+    href="https://drive.google.com/file/d/13ZA5vCBUGxLvpk_1kTiWK16pyUTJvJEa/view?usp=sharing"
+    target="_blank"
+    rel="noopener noreferrer"
+    class="btn-documento-apoyo">
+
+    📄 Consultar documento FEM 2025 — 1
+
+</a>
+
+<a
+    href="https://drive.google.com/file/d/1nDIzfg_uwTWyPFNJaGY0mcf6X6iBTigY/view?usp=sharing"
+    target="_blank"
+    rel="noopener noreferrer"
+    class="btn-documento-apoyo">
+
+    📄 Consultar documento FEM 2025 — 2
+
+</a>
+
+    </div>
+
+</div>
+
+<!-- PREGUNTA ORIENTADORA -->
+
+<div class="tarjetaPregunta">
+
+    <h3>❓ PREGUNTA ORIENTADORA</h3>
+
+    <p class="textoPregunta">
+
+        ¿Cómo hemos avanzado, desde nuestra institución educativa, en el logro de los retos y propósitos planteados en el FEM2025?
+
+    </p>
+
+</div>
+
+<!-- ÁREA DE TRABAJO -->
+
+<div class="contenedorTrabajoSesion">
+
+    <!-- GUÍA -->
+
+    <div class="panelGuia">
+<h3>
+
+Aspectos para orientar la discusión
+
+</h3>
+
+        <ul>
+
+            <li>Avances alcanzados.</li>
+
+            <li>Acciones implementadas.</li>
+
+            <li>Evidencias.</li>
+
+            <li>Dificultades encontradas.</li>
+
+            <li>Retos pendientes.</li>
+
+            <li>Oportunidades de mejora.</li>
+
+        </ul>
+
+    </div>
+
+    <!-- RESPUESTA -->
+
+    <div class="panelRespuesta">
+
+        <div class="barraHerramientas">
+
+            <button type="button" id="btnGuardarSesion1">
+
+                💾 Guardar avance
+
+            </button>
+
+            <button type="button" id="btnPantallaCompleta">
+
+                ⛶ Pantalla completa
+
+            </button>
+
+            <button type="button" id="btnModoLectura">
+
+                📖 Modo lectura
+
+            </button>
+
+        </div>
+
+        <textarea
+            id="respuestaSesion1"
+            rows="16"
+            placeholder="Escriba aquí la respuesta construida por la mesa de trabajo..."></textarea>
+
+    </div>
+
+</div>
+
+<div class="contadorPalabras">
+
+    <span id="contadorSesion1">
+
+        0 / 400 palabras
+
+    </span>
+
+</div>
+
+<div class="barraPalabras">
+
+    <div id="progresoPalabrasSesion1"></div>
+
+</div>
+
+<div id="mensajeContador" class="mensajeContador">
+
+⚠ Debe escribir al menos 200 palabras.
+</div>
+<!-- =====================================================
+     PREGUNTA 2
+     ===================================================== -->
+
+<div id="bloquePregunta2" class="bloquePreguntaBloqueada">
+
+    <div class="tarjetaPregunta">
+
+        <h3>❓ PREGUNTA 2</h3>
+
+        <p class="textoPregunta">
+
+            ¿Cómo hemos avanzado, desde nuestra institución educativa,
+            en la implementación de los nuevos grados del nivel de
+            preescolar (jardín, prejardín)?
+
+        </p>
+
+    </div>
+
+
+    <div class="contenedorTrabajoSesion">
+
+        <!-- GUÍA -->
+
+        <div class="panelGuia">
+
+            <h3>
+                Aspectos para orientar la discusión
+            </h3>
+
+            <ul>
+
+                <li>
+                    Avances alcanzados en la implementación de
+                    jardín y prejardín.
+                </li>
+
+                <li>
+                    Acciones realizadas por la institución educativa.
+                </li>
+
+                <li>
+                    Condiciones y recursos disponibles para su
+                    implementación.
+                </li>
+
+                <li>
+                    Experiencias significativas y aprendizajes
+                    obtenidos.
+                </li>
+
+                <li>
+                    Dificultades o situaciones que aún requieren
+                    atención.
+                </li>
+
+                <li>
+                    Retos y oportunidades de mejora.
+                </li>
+
+            </ul>
+
+        </div>
+
+
+        <!-- RESPUESTA -->
+
+        <div class="panelRespuesta">
+
+            <div class="barraHerramientas">
+
+                           
+            </div>
+
+
+            <textarea
+                id="respuestaSesion1Pregunta2"
+                rows="16"
+                placeholder="Escriba aquí la respuesta construida por la mesa de trabajo..."></textarea>
+
+        </div>
+
+    </div>
+
+
+    <!-- CONTADOR PREGUNTA 2 -->
+
+    <div class="contadorPalabras">
+
+        <span id="contadorSesion1Pregunta2">
+            0 / 400 palabras
+        </span>
+
+    </div>
+
+
+    <div class="barraPalabras">
+
+        <div id="progresoPalabrasSesion1Pregunta2"></div>
+
+    </div>
+
+
+    <div
+        id="mensajeContadorPregunta2"
+        class="mensajeContador">
+
+        ⚠ Debe escribir al menos 200 palabras.
+
+    </div>
+
+</div>
+<!-- FIN BLOQUE PREGUNTA 2 -->
+
+
+<!-- =====================================================
+     NAVEGACIÓN SESIÓN 1
+     ===================================================== -->
+
+<div class="botones">
+
+    <button
+        type="button"
+        id="btnVolverResumen">
+
+        ← Anterior
+
+    </button>
+
+    <button
+        type="button"
+        id="btnSesion2"
+        disabled>
+
+        Continuar →
+
+    </button>
+
+</div>
+<!-- FIN NAVEGACIÓN SESIÓN 1 -->
+
+
+</section>
+<!-- =================== SESIÓN 2 =================== -->
+
+<section id="pantallaSesion2" class="pantalla">
+
+    <h2 class="tituloPrincipal">
+        Segunda Sesión
+    </h2>
+
+    <h3 class="subtitulo">
+        Currículo institucional y pertinencia territorial
+    </h3>
+
+
+</div>    <!-- OBJETIVO -->
+
+   <div class="tarjetaObjetivo">
+
+    <h3>🎯 OBJETIVO</h3>
+
+    <p>
+        Reflexionar sobre la pertinencia del currículo institucional frente a las características sociales, culturales, ambientales y productivas del territorio, fortaleciendo <strong> la formación integral de los y las estudiantes e integrando los saberes propios de cada contexto.</strong>
+    </p>
+
+    <p style="margin-top:12px;">
+        El relator registrará únicamente los consensos construidos durante la discusión colectiva  <strong>de las cinco preguntas</strong>.
+    </p>
+
+</div>
+
+    </div>
+<!-- =====================================================
+     BARRA DE HERRAMIENTAS — SESIÓN 2
+     ===================================================== -->
+
+<div class="barraHerramientas">
+
+    <button
+        type="button"
+        id="btnGuardarSesion2">
+
+        💾 Guardar avance
+
+    </button>
+
+    <button
+        type="button"
+        id="btnPantallaCompletaSesion2">
+
+        ⛶ Pantalla completa
+
+    </button>
+
+    <button
+        type="button"
+        id="btnModoLecturaSesion2">
+
+        📖 Modo lectura
+
+    </button>
+
+</div>
+
+    <!-- =====================================================
+     PREGUNTA 1 — SESIÓN 2
+     ===================================================== -->
+
+<div id="bloqueSesion2Pregunta1">
+
+    <div class="tarjetaPregunta">
+
+        <h3>❓ PREGUNTA 1</h3>
+
+        <p class="textoPregunta">
+            ¿Consideran que los currículos actuales que se desarrollan en las instituciones educativas son pertinentes con sus realidades territoriales (sociales, culturales, productivas)? ¿Por qué?
+        </p>
+
+    </div>
+
+    <div class="contenedorTrabajoSesion">
+
+        <div class="panelGuia">
+
+            <h3>Aspectos para orientar la discusión</h3>
+
+            <ul>
+                <li>Relación del currículo con el contexto social.</li>
+                <li>Relación con las características culturales del territorio.</li>
+                <li>Relación con las dinámicas productivas y ambientales.</li>
+                <li>Reconocimiento de saberes ancestrales, tradicionales y regionales.</li>
+                <li>Fortalezas, vacíos y aspectos por mejorar.</li>
+            </ul>
+
+        </div>
+
+        <div class="panelRespuesta">
+
+            <textarea
+                id="respuestaSesion2Pregunta1"
+                rows="12"
+                placeholder="Escriba aquí la respuesta construida por la mesa de trabajo..."></textarea>
+
+        </div>
+
+    </div>
+
+    <div class="contadorPalabras">
+        <span id="contadorSesion2Pregunta1">0 / 200 palabras</span>
+    </div>
+
+    <div class="barraPalabras">
+        <div id="progresoPalabrasSesion2Pregunta1"></div>
+    </div>
+
+    <div id="mensajeContadorSesion2Pregunta1" class="mensajeContador">
+        ⚠ Debe escribir al menos 50 palabras.
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     PREGUNTA 2 — SESIÓN 2
+     ===================================================== -->
+
+<div id="bloqueSesion2Pregunta2" class="bloquePreguntaBloqueada">
+
+    <div class="tarjetaPregunta">
+
+        <h3>❓ PREGUNTA 2</h3>
+
+        <p class="textoPregunta">
+            ¿Qué acciones se están implementando para la transformación de los currículos, haciéndolos más pertinentes y contextualizados en la Institución Educativa?
+        </p>
+
+        <p>
+            <strong>Enuncie mínimo 3 y máximo 5 acciones concretas.</strong>
+        </p>
+
+    </div>
+
+
+    <div id="contenedorAccion1Sesion2" class="contenedorTrabajoSesion">
+
+        <div class="panelGuia">
+            <h3>Acción 1</h3>
+            <p>Describa una acción concreta que se esté implementando.</p>
+        </div>
+
+        <div class="panelRespuesta">
+            <textarea
+                id="respuestaSesion2Pregunta2Accion1"
+                rows="5"
+                placeholder="Describa la acción concreta..."></textarea>
+        </div>
+
+    </div>
+
+    <div class="contadorPalabras">
+        <span id="contadorSesion2Pregunta2Accion1">0 / 100 palabras</span>
+    </div>
+
+    <div class="barraPalabras">
+        <div id="progresoPalabrasSesion2Pregunta2Accion1"></div>
+    </div>
+
+    <div id="mensajeContadorSesion2Pregunta2Accion1" class="mensajeContador">
+        ⚠ Debe escribir al menos 20 palabras.
+    </div>
+
+
+    <div id="contenedorAccion2Sesion2" class="bloquePreguntaBloqueada">
+
+        <div class="contenedorTrabajoSesion">
+
+            <div class="panelGuia">
+                <h3>Acción 2</h3>
+                <p>Describa una acción concreta que se esté implementando.</p>
+            </div>
+
+            <div class="panelRespuesta">
+                <textarea
+                    id="respuestaSesion2Pregunta2Accion2"
+                    rows="5"
+                    disabled
+                    placeholder="Describa la acción concreta..."></textarea>
+            </div>
+
+        </div>
+
+        <div class="contadorPalabras">
+            <span id="contadorSesion2Pregunta2Accion2">0 / 100 palabras</span>
+        </div>
+
+        <div class="barraPalabras">
+            <div id="progresoPalabrasSesion2Pregunta2Accion2"></div>
+        </div>
+
+        <div id="mensajeContadorSesion2Pregunta2Accion2" class="mensajeContador">
+            ⚠ Debe escribir al menos 20 palabras.
+        </div>
+
+    </div>
+
+
+    <div id="contenedorAccion3Sesion2" class="bloquePreguntaBloqueada">
+
+        <div class="contenedorTrabajoSesion">
+
+            <div class="panelGuia">
+                <h3>Acción 3</h3>
+                <p>Describa una acción concreta que se esté implementando.</p>
+            </div>
+
+            <div class="panelRespuesta">
+                <textarea
+                    id="respuestaSesion2Pregunta2Accion3"
+                    rows="5"
+                    disabled
+                    placeholder="Describa la acción concreta..."></textarea>
+            </div>
+
+        </div>
+
+        <div class="contadorPalabras">
+            <span id="contadorSesion2Pregunta2Accion3">0 / 100 palabras</span>
+        </div>
+
+        <div class="barraPalabras">
+            <div id="progresoPalabrasSesion2Pregunta2Accion3"></div>
+        </div>
+
+        <div id="mensajeContadorSesion2Pregunta2Accion3" class="mensajeContador">
+            ⚠ Debe escribir al menos 20 palabras.
+        </div>
+
+    </div>
+
+
+    <div id="contenedorAccion4Sesion2" class="bloquePreguntaBloqueada">
+
+        <div class="contenedorTrabajoSesion">
+
+            <div class="contenedorTrabajoSesion">
+
+                <div class="panelGuia">
+                    <h3>Acción 4 <small>(opcional)</small></h3>
+                    <p>Describa otra acción concreta, si existe.</p>
+                </div>
+
+                <div class="panelRespuesta">
+                    <textarea
+                        id="respuestaSesion2Pregunta2Accion4"
+                        rows="5"
+                        disabled
+                        placeholder="Describa la acción concreta..."></textarea>
+                </div>
+
+            </div>
+
+            <div class="contadorPalabras">
+                <span id="contadorSesion2Pregunta2Accion4">0 / 100 palabras</span>
+            </div>
+
+            <div class="barraPalabras">
+                <div id="progresoPalabrasSesion2Pregunta2Accion4"></div>
+            </div>
+
+            <div id="mensajeContadorSesion2Pregunta2Accion4" class="mensajeContador">
+                Acción opcional.
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div id="contenedorAccion5Sesion2" class="bloquePreguntaBloqueada">
+
+        <div class="contenedorTrabajoSesion">
+
+            <div class="panelGuia">
+                <h3>Acción 5 <small>(opcional)</small></h3>
+                <p>Describa otra acción concreta, si existe.</p>
+            </div>
+
+            <div class="panelRespuesta">
+                <textarea
+                    id="respuestaSesion2Pregunta2Accion5"
+                    rows="5"
+                    disabled
+                    placeholder="Describa la acción concreta..."></textarea>
+            </div>
+
+        </div>
+
+        <div class="contadorPalabras">
+            <span id="contadorSesion2Pregunta2Accion5">0 / 100 palabras</span>
+        </div>
+
+        <div class="barraPalabras">
+            <div id="progresoPalabrasSesion2Pregunta2Accion5"></div>
+        </div>
+
+        <div id="mensajeContadorSesion2Pregunta2Accion5" class="mensajeContador">
+            Acción opcional.
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     PREGUNTA 3 — SESIÓN 2
+     ===================================================== -->
+
+<div id="bloqueSesion2Pregunta3" class="bloquePreguntaBloqueada">
+
+    <div class="tarjetaPregunta">
+
+        <h3>❓ PREGUNTA 3</h3>
+
+        <p class="textoPregunta">
+            ¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar estas acciones?
+            <p>
+            Seleccione los equipos que correspondan. Las opciones seleccionadas se incorporarán automáticamente a la respuesta, que podrá ser ampliada o complementada por la mesa.
+        </p>
+        </p>
+
+    </div>
+
+    <div class="panelGuia">
+
+        <h3>Seleccione los equipos que correspondan</h3>
+
+        <div>
+
+            <label><input type="checkbox" id="equipoSesion2_consejoAcademico"> Consejo Académico</label><br>
+            <label><input type="checkbox" id="equipoSesion2_consejoDirectivo"> Consejo Directivo</label><br>
+            <label><input type="checkbox" id="equipoSesion2_comisionEvaluacion"> Comisión de Evaluación y Promoción</label><br>
+            <label><input type="checkbox" id="equipoSesion2_preescolar"> Equipo de Preescolar</label><br>
+            <label><input type="checkbox" id="equipoSesion2_basicaPrimaria"> Equipo de Básica Primaria</label><br>
+            <label><input type="checkbox" id="equipoSesion2_basicaSecundariaMedia"> Equipo de Básica Secundaria y Media</label><br>
+            <label><input type="checkbox" id="equipoSesion2_comitesArea"> Comités de área</label><br>
+            <label><input type="checkbox" id="equipoSesion2_educacionInclusiva"> Equipo de Educación Inclusiva / NEE</label><br>
+            <label><input type="checkbox" id="equipoSesion2_gestionAcademica"> Equipo de Gestión Académica</label><br>
+            <label><input type="checkbox" id="equipoSesion2_autoevaluacion"> Equipo de Autoevaluación Institucional</label><br>
+            <label><input type="checkbox" id="equipoSesion2_calidad"> Equipo de Calidad / Mejoramiento Continuo</label><br>
+            <label><input type="checkbox" id="equipoSesion2_seguimientoEgresados"> Equipo de Seguimiento a Egresados</label><br>
+            <label><input type="checkbox" id="equipoSesion2_sistematizacion"> Equipo de Sistematización de la Información</label><br>
+            <label><input type="checkbox" id="equipoSesion2_evaluacionInstitucional"> Equipo de Evaluación Institucional</label><br>
+            <label><input type="checkbox" id="equipoSesion2_consejoEstudiantil"> Consejo Estudiantil</label><br>
+            <label><input type="checkbox" id="equipoSesion2_consejoPadres"> Consejo de Padres de Familia</label><br>
+            <label><input type="checkbox" id="equipoSesion2_personero"> Personero(a) Estudiantil</label><br>
+            <label><input type="checkbox" id="equipoSesion2_mesaCurriculoComunidad"> Mesa de Diálogo Currículo-Comunidad</label><br>
+            <label><input type="checkbox" id="equipoSesion2_comiteCurricular"> Comité Curricular Institucional</label><br>
+            <label><input type="checkbox" id="equipoSesion2_otro"> Otro (especifique)</label>
+
+        </div>
+
+        <div id="contenedorEquipoSesion2Otro" style="display:none; margin-top:12px;">
+
+            <input
+                type="text"
+                id="equipoSesion2_otroTexto"
+                placeholder="Especifique el equipo...">
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     PREGUNTA 4 — SESIÓN 2
+     ===================================================== -->
+
+<div id="bloqueSesion2Pregunta4" class="bloquePreguntaBloqueada">
+
+    <div class="tarjetaPregunta">
+
+        <h3>❓ PREGUNTA 4</h3>
+
+        <p class="textoPregunta">
+            ¿Cómo se están articulando estos equipos de trabajo para lograr currículos más pertinentes territorialmente?
+        </p>
+
+    </div>
+
+    <div class="contenedorTrabajoSesion">
+
+        <div class="panelGuia">
+
+            <h3>Aspectos para orientar la discusión</h3>
+
+            <ul>
+                <li>Coordinación entre los equipos.</li>
+                <li>Articulación con el currículo institucional.</li>
+                <li>Responsabilidades y roles definidos.</li>
+                <li>Comunicación y toma de decisiones.</li>
+                <li>Seguimiento de las acciones.</li>
+            </ul>
+
+        </div>
+
+        <div class="panelRespuesta">
+
+            <textarea
+                id="respuestaSesion2Pregunta4"
+                rows="12"
+                disabled
+                placeholder="Escriba aquí la respuesta construida por la mesa de trabajo..."></textarea>
+
+        </div>
+
+    </div>
+
+    <div class="contadorPalabras">
+        <span id="contadorSesion2Pregunta4">0 / 100 palabras</span>
+    </div>
+
+    <div class="barraPalabras">
+        <div id="progresoPalabrasSesion2Pregunta4"></div>
+    </div>
+
+    <div id="mensajeContadorSesion2Pregunta4" class="mensajeContador">
+        ⚠ Debe escribir al menos 30 palabras.
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     PREGUNTA 5 — SESIÓN 2
+     ===================================================== -->
+
+<div id="bloqueSesion2Pregunta5" class="bloquePreguntaBloqueada">
+
+    <div class="tarjetaPregunta">
+
+        <h3>❓ PREGUNTA 5</h3>
+
+        <p class="textoPregunta">
+            ¿Qué mecanismos de seguimiento se están implementando para que dichas acciones se cumplan?
+        </p>
+
+        <p>
+            Seleccione los mecanismos que correspondan. Las opciones seleccionadas se incorporarán automáticamente a la respuesta, que podrá ser ampliada o complementada por la mesa.
+        </p>
+
+    </div>
+
+    <div class="contenedorTrabajoSesion">
+
+        <div class="panelGuia">
+
+            <h3>Mecanismos de seguimiento</h3>
+
+            <div>
+
+                <label><input type="checkbox" id="mecanismoSesion2_auditoria"> Auditoría curricular inicial frente a DBA y Lineamientos del MEN</label><br>
+                <label><input type="checkbox" id="mecanismoSesion2_pruebasSaber"> Análisis de resultados de Pruebas Saber e ICFES</label><br>
+                <label><input type="checkbox" id="mecanismoSesion2_mapeoCompetencias"> Mapeo de competencias enseñadas vs. evaluadas</label><br>
+                <label><input type="checkbox" id="mecanismoSesion2_consejoAcademico"> Consejo Académico</label><br>
+                <label><input type="checkbox" id="mecanismoSesion2_comitesArea"> Comités de área o núcleos de formación</label><br>
+                <label><input type="checkbox" id="mecanismoSesion2_pei"> Articulación con el PEI</label><br>
+                <label><input type="checkbox" id="mecanismoSesion2_matrices"> Matrices de seguimiento curricular</label><br>
+                <label><input type="checkbox" id="mecanismoSesion2_actas"> Actas de reunión de área</label><br>
+                <label><input type="checkbox" id="mecanismoSesion2_rubricas"> Rúbricas de observación de clase</label><br>
+                <label><input type="checkbox" id="mecanismoSesion2_portafolios"> Portafolios docentes</label><br>
+                <label><input type="checkbox" id="mecanismoSesion2_tasaDBA"> Tasa de cobertura de estándares/DBA</label><br>
+                <label><input type="checkbox" id="mecanismoSesion2_comparacion"> Comparación histórica de resultados internos y externos</label><br>
+                <label><input type="checkbox" id="mecanismoSesion2_encuestas"> Encuestas de satisfacción docente y estudiantil</label><br>
+                <label><input type="checkbox" id="mecanismoSesion2_reprobacion"> Tasa de deserción/reprobación por asignatura</label><br>
+                <label><input type="checkbox" id="mecanismoSesion2_plataformas"> Plataformas de gestión académica (SIMAT, Q10, Phidias, Master 2000)</label><br>
+                <label><input type="checkbox" id="mecanismoSesion2_dashboards"> Tableros de control (dashboards)</label><br>
+                <label><input type="checkbox" id="mecanismoSesion2_evidencia"> Bancos de evidencia digital</label><br>
+                <label><input type="checkbox" id="mecanismoSesion2_phva"> Ciclos PHVA</label><br>
+                <label><input type="checkbox" id="mecanismoSesion2_autoevaluacion"> Autoevaluación institucional anual</label><br>
+                <label><input type="checkbox" id="mecanismoSesion2_mesas"> Mesas de trabajo con padres y estudiantes</label><br>
+                <label><input type="checkbox" id="mecanismoSesion2_visitas"> Visitas de las Secretarías de Educación</label><br>
+                <label><input type="checkbox" id="mecanismoSesion2_reportes"> Reportes al MEN / Planes de Mejoramiento Institucional</label><br>
+                <label><input type="checkbox" id="mecanismoSesion2_mesasCalidad"> Mesas de Calidad Educativa territoriales</label><br>
+                <label><input type="checkbox" id="mecanismoSesion2_otro"> Otro (especifique)</label>
+
+            </div>
+
+            <div id="contenedorMecanismoSesion2Otro" style="display:none; margin-top:12px;">
+
+                <input
+                    type="text"
+                    id="mecanismoSesion2_otroTexto"
+                    placeholder="Especifique el mecanismo...">
+
+            </div>
+
+        </div>
+
+        <div class="panelRespuesta">
+
+            <h3>Respuesta construida</h3>
+
+            <textarea
+                id="respuestaSesion2Pregunta5"
+                rows="12"
+                disabled
+                placeholder="Las opciones seleccionadas aparecerán aquí. Puede ampliar o editar la respuesta..."></textarea>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+    <!-- NAVEGACIÓN SESIÓN 2 -->
+
+    <div class="botones">
+
+        <button
+            type="button"
+            id="btnVolverSesion1">
+
+            ← Anterior
+
+        </button>
+
+
+        <button
+            type="button"
+            id="btnSesion3"
+            disabled>
+
+            Continuar →
+
+        </button>
+
+    </div>
+
+</section>
+
+<!-- =================== SESIÓN 3 =================== -->
+<section id="pantallaSesion3" class="pantalla">
+
+    <h2 class="tituloPrincipal">Tercera Sesión</h2>
+    <h3 class="subtitulo">Por un gobierno en instituciones educativas donde participar signifique decidir</h3>
+
+    <div class="tarjetaObjetivo">
+        <h3>🎯 OBJETIVO</h3>
+        <p>
+            Fortalecer los espacios de participación existentes, garantizar la incidencia efectiva de la comunidad educativa,
+            promover la participación y el ejercicio de la ciudadanía desde la primera infancia en la toma de decisiones,
+            y promover la veeduría ciudadana y el control social como pilares de la transparencia y la gestión pública.
+        </p>
+    </div>
+
+    <div id="bloqueSesion3Pregunta1" class="bloqueSesion3Pregunta">
+        <div class="tarjetaPregunta">
+            <h3>❓ PREGUNTA 1</h3>
+            <p class="textoPregunta">
+                ¿Consideran que la toma de decisiones en las instituciones educativas actualmente es participativa y democrática? ¿Por qué?
+            </p>
+        </div>
+        <div class="contenedorTrabajoSesion">
+            <div class="panelGuia">
+                <h3>Orientaciones</h3>
+                <ul>
+                    <li>Participación de los diferentes estamentos.</li>
+                    <li>Incidencia real en las decisiones.</li>
+                    <li>Espacios de diálogo y deliberación.</li>
+                    <li>Inclusión de diferentes voces.</li>
+                    <li>Fortalezas y aspectos por mejorar.</li>
+                </ul>
+            </div>
+            <div class="panelRespuesta">
+                <textarea id="respuestaSesion3Pregunta1" rows="12" placeholder="Construya la respuesta colectiva (mínimo 40 y máximo 200 palabras)..."></textarea>
+                <div class="contadorPalabras"><span id="contadorSesion3Pregunta1">0 / 200 palabras</span></div>
+                <div class="barraPalabras"><div id="progresoPalabrasSesion3Pregunta1"></div></div>
+                <div id="mensajeContadorSesion3Pregunta1" class="mensajeContador"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="bloqueSesion3Pregunta2" class="bloqueSesion3Pregunta bloquePreguntaBloqueada">
+        <div class="tarjetaPregunta">
+            <h3>❓ PREGUNTA 2</h3>
+            <p class="textoPregunta">
+                ¿Qué tipo de acciones se están implementando para que las comunidades y diferentes actores interesados en la educación puedan participar de manera más incidente en el desarrollo y el enfoque institucional?
+            </p>
+            <p><strong>Enuncie mínimo 3 y máximo 5 acciones concretas.</strong></p>
+        </div>
+
+        <div id="contenedorAccion1Sesion3" class="contenedorTrabajoSesion">
+            <div class="panelGuia"><h3>Acción 1 *</h3><p>Describa una acción concreta.</p></div>
+            <div class="panelRespuesta"><textarea id="respuestaSesion3Pregunta2Accion1" rows="5" placeholder="Describa la acción concreta..."></textarea></div>
+        </div>
+        <div id="contenedorAccion2Sesion3" class="contenedorTrabajoSesion bloquePreguntaBloqueada">
+            <div class="panelGuia"><h3>Acción 2 *</h3><p>Describa una acción concreta.</p></div>
+            <div class="panelRespuesta"><textarea id="respuestaSesion3Pregunta2Accion2" rows="5" placeholder="Describa la acción concreta..."></textarea></div>
+        </div>
+        <div id="contenedorAccion3Sesion3" class="contenedorTrabajoSesion bloquePreguntaBloqueada">
+            <div class="panelGuia"><h3>Acción 3 *</h3><p>Describa una acción concreta.</p></div>
+            <div class="panelRespuesta"><textarea id="respuestaSesion3Pregunta2Accion3" rows="5" placeholder="Describa la acción concreta..."></textarea></div>
+        </div>
+        <div id="contenedorAccion4Sesion3" class="contenedorTrabajoSesion bloquePreguntaBloqueada">
+            <div class="panelGuia"><h3>Acción 4 <small>(opcional)</small></h3><p>Puede registrar otra acción si existe.</p></div>
+            <div class="panelRespuesta"><textarea id="respuestaSesion3Pregunta2Accion4" rows="5" placeholder="Esta respuesta es opcional"></textarea></div>
+        </div>
+        <div id="contenedorAccion5Sesion3" class="contenedorTrabajoSesion bloquePreguntaBloqueada">
+            <div class="panelGuia"><h3>Acción 5 <small>(opcional)</small></h3><p>Puede registrar otra acción si existe.</p></div>
+            <div class="panelRespuesta"><textarea id="respuestaSesion3Pregunta2Accion5" rows="5" placeholder="Esta respuesta es opcional"></textarea></div>
+        </div>
+    </div>
+
+    <div id="bloqueSesion3Pregunta3" class="bloqueSesion3Pregunta bloquePreguntaBloqueada">
+        <div class="tarjetaPregunta">
+            <h3>❓ PREGUNTA 3</h3>
+            <p class="textoPregunta">
+                ¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar las estrategias y mecanismos de participación escolar?
+            </p>
+        </div>
+        <div class="contenedorTrabajoSesion">
+            <div class="panelGuia">
+                <h3>Seleccione los equipos</h3>
+                <div class="listaOpcionesSesion3">
+                    <label><input type="checkbox" id="equipoSesion3_gobiernoEscolar"> Gobierno Escolar</label>
+                    <label><input type="checkbox" id="equipoSesion3_consejoDirectivo"> Consejo Directivo</label>
+                    <label><input type="checkbox" id="equipoSesion3_consejoAcademico"> Consejo Académico</label>
+                    <label><input type="checkbox" id="equipoSesion3_consejoEstudiantil"> Consejo Estudiantil</label>
+                    <label><input type="checkbox" id="equipoSesion3_personero"> Personero Estudiantil</label>
+                    <label><input type="checkbox" id="equipoSesion3_contralor"> Contralor Estudiantil</label>
+                    <label><input type="checkbox" id="equipoSesion3_consejoPadres"> Consejo de Padres de Familia</label>
+                    <label><input type="checkbox" id="equipoSesion3_asociacionPadres"> Asociación de Padres de Familia</label>
+                    <label><input type="checkbox" id="equipoSesion3_comiteConvivencia"> Comité Escolar de Convivencia</label>
+                    <label><input type="checkbox" id="equipoSesion3_comisionEvaluacion"> Comisión de Evaluación y Promoción</label>
+                    <label><input type="checkbox" id="equipoSesion3_comiteCalidad"> Comité de Calidad / Equipo de Gestión Institucional</label>
+                    <label><input type="checkbox" id="equipoSesion3_otro"> Otro</label>
+                    <input type="text" id="equipoSesion3_otroTexto" placeholder="Especifique otro equipo..." disabled>
+                </div>
+            </div>
+            <div class="panelRespuesta">
+                <h3>Respuesta construida</h3>
+                <textarea id="respuestaSesion3Pregunta3" rows="12" disabled placeholder="Las opciones seleccionadas aparecerán aquí y podrán ser editadas."></textarea>
+                <input type="hidden" id="generadasP3S3">
+            </div>
+        </div>
+    </div>
+
+    <div id="bloqueSesion3Pregunta4" class="bloqueSesion3Pregunta bloquePreguntaBloqueada">
+        <div class="tarjetaPregunta">
+            <h3>❓ PREGUNTA 4</h3>
+            <p class="textoPregunta">
+                ¿Qué mecanismos de seguimiento se están implementando para garantizar las acciones encaminadas a promover gobiernos educativos democráticos?
+            </p>
+        </div>
+        <div class="contenedorTrabajoSesion">
+            <div class="panelGuia">
+                <h3>Seleccione los mecanismos</h3>
+                <div class="listaOpcionesSesion3">
+                    <label><input type="checkbox" id="mecanismoSesion3_reunionesGobierno"> Reuniones periódicas con entes de gobierno escolar (consejo estudiantil, asociación de padres de familia, consejo académico, consejo directivo, comité de convivencia escolar)</label>
+                    <label><input type="checkbox" id="mecanismoSesion3_eleccionesEstudiantiles"> Elecciones estudiantiles.</label>
+                    <label><input type="checkbox" id="mecanismoSesion3_eleccionDocentesDirectivo"> Elección de docentes para consejo directivo.</label>
+                    <label><input type="checkbox" id="mecanismoSesion3_eleccionDocentesAcademico"> Elección de docentes para consejo académico.</label>
+                    <label><input type="checkbox" id="mecanismoSesion3_autoevaluacion"> Autoevaluación institucional anual (Guía 34 – MEN)</label>
+                    <label><input type="checkbox" id="mecanismoSesion3_pmi"> Plan de Mejoramiento Institucional (PMI)</label>
+                    <label><input type="checkbox" id="mecanismoSesion3_seguimientoPMI"> Seguimiento periódico al Plan de Mejoramiento</label>
+                    <label><input type="checkbox" id="mecanismoSesion3_valoracionGobierno"> Valoración por instancias del Gobierno Escolar</label>
+                    <label><input type="checkbox" id="mecanismoSesion3_ajustePEI"> Actualización y ajuste permanente del PEI</label>
+                    <label><input type="checkbox" id="mecanismoSesion3_culturaClima"> Seguimiento al componente de Cultura Institucional y Clima Escolar</label>
+                    <label><input type="checkbox" id="mecanismoSesion3_informesDirectivo"> Informes de gestión del Consejo Directivo</label>
+                    <label><input type="checkbox" id="mecanismoSesion3_verificacionSecretaria"> Verificación del funcionamiento del Gobierno Escolar por la Secretaría de Educación.</label>
+                    <label><input type="checkbox" id="mecanismoSesion3_otro"> Otro</label>
+                    <input type="text" id="mecanismoSesion3_otroTexto" placeholder="Especifique otro mecanismo..." disabled>
+                </div>
+            </div>
+            <div class="panelRespuesta">
+                <h3>Respuesta construida</h3>
+                <textarea id="respuestaSesion3Pregunta4" rows="12" disabled placeholder="Las opciones seleccionadas aparecerán aquí y podrán ser editadas."></textarea>
+                <input type="hidden" id="generadasP4S3">
+            </div>
+        </div>
+    </div>
+
+    <div class="barraHerramientas">
+        <button type="button" id="btnGuardarSesion3">💾 Guardar avance</button>
+        <button type="button" id="btnPantallaCompletaSesion3">⛶ Pantalla completa</button>
+        <button type="button" id="btnModoLecturaSesion3">📖 Modo lectura</button>
+    </div>
+
+    <div class="botones">
+        <button type="button" id="btnVolverSesion2DesdeSesion3">← Anterior</button>
+        <button type="button" id="btnFinalizarSesion3" disabled>Continuar →</button>
+    </div>
+</section>
+
+<!-- =================== EVIDENCIAS =================== -->
+<section id="pantallaEvidencias" class="pantalla">
+    <h2 class="tituloPrincipal">📎 Evidencias del Foro</h2>
+    <div class="tarjetaObjetivo">
+        <h3>¿Qué haremos?</h3>
+        <p>Registraremos las evidencias del desarrollo del Foro antes de iniciar la plenaria. En esta etapa podremos revisar todas las respuestas, añadir o quitar información y dejar listos los soportes documentales del informe institucional.</p>
+        <h3 style="margin-top:18px;">¿Qué debemos subir?</h3>
+        <p>Una fotografía horizontal HD con la mayor cantidad posible de participantes trabajando y el listado oficial de asistencia en PDF.</p>
+        <p style="margin-top:12px;">Cada archivo debe pesar máximo <strong>10 MB</strong>. La asistencia debe ser PDF y la fotografía JPG o PNG.</p>
+    </div>
+
+    <div class="evidenciasGrid">
+        <div class="evidenciaCard">
+            <h3>📄 Listado de asistencia</h3>
+            <input type="file" id="archivoAsistencia" accept="application/pdf">
+            <div id="estadoAsistencia" class="estadoArchivo"></div>
+        </div>
+        <div class="evidenciaCard">
+            <h3>📷 Fotografía horizontal HD</h3>
+            <input type="file" id="archivoFoto" accept="image/jpeg,image/png">
+            <div id="estadoFoto" class="estadoArchivo"></div>
+        </div>
+    </div>
+
+    <input type="hidden" id="evidenciaAsistenciaUrl">
+    <input type="hidden" id="evidenciaAsistenciaId">
+    <input type="hidden" id="evidenciaFotoUrl">
+    <input type="hidden" id="evidenciaFotoId">
+
+    <div class="botones">
+        <button type="button" id="btnVolverSesion3DesdeEvidencias">← Anterior</button>
+        <button type="button" id="btnSubirEvidencias" disabled>⬆️ Subir ambos archivos</button>
+        <button type="button" id="btnContinuarDesdeEvidencias" disabled>Continuar →</button>
+    </div>
+    <div id="mensajeEvidencias" class="mensajeEstadoEvidencias"></div>
+</section>
+
+<!-- =================== PLENARIA =================== -->
+<section id="pantallaPlenaria" class="pantalla pantallaPlenaria">
+    <div class="plenariaCabecera">
+        <h2 class="tituloPrincipal">🗣️ Sesión de Plenaria</h2>
+        <p id="objetivoPlenaria" class="plenariaObjetivo"></p>
+        <p class="plenariaAviso">Se recomienda que toda la comunidad educativa esté presente para escuchar en voz alta la lectura de las conclusiones, propiciar consensos y realizar las correcciones que consideren necesarias.</p>
+        <p>En esta etapa se visualizará el informe que la institución educativa enviará a la Secretaría de Educación Municipal con las conclusiones construidas durante el FEM 2026. Antes de enviar cada sesión podrán editar únicamente las respuestas que consideren necesarias.</p>
+        <p>Para facilitar la revisión, el informe se presentará en tres secciones: <strong>Sesión 1, Sesión 2 y Sesión 3</strong>.</p>
+        <div class="plenariaAdvertencia"><strong>⚠️ IMPORTANTE:</strong> una vez que se envíen las respuestas de una sesión, esas respuestas quedarán definitivas y no podrán modificarse.</div>
+    </div>
+    <div class="plenariaToolbar">
+        <button type="button" id="btnGuardarPlenaria">💾 Guardar</button>
+        <button type="button" id="btnModoLecturaPlenaria">📖 Modo lectura</button>
+        <button type="button" id="btnPantallaCompletaPlenaria">⛶ Pantalla completa</button>
+    </div>
+    <nav id="plenariaNavegacion" class="plenariaNavegacion"></nav>
+    <div id="plenariaContenido"></div>
+    <div class="plenariaFooter">
+        <button type="button" id="btnAnteriorPlenaria">← Anterior</button>
+        <button type="button" id="btnContinuarPlenaria">Continuar →</button>
+    </div>
+</section>
+
+<!-- =================== INFORME / CIERRE =================== -->
+<section id="pantallaFinalFEM" class="pantalla pantallaFinalFEM">
+    <div class="finalCard">
+        <div class="finalIcono">📄</div>
+        <h2 class="tituloPrincipal">Informe ejecutivo del FEM 2026</h2>
+        <h3 id="tituloInformeFinal"></h3>
+        <p>La plenaria ha terminado. El informe ejecutivo reúne la caracterización institucional, la participación y las respuestas definitivas de las tres sesiones.</p>
+        <div class="finalAcciones">
+            <button type="button" id="btnGenerarInformeFinal">📄 Generar informe</button>
+            <button type="button" id="btnDescargarInformeFinal" disabled>⬇️ Descargar informe</button>
+            <button type="button" id="btnEnviarInformeFinal" disabled>✉️ Enviar informe</button>
+        </div>
+        <div id="estadoInformeFinal" class="mensajeEstadoInforme"></div>
+        <div class="finalCierre">
+            <p><strong>Para terminar:</strong> descargue el informe y guárdelo en la base de datos institucional. Después de enviar el informe, podrá finalizar y cerrar este acceso.</p>
+            <button type="button" id="btnFinalizarFEM" disabled>🔒 Finalizar y cerrar el formulario</button>
+        </div>
+    </div>
+</section>
+
+<!-- =================== PANTALLA CERRADA =================== -->
+<section id="pantallaCierreFEM" class="pantalla pantallaFinalFEM">
+    <div class="finalCard">
+        <div class="finalIcono">✅</div>
+        <h2 class="tituloPrincipal">Foro finalizado correctamente</h2>
+        <p id="mensajeCierreFEM">Las respuestas definitivas fueron registradas y el acceso de la institución educativa ha quedado cerrado.</p>
+        <a id="linkInformeCierre" href="#" target="_blank" class="botonEnlaceInforme">📄 Ver / descargar informe</a>
+        <p class="textoCierre">Gracias por el tiempo, la participación y la construcción colectiva de la comunidad educativa.</p>
+    </div>
+</section>
+
+<!-- MODAL DE RECORDATORIO SESIÓN 3 -->
+<div id="modalRecordatorioSesion3" class="modalFEM" aria-hidden="true">
+    <div class="modalFEMContenido">
+        <button type="button" id="btnCerrarRecordatorioSesion3" class="modalCerrar">×</button>
+        <h2>📌 Antes de comenzar la Sesión 3</h2>
+        <p>Por favor tenga listo:</p>
+        <ul>
+            <li>📄 El listado de asistencia en un solo archivo PDF de menos de 10 MB.</li>
+            <li>📷 Una fotografía horizontal en calidad HD de menos de 10 MB.</li>
+        </ul>
+        <p>Se solicitarán al finalizar la sesión, antes de iniciar la plenaria.</p>
+               <button type="button" id="btnAceptarRecordatorioSesion3">Entendido, comenzar</button>
+    </div>
+</div>
+
+<!-- MODAL DE CONFIRMACIÓN GENÉRICO (reemplaza confirm() nativo) -->
+<div id="modalConfirmarFEM" class="modalFEM" aria-hidden="true">
+    <div class="modalFEMContenido modalFEMContenidoConfirmar">
+        <h2 id="modalConfirmarTitulo">¿Está seguro?</h2>
+        <p id="modalConfirmarMensaje"></p>
+        <div class="modalConfirmarAcciones">
+            <button type="button" id="btnModalConfirmarCancelar" class="botonSecundarioFEM">Cancelar</button>
+            <button type="button" id="btnModalConfirmarAceptar" class="botonPrincipalFEM">Sí, enviar</button>
+        </div>
+    </div>
+</div>
+
+</main>
+
+<script>
+    const TOKEN_ACCESO =
+        <?!= JSON.stringify(tokenAcceso || "") ?>;
+
+    const NOMBRE_IE_ACCESO =
+        <?!= JSON.stringify(nombreIEAcceso || "") ?>;
+</script>
+
+<?!= include('App'); ?>
+
+</body>
+</html>

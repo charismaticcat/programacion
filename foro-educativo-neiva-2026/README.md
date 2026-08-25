@@ -4,13 +4,11 @@ Formulario web construido con Google Apps Script (backend + HTML/CSS/JS servidos
 desde Google) para recolectar las respuestas de las 37 instituciones educativas
 oficiales de Neiva en el Foro Educativo Municipal 2026.
 
-> **Nota:** el código de este proyecto vive únicamente dentro de Google Apps
-> Script (no está subido a GitHub). Esta carpeta contiene solo la
-> documentación y las instrucciones de trabajo — no los archivos fuente
-> reales (`Código.js`, `App.html`, `Index.html`, `CSS.html`,
-> `appsscript.json`). Para tenerlos también aquí, hay que hacer `clasp pull`
-> desde una máquina con acceso a la cuenta de Google dueña del proyecto y
-> commitear el resultado.
+> **Nota (actualizado 2026-08-25):** los 5 archivos reales ya están clonados
+> en esta carpeta vía `clasp clone` y quedaron commiteados en el repo. El
+> `.clasp.json` apunta al scriptId del proyecto real. Para bajar cambios
+> hechos desde el navegador usa `clasp pull`; para subir cambios editados
+> aquí usa `clasp push` (ver la sección de clasp más abajo).
 
 ## Estado del proyecto
 
@@ -20,7 +18,7 @@ identificado como el que las instituciones usan realmente (a diferencia de otras
 copias/versiones que existen en la misma cuenta de Google: "Foro 3.2", "Foro 4.0",
 "foro 5", etc. — esas son ramas de desarrollo antiguas, no la que está en uso).
 
-### Archivos (en Apps Script, no en este repo)
+### Archivos
 
 | Archivo | Tipo en Apps Script | Contenido |
 |---|---|---|
@@ -120,18 +118,16 @@ escribir tu proyecto de Apps Script).
 
 ### 5. Conectar este repo al proyecto real
 
-Este repo, por ahora, **no incluye todavía** el archivo `.clasp.json` (el
-código fuente real solo existe dentro de Apps Script). Para crearlo, dentro
-de esta carpeta (`foro-educativo-neiva-2026/`) ejecuta:
+Este repo ya incluye un archivo `.clasp.json` apuntando al `scriptId` correcto
+del proyecto real ("Foro Educativo 3.1"). Solo necesitas pararte dentro de la
+carpeta del repo (`foro-educativo-neiva-2026/`) y ejecutar:
 
 ```
-clasp clone 1CD6ccfWvr0gnnxQK6qHGLsN07RPeUpgEDvk4kZsjX3WlJZctlIH076mR
+clasp status
 ```
 
-Esto crea el `.clasp.json` apuntando al scriptId correcto y descarga los 5
-archivos reales (`Código.js`, `App.html`, `Index.html`, `CSS.html`,
-`appsscript.json`) a esta carpeta. A partir de ahí, `clasp status` debería
-listarlos sin errores.
+Si ves listados los 5 archivos (`Código.js`, `App.html`, `Index.html`,
+`CSS.html`, `appsscript.json`) sin errores, la conexión quedó bien.
 
 ### 6. Bajar el código real más reciente (por si algo cambió desde afuera)
 
