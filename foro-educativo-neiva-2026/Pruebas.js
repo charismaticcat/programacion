@@ -17,6 +17,73 @@
 
 
 /*****************************************************
+ * LIMPIAR INFORMES ROTOS (.docx) DE LA CARPETA FEM
+ *
+ * generarInformeFEM() usaba antes una plantilla de Word
+ * (.docx) copiada con makeCopy(); cada intento fallido dejó
+ * una copia vacía de ese mismo formato en la carpeta de la
+ * IE correspondiente, sin que el informe llegara a generarse.
+ *
+ * Esta función busca, dentro de cada carpeta de institución
+ * en DRIVE_CARPETA_FEM_ID, archivos que empiecen por "Informe
+ * Ejecutivo" Y cuyo tipo sea Word (.docx) — nunca un informe
+ * real, que ahora siempre es un Google Doc nativo — y los
+ * envía a la papelera (no los borra permanentemente: quedan
+ * recuperables desde la papelera de Drive por 30 días).
+ *
+ * Ejecutar manualmente una sola vez desde el editor.
+ *****************************************************/
+function limpiarInformesRotos() {
+
+  const MIME_WORD =
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+  const raiz = DriveApp.getFolderById(DRIVE_CARPETA_FEM_ID);
+  const detalles = [];
+  let eliminados = 0;
+
+  const carpetas = raiz.getFolders();
+
+  while (carpetas.hasNext()) {
+
+    const carpeta = carpetas.next();
+    const archivos = carpeta.getFiles();
+
+    while (archivos.hasNext()) {
+
+      const archivo = archivos.next();
+
+      if (
+        archivo.getName().indexOf("Informe Ejecutivo") === 0 &&
+        archivo.getMimeType() === MIME_WORD
+      ) {
+
+        detalles.push(carpeta.getName() + " / " + archivo.getName());
+        archivo.setTrashed(true);
+        eliminados++;
+
+      }
+
+    }
+
+  }
+
+  Logger.log(
+    "Informes .docx rotos enviados a la papelera: " + eliminados
+  );
+
+  Logger.log(detalles.join("\n"));
+
+  return {
+    ok: true,
+    eliminados: eliminados,
+    detalles: detalles
+  };
+
+}
+
+
+/*****************************************************
  * PROBAR INSTITUCIONES
  *****************************************************/
 
