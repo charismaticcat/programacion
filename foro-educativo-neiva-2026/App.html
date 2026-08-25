@@ -2163,212 +2163,6 @@ function inicializarParticipacion(){
     actualizarTotalParticipantes();
 }
 /*****************************************************
- * PRUEBA DE VALIDACIÓN - CÓDIGO CORRECTO
- *****************************************************/
-
-function probarValidacion1234() {
-
-  const ss =
-    SpreadsheetApp.openById(
-      SPREADSHEET_ID
-    );
-
-  const hoja =
-    ss.getSheetByName(
-      "AccesosIE"
-    );
-
-  if (!hoja) {
-
-    throw new Error(
-      'No existe la hoja "AccesosIE".'
-    );
-
-  }
-
-  const datos =
-    hoja
-      .getDataRange()
-      .getValues();
-
-  const cabeceras =
-    datos[0];
-
-  const colIE =
-    cabeceras.indexOf("IE");
-
-  const colToken =
-    cabeceras.indexOf("TOKEN");
-
-  if (
-    colIE === -1 ||
-    colToken === -1
-  ) {
-
-    throw new Error(
-      "No se encontraron las columnas IE o TOKEN."
-    );
-
-  }
-
-  let tokenPrueba = "";
-
-  for (
-    let i = 1;
-    i < datos.length;
-    i++
-  ) {
-
-    if (
-      String(
-        datos[i][colIE] || ""
-      ).trim() ===
-      "IE PRUEBA 1234"
-    ) {
-
-      tokenPrueba =
-        String(
-          datos[i][colToken] || ""
-        ).trim();
-
-      break;
-
-    }
-
-  }
-
-  if (
-    tokenPrueba === ""
-  ) {
-
-    throw new Error(
-      "No se encontró IE PRUEBA 1234."
-    );
-
-  }
-
-  const resultado =
-    validarAccesoIE(
-      tokenPrueba,
-      "1234"
-    );
-
-  Logger.log(
-    JSON.stringify(
-      resultado,
-      null,
-      2
-    )
-  );
-
-  return resultado;
-
-}
-
-
-/*****************************************************
- * PRUEBA DE VALIDACIÓN - CÓDIGO INCORRECTO
- *****************************************************/
-
-function probarCodigoIncorrecto1234() {
-
-  const ss =
-    SpreadsheetApp.openById(
-      SPREADSHEET_ID
-    );
-
-  const hoja =
-    ss.getSheetByName(
-      "AccesosIE"
-    );
-
-  if (!hoja) {
-
-    throw new Error(
-      'No existe la hoja "AccesosIE".'
-    );
-
-  }
-
-  const datos =
-    hoja
-      .getDataRange()
-      .getValues();
-
-  const cabeceras =
-    datos[0];
-
-  const colIE =
-    cabeceras.indexOf("IE");
-
-  const colToken =
-    cabeceras.indexOf("TOKEN");
-
-  if (
-    colIE === -1 ||
-    colToken === -1
-  ) {
-
-    throw new Error(
-      "No se encontraron las columnas IE o TOKEN."
-    );
-
-  }
-
-  let tokenPrueba = "";
-
-  for (
-    let i = 1;
-    i < datos.length;
-    i++
-  ) {
-
-    if (
-      String(
-        datos[i][colIE] || ""
-      ).trim() ===
-      "IE PRUEBA 1234"
-    ) {
-
-      tokenPrueba =
-        String(
-          datos[i][colToken] || ""
-        ).trim();
-
-      break;
-
-    }
-
-  }
-
-  if (
-    tokenPrueba === ""
-  ) {
-
-    throw new Error(
-      "No se encontró IE PRUEBA 1234."
-    );
-
-  }
-
-  const resultado =
-    validarAccesoIE(
-      tokenPrueba,
-      "9999"
-    );
-
-  Logger.log(
-    JSON.stringify(
-      resultado,
-      null,
-      2
-    )
-  );
-
-  return resultado;
-
-}
-/*****************************************************
  * HERRAMIENTAS DE LA SESIÓN 1
  * Guardado + pantalla completa + modo lectura.
  * La barra queda preparada para permanecer visible
@@ -5237,6 +5031,10 @@ function validarCodigoAccesoFEM(){
                     3: !!(resultado.sesiones && resultado.sesiones.s3)
                 };
 
+                /*
+                 * Aplicar inmediatamente los datos oficiales
+                 * de la institución al formulario.
+                 */
                 try{
                     aplicarDatosAccesoFEM();
                 }catch(error){
@@ -5244,24 +5042,6 @@ function validarCodigoAccesoFEM(){
                         "Error aplicando los datos de la IE autenticada:",
                         error
                     );
-                }
-
-
-                /*
-                 * Aplicar inmediatamente los datos oficiales
-                 * de la institución al formulario.
-                 */
-                try{
-
-                    aplicarDatosAccesoFEM();
-
-                }catch(error){
-
-                    console.error(
-                        "Error aplicando datos de la IE:",
-                        error
-                    );
-
                 }
 
 
@@ -5544,17 +5324,20 @@ async function subirEvidenciasFEM(){
         const datos=obtenerDatosFormularioActual_();
         if(!datos || !String(datos.idForo||"").trim()){
             /*
-             * DIAGNOSTICO TEMPORAL: si esto vuelve a fallar, el mensaje
-             * de error incluira el estado real de window.DATOS_ACCESO_FEM
-             * en ese momento para saber la causa exacta en vez de adivinar.
+             * Si esto vuelve a ocurrir, el estado real de
+             * window.DATOS_ACCESO_FEM queda en la consola del
+             * navegador (F12) para diagnosticar la causa exacta,
+             * sin exponer ese detalle técnico al usuario final.
              */
-            let diagnostico="";
             try{
-                diagnostico=" [diag: DATOS_ACCESO_FEM="+JSON.stringify(window.DATOS_ACCESO_FEM)+"]";
+                console.error(
+                    "subirEvidenciasFEM: idForo ausente. DATOS_ACCESO_FEM=",
+                    window.DATOS_ACCESO_FEM
+                );
             }catch(diagErr){
-                diagnostico=" [diag: no se pudo serializar DATOS_ACCESO_FEM: "+(diagErr&&diagErr.message)+"]";
+                console.error("subirEvidenciasFEM: idForo ausente y no se pudo serializar DATOS_ACCESO_FEM:", diagErr);
             }
-            throw new Error("No fue posible recuperar el ID_FORO de la institución autenticada. Regrese al acceso e ingrese nuevamente el código."+diagnostico);
+            throw new Error("No fue posible recuperar el ID_FORO de la institución autenticada. Regrese al acceso e ingrese nuevamente el código.");
         }
         const pdfData=await leerArchivoDataURL(pdf);
         const fotoData=await leerArchivoDataURL(foto);
