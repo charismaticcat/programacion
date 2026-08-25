@@ -48,6 +48,10 @@ const HOJA_AVANCES =
 const HOJA_ACCESOS = "AccesosIE";
 const HOJA_PARTICIPACION = "Participacion";
 const DRIVE_CARPETA_FEM_ID = "1IqcFgQUSKocvGX3JwvNOu-xJzt0gfKc8";
+// Ya no se usa: generarInformeFEM() construye el informe con
+// DocumentApp.create() en vez de copiar este archivo, que resultó
+// ser un Word (.docx) y no un Google Doc nativo. Se conserva el
+// ID por si se quiere revisar el diseño original de la plantilla.
 const TEMPLATE_INFORME_ID = "1Gtsccdbnlcyjl6TcDDjTOA7pAW3JQbHM";
 const LOGO_ENCABEZADO_ID = "1mFOOUZ5aFAuwMJMxNUaDnPPznDlQ2bj";
 const LOGO_PIE_ID = "1Cmx7c3ec2gQCjRc8kcNeUbZt5LiURyD5";
@@ -4664,60 +4668,102 @@ function obtenerGraficoParticipacionBlob_(datos){
 function construirParrafoSesion_(titulo,contenido){return titulo+"\n\n"+String(contenido||"");}
 
 
-/*
- * Abrir un Documento recién copiado con makeCopy() puede fallar
- * intermitentemente con "No se puede acceder al documento.
- * Inténtalo de nuevo más tarde." — Drive todavía no terminó de
- * propagar el archivo nuevo en el instante en que Apps Script
- * intenta abrirlo. Se reintenta unas pocas veces con una espera
- * corta antes de rendirse.
- */
-function abrirDocumentoConReintento_(fileId, intentos){
-  intentos = intentos || 5;
-  let ultimoError = null;
-  for(let i = 0; i < intentos; i++){
-    try{
-      return DocumentApp.openById(fileId);
-    }catch(error){
-      ultimoError = error;
-      Utilities.sleep(800 * (i + 1));
-    }
-  }
-  throw new Error(
-    "No fue posible abrir el documento del informe después de varios intentos: " +
-    (ultimoError ? ultimoError.message : "error desconocido")
-  );
-}
-
-
 function generarInformeFEM(idForo,datosCliente){
   const lock=LockService.getScriptLock(); lock.waitLock(30000);
   try{
     const estadoFinal=obtenerEstadoSesiones_(idForo); if(!estadoFinal.s1||!estadoFinal.s2||!estadoFinal.s3)throw new Error("Las tres sesiones deben estar enviadas definitivamente antes de generar el informe.");
     const datos=obtenerDatosGuardadosPorIdForo_(idForo)||datosCliente; if(!datos)throw new Error("No hay datos guardados para generar el informe."); const folder=crearCarpetaIE_(datos.institucion||"Institución Educativa");
-    const template=DriveApp.getFileById(TEMPLATE_INFORME_ID); const copy=template.makeCopy("Informe Ejecutivo - "+datos.institucion+" FEM 2026",folder); const doc=abrirDocumentoConReintento_(copy.getId()); const body=doc.getBody(); body.clear(); body.setPageWidth(612).setPageHeight(792).setMarginTop(50).setMarginBottom(50).setMarginLeft(48).setMarginRight(48);
+
+    /*
+     * El informe se construye desde cero con DocumentApp.create(),
+     * en vez de copiar la plantilla externa (TEMPLATE_INFORME_ID).
+     * Esa plantilla resultó ser un archivo de Word (.docx) subido a
+     * Drive, no un Google Doc nativo — sus copias tampoco lo eran,
+     * así que DocumentApp.openById() nunca podía abrirlas. El error
+     * "No se puede acceder al documento" no era un problema de
+     * tiempos de propagación de Drive: era un formato incompatible,
+     * y ningún número de reintentos lo iba a resolver. Crear el
+     * documento directamente con DocumentApp siempre produce un
+     * Google Doc nativo, sin depender de ningún archivo externo.
+     */
+    const nombreArchivo="Informe Ejecutivo - "+datos.institucion+" FEM 2026";
+    const doc=DocumentApp.create(nombreArchivo);
+    const docFile=DriveApp.getFileById(doc.getId());
+    folder.addFile(docFile);
+    try{ DriveApp.getRootFolder().removeFile(docFile); }catch(errorMover){ Logger.log("No fue posible quitar el informe de la raíz de Drive: "+errorMover.message); }
+
+    /*
+     * Paleta institucional del FEM 2026 (la misma del formulario).
+     */
+    const VERDE="#0B6A44", GRIS_TEXTO="#4A4A4A", GRIS_FONDO="#F7F8FA", GRIS_BORDE="#DADCE0";
+
+    const body=doc.getBody(); body.clear(); body.setPageWidth(612).setPageHeight(792).setMarginTop(50).setMarginBottom(50).setMarginLeft(48).setMarginRight(48);
     const h=doc.getHeader()||doc.addHeader(); h.clear(); const hi=h.appendParagraph(); hi.setAlignment(DocumentApp.HorizontalAlignment.RIGHT); try{hi.appendInlineImage(DriveApp.getFileById(LOGO_ENCABEZADO_ID).getBlob()).setWidth(90).setHeight(50);}catch(e){};
-    const footer=doc.getFooter()||doc.addFooter(); footer.clear(); const fp=footer.appendParagraph(); fp.setAlignment(DocumentApp.HorizontalAlignment.CENTER); try{fp.appendInlineImage(DriveApp.getFileById(LOGO_PIE_ID).getBlob()).setWidth(80).setHeight(40);}catch(e){}; footer.appendParagraph("Generado por SEM el "+Utilities.formatDate(new Date(),Session.getScriptTimeZone(),"dd/MM/yyyy 'a las' HH:mm")+". Enviado por "+(datos.campos?.nombre?.valor||"")+" — "+(datos.campos?.correo?.valor||"")+" — "+(datos.campos?.cargo?.valor||""));
-    const title=body.appendParagraph("INFORME EJECUTIVO DE "+String(datos.institucion||"").toUpperCase()+" FEM 2026"); title.setHeading(DocumentApp.ParagraphHeading.TITLE); body.appendParagraph("FEM 2026 “Escuela Viva: Voces que construyen territorio”.").setHeading(DocumentApp.ParagraphHeading.HEADING2); body.appendParagraph("Foro Educativo Institucional — Neiva 2026"); body.appendHorizontalRule();
-    body.appendParagraph("Caracterización y participación").setHeading(DocumentApp.ParagraphHeading.HEADING1); const table=body.appendTable(); const c=datos.campos||{}; [["Institución Educativa",datos.institucion],["DANE",datos.dane],["Rector(a)",c.rector?.valor||""],["Grupo de trabajo",c.grupo?.valor||""],["Responsable",c.nombre?.valor||""],["Cargo",c.cargo?.valor||""],["Correo responsable",c.correo?.valor||""],["Correo institucional",c.correoIE?.valor||""]].forEach(x=>{const r=table.appendTableRow();r.appendTableCell(x[0]);r.appendTableCell(String(x[1]||"—"));});
-    body.appendParagraph("Participantes: "+totalParticipantesServer_(datos)).setHeading(DocumentApp.ParagraphHeading.HEADING2); const chart=obtenerGraficoParticipacionBlob_(datos); if(chart)body.appendImage(chart).setWidth(430);
+    const footer=doc.getFooter()||doc.addFooter(); footer.clear(); const fp=footer.appendParagraph(); fp.setAlignment(DocumentApp.HorizontalAlignment.CENTER); try{fp.appendInlineImage(DriveApp.getFileById(LOGO_PIE_ID).getBlob()).setWidth(80).setHeight(40);}catch(e){};
+    const fpTexto=footer.appendParagraph("Generado por SEM el "+Utilities.formatDate(new Date(),Session.getScriptTimeZone(),"dd/MM/yyyy 'a las' HH:mm")+". Enviado por "+(datos.campos?.nombre?.valor||"")+" — "+(datos.campos?.correo?.valor||"")+" — "+(datos.campos?.cargo?.valor||""));
+    fpTexto.setAlignment(DocumentApp.HorizontalAlignment.CENTER); fpTexto.editAsText().setForegroundColor(GRIS_TEXTO).setFontSize(9);
+
+    const title=body.appendParagraph("INFORME EJECUTIVO DE "+String(datos.institucion||"").toUpperCase()+" FEM 2026");
+    title.setHeading(DocumentApp.ParagraphHeading.TITLE); title.setAlignment(DocumentApp.HorizontalAlignment.CENTER); title.editAsText().setForegroundColor(VERDE);
+
+    const subt=body.appendParagraph("FEM 2026 “Escuela Viva: Voces que construyen territorio”.");
+    subt.setHeading(DocumentApp.ParagraphHeading.HEADING2); subt.setAlignment(DocumentApp.HorizontalAlignment.CENTER); subt.editAsText().setForegroundColor(GRIS_TEXTO).setItalic(true);
+
+    const sub2=body.appendParagraph("Foro Educativo Institucional — Neiva 2026");
+    sub2.setAlignment(DocumentApp.HorizontalAlignment.CENTER); sub2.editAsText().setForegroundColor(GRIS_TEXTO);
+
+    body.appendHorizontalRule();
+
+    function encabezadoSeccion_(texto){
+      const p=body.appendParagraph(texto);
+      p.setHeading(DocumentApp.ParagraphHeading.HEADING1);
+      p.editAsText().setForegroundColor(VERDE);
+      return p;
+    }
+
+    function tablaClaveValor_(filas){
+      const t=body.appendTable();
+      t.setBorderColor(GRIS_BORDE); t.setBorderWidth(1);
+      filas.forEach(function(x){
+        const r=t.appendTableRow();
+        const c1=r.appendTableCell(String(x[0]||""));
+        c1.setBackgroundColor(GRIS_FONDO);
+        c1.editAsText().setBold(true).setForegroundColor(VERDE).setFontSize(10);
+        const c2=r.appendTableCell(String(x[1]||"—"));
+        c2.editAsText().setFontSize(10);
+      });
+      return t;
+    }
+
+    encabezadoSeccion_("Caracterización y participación");
+    const c=datos.campos||{};
+    tablaClaveValor_([["Institución Educativa",datos.institucion],["DANE",datos.dane],["Rector(a)",c.rector?.valor||""],["Grupo de trabajo",c.grupo?.valor||""],["Responsable",c.nombre?.valor||""],["Cargo",c.cargo?.valor||""],["Correo responsable",c.correo?.valor||""],["Correo institucional",c.correoIE?.valor||""]]);
+
+    const pPart=body.appendParagraph("Participantes: "+totalParticipantesServer_(datos));
+    pPart.setHeading(DocumentApp.ParagraphHeading.HEADING2); pPart.editAsText().setForegroundColor(VERDE);
+    const chart=obtenerGraficoParticipacionBlob_(datos); if(chart)body.appendImage(chart).setWidth(430);
     body.appendPageBreak();
+
     const grupos=[{n:"Sesión 1",items:[["Pregunta orientadora",c.respuestaSesion1?.valor||""],["Pregunta 2",c.respuestaSesion1Pregunta2?.valor||""]]},{n:"Sesión 2",items:[["Pregunta 1",c.respuestaSesion2Pregunta1?.valor||""],["Acciones 1–5",[1,2,3,4,5].map(i=>c["respuestaSesion2Pregunta2Accion"+i]?.valor||"").filter(Boolean).join("\n\n")],["Pregunta 3",c.respuestaSesion2Pregunta3?.valor||""],["Pregunta 4",c.respuestaSesion2Pregunta4?.valor||""],["Pregunta 5",c.respuestaSesion2Pregunta5?.valor||""]]},{n:"Sesión 3",items:[["Pregunta 1",c.respuestaSesion3Pregunta1?.valor||""],["Acciones 1–5",[1,2,3,4,5].map(i=>c["respuestaSesion3Pregunta2Accion"+i]?.valor||"").filter(Boolean).join("\n\n")],["Equipos de trabajo",c.respuestaSesion3Pregunta3?.valor||""],["Mecanismos de seguimiento",c.respuestaSesion3Pregunta4?.valor||""]]}];
     grupos.forEach((g,gi)=>{
-      body.appendParagraph(g.n).setHeading(DocumentApp.ParagraphHeading.HEADING1);
-      const t=body.appendTable();
-      t.setBorderWidth(0.5);
-      g.items.forEach(it=>{ const r=t.appendTableRow(); r.appendTableCell(String(it[0]||"")); r.appendTableCell(String(it[1]||"—")); });
+      encabezadoSeccion_(g.n);
+      tablaClaveValor_(g.items);
       if(gi<grupos.length-1)body.appendPageBreak();
     });
+
     body.appendPageBreak();
-    body.appendParagraph("Evidencias de la jornada").setHeading(DocumentApp.ParagraphHeading.HEADING1);
-    body.appendParagraph("Los soportes documentales originales se encuentran almacenados en la carpeta institucional de la IE en Google Drive.");
-    if(c.evidenciaAsistenciaUrl?.valor){ const p1=body.appendParagraph(); p1.appendText("📄 Descargar listado de asistencia").setLinkUrl(String(c.evidenciaAsistenciaUrl.valor)); }
-    if(c.evidenciaFotoUrl?.valor){ const p2=body.appendParagraph(); p2.appendText("📷 Ver fotografía de la plenaria").setLinkUrl(String(c.evidenciaFotoUrl.valor)); }
-    doc.saveAndClose(); const pdfBlob=DriveApp.getFileById(copy.getId()).getAs(MimeType.PDF).setName("Informe Ejecutivo - "+datos.institucion+" FEM 2026.pdf"); const pdf=folder.createFile(pdfBlob); hacerPublicoSiEsPosible_(copy);hacerPublicoSiEsPosible_(pdf);
-    const ac=obtenerAccesoPorIdForoRaw_(idForo); if(ac){const m=ac.mapa; if(m.ID_INFORME)ac.hoja.getRange(ac.fila,m.ID_INFORME).setValue(copy.getId()); if(m.ID_PDF_INFORME)ac.hoja.getRange(ac.fila,m.ID_PDF_INFORME).setValue(pdf.getId());}
-    return {ok:true,docId:copy.getId(),docUrl:copy.getUrl(),pdfId:pdf.getId(),pdfUrl:pdf.getUrl(),folderId:folder.getId()};
+    encabezadoSeccion_("Evidencias de la jornada");
+    const pEv=body.appendParagraph("Los soportes documentales originales se encuentran almacenados en la carpeta institucional de la IE en Google Drive.");
+    pEv.editAsText().setForegroundColor(GRIS_TEXTO);
+    if(c.evidenciaAsistenciaUrl?.valor){ const p1=body.appendParagraph(); const t1=p1.appendText("📄 Descargar listado de asistencia"); t1.setLinkUrl(String(c.evidenciaAsistenciaUrl.valor)); t1.setForegroundColor(VERDE); }
+    if(c.evidenciaFotoUrl?.valor){ const p2=body.appendParagraph(); const t2=p2.appendText("📷 Ver fotografía de la plenaria"); t2.setLinkUrl(String(c.evidenciaFotoUrl.valor)); t2.setForegroundColor(VERDE); }
+
+    doc.saveAndClose();
+    const pdfBlob=DriveApp.getFileById(doc.getId()).getAs(MimeType.PDF).setName(nombreArchivo+".pdf");
+    const pdf=folder.createFile(pdfBlob);
+    hacerPublicoSiEsPosible_(docFile); hacerPublicoSiEsPosible_(pdf);
+    const ac=obtenerAccesoPorIdForoRaw_(idForo); if(ac){const m=ac.mapa; if(m.ID_INFORME)ac.hoja.getRange(ac.fila,m.ID_INFORME).setValue(doc.getId()); if(m.ID_PDF_INFORME)ac.hoja.getRange(ac.fila,m.ID_PDF_INFORME).setValue(pdf.getId());}
+    return {ok:true,docId:doc.getId(),docUrl:doc.getUrl(),pdfId:pdf.getId(),pdfUrl:pdf.getUrl(),folderId:folder.getId()};
   }finally{try{lock.releaseLock();}catch(e){}}
 }
 
