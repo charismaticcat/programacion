@@ -5049,6 +5049,7 @@ function paginaAsistenciaQR_(idForo){
   const acceso=obtenerAccesoPorIdForo_(idForo);
   const ie=acceso?acceso.ie:"";
   const ieTitulo=capitalizarNombreIE_(ie);
+  const logoUrlIE=urlPublicaLogoDrive_(obtenerLogoIdPorNombreIE_(ie));
 
   /*
    * El registro de asistencia por QR queda disponible de forma
@@ -5088,8 +5089,14 @@ function paginaAsistenciaQR_(idForo){
     'button:disabled{background:#bdbdbd;}'+
     '#estado{margin-top:14px;font-weight:600;min-height:20px;}'+
     '#textoFirma{margin-top:6px;font-size:12px;font-weight:400;color:#4A4A4A;}'+
+    '.logoAsistenciaIE{display:block;max-width:64px;max-height:64px;margin:0 auto 10px;border-radius:8px;}'+
+    '.correoInvalido{border-color:#C62828 !important;background:#FFFDE7;}'+
+    '.mensajeErrorCorreo{display:none;margin-top:6px;}'+
+    '.mensajeErrorCorreo b{background:#FFF3CD;color:#C62828;font-weight:600;padding:3px 8px;border-radius:6px;display:inline-block;}'+
+    '.mensajeErrorCorreo i{font-style:normal;font-size:11px;color:#555;margin-left:6px;}'+
     '</style></head><body>'+
     '<div class="tarjeta">'+
+    (logoUrlIE?'<img src="'+logoUrlIE+'" alt="Logo de la institución educativa" class="logoAsistenciaIE">':'')+
     '<h1>'+tituloPagina.replace(/</g,"&lt;")+'</h1>'+
     '<p>Foro Educativo Institucional — Neiva 2026</p>'+
     '<div id="formulario">'+
@@ -5107,6 +5114,7 @@ function paginaAsistenciaQR_(idForo){
     '<input id="documento" inputmode="numeric" autocomplete="off">'+
     '<label>Correo electrónico</label>'+
     '<input id="correo" type="email" autocomplete="email">'+
+    '<div class="mensajeErrorCorreo" id="mensajeErrorCorreo"><b>Ingrese un correo electrónico válido</b><i>(ej: nombre@dominio.com — sin espacios al inicio, al final o en medio)</i></div>'+
     '<label>Teléfono (opcional)</label>'+
     '<input id="telefono" type="tel" autocomplete="tel">'+
     '<button id="btnFirmar" type="button">Firmar asistencia</button>'+
@@ -5148,6 +5156,28 @@ function paginaAsistenciaQR_(idForo){
     '}'+
     'var dispositivoIdAsistencia=calcularHuellaDispositivo();'+
     '(function(){ try{ var previo=localStorage.getItem(claveYaFirmado()); if(previo){ mostrarYaFirmado(previo==="1"?"":previo); } }catch(e){} })();'+
+    /*
+     * Validación de correo en vivo: mensaje en rojo sobre fondo
+     * amarillo (mismo lenguaje visual que los demás errores del
+     * formulario principal) con una aclaración pequeña en gris
+     * oscuro entre paréntesis. Se exige formato usuario@dominio.tld
+     * sin espacios al inicio, al final ni en medio del valor.
+     */
+    'function correoEsValido(valor){'+
+    'var v=String(valor||"");'+
+    'if(v!==v.trim())return false;'+
+    'if(/\\s/.test(v))return false;'+
+    'return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(v);'+
+    '}'+
+    'function validarCorreoUI(){'+
+    'var campo=document.getElementById("correo");'+
+    'var msg=document.getElementById("mensajeErrorCorreo");'+
+    'var v=campo.value;'+
+    'if(v===""||correoEsValido(v)){campo.classList.remove("correoInvalido");msg.style.display="none";return v!=="";}'+
+    'campo.classList.add("correoInvalido");msg.style.display="block";return false;'+
+    '}'+
+    'document.getElementById("correo").addEventListener("input",validarCorreoUI);'+
+    'document.getElementById("correo").addEventListener("blur",validarCorreoUI);'+
     'document.getElementById("btnFirmar").addEventListener("click",function(){'+
     'var btn=this; var estado=document.getElementById("estado");'+
     'var nombre=document.getElementById("nombre").value.trim();'+
@@ -5158,6 +5188,7 @@ function paginaAsistenciaQR_(idForo){
     'var correo=document.getElementById("correo").value.trim();'+
     'var telefono=document.getElementById("telefono").value.trim();'+
     'if(!nombre||!tipoAsistencia||!cargo||!rolForo||!documento||!correo){estado.textContent="Complete nombre, tipo de asistencia, cargo, rol en el Foro, número de documento y correo electrónico.";return;}'+
+    'if(!correoEsValido(correo)){validarCorreoUI();estado.textContent="Revise el correo electrónico: no es válido.";return;}'+
     'btn.disabled=true; btn.textContent="Firmando…";'+
     'google.script.run.withSuccessHandler(function(res){'+
     'if(res&&res.ok){ marcarFirmadoLocal(res.textoFirma); mostrarYaFirmado(res.textoFirma); }'+
@@ -5185,52 +5216,6 @@ function subirEvidenciasFEM(idForo,fotoData,fotoName,fotoMime,datos){
   // por QR durante toda la jornada y se incluye al final del informe
   // ejecutivo (ver agregarListadoAsistenciaAlInforme_ en generarInformeFEM).
   return {ok:true,foto:{id:foto.getId(),url:foto.getUrl()},folderId:folder.getId()};
-}
-
-
-function obtenerGraficoParticipacionBlob_(datos){
-  const ss=abrirSpreadsheet_(); const sh=ss.getSheetByName(HOJA_PARTICIPACION); if(!sh)return null; const m=mapaHoja_(sh); const row=buscarFilaPorIdForo_(sh,datos.idForo,m); if(row<0)return null;
-  const labels=["Rector(a)","Coordinador(a)","Docentes","Tutor PTA PFI/3.0","Orientador(a)","Estudiantes","Padres/madres/acudientes","Personal administrativo","Egresados","Sector productivo","Otros"];
-  const nums=labels.map(l=>Number(sh.getRange(row,m[l]).getValue()||0));
-  // Paleta pastel — un color por estamento.
-  const PASTEL=["#AEC6CF","#FFB7B2","#B5EAD7","#FFDAC1","#E2F0CB","#C7CEEA","#FFF1BA","#F6C6EA","#B5D8EB","#D5AAFF","#FFCBB3"];
-  const tmp=ss.insertSheet("_grafico_"+String(datos.idForo).slice(0,8));
-  try{
-    /*
-     * Un renglón por estamento (no una sola fila con 11 columnas):
-     * así el eje de categorías muestra cada nombre como una etiqueta
-     * de fila propia, con una barra horizontal de su propio color —
-     * el mismo lenguaje visual que renderGraficoParticipacionHTML()
-     * en la plenaria (etiqueta + barra + valor), en vez del racimo
-     * diminuto de barras agrupadas que salía antes en el informe.
-     * Cada estamento sigue en su propia columna/serie (con ceros en
-     * las demás filas) únicamente para que cada barra conserve su
-     * propio color pastel.
-     */
-    const encabezados=["Estamento"].concat(labels);
-    tmp.getRange(1,1,1,encabezados.length).setValues([encabezados]);
-    const filas=labels.map((l,i)=>{
-      const fila=new Array(labels.length).fill(0);
-      fila[i]=nums[i];
-      return [l].concat(fila);
-    });
-    tmp.getRange(2,1,filas.length,encabezados.length).setValues(filas);
-    const chart=tmp.newChart()
-      .setChartType(Charts.ChartType.BAR)
-      .addRange(tmp.getRange(1,1,filas.length+1,encabezados.length))
-      .setOption("title","Participación por estamento — "+(datos.institucion||""))
-      .setOption("colors",PASTEL)
-      .setOption("legend",{position:"none"})
-      .setOption("width",620)
-      .setOption("height",420)
-      .setOption("hAxis",{title:"Participantes",minValue:0})
-      .setPosition(1,4,0,0)
-      .build();
-    tmp.insertChart(chart);
-    SpreadsheetApp.flush();
-    const c=tmp.getCharts()[0];
-    return c.getAs("image/png");
-  }finally{ss.deleteSheet(tmp);}
 }
 
 
@@ -5269,23 +5254,32 @@ function generarInformeFEM(idForo,datosCliente){
 
     const body=doc.getBody(); body.clear(); body.setPageWidth(612).setPageHeight(792).setMarginTop(50).setMarginBottom(50).setMarginLeft(48).setMarginRight(48);
     /*
-     * Encabezado en una tabla invisible de 2 columnas: el logo de la
-     * IE a la izquierda y el de la Alcaldía/SEM a la derecha, uno al
-     * lado del otro sin superponerse. Si la IE no tiene logo
-     * vinculado todavía, la celda izquierda simplemente queda vacía.
+     * Encabezado con el logo de la Alcaldía/SEM a la derecha (se
+     * repite en cada página del documento). El logo de la IE ya NO
+     * va aquí — a este tamaño de encabezado se veía diminuto — sino
+     * grande y centrado en la portada del informe (ver más abajo).
      */
     const h=doc.getHeader()||doc.addHeader(); h.clear();
     const logoIdIE=obtenerLogoIdPorNombreIE_(datos.institucion||"");
-    const tablaEncabezado=h.appendTable([["",""]]);
-    tablaEncabezado.setBorderWidth(0);
-    const celdaLogoIE=tablaEncabezado.getCell(0,0);
-    if(logoIdIE){ try{ celdaLogoIE.getChild(0).asParagraph().appendInlineImage(DriveApp.getFileById(logoIdIE).getBlob()).setWidth(50).setHeight(50); }catch(e){}; }
-    const celdaLogoAlcaldia=tablaEncabezado.getCell(0,1);
-    celdaLogoAlcaldia.getChild(0).asParagraph().setAlignment(DocumentApp.HorizontalAlignment.RIGHT);
-    try{ celdaLogoAlcaldia.getChild(0).asParagraph().appendInlineImage(DriveApp.getFileById(LOGO_ENCABEZADO_ID).getBlob()).setWidth(90).setHeight(50); }catch(e){};
+    const pLogoAlcaldia=h.appendParagraph(""); pLogoAlcaldia.setAlignment(DocumentApp.HorizontalAlignment.RIGHT);
+    try{ pLogoAlcaldia.appendInlineImage(DriveApp.getFileById(LOGO_ENCABEZADO_ID).getBlob()).setWidth(90).setHeight(50); }catch(e){};
     const footer=doc.getFooter()||doc.addFooter(); footer.clear(); const fp=footer.appendParagraph(""); fp.setAlignment(DocumentApp.HorizontalAlignment.CENTER); try{fp.appendInlineImage(DriveApp.getFileById(LOGO_PIE_ID).getBlob()).setWidth(80).setHeight(40);}catch(e){};
     const fpTexto=footer.appendParagraph("Generado por SEM el "+Utilities.formatDate(new Date(),Session.getScriptTimeZone(),"dd/MM/yyyy 'a las' HH:mm")+". Enviado por "+(datos.campos?.nombre?.valor||"")+" — "+(datos.campos?.correo?.valor||"")+" — "+(datos.campos?.cargo?.valor||"")+" de la "+(datos.institucion||""));
     fpTexto.setAlignment(DocumentApp.HorizontalAlignment.CENTER); fpTexto.editAsText().setForegroundColor(GRIS_TEXTO).setFontSize(9);
+
+    /*
+     * Logo de la IE, grande (150x150 — tres veces el tamaño que tenía
+     * antes en el encabezado) y centrado, como primer elemento de la
+     * portada del informe. Si la IE todavía no tiene logo vinculado,
+     * este bloque simplemente no aparece.
+     */
+    if(logoIdIE){
+      try{
+        const pLogoIE=body.appendParagraph("");
+        pLogoIE.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+        pLogoIE.appendInlineImage(DriveApp.getFileById(logoIdIE).getBlob()).setWidth(150).setHeight(150);
+      }catch(e){}
+    }
 
     const title=body.appendParagraph("INFORME EJECUTIVO DE "+String(datos.institucion||"").toUpperCase()+" FEM 2026");
     title.setHeading(DocumentApp.ParagraphHeading.TITLE); title.setAlignment(DocumentApp.HorizontalAlignment.CENTER); title.editAsText().setForegroundColor(VERDE);
@@ -5326,28 +5320,79 @@ function generarInformeFEM(idForo,datosCliente){
     }
 
     /*
-     * Tabla de caracterización con el mismo lenguaje visual que las
-     * tarjetas de la plenaria (.tarjetaPregunta): título en verde y
-     * negrita, fondo de los cuadros en azul claro, texto en negro y
-     * esquinas redondeadas. La API de tablas de Google Docs no admite
-     * bordes por un solo lado ni esquinas redondeadas, así que la
-     * franja amarilla de la izquierda se aproxima con una primera
-     * columna angosta de fondo amarillo, a modo de acento.
+     * Caracterización en una sola columna, una tarjeta apilada por
+     * dato — mismo lenguaje visual que .caracterizacionInforme en la
+     * plenaria: título en verde y negrita arriba, valor en negro
+     * debajo (no uno al lado del otro), fondo azul claro y un acento
+     * amarillo a la izquierda. La API de tablas de Google Docs no
+     * admite ni esquinas redondeadas ni bordes de un solo lado, así
+     * que el acento se aproxima con una primera columna angosta de
+     * fondo amarillo, y la separación entre tarjetas con un borde
+     * blanco grueso alrededor de cada celda (simula el espacio entre
+     * cajas de la cuadrícula original).
      */
     function tablaCaracterizacion_(filas){
       const t=body.appendTable();
-      t.setBorderColor(AZUL_CLARO); t.setBorderWidth(1);
+      t.setBorderColor("#FFFFFF"); t.setBorderWidth(6);
       filas.forEach(function(x){
         const r=t.appendTableRow();
         const acento=r.appendTableCell("");
         acento.setBackgroundColor(AMARILLO);
         acento.setWidth(6);
-        const c1=r.appendTableCell(String(x[0]||""));
-        c1.setBackgroundColor(AZUL_CLARO);
-        c1.editAsText().setBold(true).setForegroundColor(VERDE).setFontSize(10);
-        const c2=r.appendTableCell(String(x[1]||"—"));
-        c2.setBackgroundColor(AZUL_CLARO);
-        c2.editAsText().setForegroundColor(NEGRO).setFontSize(10);
+        const contenido=r.appendTableCell("");
+        contenido.setBackgroundColor(AZUL_CLARO);
+        const pTitulo=contenido.getChild(0).asParagraph();
+        pTitulo.setText(String(x[0]||""));
+        pTitulo.editAsText().setBold(true).setForegroundColor(VERDE).setFontSize(10);
+        const pValor=contenido.appendParagraph(String(x[1]||"—"));
+        pValor.editAsText().setForegroundColor(NEGRO).setFontSize(10);
+      });
+      return t;
+    }
+
+    /*
+     * Participación por estamento con el mismo lenguaje visual que
+     * .barraParticipante en la plenaria: etiqueta a la izquierda,
+     * una barra verde con el ancho proporcional al porcentaje sobre
+     * fondo gris claro, y el valor a la derecha. Se construye con
+     * tablas nativas de Documentos (una tabla anidada por fila, de
+     * ancho independiente) en vez de una imagen de gráfico — así se
+     * ve igual que en la plenaria y no depende de crear/borrar una
+     * hoja temporal con un gráfico de Sheets.
+     */
+    function insertarBarraParticipacion_(celda, pct){
+      const ANCHO_BARRA=190;
+      const lleno=Math.max(3, Math.round(ANCHO_BARRA*Math.min(1,pct)));
+      const vacio=Math.max(1, ANCHO_BARRA-lleno);
+      const tablaBarra=celda.appendTable([["",""]]);
+      tablaBarra.setBorderWidth(0);
+      tablaBarra.setColumnWidth(0,lleno);
+      tablaBarra.setColumnWidth(1,vacio);
+      tablaBarra.getCell(0,0).setBackgroundColor(VERDE);
+      tablaBarra.getCell(0,1).setBackgroundColor(GRIS_FONDO);
+    }
+
+    function tablaParticipacionDoc_(datos){
+      const defs=["Rector","Coordinador","Docentes","TutorPTA","Orientador","Estudiantes","Padres","Administrativos","Egresados","Sector","Otros"];
+      const etiquetas={Rector:"Rector(a)",Coordinador:"Coordinador(a)",Docentes:"Docentes",TutorPTA:"Tutor(a) PTA/PFI 3.0",Orientador:"Orientador(a)",Estudiantes:"Estudiantes",Padres:"Padres/madres/acudientes",Administrativos:"Personal administrativo",Egresados:"Egresados",Sector:"Sector productivo",Otros:"Otros"};
+      const c=datos.campos||{};
+      const valores=defs.map(function(d){ return Number(c["participantes"+d]?.valor||0); });
+      const total=valores.reduce(function(a,b){ return a+b; },0)||1;
+      const t=body.appendTable();
+      t.setBorderWidth(0);
+      defs.forEach(function(d,i){
+        const n=valores[i];
+        const pct=n/total;
+        const r=t.appendTableRow();
+        const cEtq=r.appendTableCell(etiquetas[d]);
+        cEtq.setWidth(150);
+        cEtq.editAsText().setForegroundColor(GRIS_TEXTO).setFontSize(9);
+        const cBarra=r.appendTableCell("");
+        cBarra.setWidth(200);
+        try{ insertarBarraParticipacion_(cBarra, pct); }catch(errorBarra){}
+        const cValor=r.appendTableCell(n+" ("+(pct*100).toFixed(1)+"%)");
+        cValor.setWidth(70);
+        cValor.editAsText().setForegroundColor(GRIS_TEXTO).setFontSize(9);
       });
       return t;
     }
@@ -5359,7 +5404,7 @@ function generarInformeFEM(idForo,datosCliente){
     const totalParticipantesInforme=totalParticipantesServer_(datos);
     const pPart=body.appendParagraph("Participantes: "+totalParticipantesInforme);
     pPart.setHeading(DocumentApp.ParagraphHeading.HEADING2); pPart.editAsText().setForegroundColor(VERDE).setBold(true);
-    const chart=obtenerGraficoParticipacionBlob_(datos); if(chart)body.appendImage(chart).setWidth(430);
+    tablaParticipacionDoc_(datos);
 
     // Mismo párrafo introductorio que se muestra en la portada de la
     // sesión de plenaria, en la primera página del informe, junto al
