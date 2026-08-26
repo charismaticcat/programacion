@@ -5792,10 +5792,14 @@ function renderizarPlenaria(opciones){
             const sent=sesionEnviadaLocal(grupo.sesion);
             const pageIndex=plenariaPaginas.length;
             let cuerpo="";
-            if(q[2]==="__S2_ACCIONES__") cuerpo=[1,2,3,4,5].map(i=>["respuestaSesion2Pregunta2Accion"+i,"Acción "+i]).map(x=>`<label class="labelEditorPlenaria">${x[1]}</label><textarea class="editorRespuestaPlenaria" data-campo="${x[0]}" ${sent?'readonly':''}>${escapeHtml(getCampoValor(x[0]))}</textarea>`).join("");
-            else if(q[2]==="__S3_ACCIONES__") cuerpo=[1,2,3,4,5].map(i=>["respuestaSesion3Pregunta2Accion"+i,"Acción "+i]).map(x=>`<label class="labelEditorPlenaria">${x[1]}</label><textarea class="editorRespuestaPlenaria" data-campo="${x[0]}" ${sent?'readonly':''}>${escapeHtml(getCampoValor(x[0]))}</textarea>`).join("");
-            else cuerpo=`<textarea class="editorRespuestaPlenaria" data-campo="${q[2]}" ${sent?'readonly':''}>${escapeHtml(getCampoValor(q[2]))}</textarea>`;
-            html+=`<div class="plenariaPagina${sent?' enviada':''}" data-page="${pageIndex}" data-sesion="${grupo.sesion}"><div class="plenariaPregunta"><span>${grupo.titulo}</span><h3>${escapeHtml(q[1])}</h3><button type="button" class="btnAmpliarPregunta" title="Ampliar esta sección" aria-label="Ampliar esta sección">👁️</button></div>${cuerpo}<div class="plenariaEditHint">${sent?'✅ Respuesta enviada definitivamente.':'✏️ Modo edición: puede ajustar únicamente las respuestas antes de enviarlas.'}</div>${sent?'':'<button type="button" class="btnGuardarPregunta">💾 Guardar</button>'}</div>`;
+            // El campo queda editable siempre, tanto en vista normal
+            // como en pantalla completa (ícono del ojo), incluso
+            // después de enviada la sesión — solo "Modo lectura"
+            // (alternarModoLecturaPlenaria) lo bloquea.
+            if(q[2]==="__S2_ACCIONES__") cuerpo=[1,2,3,4,5].map(i=>["respuestaSesion2Pregunta2Accion"+i,"Acción "+i]).map(x=>`<label class="labelEditorPlenaria">${x[1]}</label><textarea class="editorRespuestaPlenaria" data-campo="${x[0]}">${escapeHtml(getCampoValor(x[0]))}</textarea>`).join("");
+            else if(q[2]==="__S3_ACCIONES__") cuerpo=[1,2,3,4,5].map(i=>["respuestaSesion3Pregunta2Accion"+i,"Acción "+i]).map(x=>`<label class="labelEditorPlenaria">${x[1]}</label><textarea class="editorRespuestaPlenaria" data-campo="${x[0]}">${escapeHtml(getCampoValor(x[0]))}</textarea>`).join("");
+            else cuerpo=`<textarea class="editorRespuestaPlenaria" data-campo="${q[2]}">${escapeHtml(getCampoValor(q[2]))}</textarea>`;
+            html+=`<div class="plenariaPagina${sent?' enviada':''}" data-page="${pageIndex}" data-sesion="${grupo.sesion}"><div class="plenariaPregunta"><span>${grupo.titulo}</span><h3>${escapeHtml(q[1])}</h3><button type="button" class="btnAmpliarPregunta" title="Ampliar esta sección" aria-label="Ampliar esta sección">👁️</button></div>${cuerpo}<div class="plenariaEditHint">${sent?'✅ Respuesta enviada definitivamente. Aún puede corregirla y guardar los cambios.':'✏️ Modo edición: puede ajustar únicamente las respuestas antes de enviarlas.'}</div><button type="button" class="btnGuardarPregunta">💾 Guardar</button></div>`;
             plenariaPaginas.push({id:q[0],sesion:grupo.sesion,campo:q[2],sent});
         });
     });
@@ -5951,7 +5955,7 @@ function actualizarBotonesPlenaria(){
 function alternarModoLecturaPlenaria(){
     plenariaModoLectura=!plenariaModoLectura;
     const p=document.getElementById("pantallaPlenaria"); p?.classList.toggle("modoLecturaPlenaria",plenariaModoLectura);
-    document.querySelectorAll(".editorRespuestaPlenaria").forEach(t=>t.readOnly=plenariaModoLectura || sesionEnviadaLocal(Number(t.closest(".plenariaPagina")?.dataset.sesion||0)));
+    document.querySelectorAll(".editorRespuestaPlenaria").forEach(t=>t.readOnly=plenariaModoLectura);
     const b=document.getElementById("btnModoLecturaPlenaria"); if(b) b.textContent=plenariaModoLectura?"✏️ Volver a edición":"📖 Modo lectura";
 }
 
