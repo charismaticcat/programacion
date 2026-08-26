@@ -4874,32 +4874,12 @@ function paginaAsistenciaQR_(idForo){
   const ie=acceso?acceso.ie:"";
 
   /*
-   * Una vez enviada definitivamente la Sesión 3, el registro de
-   * asistencia por QR se cierra: ya no tiene sentido seguir firmando
-   * porque el informe ejecutivo (con el listado incluido) ya pudo
-   * haberse generado.
+   * El registro de asistencia por QR queda disponible de forma
+   * permanente: no se cierra al enviar la Sesión 3. El informe
+   * ejecutivo toma el listado de firmas en el momento en que se
+   * genera, pero la página de firma sigue abierta después de eso
+   * por si llegan más asistentes.
    */
-  const estadoSesiones=obtenerEstadoSesiones_(idForo);
-  if(estadoSesiones && estadoSesiones.s3){
-    const htmlCerrado=
-      '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'+
-      '<meta name="viewport" content="width=device-width, initial-scale=1">'+
-      '<title>Registro de asistencia cerrado — FEM 2026</title>'+
-      '<style>'+
-      'body{font-family:Arial,Helvetica,sans-serif;background:#F7F8FA;color:#4A4A4A;margin:0;padding:24px;}'+
-      '.tarjeta{max-width:420px;margin:60px auto 0;background:#fff;border-radius:16px;padding:32px;box-shadow:0 8px 24px rgba(0,0,0,.12);text-align:center;}'+
-      'h1{color:#0B6A44;font-size:22px;margin:0 0 12px;}'+
-      'p{line-height:1.5;}'+
-      '</style></head><body>'+
-      '<div class="tarjeta">'+
-      '<h1>Registro de asistencia cerrado</h1>'+
-      '<p>La Institución Educativa <b>'+String(ie).replace(/</g,"&lt;")+'</b> ya envió definitivamente sus respuestas del Foro Educativo 2026.</p>'+
-      '<p>El registro de firmas de asistencia ya no está disponible.</p>'+
-      '</div></body></html>';
-    return HtmlService.createHtmlOutput(htmlCerrado)
-      .setTitle("Registro de asistencia cerrado — FEM 2026")
-      .addMetaTag("viewport","width=device-width, initial-scale=1");
-  }
 
   const opcionesCargo=CARGOS_ASISTENCIA_QR.map(function(c){
     return '<option value="'+c.replace(/"/g,"&quot;")+'">'+c+'</option>';
