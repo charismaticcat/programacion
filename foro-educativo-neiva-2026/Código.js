@@ -18,8 +18,18 @@
  * CONFIGURACIÓN
  *****************************************************/
 
+/*
+ * El ID original (1ROYRM7hLY3qVQGifSKUQhgHgW8HK1iwB) resultó ser un
+ * archivo .xlsx de Microsoft Excel subido a Drive, no una Hoja de
+ * cálculo de Google nativa — por eso SpreadsheetApp.openById() nunca
+ * podía abrirlo ("El servicio de Hojas de cálculo no ha podido
+ * acceder al documento"), sin importar los permisos ni los
+ * reintentos. Se reemplaza por el ID de la conversión a Hojas de
+ * cálculo de Google (Archivo > Guardar como Hojas de cálculo de
+ * Google), que conserva todas las pestañas y datos.
+ */
 const SPREADSHEET_ID =
-  "1ROYRM7hLY3qVQGifSKUQhgHgW8HK1iwB";
+  "1OiBPO8BEsa0TpmYGRfEu2I2tMpxIMKAJdr9WtTRd14Y";
 
 /*
  * URL pública fija de la implementación (deployment) de producción.
