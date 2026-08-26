@@ -1494,3 +1494,51 @@ function reiniciarPrueba1234(){
   Logger.log(resumen.join("\n"));
   return { ok: true, resumen: resumen };
 }
+
+
+/*****************************************************
+ * PROBAR REMITENTE calidadeducacion@alcaldianeiva.gov.co
+ *
+ * Verifica, con un envío real y mínimo, que la cuenta que
+ * ejecuta el script (la que aparece en Session.getEffectiveUser())
+ * ya puede enviar como REMITENTE_FEM — es decir, que el alias
+ * "Enviar correo como" quedó bien configurado y verificado en
+ * Gmail. El correo de prueba se manda a la misma cuenta que
+ * ejecuta el script, para no molestar a nadie más.
+ *
+ * Ejecutar manualmente desde el editor de Apps Script después
+ * de configurar el alias.
+ *****************************************************/
+function probarRemitenteFEM(){
+
+  const cuenta = Session.getEffectiveUser().getEmail();
+  const aliases = GmailApp.getAliases();
+
+  Logger.log("Cuenta que ejecuta el script: " + cuenta);
+  Logger.log("Alias configurados: " + (aliases.length ? aliases.join(", ") : "(ninguno)"));
+  Logger.log("REMITENTE_FEM configurado en el código: " + REMITENTE_FEM);
+
+  const autorizado =
+    cuenta.toLowerCase() === REMITENTE_FEM.toLowerCase() ||
+    aliases.map(a => a.toLowerCase()).indexOf(REMITENTE_FEM.toLowerCase()) !== -1;
+
+  if(!autorizado){
+    Logger.log("❌ TODAVÍA NO: " + REMITENTE_FEM + " no aparece como alias autorizado para " + cuenta + ".");
+    return { ok:false, mensaje:"El alias aún no está autorizado.", cuenta:cuenta, aliases:aliases };
+  }
+
+  try{
+    GmailApp.sendEmail(
+      cuenta,
+      "Prueba de remitente FEM 2026 — " + REMITENTE_FEM,
+      "Este es un correo de prueba para confirmar que ya se puede enviar como " + REMITENTE_FEM + ".",
+      { from: REMITENTE_FEM, name: "Secretaría de Educación de Neiva" }
+    );
+    Logger.log("✅ Envío correcto: se pudo enviar como " + REMITENTE_FEM + ". Revise la bandeja de " + cuenta + ".");
+    return { ok:true, mensaje:"Envío correcto." };
+  }catch(error){
+    Logger.log("❌ Error al enviar como " + REMITENTE_FEM + ": " + error.message);
+    return { ok:false, mensaje:error.message };
+  }
+
+}
