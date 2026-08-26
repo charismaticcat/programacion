@@ -4820,6 +4820,13 @@ function registrarAsistenciaQR(idForo, nombre, tipoAsistencia, cargo, rolForo, d
     if(!nombre || !tipoAsistencia || !cargo || !rolForo || !documento || !correo) return {ok:false, mensaje:"Complete nombre, tipo de asistencia, cargo, rol en el Foro, número de documento y correo electrónico."};
     if(TIPOS_ASISTENCIA_QR.indexOf(tipoAsistencia)===-1) return {ok:false, mensaje:"Seleccione un tipo de asistencia válido."};
     if(ROLES_FORO_QR.indexOf(rolForo)===-1) return {ok:false, mensaje:"Seleccione un rol válido en el Foro Educativo Institucional."};
+    // Validaciones de formato: el documento solo acepta dígitos, y el
+    // correo debe tener una forma mínimamente válida (no solo estar
+    // presente). El teléfono es opcional, pero si se escribe algo
+    // también debe ser solo dígitos.
+    if(!/^[0-9]+$/.test(documento)) return {ok:false, mensaje:"El número de documento debe contener solo números."};
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return {ok:false, mensaje:"Ingrese un correo electrónico válido."};
+    if(telefono && !/^[0-9]+$/.test(telefono)) return {ok:false, mensaje:"El teléfono debe contener solo números."};
 
     const acceso=obtenerAccesoPorIdForo_(idForo);
     if(!acceso) return {ok:false, mensaje:"Este código de asistencia ya no está disponible."};
@@ -5455,6 +5462,21 @@ function guardarValoracionFEM(idForo, respuestas){
 
     const hoja=asegurarHojaValoracionFEM_();
     const m=mapaHoja_(hoja);
+
+    // Una sola valoración por IE: si ya se registró una para este
+    // ID_FORO, no se crea una fila duplicada (por ejemplo, si se
+    // presiona "Enviar valoración" dos veces, o se reingresa después
+    // de haberla enviado).
+    const ultimaFilaValoracion=hoja.getLastRow();
+    if(ultimaFilaValoracion>=2 && m.ID_FORO){
+      const idsExistentes=hoja.getRange(2,m.ID_FORO,ultimaFilaValoracion-1,1).getDisplayValues();
+      for(let i=0;i<idsExistentes.length;i++){
+        if(String(idsExistentes[i][0]||"").trim()===String(idForo)){
+          return {ok:true, yaEnviada:true};
+        }
+      }
+    }
+
     const fila=new Array(hoja.getLastColumn()).fill("");
     const valores={
       ID_FORO:String(idForo),
