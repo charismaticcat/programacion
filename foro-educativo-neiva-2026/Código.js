@@ -76,7 +76,7 @@ const COLOR_NEGRO_DOC = "#000000";
 const TEMPLATE_INFORME_ID = "1Gtsccdbnlcyjl6TcDDjTOA7pAW3JQbHM";
 const LOGO_ENCABEZADO_ID = "1mFOOUZ5aFAuwMJMxNUaDnPPznDlQ2bj";
 const LOGO_PIE_ID = "1Cmx7c3ec2gQCjRc8kcNeUbZt5LiURyD5";
-const REMITENTE_FEM = "educacion@alcaldianeiva.gov.co";
+const REMITENTE_FEM = "calidadeducacion@alcaldianeiva.gov.co";
 const COPIAS_INFORME_FEM = [
   "adriana.cedeno@alcaldianeiva.gov.co",
   "angelica.rojas@alcaldianeiva.gov.co",
@@ -3132,7 +3132,7 @@ function enviarAccesosTodasIE(){
   );
 
   const remitente =
-    "educacion@alcaldianeiva.gov.co";
+    REMITENTE_FEM;
 
   const cuenta =
     Session.getEffectiveUser()
