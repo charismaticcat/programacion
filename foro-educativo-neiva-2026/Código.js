@@ -2800,13 +2800,21 @@ function validarAccesoIE(token, codigo, dispositivoId, forzar) {
      *
      * DISPONIBLE = permitido
      *
-     * ENVIADO = bloqueado
-     * BLOQUEADO = bloqueado
-     * INACTIVO = bloqueado
+     * BLOQUEADO / INACTIVO = bloqueo manual (lo pone la SEM a mano
+     * en AccesosIE) — se respeta siempre.
+     *
+     * ENVIADO = bloqueado SOLO si de verdad hay un envío completo
+     * registrado en AvancesForo. AccesosIE.ESTADO es una copia que
+     * puede quedar desactualizada (por ejemplo, si alguien borra la
+     * fila de la IE en AvancesForo para reiniciar una prueba); en
+     * ese caso este acceso se "revive" automáticamente en vez de
+     * quedar bloqueado para siempre por un campo que ya no
+     * corresponde con la realidad. Así, para reiniciar un código de
+     * acceso basta con borrar la fila de esa IE en AvancesForo — no
+     * hace falta editar nada más a mano.
      */
 
     if (
-      estado === "ENVIADO" ||
       estado === "BLOQUEADO" ||
       estado === "INACTIVO"
     ) {
@@ -2817,6 +2825,34 @@ function validarAccesoIE(token, codigo, dispositivoId, forzar) {
         mensaje:
           "Este acceso ya no está disponible."
       };
+
+    }
+
+    if (estado === "ENVIADO") {
+
+      const sesionesReales = obtenerEstadoSesiones_(idForo);
+      const envioRealCompleto = !!(sesionesReales.s1 && sesionesReales.s2 && sesionesReales.s3);
+
+      if (envioRealCompleto) {
+
+        return {
+          ok: false,
+          codigo: "ACCESO_BLOQUEADO",
+          mensaje:
+            "Este acceso ya no está disponible."
+        };
+
+      }
+
+      // No hay envío completo real en AvancesForo: el ESTADO quedó
+      // desactualizado. Se corrige en AccesosIE para que no vuelva
+      // a mostrar este mensaje, y se deja continuar el acceso.
+      if (mapa["ESTADO"]) {
+        hoja.getRange(numeroFila, mapa["ESTADO"]).setValue("DISPONIBLE");
+      }
+      ["S1_ENVIADA","S2_ENVIADA","S3_ENVIADA"].forEach(function(col){
+        if (mapa[col]) hoja.getRange(numeroFila, mapa[col]).setValue("");
+      });
 
     }
 

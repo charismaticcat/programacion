@@ -1389,3 +1389,108 @@ function probarCatalogoIE() {
 
     return instituciones;
 }
+
+
+/*****************************************************
+ * REINICIAR PRUEBA "IE PRUEBA 1234"
+ *
+ * Borra todo rastro de un envío de prueba anterior para
+ * poder volver a probar el formulario completo desde cero
+ * con el mismo código de acceso (1234):
+ *
+ *   - Fila en AvancesForo.
+ *   - Fila(s) en Participacion.
+ *   - Fila(s) en AsistenciaQR.
+ *   - Fila(s) en "Valoración FEMI2026".
+ *   - La pestaña propia "IE PRUEBA 1234" (si existe).
+ *   - ESTADO, S1/S2/S3_ENVIADA, fechas de envío, TOKEN_SESION,
+ *     DISPOSITIVO_ID, ID_INFORME e ID_PDF_INFORME en la fila
+ *     de AccesosIE (se dejan en blanco / "DISPONIBLE").
+ *   - El candado de sesión activa (PropertiesService).
+ *
+ * NO borra los archivos ya generados en Drive (fotos,
+ * informes) — eso se hace a mano desde la carpeta si hace
+ * falta. NO toca ninguna IE oficial.
+ *
+ * Ejecutar manualmente desde el editor de Apps Script.
+ *
+ * A partir de este mismo cambio, para reiniciar una prueba
+ * YA NO hace falta ejecutar esta función cada vez: basta con
+ * borrar a mano la fila de la IE en AvancesForo — la próxima
+ * vez que se ingrese con el código, validarAccesoIE detecta
+ * que ya no hay un envío completo ahí y reabre el acceso
+ * automáticamente, sin tocar nada más. Esta función sigue
+ * sirviendo para limpiar TODO de una sola vez (incluyendo
+ * Participacion, AsistenciaQR y Valoración, que no se borran
+ * solas).
+ *****************************************************/
+function reiniciarPrueba1234(){
+
+  const idForo = "PRUEBA-1234";
+  const ie = "IE PRUEBA 1234";
+  const resumen = [];
+
+  const ss = abrirSpreadsheet_();
+
+  function borrarFilasPorIdForo_(nombreHoja){
+    const hoja = ss.getSheetByName(nombreHoja);
+    if(!hoja){ resumen.push(nombreHoja + ": la hoja no existe."); return; }
+    const mapa = mapaHoja_(hoja);
+    if(!mapa["ID_FORO"]){ resumen.push(nombreHoja + ": no tiene columna ID_FORO."); return; }
+    const ultimaFila = hoja.getLastRow();
+    if(ultimaFila < 2){ resumen.push(nombreHoja + ": sin filas."); return; }
+    const valores = hoja.getRange(2, mapa["ID_FORO"], ultimaFila - 1, 1).getDisplayValues();
+    let borradas = 0;
+    // De abajo hacia arriba para no desordenar los índices al borrar.
+    for(let i = valores.length - 1; i >= 0; i--){
+      if(String(valores[i][0] || "").trim() === idForo){
+        hoja.deleteRow(i + 2);
+        borradas++;
+      }
+    }
+    resumen.push(nombreHoja + ": " + borradas + " fila(s) borrada(s).");
+  }
+
+  borrarFilasPorIdForo_(HOJA_AVANCES);
+  borrarFilasPorIdForo_(HOJA_PARTICIPACION);
+  borrarFilasPorIdForo_(HOJA_ASISTENCIA_QR);
+  borrarFilasPorIdForo_(HOJA_VALORACION_FEM);
+
+  const nombreHojaIe = nombreHojaIE_(ie);
+  const hojaIe = ss.getSheetByName(nombreHojaIe);
+  if(hojaIe){
+    ss.deleteSheet(hojaIe);
+    resumen.push("Pestaña \"" + nombreHojaIe + "\": eliminada.");
+  }else{
+    resumen.push("Pestaña \"" + nombreHojaIe + "\": no existía.");
+  }
+
+  const hojaAccesos = ss.getSheetByName(HOJA_ACCESOS);
+  if(hojaAccesos){
+    const mapaAccesos = mapaHoja_(hojaAccesos);
+    const filaAccesos = buscarFilaPorIdForo_(hojaAccesos, idForo, mapaAccesos);
+    if(filaAccesos > 0){
+      if(mapaAccesos.ESTADO) hojaAccesos.getRange(filaAccesos, mapaAccesos.ESTADO).setValue("DISPONIBLE");
+      [
+        "S1_ENVIADA","S2_ENVIADA","S3_ENVIADA",
+        "FECHA_ENVIO","FECHA_ENVIO_S1","FECHA_ENVIO_S2","FECHA_ENVIO_S3","FECHA_ENVIO_DEFINITIVO",
+        "TOKEN_SESION","DISPOSITIVO_ID","ID_INFORME","ID_PDF_INFORME"
+      ].forEach(function(col){
+        if(mapaAccesos[col]) hojaAccesos.getRange(filaAccesos, mapaAccesos[col]).setValue("");
+      });
+      resumen.push("AccesosIE: fila " + filaAccesos + " reiniciada a DISPONIBLE.");
+    }else{
+      resumen.push("AccesosIE: no se encontró la fila de " + ie + ".");
+    }
+  }
+
+  try{
+    PropertiesService.getScriptProperties().deleteProperty(obtenerClaveSesionCodigo_("", "", idForo));
+    resumen.push("Candado de sesión: liberado.");
+  }catch(error){
+    resumen.push("Candado de sesión: " + error.message);
+  }
+
+  Logger.log(resumen.join("\n"));
+  return { ok: true, resumen: resumen };
+}
