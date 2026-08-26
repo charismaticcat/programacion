@@ -5154,7 +5154,7 @@ function validarCodigoAccesoFEM(forzar){
     google.script.run
 
         .withSuccessHandler(
-            function(resultado){
+            async function(resultado){
 
                 boton.disabled =
                     false;
@@ -5179,15 +5179,22 @@ function validarCodigoAccesoFEM(forzar){
                      * se le pregunta al usuario si quiere tomar el
                      * control de la sesión (esto cierra la conexión
                      * del otro dispositivo). Solo una conexión por IE.
+                     * Se usa el modal propio de la app (confirmarFEM)
+                     * en vez de confirm() nativo, que se ve como un
+                     * aviso genérico del navegador.
                      */
                     if(
                         resultado &&
                         resultado.codigo === "SESION_YA_ABIERTA"
                     ){
 
-                        const confirmarTakeover = window.confirm(
-                            (resultado.mensaje || "Ya hay una sesión activa para esta IE.") +
-                            "\n\n¿Desea continuar en este dispositivo?"
+                        const confirmarTakeover = await confirmarFEM(
+                            resultado.mensaje || "Ya hay una sesión activa para esta IE. ¿Desea continuar en este dispositivo?",
+                            {
+                                titulo: "⚠️ Sesión activa en otro dispositivo",
+                                textoAceptar: "Sí, continuar aquí",
+                                textoCancelar: "Cancelar"
+                            }
                         );
 
                         if(confirmarTakeover){
