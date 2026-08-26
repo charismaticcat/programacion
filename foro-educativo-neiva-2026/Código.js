@@ -3179,6 +3179,9 @@ function enviarAccesosTodasIE(){
         fila[mapa["IE"]] || ""
       ).trim();
 
+    const ieSinPrefijo =
+      nombreIESinPrefijoInstitucional_(ie);
+
     const codigo =
       String(
         fila[mapa["CODIGO_ACCESO"]] || ""
@@ -3208,11 +3211,11 @@ function enviarAccesosTodasIE(){
         ie;
 
       const textoEnlace =
-        "Ingreso de la IE " + ie + " al Foro Educativo Institucional";
+        "Ingreso de la IE " + ieSinPrefijo + " al Foro Educativo Institucional";
 
       const cuerpoTexto =
         "Secretaría de Educación de Neiva\n\n" +
-        "Estimada comunidad educativa de la Institución Educativa " + ie + ":\n\n" +
+        "Estimada comunidad educativa de la Institución Educativa " + ieSinPrefijo + ":\n\n" +
         "Ya pueden ingresar al Foro Educativo Institucional – Neiva 2026 con el código de acceso exclusivo de su institución.\n\n" +
         "Código de acceso: " + codigo + "\n\n" +
         textoEnlace + ":\n" + url + "\n\n" +
@@ -3237,7 +3240,7 @@ function enviarAccesosTodasIE(){
         "<div style=\"color:#CFE8DC;font-size:14px;margin-top:2px;\">Neiva 2026</div>" +
         "</div>" +
         "<div style=\"padding:28px 28px 8px;\">" +
-        "<p style=\"font-size:16px;color:#333333;margin:0 0 14px;\">Estimada comunidad educativa de la Institución Educativa <strong>" + ie + "</strong>:</p>" +
+        "<p style=\"font-size:16px;color:#333333;margin:0 0 14px;\">Estimada comunidad educativa de la Institución Educativa <strong>" + ieSinPrefijo + "</strong>:</p>" +
         "<p style=\"font-size:15px;color:#4A4A4A;line-height:1.6;margin:0 0 22px;\">" +
         "Ya pueden ingresar al Foro Educativo Institucional – Neiva 2026 con el código de acceso exclusivo de su institución." +
         "</p>" +
@@ -4960,6 +4963,18 @@ function capitalizarNombreIE_(nombre){
 }
 
 /*
+ * Muchas IE ya guardan su nombre con el prefijo incluido ("INSTITUCIÓN
+ * EDUCATIVA JUAN XXIII"). Cuando un texto ya dice "Institución
+ * Educativa" antes del nombre, usar el nombre tal cual duplica esa
+ * frase ("Institución Educativa INSTITUCIÓN EDUCATIVA JUAN XXIII").
+ * Esta función quita ese prefijo redundante solo para esos casos —
+ * en el resto de usos (títulos, tablas) el nombre se deja igual.
+ */
+function nombreIESinPrefijoInstitucional_(ie){
+  return String(ie||"").replace(/^\s*(instituci[oó]n\s+educativa|i\.?\s*e\.?)\s+/i,"").trim();
+}
+
+/*
  * Página pública mínima que abre el QR: no forma parte del
  * formulario principal (App.html), es autocontenida a propósito
  * para que cargue rápido en el celular de cada asistente.
@@ -5339,7 +5354,7 @@ function totalParticipantesServer_(datos){const c=datos.campos||{};return ["Rect
 
 
 function enviarInformeFEM(idForo,datos,pdfId){
-  const acceso=obtenerAccesoPorIdForoRaw_(idForo); if(!acceso)throw new Error("ID_FORO no autorizado."); const c=datos.campos||{}; const ie=datos.institucion||acceso.ie; const destinatario=String(c.correoIE?.valor||acceso.email||"").trim(); const responsable=String(c.correo?.valor||"").trim(); if(!destinatario)throw new Error("La institución no tiene correo institucional registrado."); const aliases=GmailApp.getAliases().map(x=>x.toLowerCase()); const cuenta=Session.getEffectiveUser().getEmail().toLowerCase(); if(cuenta!==REMITENTE_FEM&&aliases.indexOf(REMITENTE_FEM)===-1)throw new Error("La cuenta de Apps Script no puede enviar como "+REMITENTE_FEM+". Configure esa cuenta o un alias."); const file=DriveApp.getFileById(pdfId); hacerPublicoSiEsPosible_(file); const linkDescarga=file.getUrl(); const subject="Reporte de Informe IE "+ie; const body="Apreciados(as) integrantes de la comunidad educativa de la Institución Educativa "+ie+":\n\nReciban un cordial saludo de la Secretaría de Educación de Neiva.\n\nAgradecemos a la Institución Educativa por su participación y por el tiempo dedicado al desarrollo del Foro Educativo Institucional – Neiva 2026, así como por los aportes, reflexiones y propuestas construidas colectivamente durante la jornada.\n\nAdjuntamos el Informe Ejecutivo del Foro Educativo Institucional – Neiva 2026, que reúne la caracterización institucional, la participación registrada y las respuestas definitivas construidas durante las tres sesiones de trabajo.\n\nTambién puede descargarlo desde este enlace:\n"+linkDescarga+"\n\nAgradecemos especialmente la disposición de la comunidad educativa para participar en este ejercicio de diálogo, reflexión y construcción colectiva orientado al fortalecimiento de la educación en nuestro municipio.\n\nSecretaría de Educación de Neiva\nForo Educativo Institucional – Neiva 2026\n\“Escuela Viva: Voces que construyen territorio\”"; const to=destinatario; const cc=[responsable].concat(COPIAS_INFORME_FEM).filter(Boolean).join(","); GmailApp.sendEmail(to,subject,body,{htmlBody:"<p>Apreciados(as) integrantes de la comunidad educativa de la <strong>"+ie+"</strong>:</p><p>Reciban un cordial saludo de la Secretaría de Educación de Neiva.</p><p>Agradecemos a la Institución Educativa por su participación y por el tiempo dedicado al desarrollo del <strong>Foro Educativo Institucional – Neiva 2026</strong>, así como por los aportes, reflexiones y propuestas construidas colectivamente durante la jornada.</p><p>Adjuntamos el <strong>Informe Ejecutivo del Foro Educativo Institucional – Neiva 2026</strong>, que reúne la caracterización institucional, la participación registrada y las respuestas definitivas construidas durante las tres sesiones de trabajo.</p><p>📄 <a href=\""+linkDescarga+"\">Descargar el informe aquí</a></p><p>Agradecemos especialmente la disposición de la comunidad educativa para participar en este ejercicio de diálogo, reflexión y construcción colectiva orientado al fortalecimiento de la educación en nuestro municipio.</p><p><strong>Secretaría de Educación de Neiva</strong><br>Foro Educativo Institucional – Neiva 2026<br>“Escuela Viva: Voces que construyen territorio”</p>",cc:cc,from:REMITENTE_FEM,name:"Secretaría de Educación de Neiva",attachments:[file.getBlob()]});
+  const acceso=obtenerAccesoPorIdForoRaw_(idForo); if(!acceso)throw new Error("ID_FORO no autorizado."); const c=datos.campos||{}; const ie=datos.institucion||acceso.ie; const ieSinPrefijo=nombreIESinPrefijoInstitucional_(ie); const destinatario=String(c.correoIE?.valor||acceso.email||"").trim(); const responsable=String(c.correo?.valor||"").trim(); if(!destinatario)throw new Error("La institución no tiene correo institucional registrado."); const aliases=GmailApp.getAliases().map(x=>x.toLowerCase()); const cuenta=Session.getEffectiveUser().getEmail().toLowerCase(); if(cuenta!==REMITENTE_FEM&&aliases.indexOf(REMITENTE_FEM)===-1)throw new Error("La cuenta de Apps Script no puede enviar como "+REMITENTE_FEM+". Configure esa cuenta o un alias."); const file=DriveApp.getFileById(pdfId); hacerPublicoSiEsPosible_(file); const linkDescarga=file.getUrl(); const subject="Reporte de Informe IE "+ie; const body="Apreciados(as) integrantes de la comunidad educativa de la Institución Educativa "+ieSinPrefijo+":\n\nReciban un cordial saludo de la Secretaría de Educación de Neiva.\n\nAgradecemos a la Institución Educativa por su participación y por el tiempo dedicado al desarrollo del Foro Educativo Institucional – Neiva 2026, así como por los aportes, reflexiones y propuestas construidas colectivamente durante la jornada.\n\nAdjuntamos el Informe Ejecutivo del Foro Educativo Institucional – Neiva 2026, que reúne la caracterización institucional, la participación registrada y las respuestas definitivas construidas durante las tres sesiones de trabajo.\n\nTambién puede descargarlo desde este enlace:\n"+linkDescarga+"\n\nAgradecemos especialmente la disposición de la comunidad educativa para participar en este ejercicio de diálogo, reflexión y construcción colectiva orientado al fortalecimiento de la educación en nuestro municipio.\n\nSecretaría de Educación de Neiva\nForo Educativo Institucional – Neiva 2026\n\“Escuela Viva: Voces que construyen territorio\”"; const to=destinatario; const cc=[responsable].concat(COPIAS_INFORME_FEM).filter(Boolean).join(","); GmailApp.sendEmail(to,subject,body,{htmlBody:"<p>Apreciados(as) integrantes de la comunidad educativa de la Institución Educativa <strong>"+ieSinPrefijo+"</strong>:</p><p>Reciban un cordial saludo de la Secretaría de Educación de Neiva.</p><p>Agradecemos a la Institución Educativa por su participación y por el tiempo dedicado al desarrollo del <strong>Foro Educativo Institucional – Neiva 2026</strong>, así como por los aportes, reflexiones y propuestas construidas colectivamente durante la jornada.</p><p>Adjuntamos el <strong>Informe Ejecutivo del Foro Educativo Institucional – Neiva 2026</strong>, que reúne la caracterización institucional, la participación registrada y las respuestas definitivas construidas durante las tres sesiones de trabajo.</p><p>📄 <a href=\""+linkDescarga+"\">Descargar el informe aquí</a></p><p>Agradecemos especialmente la disposición de la comunidad educativa para participar en este ejercicio de diálogo, reflexión y construcción colectiva orientado al fortalecimiento de la educación en nuestro municipio.</p><p><strong>Secretaría de Educación de Neiva</strong><br>Foro Educativo Institucional – Neiva 2026<br>“Escuela Viva: Voces que construyen territorio”</p>",cc:cc,from:REMITENTE_FEM,name:"Secretaría de Educación de Neiva",attachments:[file.getBlob()]});
 
   /*
    * Correo personalizado y directo a quien diligenció el
@@ -5352,10 +5367,10 @@ function enviarInformeFEM(idForo,datos,pdfId){
     const nombreResponsable=String(c.nombre?.valor||"").trim();
     const saludoResponsable=nombreResponsable?("Estimado(a) "+nombreResponsable+":"):"Estimado(a):";
     const asuntoResponsable="Gracias por diligenciar el Foro Educativo Institucional – "+ie;
-    const cuerpoResponsable=saludoResponsable+"\n\nReciba un cordial saludo de la Secretaría de Educación de Neiva.\n\nLe agradecemos personalmente por haber diligenciado el Foro Educativo Institucional – Neiva 2026 en representación de la Institución Educativa "+ie+".\n\nAdjuntamos el Informe Ejecutivo ya generado. También puede descargarlo desde este enlace:\n"+linkDescarga+"\n\nSecretaría de Educación de Neiva\nForo Educativo Institucional – Neiva 2026\n\“Escuela Viva: Voces que construyen territorio\”";
+    const cuerpoResponsable=saludoResponsable+"\n\nReciba un cordial saludo de la Secretaría de Educación de Neiva.\n\nLe agradecemos personalmente por haber diligenciado el Foro Educativo Institucional – Neiva 2026 en representación de la Institución Educativa "+ieSinPrefijo+".\n\nAdjuntamos el Informe Ejecutivo ya generado. También puede descargarlo desde este enlace:\n"+linkDescarga+"\n\nSecretaría de Educación de Neiva\nForo Educativo Institucional – Neiva 2026\n\“Escuela Viva: Voces que construyen territorio\”";
     try{
       GmailApp.sendEmail(responsable,asuntoResponsable,cuerpoResponsable,{
-        htmlBody:"<p>"+saludoResponsable+"</p><p>Reciba un cordial saludo de la Secretaría de Educación de Neiva.</p><p>Le agradecemos personalmente por haber diligenciado el <strong>Foro Educativo Institucional – Neiva 2026</strong> en representación de la Institución Educativa <strong>"+ie+"</strong>.</p><p>Adjuntamos el Informe Ejecutivo ya generado. También puede descargarlo desde aquí:</p><p>📄 <a href=\""+linkDescarga+"\">Descargar el informe</a></p><p><strong>Secretaría de Educación de Neiva</strong><br>Foro Educativo Institucional – Neiva 2026<br>“Escuela Viva: Voces que construyen territorio”</p>",
+        htmlBody:"<p>"+saludoResponsable+"</p><p>Reciba un cordial saludo de la Secretaría de Educación de Neiva.</p><p>Le agradecemos personalmente por haber diligenciado el <strong>Foro Educativo Institucional – Neiva 2026</strong> en representación de la Institución Educativa <strong>"+ieSinPrefijo+"</strong>.</p><p>Adjuntamos el Informe Ejecutivo ya generado. También puede descargarlo desde aquí:</p><p>📄 <a href=\""+linkDescarga+"\">Descargar el informe</a></p><p><strong>Secretaría de Educación de Neiva</strong><br>Foro Educativo Institucional – Neiva 2026<br>“Escuela Viva: Voces que construyen territorio”</p>",
         from:REMITENTE_FEM,
         name:"Secretaría de Educación de Neiva",
         attachments:[file.getBlob()]
@@ -5476,6 +5491,7 @@ function enviarComprobanteParticipacionFEM(idForo, datos){
 
   const c=datos?.campos||{};
   const ie=datos?.institucion||acceso.ie;
+  const ieSinPrefijo=nombreIESinPrefijoInstitucional_(ie);
   const destinatario=String(c.correoIE?.valor||acceso.email||"").trim();
   const responsable=String(c.correo?.valor||"").trim();
   const nombreResponsable=String(c.nombre?.valor||"").trim();
@@ -5493,9 +5509,9 @@ function enviarComprobanteParticipacionFEM(idForo, datos){
 
   const cuerpoTexto=
     "Secretaría de Educación de Neiva\n\n"+
-    "Estimada comunidad educativa de la Institución Educativa "+ie+":\n\n"+
+    "Estimada comunidad educativa de la Institución Educativa "+ieSinPrefijo+":\n\n"+
     "Confirmamos la recepción de la valoración de la actividad enviada por "+(nombreResponsable||"su institución")+".\n\n"+
-    "Este correo es el comprobante de participación de la Institución Educativa "+ie+" dentro del grupo "+grupo+" para el Foro Educativo Comunitario, el 24 de septiembre de 2026.\n\n"+
+    "Este correo es el comprobante de participación de la Institución Educativa "+ieSinPrefijo+" dentro del grupo "+grupo+" para el Foro Educativo Comunitario, el 24 de septiembre de 2026.\n\n"+
     "Agradecemos nuevamente su participación y los aportes construidos durante la jornada.\n\n"+
     "Secretaría de Educación de Neiva\n"+
     "Foro Educativo Institucional – Neiva 2026\n"+
@@ -5510,12 +5526,12 @@ function enviarComprobanteParticipacionFEM(idForo, datos){
     "<div style=\"color:#CFE8DC;font-size:13px;margin-top:2px;\">Foro Educativo Institucional — Neiva 2026</div>"+
     "</div>"+
     "<div style=\"padding:28px;\">"+
-    "<p style=\"font-size:16px;color:#333333;margin:0 0 14px;\">Estimada comunidad educativa de la Institución Educativa <strong>"+ie+"</strong>:</p>"+
+    "<p style=\"font-size:16px;color:#333333;margin:0 0 14px;\">Estimada comunidad educativa de la Institución Educativa <strong>"+ieSinPrefijo+"</strong>:</p>"+
     "<p style=\"font-size:15px;color:#4A4A4A;line-height:1.6;margin:0 0 20px;\">"+
     "Confirmamos la recepción de la valoración de la actividad enviada por "+(nombreResponsable?"<strong>"+nombreResponsable+"</strong>":"su institución")+"."+
     "</p>"+
     "<div style=\"background:#F7F8FA;border-left:6px solid #F4B400;border-radius:10px;padding:16px 20px;margin:0 0 22px;\">"+
-    "<p style=\"font-size:14px;color:#333333;margin:0;\">Este correo es el <strong>comprobante de participación</strong> de la Institución Educativa <strong>"+ie+"</strong> dentro del <strong>grupo "+grupo+"</strong> para el <strong>Foro Educativo Comunitario</strong>, el <strong>24 de septiembre de 2026</strong>.</p>"+
+    "<p style=\"font-size:14px;color:#333333;margin:0;\">Este correo es el <strong>comprobante de participación</strong> de la Institución Educativa <strong>"+ieSinPrefijo+"</strong> dentro del <strong>grupo "+grupo+"</strong> para el <strong>Foro Educativo Comunitario</strong>, el <strong>24 de septiembre de 2026</strong>.</p>"+
     "</div>"+
     "<p style=\"font-size:14px;color:#4A4A4A;line-height:1.6;margin:0;\">Agradecemos nuevamente su participación y los aportes construidos colectivamente durante la jornada.</p>"+
     "</div>"+
