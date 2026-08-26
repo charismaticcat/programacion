@@ -2008,7 +2008,7 @@ button:disabled{
 
 .editorRespuestaPlenaria{
     width:100%;
-    min-height:180px;
+    min-height:80px;
     padding:16px;
     font-size:16px;
     font-family:inherit;
@@ -2016,7 +2016,11 @@ button:disabled{
     color:#333;
     border:1px solid #cfd8dc;
     border-radius:10px;
-    resize:vertical;
+    /* La altura se ajusta en JS (ajustarAlturaTextareaPlenaria_) al
+       tamaño real de la respuesta, sin espacio vacío de sobra — por
+       eso no lleva resize manual ni scroll interno propio. */
+    resize:none;
+    overflow-y:hidden;
 }
 .editorRespuestaPlenaria:focus{
     outline:none;
