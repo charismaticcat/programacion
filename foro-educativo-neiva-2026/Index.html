@@ -11,12 +11,16 @@
 
 <title>Foro Educativo Institucional 2026</title>
 
+<? if (logoIEUrl) { ?>
+<link rel="icon" href="<?!= logoIEUrl ?>">
+<? } ?>
+
 <?!= include('CSS'); ?>
 
 </head>
 
 <body>
-  
+
 <!-- =====================================================
 ENCABEZADO
 ===================================================== -->
@@ -31,7 +35,11 @@ ENCABEZADO
 
     <div class="tituloHeader">
 
-        <h1>FORO EDUCATIVO INSTITUCIONAL</h1>
+        <? if (logoIEUrl) { ?>
+        <img id="logoIE" class="logoIEHeader" src="<?!= logoIEUrl ?>" alt="Logo de la institución educativa">
+        <? } ?>
+
+        <h1><?!= tituloHeaderIE ?></h1>
 
         <h2>Neiva 2026</h2>
 
@@ -2325,6 +2333,9 @@ Aspectos para orientar la discusión
 
     const URL_WEBAPP_PRODUCCION_CLIENTE =
         <?!= JSON.stringify(urlWebapp || "") ?>;
+
+    const LOGO_IE_URL =
+        <?!= JSON.stringify(logoIEUrl || "") ?>;
 </script>
 
 <?!= include('App'); ?>

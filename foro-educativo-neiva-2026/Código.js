@@ -174,6 +174,8 @@ const token =
 
   plantilla.tokenAcceso = token;
   plantilla.nombreIEAcceso = "";
+  plantilla.logoIEUrl = "";
+  plantilla.tituloHeaderIE = "FORO EDUCATIVO INSTITUCIONAL";
   plantilla.urlWebapp = URL_WEBAPP_PRODUCCION;
 
   /*
@@ -208,6 +210,9 @@ const token =
           const colToken =
             cabeceras.indexOf("TOKEN");
 
+          const colLogo =
+            cabeceras.indexOf("LOGO_ID");
+
           if (
             colIE !== -1 &&
             colToken !== -1
@@ -230,6 +235,23 @@ const token =
                   String(
                     datos[i][colIE] || ""
                   ).trim();
+
+                plantilla.tituloHeaderIE =
+                  "FORO EDUCATIVO INSTITUCIÓN EDUCATIVA " +
+                  nombreIESinPrefijoInstitucional_(plantilla.nombreIEAcceso).toUpperCase();
+
+                if (colLogo !== -1) {
+
+                  const logoId =
+                    String(
+                      datos[i][colLogo] || ""
+                    ).trim();
+
+                  if (logoId) {
+                    plantilla.logoIEUrl = urlPublicaLogoDrive_(logoId);
+                  }
+
+                }
 
                 break;
 
@@ -3182,6 +3204,11 @@ function enviarAccesosTodasIE(){
     const ieSinPrefijo =
       nombreIESinPrefijoInstitucional_(ie);
 
+    const logoIEUrlCorreo =
+      mapa["LOGO_ID"] !== undefined
+        ? urlPublicaLogoDrive_(String(fila[mapa["LOGO_ID"]] || "").trim())
+        : "";
+
     const codigo =
       String(
         fila[mapa["CODIGO_ACCESO"]] || ""
@@ -3236,6 +3263,7 @@ function enviarAccesosTodasIE(){
         "<div style=\"background:#F7F8FA;padding:28px 12px;font-family:Arial,Helvetica,sans-serif;\">" +
         "<div style=\"max-width:520px;margin:0 auto;background:#FFFFFF;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.10);\">" +
         "<div style=\"background:#0B6A44;padding:26px 28px;text-align:center;\">" +
+        (logoIEUrlCorreo ? "<img src=\""+logoIEUrlCorreo+"\" alt=\"Logo de la institución educativa\" style=\"display:block;max-width:56px;max-height:56px;margin:0 auto 10px;border-radius:8px;\">" : "") +
         "<div style=\"color:#FFFFFF;font-size:20px;font-weight:700;\">Foro Educativo Institucional</div>" +
         "<div style=\"color:#CFE8DC;font-size:14px;margin-top:2px;\">Neiva 2026</div>" +
         "</div>" +
@@ -4651,7 +4679,7 @@ function asegurarColumnasAccesosIE_(){
   const ss=abrirSpreadsheet_();
   let hoja=ss.getSheetByName(HOJA_ACCESOS);
   if(!hoja) hoja=ss.insertSheet(HOJA_ACCESOS);
-  const requeridas=["ID_ACCESO","IE","DANE","CODIGO_ACCESO","TOKEN","URL_ACCESO","ID_FORO","ESTADO","TOKEN_SESION","DISPOSITIVO_ID","FECHA_GENERACION","FECHA_PRIMER_ACCESO","ULTIMA_ACTIVIDAD","FECHA_ENVIO","EMAIL_IE","EMAIL_RESPONSABLE","TIPO","S1_ENVIADA","S2_ENVIADA","S3_ENVIADA","ID_INFORME","ID_PDF_INFORME"];
+  const requeridas=["ID_ACCESO","IE","DANE","CODIGO_ACCESO","TOKEN","URL_ACCESO","ID_FORO","ESTADO","TOKEN_SESION","DISPOSITIVO_ID","FECHA_GENERACION","FECHA_PRIMER_ACCESO","ULTIMA_ACTIVIDAD","FECHA_ENVIO","EMAIL_IE","EMAIL_RESPONSABLE","TIPO","S1_ENVIADA","S2_ENVIADA","S3_ENVIADA","ID_INFORME","ID_PDF_INFORME","LOGO_ID"];
   const last=hoja.getLastColumn();
   const existentes=last?hoja.getRange(1,1,1,last).getValues()[0].map(String):[];
   if(!last){hoja.getRange(1,1,1,requeridas.length).setValues([requeridas]);}
@@ -4747,6 +4775,37 @@ function crearCarpetaIE_(ie){
 
 
 function hacerPublicoSiEsPosible_(file){try{file.setSharing(DriveApp.Access.ANYONE_WITH_LINK,DriveApp.Permission.VIEW);}catch(e){Logger.log("No se pudo cambiar compartir: "+e.message);}}
+
+/*
+ * URL de imagen directamente visible (sin necesidad de sesión de
+ * Google) para un archivo de Drive ya compartido como "cualquiera
+ * con el enlace". Se usa para los logos por IE en el encabezado de
+ * la página, el favicon, los correos y el informe.
+ */
+function urlPublicaLogoDrive_(fileId){
+  if(!fileId) return "";
+  return "https://lh3.googleusercontent.com/d/"+fileId+"=w300";
+}
+
+/*
+ * Busca en AccesosIE la columna LOGO_ID de una IE por su nombre
+ * exacto (tal como está guardado en esa hoja). Devuelve el ID del
+ * archivo de Drive, o "" si esa IE no tiene logo vinculado todavía.
+ */
+function obtenerLogoIdPorNombreIE_(nombreIE){
+  const nombre=String(nombreIE||"").trim(); if(!nombre) return "";
+  const hoja=asegurarColumnasAccesosIE_();
+  const m=mapaHoja_(hoja);
+  if(!m.IE || !m.LOGO_ID) return "";
+  const ultimaFila=hoja.getLastRow(); if(ultimaFila<2) return "";
+  const valores=hoja.getRange(2,1,ultimaFila-1,hoja.getLastColumn()).getDisplayValues();
+  for(let i=0;i<valores.length;i++){
+    if(String(valores[i][m.IE-1]||"").trim()===nombre){
+      return String(valores[i][m.LOGO_ID-1]||"").trim();
+    }
+  }
+  return "";
+}
 
 
 /*****************************************************
@@ -5209,7 +5268,21 @@ function generarInformeFEM(idForo,datosCliente){
     const AZUL_CLARO=COLOR_AZUL_CLARO_DOC, AMARILLO=COLOR_AMARILLO_DOC, NEGRO=COLOR_NEGRO_DOC;
 
     const body=doc.getBody(); body.clear(); body.setPageWidth(612).setPageHeight(792).setMarginTop(50).setMarginBottom(50).setMarginLeft(48).setMarginRight(48);
-    const h=doc.getHeader()||doc.addHeader(); h.clear(); const hi=h.appendParagraph(""); hi.setAlignment(DocumentApp.HorizontalAlignment.RIGHT); try{hi.appendInlineImage(DriveApp.getFileById(LOGO_ENCABEZADO_ID).getBlob()).setWidth(90).setHeight(50);}catch(e){};
+    /*
+     * Encabezado en una tabla invisible de 2 columnas: el logo de la
+     * IE a la izquierda y el de la Alcaldía/SEM a la derecha, uno al
+     * lado del otro sin superponerse. Si la IE no tiene logo
+     * vinculado todavía, la celda izquierda simplemente queda vacía.
+     */
+    const h=doc.getHeader()||doc.addHeader(); h.clear();
+    const logoIdIE=obtenerLogoIdPorNombreIE_(datos.institucion||"");
+    const tablaEncabezado=h.appendTable([["",""]]);
+    tablaEncabezado.setBorderWidth(0);
+    const celdaLogoIE=tablaEncabezado.getCell(0,0);
+    if(logoIdIE){ try{ celdaLogoIE.getChild(0).asParagraph().appendInlineImage(DriveApp.getFileById(logoIdIE).getBlob()).setWidth(50).setHeight(50); }catch(e){}; }
+    const celdaLogoAlcaldia=tablaEncabezado.getCell(0,1);
+    celdaLogoAlcaldia.getChild(0).asParagraph().setAlignment(DocumentApp.HorizontalAlignment.RIGHT);
+    try{ celdaLogoAlcaldia.getChild(0).asParagraph().appendInlineImage(DriveApp.getFileById(LOGO_ENCABEZADO_ID).getBlob()).setWidth(90).setHeight(50); }catch(e){};
     const footer=doc.getFooter()||doc.addFooter(); footer.clear(); const fp=footer.appendParagraph(""); fp.setAlignment(DocumentApp.HorizontalAlignment.CENTER); try{fp.appendInlineImage(DriveApp.getFileById(LOGO_PIE_ID).getBlob()).setWidth(80).setHeight(40);}catch(e){};
     const fpTexto=footer.appendParagraph("Generado por SEM el "+Utilities.formatDate(new Date(),Session.getScriptTimeZone(),"dd/MM/yyyy 'a las' HH:mm")+". Enviado por "+(datos.campos?.nombre?.valor||"")+" — "+(datos.campos?.correo?.valor||"")+" — "+(datos.campos?.cargo?.valor||"")+" de la "+(datos.institucion||""));
     fpTexto.setAlignment(DocumentApp.HorizontalAlignment.CENTER); fpTexto.editAsText().setForegroundColor(GRIS_TEXTO).setFontSize(9);
@@ -5361,7 +5434,7 @@ function totalParticipantesServer_(datos){const c=datos.campos||{};return ["Rect
 
 
 function enviarInformeFEM(idForo,datos,pdfId){
-  const acceso=obtenerAccesoPorIdForoRaw_(idForo); if(!acceso)throw new Error("ID_FORO no autorizado."); const c=datos.campos||{}; const ie=datos.institucion||acceso.ie; const ieSinPrefijo=nombreIESinPrefijoInstitucional_(ie); const destinatario=String(c.correoIE?.valor||acceso.email||"").trim(); const responsable=String(c.correo?.valor||"").trim(); if(!destinatario)throw new Error("La institución no tiene correo institucional registrado."); const aliases=GmailApp.getAliases().map(x=>x.toLowerCase()); const cuenta=Session.getEffectiveUser().getEmail().toLowerCase(); if(cuenta!==REMITENTE_FEM&&aliases.indexOf(REMITENTE_FEM)===-1)throw new Error("La cuenta de Apps Script no puede enviar como "+REMITENTE_FEM+". Configure esa cuenta o un alias."); const file=DriveApp.getFileById(pdfId); hacerPublicoSiEsPosible_(file); const linkDescarga=file.getUrl(); const subject="Reporte de Informe IE "+ie; const body="Apreciados(as) integrantes de la comunidad educativa de la Institución Educativa "+ieSinPrefijo+":\n\nReciban un cordial saludo de la Secretaría de Educación de Neiva.\n\nAgradecemos a la Institución Educativa por su participación y por el tiempo dedicado al desarrollo del Foro Educativo Institucional – Neiva 2026, así como por los aportes, reflexiones y propuestas construidas colectivamente durante la jornada.\n\nAdjuntamos el Informe Ejecutivo del Foro Educativo Institucional – Neiva 2026, que reúne la caracterización institucional, la participación registrada y las respuestas definitivas construidas durante las tres sesiones de trabajo.\n\nTambién puede descargarlo desde este enlace:\n"+linkDescarga+"\n\nAgradecemos especialmente la disposición de la comunidad educativa para participar en este ejercicio de diálogo, reflexión y construcción colectiva orientado al fortalecimiento de la educación en nuestro municipio.\n\nSecretaría de Educación de Neiva\nForo Educativo Institucional – Neiva 2026\n\“Escuela Viva: Voces que construyen territorio\”"; const to=destinatario; const cc=[responsable].concat(COPIAS_INFORME_FEM).filter(Boolean).join(","); GmailApp.sendEmail(to,subject,body,{htmlBody:"<p>Apreciados(as) integrantes de la comunidad educativa de la Institución Educativa <strong>"+ieSinPrefijo+"</strong>:</p><p>Reciban un cordial saludo de la Secretaría de Educación de Neiva.</p><p>Agradecemos a la Institución Educativa por su participación y por el tiempo dedicado al desarrollo del <strong>Foro Educativo Institucional – Neiva 2026</strong>, así como por los aportes, reflexiones y propuestas construidas colectivamente durante la jornada.</p><p>Adjuntamos el <strong>Informe Ejecutivo del Foro Educativo Institucional – Neiva 2026</strong>, que reúne la caracterización institucional, la participación registrada y las respuestas definitivas construidas durante las tres sesiones de trabajo.</p><p>📄 <a href=\""+linkDescarga+"\">Descargar el informe aquí</a></p><p>Agradecemos especialmente la disposición de la comunidad educativa para participar en este ejercicio de diálogo, reflexión y construcción colectiva orientado al fortalecimiento de la educación en nuestro municipio.</p><p><strong>Secretaría de Educación de Neiva</strong><br>Foro Educativo Institucional – Neiva 2026<br>“Escuela Viva: Voces que construyen territorio”</p>",cc:cc,from:REMITENTE_FEM,name:"Secretaría de Educación de Neiva",attachments:[file.getBlob()]});
+  const acceso=obtenerAccesoPorIdForoRaw_(idForo); if(!acceso)throw new Error("ID_FORO no autorizado."); const c=datos.campos||{}; const ie=datos.institucion||acceso.ie; const ieSinPrefijo=nombreIESinPrefijoInstitucional_(ie); const logoIEUrlCorreo=urlPublicaLogoDrive_(obtenerLogoIdPorNombreIE_(ie)); const logoIEHtmlCorreo=logoIEUrlCorreo?("<div style=\"text-align:center;margin:0 0 18px;\"><img src=\""+logoIEUrlCorreo+"\" alt=\"Logo de la institución educativa\" style=\"max-width:56px;max-height:56px;border-radius:8px;\"></div>"):""; const destinatario=String(c.correoIE?.valor||acceso.email||"").trim(); const responsable=String(c.correo?.valor||"").trim(); if(!destinatario)throw new Error("La institución no tiene correo institucional registrado."); const aliases=GmailApp.getAliases().map(x=>x.toLowerCase()); const cuenta=Session.getEffectiveUser().getEmail().toLowerCase(); if(cuenta!==REMITENTE_FEM&&aliases.indexOf(REMITENTE_FEM)===-1)throw new Error("La cuenta de Apps Script no puede enviar como "+REMITENTE_FEM+". Configure esa cuenta o un alias."); const file=DriveApp.getFileById(pdfId); hacerPublicoSiEsPosible_(file); const linkDescarga=file.getUrl(); const subject="Reporte de Informe IE "+ie; const body="Apreciados(as) integrantes de la comunidad educativa de la Institución Educativa "+ieSinPrefijo+":\n\nReciban un cordial saludo de la Secretaría de Educación de Neiva.\n\nAgradecemos a la Institución Educativa por su participación y por el tiempo dedicado al desarrollo del Foro Educativo Institucional – Neiva 2026, así como por los aportes, reflexiones y propuestas construidas colectivamente durante la jornada.\n\nAdjuntamos el Informe Ejecutivo del Foro Educativo Institucional – Neiva 2026, que reúne la caracterización institucional, la participación registrada y las respuestas definitivas construidas durante las tres sesiones de trabajo.\n\nTambién puede descargarlo desde este enlace:\n"+linkDescarga+"\n\nAgradecemos especialmente la disposición de la comunidad educativa para participar en este ejercicio de diálogo, reflexión y construcción colectiva orientado al fortalecimiento de la educación en nuestro municipio.\n\nSecretaría de Educación de Neiva\nForo Educativo Institucional – Neiva 2026\n\“Escuela Viva: Voces que construyen territorio\”"; const to=destinatario; const cc=[responsable].concat(COPIAS_INFORME_FEM).filter(Boolean).join(","); GmailApp.sendEmail(to,subject,body,{htmlBody:logoIEHtmlCorreo+"<p>Apreciados(as) integrantes de la comunidad educativa de la Institución Educativa <strong>"+ieSinPrefijo+"</strong>:</p><p>Reciban un cordial saludo de la Secretaría de Educación de Neiva.</p><p>Agradecemos a la Institución Educativa por su participación y por el tiempo dedicado al desarrollo del <strong>Foro Educativo Institucional – Neiva 2026</strong>, así como por los aportes, reflexiones y propuestas construidas colectivamente durante la jornada.</p><p>Adjuntamos el <strong>Informe Ejecutivo del Foro Educativo Institucional – Neiva 2026</strong>, que reúne la caracterización institucional, la participación registrada y las respuestas definitivas construidas durante las tres sesiones de trabajo.</p><p>📄 <a href=\""+linkDescarga+"\">Descargar el informe aquí</a></p><p>Agradecemos especialmente la disposición de la comunidad educativa para participar en este ejercicio de diálogo, reflexión y construcción colectiva orientado al fortalecimiento de la educación en nuestro municipio.</p><p><strong>Secretaría de Educación de Neiva</strong><br>Foro Educativo Institucional – Neiva 2026<br>“Escuela Viva: Voces que construyen territorio”</p>",cc:cc,from:REMITENTE_FEM,name:"Secretaría de Educación de Neiva",attachments:[file.getBlob()]});
 
   /*
    * Correo personalizado y directo a quien diligenció el
@@ -5377,7 +5450,7 @@ function enviarInformeFEM(idForo,datos,pdfId){
     const cuerpoResponsable=saludoResponsable+"\n\nReciba un cordial saludo de la Secretaría de Educación de Neiva.\n\nLe agradecemos personalmente por haber diligenciado el Foro Educativo Institucional – Neiva 2026 en representación de la Institución Educativa "+ieSinPrefijo+".\n\nAdjuntamos el Informe Ejecutivo ya generado. También puede descargarlo desde este enlace:\n"+linkDescarga+"\n\nSecretaría de Educación de Neiva\nForo Educativo Institucional – Neiva 2026\n\“Escuela Viva: Voces que construyen territorio\”";
     try{
       GmailApp.sendEmail(responsable,asuntoResponsable,cuerpoResponsable,{
-        htmlBody:"<p>"+saludoResponsable+"</p><p>Reciba un cordial saludo de la Secretaría de Educación de Neiva.</p><p>Le agradecemos personalmente por haber diligenciado el <strong>Foro Educativo Institucional – Neiva 2026</strong> en representación de la Institución Educativa <strong>"+ieSinPrefijo+"</strong>.</p><p>Adjuntamos el Informe Ejecutivo ya generado. También puede descargarlo desde aquí:</p><p>📄 <a href=\""+linkDescarga+"\">Descargar el informe</a></p><p><strong>Secretaría de Educación de Neiva</strong><br>Foro Educativo Institucional – Neiva 2026<br>“Escuela Viva: Voces que construyen territorio”</p>",
+        htmlBody:logoIEHtmlCorreo+"<p>"+saludoResponsable+"</p><p>Reciba un cordial saludo de la Secretaría de Educación de Neiva.</p><p>Le agradecemos personalmente por haber diligenciado el <strong>Foro Educativo Institucional – Neiva 2026</strong> en representación de la Institución Educativa <strong>"+ieSinPrefijo+"</strong>.</p><p>Adjuntamos el Informe Ejecutivo ya generado. También puede descargarlo desde aquí:</p><p>📄 <a href=\""+linkDescarga+"\">Descargar el informe</a></p><p><strong>Secretaría de Educación de Neiva</strong><br>Foro Educativo Institucional – Neiva 2026<br>“Escuela Viva: Voces que construyen territorio”</p>",
         from:REMITENTE_FEM,
         name:"Secretaría de Educación de Neiva",
         attachments:[file.getBlob()]
@@ -5514,6 +5587,7 @@ function enviarComprobanteParticipacionFEM(idForo, datos){
   const c=datos?.campos||{};
   const ie=datos?.institucion||acceso.ie;
   const ieSinPrefijo=nombreIESinPrefijoInstitucional_(ie);
+  const logoIEUrlCorreo=urlPublicaLogoDrive_(obtenerLogoIdPorNombreIE_(ie));
   const destinatario=String(c.correoIE?.valor||acceso.email||"").trim();
   const responsable=String(c.correo?.valor||"").trim();
   const nombreResponsable=String(c.nombre?.valor||"").trim();
@@ -5543,6 +5617,7 @@ function enviarComprobanteParticipacionFEM(idForo, datos){
     "<div style=\"background:#F7F8FA;padding:28px 12px;font-family:Arial,Helvetica,sans-serif;\">"+
     "<div style=\"max-width:520px;margin:0 auto;background:#FFFFFF;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.10);\">"+
     "<div style=\"background:#0B6A44;padding:26px 28px;text-align:center;\">"+
+    (logoIEUrlCorreo ? "<img src=\""+logoIEUrlCorreo+"\" alt=\"Logo de la institución educativa\" style=\"display:block;max-width:48px;max-height:48px;margin:0 auto 8px;border-radius:8px;\">" : "")+
     "<div style=\"font-size:40px;line-height:1;margin-bottom:6px;\">✅</div>"+
     "<div style=\"color:#FFFFFF;font-size:18px;font-weight:700;\">Comprobante de participación</div>"+
     "<div style=\"color:#CFE8DC;font-size:13px;margin-top:2px;\">Foro Educativo Institucional — Neiva 2026</div>"+

@@ -1542,3 +1542,132 @@ function probarRemitenteFEM(){
   }
 
 }
+
+
+/*****************************************************
+ * VINCULAR LOGOS DE CADA IE
+ *
+ * Recorre la carpeta de Drive con los logos institucionales
+ * (una por IE, subidos con un nombre parecido al de la
+ * institución) y los relaciona con cada fila de AccesosIE por
+ * nombre, guardando el ID del archivo en la columna LOGO_ID.
+ *
+ * El emparejamiento es por nombre normalizado (sin tildes, sin
+ * mayúsculas sostenidas, sin el prefijo "Institución Educativa"/
+ * "IE"), así que "CHAPINERO.png" coincide con la IE "CHAPINERO"
+ * o "INSTITUCIÓN EDUCATIVA CHAPINERO" indistintamente.
+ *
+ * NO asigna nada cuando hay ambigüedad (el mismo nombre coincide
+ * con varios archivos, o el nombre de un archivo coincide con
+ * varias IE): esos casos quedan listados en el registro de
+ * ejecución para revisarlos y asignarlos a mano en la columna
+ * LOGO_ID de AccesosIE.
+ *
+ * Ejecutar manualmente desde el editor de Apps Script.
+ *****************************************************/
+function vincularLogosIE(){
+
+  const CARPETA_LOGOS_ID = "1QVfDyYjhjX5H60U7SyeLtikodQbhGu1B";
+
+  const hoja = asegurarColumnasAccesosIE_();
+  const mapa = mapaHoja_(hoja);
+  const ultimaFila = hoja.getLastRow();
+
+  if(ultimaFila < 2){
+    Logger.log("AccesosIE no tiene filas.");
+    return;
+  }
+
+  if(!mapa.IE || !mapa.LOGO_ID){
+    Logger.log("Falta la columna IE o LOGO_ID en AccesosIE.");
+    return;
+  }
+
+  // Indexar los archivos de la carpeta por nombre normalizado
+  // (sin extensión). Puede haber varios archivos con el mismo
+  // nombre normalizado (duplicados subidos más de una vez).
+  const carpeta = DriveApp.getFolderById(CARPETA_LOGOS_ID);
+  const archivos = carpeta.getFiles();
+  const indice = {};
+
+  while(archivos.hasNext()){
+    const archivo = archivos.next();
+    const nombreSinExtension = archivo.getName().replace(/\.[^.]+$/, "");
+    // Se quita también un posible prefijo "IE"/"Institución Educativa"
+    // del NOMBRE DEL ARCHIVO, para que "MARIA CRISTINA ARANGO.png" e
+    // "IE MARIA CRISTINA ARANGO.png" caigan bajo la misma clave — así
+    // se detectan como duplicados en vez de que uno quede "invisible"
+    // por tener una clave distinta a la de la IE.
+    const clave = normalizarNombreIE_(nombreIESinPrefijoInstitucional_(nombreSinExtension));
+    if(!clave) continue;
+    if(!indice[clave]) indice[clave] = [];
+    indice[clave].push({ id: archivo.getId(), nombre: archivo.getName() });
+  }
+
+  const clavesDisponibles = Object.keys(indice);
+
+  const datos = hoja.getRange(2,1,ultimaFila-1,hoja.getLastColumn()).getValues();
+  const asignados = [];
+  const sinCoincidencia = [];
+  const ambiguos = [];
+
+  for(let i=0;i<datos.length;i++){
+
+    const ie = String(datos[i][mapa.IE-1] || "").trim();
+    if(!ie) continue;
+
+    // Ya tiene logo asignado: no se vuelve a tocar (para no
+    // pisar una corrección manual ya hecha en la hoja).
+    const logoActual = mapa.LOGO_ID ? String(datos[i][mapa.LOGO_ID-1] || "").trim() : "";
+    if(logoActual) continue;
+
+    const claveDirecta = normalizarNombreIE_(ie);
+    const claveSinPrefijo = normalizarNombreIE_(nombreIESinPrefijoInstitucional_(ie));
+
+    let candidatos = indice[claveDirecta] || indice[claveSinPrefijo];
+
+    if(!candidatos){
+      // Coincidencia parcial: el nombre del archivo está contenido
+      // en el nombre de la IE, o al revés (para variantes como
+      // "SAN LUIS BELTRAN" vs "SAN LUIS BELTRAN SEDE PRINCIPAL").
+      const posibles = clavesDisponibles.filter(function(clave){
+        return clave.length > 3 && (claveSinPrefijo.indexOf(clave) !== -1 || clave.indexOf(claveSinPrefijo) !== -1);
+      });
+      if(posibles.length === 1){
+        candidatos = indice[posibles[0]];
+      }else if(posibles.length > 1){
+        ambiguos.push(ie + " -> varias coincidencias parciales: " + posibles.map(function(k){ return indice[k].map(function(a){return a.nombre;}).join("/"); }).join(", "));
+        continue;
+      }
+    }
+
+    if(!candidatos){
+      sinCoincidencia.push(ie);
+      continue;
+    }
+
+    if(candidatos.length > 1){
+      ambiguos.push(ie + " -> " + candidatos.length + " archivos con el mismo nombre: " + candidatos.map(function(a){return a.nombre;}).join(", ") + " (se usó el primero)");
+    }
+
+    const elegido = candidatos[0];
+    hoja.getRange(i+2, mapa.LOGO_ID).setValue(elegido.id);
+    try{ DriveApp.getFileById(elegido.id).setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); }catch(errorCompartir){}
+    asignados.push(ie + " -> " + elegido.nombre);
+
+  }
+
+  Logger.log("========================================");
+  Logger.log("ASIGNADOS (" + asignados.length + "):");
+  Logger.log(asignados.join("\n") || "(ninguno)");
+  Logger.log("========================================");
+  Logger.log("SIN COINCIDENCIA (" + sinCoincidencia.length + ") — asignar a mano en LOGO_ID:");
+  Logger.log(sinCoincidencia.join("\n") || "(ninguna)");
+  Logger.log("========================================");
+  Logger.log("AMBIGUOS, REVISAR (" + ambiguos.length + "):");
+  Logger.log(ambiguos.join("\n") || "(ninguno)");
+  Logger.log("========================================");
+
+  return { asignados: asignados.length, sinCoincidencia: sinCoincidencia.length, ambiguos: ambiguos.length };
+
+}
