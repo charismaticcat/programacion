@@ -1606,6 +1606,26 @@ function vincularLogosIE(){
 
   const clavesDisponibles = Object.keys(indice);
 
+  // Correcciones manuales para archivos reales de la carpeta cuyo
+  // nombre tiene una errata o una redacción distinta a la del nombre
+  // oficial de la IE en AccesosIE (confirmado archivo por archivo:
+  // "ATASIO" por "ATANASIO", "LIZACANO" por "LIZCANO", etc.). Sin
+  // este mapa esas 7 IE quedaban en SIN COINCIDENCIA aunque su logo
+  // sí estaba subido a la carpeta.
+  const ALIAS_ARCHIVO_POR_IE = {
+    "ATANASIO GIRARDOT": "ATASIO GIRARDOT",
+    "JAIRO MORERA LIZCANO": "JAIRO MORERA LIZACANO",
+    "JAIRO MOSQUERA MORENO": "JARIO MOSQUERA MORENO-GUACIRCO",
+    "LICEO DE SANTA LIBRADA": "LICEO SANTALIBRADA",
+    "MARIA AUXILIADORA FORTALECILLAS": "MARIA AUXILIADORA DE FOTALECILLAS",
+    "SANTA LIBRADA": "NACIONAL SANTALIBRADA",
+    "INSTITUTO TECNICO IPC ANDRES ROSA": "TECNICO IPC ANDRES ROSA"
+  };
+  const claveAliasPorIE = {};
+  Object.keys(ALIAS_ARCHIVO_POR_IE).forEach(function(nombreIE){
+    claveAliasPorIE[normalizarNombreIE_(nombreIE)] = normalizarNombreIE_(ALIAS_ARCHIVO_POR_IE[nombreIE]);
+  });
+
   const datos = hoja.getRange(2,1,ultimaFila-1,hoja.getLastColumn()).getValues();
   const asignados = [];
   const sinCoincidencia = [];
@@ -1625,6 +1645,13 @@ function vincularLogosIE(){
     const claveSinPrefijo = normalizarNombreIE_(nombreIESinPrefijoInstitucional_(ie));
 
     let candidatos = indice[claveDirecta] || indice[claveSinPrefijo];
+
+    if(!candidatos){
+      // Corrección manual conocida (errata o redacción distinta en
+      // el nombre del archivo real subido a la carpeta).
+      const claveAlias = claveAliasPorIE[claveDirecta] || claveAliasPorIE[claveSinPrefijo];
+      if(claveAlias) candidatos = indice[claveAlias];
+    }
 
     if(!candidatos){
       // Coincidencia parcial: el nombre del archivo está contenido
