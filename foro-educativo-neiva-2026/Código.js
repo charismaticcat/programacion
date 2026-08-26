@@ -5268,8 +5268,8 @@ function generarInformeFEM(idForo,datosCliente){
     fpTexto.setAlignment(DocumentApp.HorizontalAlignment.CENTER); fpTexto.editAsText().setForegroundColor(GRIS_TEXTO).setFontSize(9);
 
     /*
-     * Logo de la IE, grande (150x150 — tres veces el tamaño que tenía
-     * antes en el encabezado) y centrado, como primer elemento de la
+     * Logo de la IE, grande (100x100 — el doble de lo que tenía antes
+     * en el encabezado) y centrado, como primer elemento de la
      * portada del informe. Si la IE todavía no tiene logo vinculado,
      * este bloque simplemente no aparece.
      */
@@ -5277,7 +5277,7 @@ function generarInformeFEM(idForo,datosCliente){
       try{
         const pLogoIE=body.appendParagraph("");
         pLogoIE.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
-        pLogoIE.appendInlineImage(DriveApp.getFileById(logoIdIE).getBlob()).setWidth(150).setHeight(150);
+        pLogoIE.appendInlineImage(DriveApp.getFileById(logoIdIE).getBlob()).setWidth(100).setHeight(100);
       }catch(e){}
     }
 
@@ -5299,22 +5299,34 @@ function generarInformeFEM(idForo,datosCliente){
       return p;
     }
 
+    /*
+     * Preguntas de las Sesiones 1, 2 y 3 en el mismo lenguaje visual
+     * que .tarjetaPregunta de la plenaria: una sola columna (la
+     * pregunta arriba en verde y negrita, la respuesta debajo, no
+     * uno al lado del otro), fondo blanco y una línea amarilla a la
+     * izquierda a modo de acento — igual técnica de columna angosta
+     * que en tablaCaracterizacion_, ya que Documentos no admite un
+     * borde de un solo lado.
+     */
     function tablaClaveValor_(filas){
       const t=body.appendTable();
-      t.setBorderColor(GRIS_BORDE); t.setBorderWidth(1);
+      t.setBorderColor("#FFFFFF"); t.setBorderWidth(6);
       filas.forEach(function(x){
         const r=t.appendTableRow();
-        const c1=r.appendTableCell(String(x[0]||""));
-        c1.setBackgroundColor(GRIS_FONDO);
-        // Título de la pregunta: verde y en negrita.
-        c1.editAsText().setBold(true).setForegroundColor(VERDE).setFontSize(10);
-        const c2=r.appendTableCell(String(x[1]||"—"));
-        // Texto de la respuesta: texto sencillo, sin negrita — se fija
-        // setBold(false) explícitamente porque una celda de tabla
-        // nueva en Google Docs puede heredar la negrita del elemento
-        // anterior (el título en negrita de arriba) si no se indica
-        // lo contrario.
-        c2.editAsText().setBold(false).setForegroundColor(GRIS_TEXTO).setFontSize(10);
+        const acento=r.appendTableCell("");
+        acento.setBackgroundColor(AMARILLO);
+        acento.setWidth(6);
+        const contenido=r.appendTableCell("");
+        contenido.setBackgroundColor("#FFFFFF");
+        const pTitulo=contenido.getChild(0).asParagraph();
+        pTitulo.setText(String(x[0]||""));
+        pTitulo.editAsText().setBold(true).setForegroundColor(VERDE).setFontSize(10);
+        const pValor=contenido.appendParagraph(String(x[1]||"—"));
+        // Texto de la respuesta: sin negrita — se fija setBold(false)
+        // explícitamente porque una celda de tabla nueva en Google
+        // Docs puede heredar la negrita del párrafo anterior si no
+        // se indica lo contrario.
+        pValor.editAsText().setBold(false).setForegroundColor(GRIS_TEXTO).setFontSize(10);
       });
       return t;
     }
@@ -5397,10 +5409,18 @@ function generarInformeFEM(idForo,datosCliente){
       return t;
     }
 
-    encabezadoSeccion_("Caracterización y participación");
+    encabezadoSeccion_("Caracterización");
     const c=datos.campos||{};
     tablaCaracterizacion_([["Institución Educativa",datos.institucion],["DANE",datos.dane],["Rector(a)",c.rector?.valor||""],["Grupo de trabajo",c.grupo?.valor||""],["Responsable",c.nombre?.valor||""],["Cargo",c.cargo?.valor||""],["Correo responsable",c.correo?.valor||""],["Correo institucional",c.correoIE?.valor||""]]);
 
+    /*
+     * Logo, título y caracterización quedan en la primera hoja; la
+     * participación y el párrafo introductorio empiezan en una
+     * segunda hoja aparte.
+     */
+    body.appendPageBreak();
+
+    encabezadoSeccion_("Participación");
     const totalParticipantesInforme=totalParticipantesServer_(datos);
     const pPart=body.appendParagraph("Participantes: "+totalParticipantesInforme);
     pPart.setHeading(DocumentApp.ParagraphHeading.HEADING2); pPart.editAsText().setForegroundColor(VERDE).setBold(true);
