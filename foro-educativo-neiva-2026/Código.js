@@ -5083,16 +5083,34 @@ function obtenerGraficoParticipacionBlob_(datos){
   const PASTEL=["#AEC6CF","#FFB7B2","#B5EAD7","#FFDAC1","#E2F0CB","#C7CEEA","#FFF1BA","#F6C6EA","#B5D8EB","#D5AAFF","#FFCBB3"];
   const tmp=ss.insertSheet("_grafico_"+String(datos.idForo).slice(0,8));
   try{
-    // Cada estamento en su propia columna, como series independientes,
-    // para que el gráfico de barras pinte cada una con su propio color.
-    tmp.getRange(1,1,1,labels.length).setValues([labels]);
-    tmp.getRange(2,1,1,labels.length).setValues([nums]);
+    /*
+     * Un renglón por estamento (no una sola fila con 11 columnas):
+     * así el eje de categorías muestra cada nombre como una etiqueta
+     * de fila propia, con una barra horizontal de su propio color —
+     * el mismo lenguaje visual que renderGraficoParticipacionHTML()
+     * en la plenaria (etiqueta + barra + valor), en vez del racimo
+     * diminuto de barras agrupadas que salía antes en el informe.
+     * Cada estamento sigue en su propia columna/serie (con ceros en
+     * las demás filas) únicamente para que cada barra conserve su
+     * propio color pastel.
+     */
+    const encabezados=["Estamento"].concat(labels);
+    tmp.getRange(1,1,1,encabezados.length).setValues([encabezados]);
+    const filas=labels.map((l,i)=>{
+      const fila=new Array(labels.length).fill(0);
+      fila[i]=nums[i];
+      return [l].concat(fila);
+    });
+    tmp.getRange(2,1,filas.length,encabezados.length).setValues(filas);
     const chart=tmp.newChart()
       .setChartType(Charts.ChartType.BAR)
-      .addRange(tmp.getRange(1,1,2,labels.length))
+      .addRange(tmp.getRange(1,1,filas.length+1,encabezados.length))
       .setOption("title","Participación por estamento — "+(datos.institucion||""))
       .setOption("colors",PASTEL)
-      .setOption("legend",{position:"right",textStyle:{fontSize:9}})
+      .setOption("legend",{position:"none"})
+      .setOption("width",620)
+      .setOption("height",420)
+      .setOption("hAxis",{title:"Participantes",minValue:0})
       .setPosition(1,4,0,0)
       .build();
     tmp.insertChart(chart);
@@ -5167,9 +5185,15 @@ function generarInformeFEM(idForo,datosCliente){
         const r=t.appendTableRow();
         const c1=r.appendTableCell(String(x[0]||""));
         c1.setBackgroundColor(GRIS_FONDO);
+        // Título de la pregunta: verde y en negrita.
         c1.editAsText().setBold(true).setForegroundColor(VERDE).setFontSize(10);
         const c2=r.appendTableCell(String(x[1]||"—"));
-        c2.editAsText().setForegroundColor(GRIS_TEXTO).setFontSize(10);
+        // Texto de la respuesta: texto sencillo, sin negrita — se fija
+        // setBold(false) explícitamente porque una celda de tabla
+        // nueva en Google Docs puede heredar la negrita del elemento
+        // anterior (el título en negrita de arriba) si no se indica
+        // lo contrario.
+        c2.editAsText().setBold(false).setForegroundColor(GRIS_TEXTO).setFontSize(10);
       });
       return t;
     }
