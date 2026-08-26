@@ -4721,9 +4721,14 @@ function asegurarHojaAsistenciaQR_(){
   const ss=abrirSpreadsheet_();
   let hoja=ss.getSheetByName(HOJA_ASISTENCIA_QR);
   if(!hoja) hoja=ss.insertSheet(HOJA_ASISTENCIA_QR);
-  const requeridas=["ID_FORO","IE","NOMBRE_COMPLETO","CARGO","NUMERO_DOCUMENTO","CORREO","TELEFONO","FECHA","HORA"];
+  const requeridas=["ID_FORO","IE","NOMBRE_COMPLETO","CARGO","NUMERO_DOCUMENTO","CORREO","TELEFONO","FECHA","HORA","DISPOSITIVO_ID"];
   const last=hoja.getLastColumn();
+  const existentes=last?hoja.getRange(1,1,1,last).getValues()[0].map(String):[];
   if(!last){ hoja.getRange(1,1,1,requeridas.length).setValues([requeridas]); }
+  else{
+    const faltantes=requeridas.filter(h=>existentes.indexOf(h)===-1);
+    if(faltantes.length) hoja.getRange(1,last+1,1,faltantes.length).setValues([faltantes]);
+  }
   return hoja;
 }
 
@@ -4732,7 +4737,24 @@ function asegurarHojaAsistenciaQR_(){
  * No exige sesión ni dispositivo: los asistentes firman desde su
  * propio celular, distinto al que usa quien diligencia el formulario.
  */
-function registrarAsistenciaQR(idForo, nombre, cargo, documento, correo, telefono){
+/*
+ * Texto de confirmación de firma en letras: "Firmado a las 2:32 p. m.
+ * el día 26 del mes de agosto del año 2026."
+ */
+function formatearFechaHoraFirma_(fecha){
+  const zona=Session.getScriptTimeZone();
+  const meses=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  const dia=Utilities.formatDate(fecha,zona,"dd");
+  const mesIndex=Number(Utilities.formatDate(fecha,zona,"M"))-1;
+  const anio=Utilities.formatDate(fecha,zona,"yyyy");
+  const horas24=Number(Utilities.formatDate(fecha,zona,"H"));
+  const minutos=Utilities.formatDate(fecha,zona,"mm");
+  const sufijo=horas24>=12?"p. m.":"a. m.";
+  let horas12=horas24%12; if(horas12===0)horas12=12;
+  return "Firmado a las "+horas12+":"+minutos+" "+sufijo+" el día "+dia+" del mes de "+(meses[mesIndex]||"")+" del año "+anio+".";
+}
+
+function registrarAsistenciaQR(idForo, nombre, cargo, documento, correo, telefono, dispositivoId){
   const lock=LockService.getScriptLock();
   try{
     lock.waitLock(10000);
@@ -4743,6 +4765,7 @@ function registrarAsistenciaQR(idForo, nombre, cargo, documento, correo, telefon
     documento=String(documento||"").trim();
     correo=String(correo||"").trim();
     telefono=String(telefono||"").trim();
+    dispositivoId=String(dispositivoId||"").trim();
 
     if(!idForo) return {ok:false, mensaje:"Enlace de asistencia inválido."};
     if(!nombre || !cargo || !documento || !correo) return {ok:false, mensaje:"Complete nombre, cargo, número de documento y correo electrónico."};
@@ -4753,16 +4776,29 @@ function registrarAsistenciaQR(idForo, nombre, cargo, documento, correo, telefon
     const hoja=asegurarHojaAsistenciaQR_();
     const m=mapaHoja_(hoja);
 
-    // Evitar duplicados si la misma persona escanea dos veces.
+    const textoFirmaDesdeFila_=function(fila){
+      const fechaTexto=String(fila[m.FECHA-1]||"").trim();
+      const horaTexto=String(fila[m.HORA-1]||"").trim();
+      if(!fechaTexto || !horaTexto) return "";
+      const partes=fechaTexto.split("/");
+      if(partes.length!==3) return "";
+      return formatearFechaHoraFirma_(new Date(Number(partes[2]),Number(partes[1])-1,Number(partes[0]),...horaTexto.split(":").map(Number)));
+    };
+
+    // Evitar duplicados: misma persona (documento) o mismo dispositivo
+    // firmando dos veces para este mismo foro. Solo una firma por
+    // dispositivo, sin importar qué datos escriba la segunda vez.
     const ultimaFila=hoja.getLastRow();
     if(ultimaFila>=2){
       const filas=hoja.getRange(2,1,ultimaFila-1,hoja.getLastColumn()).getValues();
       for(let i=0;i<filas.length;i++){
-        if(
-          String(filas[i][m.ID_FORO-1]||"").trim()===idForo &&
-          String(filas[i][m.NUMERO_DOCUMENTO-1]||"").trim()===documento
-        ){
-          return {ok:true, yaRegistrado:true};
+        const mismoForo=String(filas[i][m.ID_FORO-1]||"").trim()===idForo;
+        if(!mismoForo) continue;
+        if(String(filas[i][m.NUMERO_DOCUMENTO-1]||"").trim()===documento){
+          return {ok:true, yaRegistrado:true, textoFirma:textoFirmaDesdeFila_(filas[i])};
+        }
+        if(dispositivoId && m.DISPOSITIVO_ID && String(filas[i][m.DISPOSITIVO_ID-1]||"").trim()===dispositivoId){
+          return {ok:false, yaFirmoDispositivo:true, mensaje:"Este dispositivo ya registró una firma de asistencia para este Foro. Solo se permite una firma por dispositivo.", textoFirma:textoFirmaDesdeFila_(filas[i])};
         }
       }
     }
@@ -4770,11 +4806,11 @@ function registrarAsistenciaQR(idForo, nombre, cargo, documento, correo, telefon
     const ahora=new Date();
     const zona=Session.getScriptTimeZone();
     const fila=new Array(hoja.getLastColumn()).fill("");
-    const valores={ID_FORO:idForo, IE:acceso.ie, NOMBRE_COMPLETO:nombre, CARGO:cargo, NUMERO_DOCUMENTO:documento, CORREO:correo, TELEFONO:telefono,
+    const valores={ID_FORO:idForo, IE:acceso.ie, NOMBRE_COMPLETO:nombre, CARGO:cargo, NUMERO_DOCUMENTO:documento, CORREO:correo, TELEFONO:telefono, DISPOSITIVO_ID:dispositivoId,
       FECHA:Utilities.formatDate(ahora,zona,"dd/MM/yyyy"), HORA:Utilities.formatDate(ahora,zona,"HH:mm:ss")};
     Object.keys(valores).forEach(k=>{ if(m[k]) fila[m[k]-1]=valores[k]; });
     hoja.appendRow(fila);
-    return {ok:true};
+    return {ok:true, textoFirma:formatearFechaHoraFirma_(ahora)};
 
   }catch(error){
     return {ok:false, mensaje:error.message};
@@ -4865,6 +4901,15 @@ function agregarListadoAsistenciaAlInforme_(body, idForo, datos){
 }
 
 /*
+ * "COLEGIO CHAPINERO" -> "Colegio Chapinero": nombre con mayúscula
+ * inicial en cada palabra, en vez de las mayúsculas sostenidas con
+ * que se guarda en la hoja de Oficiales.
+ */
+function capitalizarNombreIE_(nombre){
+  return String(nombre||"").toLowerCase().replace(/(^|\s)([a-záéíóúñ])/g,function(_,sep,letra){ return sep+letra.toUpperCase(); });
+}
+
+/*
  * Página pública mínima que abre el QR: no forma parte del
  * formulario principal (App.html), es autocontenida a propósito
  * para que cargue rápido en el celular de cada asistente.
@@ -4872,6 +4917,7 @@ function agregarListadoAsistenciaAlInforme_(body, idForo, datos){
 function paginaAsistenciaQR_(idForo){
   const acceso=obtenerAccesoPorIdForo_(idForo);
   const ie=acceso?acceso.ie:"";
+  const ieTitulo=capitalizarNombreIE_(ie);
 
   /*
    * El registro de asistencia por QR queda disponible de forma
@@ -4885,25 +4931,29 @@ function paginaAsistenciaQR_(idForo){
     return '<option value="'+c.replace(/"/g,"&quot;")+'">'+c+'</option>';
   }).join("");
 
+  const tituloPagina="Firmar asistencia al Foro Educativo Institucional "+ieTitulo;
+
   const html=
     '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'+
     '<meta name="viewport" content="width=device-width, initial-scale=1">'+
     '<base target="_top">'+
-    '<title>Firmar asistencia — FEM 2026</title>'+
+    '<title>'+tituloPagina.replace(/</g,"&lt;")+' — FEM 2026</title>'+
     '<style>'+
     'body{font-family:Arial,Helvetica,sans-serif;background:#F7F8FA;color:#4A4A4A;margin:0;padding:24px;}'+
     '.tarjeta{max-width:420px;margin:0 auto;background:#fff;border-radius:16px;padding:28px;box-shadow:0 8px 24px rgba(0,0,0,.12);}'+
-    'h1{color:#0B6A44;font-size:22px;margin:0 0 6px;}'+
+    'h1{color:#0B6A44;font-size:20px;margin:0 0 6px;line-height:1.35;}'+
     'p{line-height:1.5;}'+
     'label{display:block;font-weight:bold;color:#0B6A44;margin:16px 0 6px;}'+
     'input,select{width:100%;padding:12px;font-size:16px;border:1px solid #DADCE0;border-radius:8px;box-sizing:border-box;font-family:inherit;}'+
     'button{width:100%;margin-top:22px;padding:14px;font-size:17px;background:#0B6A44;color:#fff;border:none;border-radius:10px;cursor:pointer;}'+
     'button:disabled{background:#bdbdbd;}'+
     '#estado{margin-top:14px;font-weight:600;min-height:20px;}'+
+    '#textoFirma{margin-top:6px;font-size:12px;font-weight:400;color:#4A4A4A;}'+
     '</style></head><body>'+
     '<div class="tarjeta">'+
-    '<h1>Firmar asistencia</h1>'+
+    '<h1>'+tituloPagina.replace(/</g,"&lt;")+'</h1>'+
     '<p>Foro Educativo Institucional — Neiva 2026</p>'+
+    '<div id="formulario">'+
     '<label>Institución Educativa</label>'+
     '<input id="ie" value="'+String(ie).replace(/"/g,"&quot;")+'" readonly>'+
     '<label>Nombre completo</label>'+
@@ -4917,9 +4967,37 @@ function paginaAsistenciaQR_(idForo){
     '<label>Teléfono (opcional)</label>'+
     '<input id="telefono" type="tel" autocomplete="tel">'+
     '<button id="btnFirmar" type="button">Firmar asistencia</button>'+
+    '</div>'+
     '<div id="estado"></div>'+
+    '<div id="textoFirma"></div>'+
     '</div>'+
     '<script>'+
+    /*
+     * Un dispositivo solo puede firmar una vez por Foro: se genera
+     * (una sola vez) un identificador propio de este navegador y se
+     * guarda en localStorage. Si ya existe una firma registrada con
+     * ese identificador para este mismo idForo, ni siquiera se
+     * muestra el formulario — se avisa de una vez. El servidor
+     * también lo valida (registrarAsistenciaQR), por si se borra el
+     * localStorage o se usa otro navegador en el mismo equipo.
+     */
+    'function obtenerDispositivoIdAsistencia(){'+
+    'var clave="FEM_DISPOSITIVO_ASISTENCIA";'+
+    'try{'+
+    'var id=localStorage.getItem(clave);'+
+    'if(!id){ id=(crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+"-"+Math.random().toString(36).slice(2); localStorage.setItem(clave,id); }'+
+    'return id;'+
+    '}catch(e){ return ""; }'+
+    '}'+
+    'function claveYaFirmado(){ return "FEM_ASISTENCIA_FIRMADA_"+'+JSON.stringify(String(idForo))+'; }'+
+    'function marcarFirmadoLocal(textoFirma){ try{ localStorage.setItem(claveYaFirmado(), textoFirma||"1"); }catch(e){} }'+
+    'function mostrarYaFirmado(textoFirma){'+
+    'document.getElementById("formulario").style.display="none";'+
+    'document.getElementById("estado").textContent="✓ Este dispositivo ya registró su firma de asistencia. ¡Gracias! Ya puede cerrar esta página y continuar en la plenaria.";'+
+    'document.getElementById("textoFirma").textContent=textoFirma||"";'+
+    '}'+
+    'var dispositivoIdAsistencia=obtenerDispositivoIdAsistencia();'+
+    '(function(){ try{ var previo=localStorage.getItem(claveYaFirmado()); if(previo){ mostrarYaFirmado(previo==="1"?"":previo); } }catch(e){} })();'+
     'document.getElementById("btnFirmar").addEventListener("click",function(){'+
     'var btn=this; var estado=document.getElementById("estado");'+
     'var nombre=document.getElementById("nombre").value.trim();'+
@@ -4930,16 +5008,17 @@ function paginaAsistenciaQR_(idForo){
     'if(!nombre||!cargo||!documento||!correo){estado.textContent="Complete nombre, cargo, número de documento y correo electrónico.";return;}'+
     'btn.disabled=true; btn.textContent="Firmando…";'+
     'google.script.run.withSuccessHandler(function(res){'+
-    'if(res&&res.ok){ btn.textContent=res.yaRegistrado?"Ya habías firmado":"✓ Asistencia firmada"; estado.textContent="¡Gracias! Ya puedes cerrar esta página."; }'+
+    'if(res&&res.ok){ marcarFirmadoLocal(res.textoFirma); mostrarYaFirmado(res.textoFirma); }'+
+    'else if(res&&res.yaFirmoDispositivo){ marcarFirmadoLocal(res.textoFirma); mostrarYaFirmado(res.textoFirma); }'+
     'else{ btn.disabled=false; btn.textContent="Firmar asistencia"; estado.textContent=(res&&res.mensaje)||"No fue posible registrar la asistencia."; }'+
     '}).withFailureHandler(function(err){ btn.disabled=false; btn.textContent="Firmar asistencia"; estado.textContent="No fue posible registrar la asistencia: "+(err.message||err); })'+
-    '.registrarAsistenciaQR('+JSON.stringify(idForo)+',nombre,cargo,documento,correo,telefono);'+
+    '.registrarAsistenciaQR('+JSON.stringify(idForo)+',nombre,cargo,documento,correo,telefono,dispositivoIdAsistencia);'+
     '});'+
     '</script>'+
     '</body></html>';
 
   return HtmlService.createHtmlOutput(html)
-    .setTitle("Firmar asistencia — FEM 2026")
+    .setTitle(tituloPagina+" — FEM 2026")
     .addMetaTag("viewport","width=device-width, initial-scale=1");
 }
 

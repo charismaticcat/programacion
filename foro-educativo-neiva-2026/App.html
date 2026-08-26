@@ -5502,48 +5502,44 @@ function inicializarPlenaria(){
         try{ if(!document.fullscreenElement) await document.documentElement.requestFullscreen(); else await document.exitFullscreen(); }catch(e){console.error(e);}
     });
 
+    /*
+     * "Anterior" y "Continuar" ya no avanzan pregunta por pregunta
+     * (para eso están los números de la barra de navegación de
+     * arriba): "Anterior" siempre vuelve a la pantalla de Evidencias,
+     * y "Continuar" siempre intenta pasar al informe final — pero
+     * solo si ya se enviaron definitivamente las tres sesiones.
+     */
     const ant=document.getElementById("btnAnteriorPlenaria");
     if(ant) ant.addEventListener("click",function(){
-        if(plenariaPaginaActual<=0){
-            // Ya estamos en la primera página de la plenaria: volver
-            // a la pantalla de Evidencias (fotografía + QR de asistencia).
-            cambiarPantalla("pantallaPlenaria","pantallaEvidencias",9);
-            return;
-        }
-        plenariaIrA(plenariaPaginaActual-1);
+        cambiarPantalla("pantallaPlenaria","pantallaEvidencias",9);
     });
     const sig=document.getElementById("btnContinuarPlenaria");
     if(sig) sig.addEventListener("click",async function(){
-        const pages=document.querySelectorAll("#plenariaContenido .plenariaPagina");
-        if(plenariaPaginaActual>=pages.length-1){
-            const s=window._FEM_SESIONES_ENVIADAS||{};
-            if(!s[1]||!s[2]||!s[3]){ alert("Debe enviar definitivamente las respuestas de las tres sesiones antes de continuar al informe final."); return; }
+        const s=window._FEM_SESIONES_ENVIADAS||{};
+        if(!s[1]||!s[2]||!s[3]){ alert("Debe enviar definitivamente las respuestas de las tres sesiones antes de continuar al informe final."); return; }
 
-            /*
-             * Cierra el envío: guarda en la hoja propia de la IE,
-             * actualiza participación y gráficos, y marca ESTADO =
-             * ENVIADO en AccesosIE. Sin esto, nada de eso queda
-             * registrado — enviarRespuestasSesion solo toca
-             * AvancesForo — y "Finalizar" más adelante fallaría
-             * porque exige ese ESTADO.
-             */
-            sig.disabled=true; sig.textContent="Preparando informe…";
-            try{
-                const datos=obtenerDatosFormularioActual_();
-                const r=await new Promise((resolve,reject)=>{
-                    google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)
-                        .enviarForoDefinitivo(datos.idForo, window.DATOS_ACCESO_FEM?.tokenSesion||"", window.DATOS_ACCESO_FEM?.dispositivoId||obtenerDispositivoIdFEM(), datos);
-                });
-                if(!r || !r.ok) throw new Error(r?.mensaje||"No fue posible finalizar el envío.");
-                cambiarPantalla("pantallaPlenaria","pantallaFinalFEM",11);
-            }catch(error){
-                alert(error.message||error);
-            }finally{
-                sig.disabled=false; sig.textContent="Continuar →";
-            }
-            return;
+        /*
+         * Cierra el envío: guarda en la hoja propia de la IE,
+         * actualiza participación y gráficos, y marca ESTADO =
+         * ENVIADO en AccesosIE. Sin esto, nada de eso queda
+         * registrado — enviarRespuestasSesion solo toca
+         * AvancesForo — y "Finalizar" más adelante fallaría
+         * porque exige ese ESTADO.
+         */
+        sig.disabled=true; sig.textContent="Preparando informe…";
+        try{
+            const datos=obtenerDatosFormularioActual_();
+            const r=await new Promise((resolve,reject)=>{
+                google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)
+                    .enviarForoDefinitivo(datos.idForo, window.DATOS_ACCESO_FEM?.tokenSesion||"", window.DATOS_ACCESO_FEM?.dispositivoId||obtenerDispositivoIdFEM(), datos);
+            });
+            if(!r || !r.ok) throw new Error(r?.mensaje||"No fue posible finalizar el envío.");
+            cambiarPantalla("pantallaPlenaria","pantallaFinalFEM",11);
+        }catch(error){
+            alert(error.message||error);
+        }finally{
+            sig.disabled=false; sig.textContent="Continuar →";
         }
-        plenariaIrA(plenariaPaginaActual+1);
     });
 
     const gen=document.getElementById("btnGenerarInformeFinal");
@@ -5939,17 +5935,13 @@ function plenariaIrA(i){
     actualizarBotonesPlenaria();
 }
 function actualizarBotonesPlenaria(){
-    const ant=document.getElementById("btnAnteriorPlenaria"), sig=document.getElementById("btnContinuarPlenaria");
-    const pages=document.querySelectorAll("#plenariaContenido .plenariaPagina");
-    if(ant) ant.disabled=plenariaPaginaActual<=0;
     /*
-     * En la última página, "Continuar" no avanza a otra página de
-     * la plenaria: dispara el paso al informe final (ver el click
-     * handler). Por eso NO debe deshabilitarse ahí — solo cuando
-     * SÍ existe una página siguiente y todavía no se desbloqueó
-     * con el scroll.
+     * "Anterior" (vuelve a Evidencias) y "Continuar" (intenta generar
+     * el informe final) ya no dependen de en qué pregunta de la
+     * plenaria se está — ver sus click handlers en inicializarPlenaria.
+     * Moverse entre preguntas es tarea exclusiva de los números de la
+     * barra de navegación de arriba.
      */
-    if(sig) sig.disabled=plenariaPaginaActual<pages.length-1 && !pages[plenariaPaginaActual+1]?.classList.contains("habilitada");
     document.querySelectorAll("#plenariaNavegacion button").forEach((b,i)=>b.classList.toggle("activo",i===plenariaPaginaActual));
 }
 function alternarModoLecturaPlenaria(){
