@@ -5463,6 +5463,77 @@ function guardarValoracionFEM(idForo, respuestas){
   }
 }
 
+/*
+ * Último correo del flujo: se dispara cuando la IE presiona
+ * "Cerrar" en la confirmación final, después de enviar la
+ * valoración. Confirma la recepción de la valoración y sirve como
+ * comprobante de participación en el Foro, indicando el grupo de
+ * trabajo de la IE.
+ */
+function enviarComprobanteParticipacionFEM(idForo, datos){
+  const acceso=obtenerAccesoPorIdForoRaw_(idForo);
+  if(!acceso) throw new Error("ID_FORO no autorizado.");
+
+  const c=datos?.campos||{};
+  const ie=datos?.institucion||acceso.ie;
+  const destinatario=String(c.correoIE?.valor||acceso.email||"").trim();
+  const responsable=String(c.correo?.valor||"").trim();
+  const nombreResponsable=String(c.nombre?.valor||"").trim();
+  const grupo=String(c.grupo?.valor||"").trim() || "sin grupo asignado";
+
+  if(!destinatario) return {ok:false, mensaje:"La institución no tiene correo institucional registrado."};
+
+  const aliases=GmailApp.getAliases().map(x=>x.toLowerCase());
+  const cuenta=Session.getEffectiveUser().getEmail().toLowerCase();
+  if(cuenta!==REMITENTE_FEM && aliases.indexOf(REMITENTE_FEM)===-1){
+    return {ok:false, mensaje:"La cuenta de Apps Script no puede enviar como "+REMITENTE_FEM+". Configure esa cuenta o un alias."};
+  }
+
+  const asunto="✅ Comprobante de participación — Foro Educativo Institucional – Neiva 2026";
+
+  const cuerpoTexto=
+    "Secretaría de Educación de Neiva\n\n"+
+    "Estimada comunidad educativa de la Institución Educativa "+ie+":\n\n"+
+    "Confirmamos la recepción de la valoración de la actividad enviada por "+(nombreResponsable||"su institución")+".\n\n"+
+    "Este correo es el comprobante de participación de la Institución Educativa "+ie+" en el Foro Educativo Institucional – Neiva 2026, dentro del grupo "+grupo+".\n\n"+
+    "Agradecemos nuevamente su participación y los aportes construidos durante la jornada.\n\n"+
+    "Secretaría de Educación de Neiva\n"+
+    "Foro Educativo Institucional – Neiva 2026\n"+
+    "“Escuela Viva: Voces que construyen territorio”";
+
+  const cuerpoHTML=
+    "<div style=\"background:#F7F8FA;padding:28px 12px;font-family:Arial,Helvetica,sans-serif;\">"+
+    "<div style=\"max-width:520px;margin:0 auto;background:#FFFFFF;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.10);\">"+
+    "<div style=\"background:#0B6A44;padding:26px 28px;text-align:center;\">"+
+    "<div style=\"font-size:40px;line-height:1;margin-bottom:6px;\">✅</div>"+
+    "<div style=\"color:#FFFFFF;font-size:18px;font-weight:700;\">Comprobante de participación</div>"+
+    "<div style=\"color:#CFE8DC;font-size:13px;margin-top:2px;\">Foro Educativo Institucional — Neiva 2026</div>"+
+    "</div>"+
+    "<div style=\"padding:28px;\">"+
+    "<p style=\"font-size:16px;color:#333333;margin:0 0 14px;\">Estimada comunidad educativa de la Institución Educativa <strong>"+ie+"</strong>:</p>"+
+    "<p style=\"font-size:15px;color:#4A4A4A;line-height:1.6;margin:0 0 20px;\">"+
+    "Confirmamos la recepción de la valoración de la actividad enviada por "+(nombreResponsable?"<strong>"+nombreResponsable+"</strong>":"su institución")+"."+
+    "</p>"+
+    "<div style=\"background:#F7F8FA;border-left:6px solid #F4B400;border-radius:10px;padding:16px 20px;margin:0 0 22px;\">"+
+    "<p style=\"font-size:14px;color:#333333;margin:0;\">Este correo es el <strong>comprobante de participación</strong> de la Institución Educativa <strong>"+ie+"</strong> en el Foro Educativo Institucional – Neiva 2026, dentro del <strong>grupo "+grupo+"</strong>.</p>"+
+    "</div>"+
+    "<p style=\"font-size:14px;color:#4A4A4A;line-height:1.6;margin:0;\">Agradecemos nuevamente su participación y los aportes construidos colectivamente durante la jornada.</p>"+
+    "</div>"+
+    "<div style=\"background:#F7F8FA;padding:18px 28px;text-align:center;border-top:1px solid #E5E7EA;\">"+
+    "<p style=\"font-size:13px;color:#0B6A44;font-weight:700;margin:0;\">Secretaría de Educación de Neiva</p>"+
+    "<p style=\"font-size:12px;color:#888888;margin:4px 0 0;font-style:italic;\">“Escuela Viva: Voces que construyen territorio”</p>"+
+    "</div>"+
+    "</div>"+
+    "</div>";
+
+  const cc=[responsable].concat(COPIAS_INFORME_FEM).filter(Boolean).join(",");
+  GmailApp.sendEmail(destinatario, asunto, cuerpoTexto, {
+    htmlBody:cuerpoHTML, cc:cc, from:REMITENTE_FEM, name:"Secretaría de Educación de Neiva"
+  });
+
+  return {ok:true};
+}
+
 /*****************************************************
  * ENVÍO DEFINITIVO POR SESIÓN (Sesión 1, 2 y 3)
  *****************************************************/

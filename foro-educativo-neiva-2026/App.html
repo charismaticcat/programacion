@@ -5626,6 +5626,7 @@ function inicializarValoracionFEM_(){
                 if(res && res.ok){
                     if(estado) estado.textContent="¡Gracias por su valoración!";
                     btnEnviar.textContent="✓ Valoración enviada";
+                    mostrarModalCierreDefinitivoFEM_(idForo);
                 }else{
                     btnEnviar.disabled=false; btnEnviar.textContent="Enviar valoración";
                     if(estado) estado.textContent=(res && res.mensaje) || "No fue posible guardar la valoración.";
@@ -5636,6 +5637,45 @@ function inicializarValoracionFEM_(){
                 if(estado) estado.textContent="No fue posible guardar la valoración: "+(error.message||error);
             })
             .guardarValoracionFEM(idForo, respuestas);
+    });
+}
+
+/*
+ * Confirmación final, grande y centrada, una vez enviada la
+ * valoración. El botón "Cerrar" dispara el correo comprobante de
+ * participación (con el grupo de la IE) y, solo entonces, intenta
+ * cerrar la pestaña — si el navegador no lo permite (por ejemplo,
+ * porque la pestaña no se abrió con window.open()), se avisa que ya
+ * puede cerrarla manualmente en vez de quedar sin ninguna respuesta.
+ */
+function mostrarModalCierreDefinitivoFEM_(idForo){
+    const modal=document.getElementById("modalCierreDefinitivoFEM");
+    if(!modal) return;
+    modal.classList.add("visible");
+    modal.setAttribute("aria-hidden","false");
+
+    const btnCerrar=document.getElementById("btnCerrarDefinitivoFEM");
+    if(!btnCerrar || btnCerrar.dataset.wired==="1") return;
+    btnCerrar.dataset.wired="1";
+
+    btnCerrar.addEventListener("click", async function(){
+        btnCerrar.disabled=true; btnCerrar.textContent="Enviando comprobante…";
+        const aviso=document.getElementById("textoCierreVentanaFEM");
+        try{
+            const datos=obtenerDatosFormularioActual_();
+            await new Promise((resolve,reject)=>{
+                google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)
+                    .enviarComprobanteParticipacionFEM(idForo, datos);
+            });
+        }catch(error){
+            console.error("No fue posible enviar el comprobante de participación:", error);
+        }
+        try{ window.close(); }catch(e){}
+        // Si el navegador bloqueó el cierre (la pestaña no se abrió por
+        // script), sigue visible: se avisa que ya puede cerrarla ella misma.
+        if(aviso) aviso.textContent="Ya puede cerrar esta pestaña.";
+        btnCerrar.textContent="Cerrar";
+        btnCerrar.disabled=false;
     });
 }
 
