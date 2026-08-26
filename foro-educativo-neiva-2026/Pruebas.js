@@ -224,7 +224,7 @@ function probarGuardarAvanceForo() {
 
 function crearAccesoPrueba1234() {
 
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const ss = abrirSpreadsheet_();
 
   const NOMBRE_HOJA = "AccesosIE";
 
@@ -474,9 +474,7 @@ function crearAccesoPrueba1234() {
 function probarValidacion1234() {
 
   const ss =
-    SpreadsheetApp.openById(
-      SPREADSHEET_ID
-    );
+    abrirSpreadsheet_();
 
   const hoja =
     ss.getSheetByName("AccesosIE");
@@ -611,9 +609,7 @@ function verificarCuentaEnvio() {
 function enviarCorreoPruebaIE1234() {
 
   const ss =
-    SpreadsheetApp.openById(
-      SPREADSHEET_ID
-    );
+    abrirSpreadsheet_();
 
   const hoja =
     ss.getSheetByName("AccesosIE");
@@ -968,9 +964,7 @@ function programarCorreoPruebaEn3Minutos() {
 function enviarCorreoPruebaActual() {
 
   const ss =
-    SpreadsheetApp.openById(
-      SPREADSHEET_ID
-    );
+    abrirSpreadsheet_();
 
   const hoja =
     ss.getSheetByName("AccesosIE");
@@ -1258,9 +1252,7 @@ function enviarCorreoPruebaActual() {
 function probarCodigoIncorrecto1234() {
 
   const ss =
-    SpreadsheetApp.openById(
-      SPREADSHEET_ID
-    );
+    abrirSpreadsheet_();
 
   const hoja =
     ss.getSheetByName(

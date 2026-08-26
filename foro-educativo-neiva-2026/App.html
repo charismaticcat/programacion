@@ -1833,6 +1833,17 @@ function actualizarContadorPregunta1(){
 
     actualizarEstadoPregunta2();
 
+    /*
+     * También revisa aquí mismo si ya se puede habilitar "Continuar":
+     * si la Pregunta 2 ya cumplía el mínimo, terminar de escribir la
+     * Pregunta 1 debe habilitar el botón sin necesidad de tocar la
+     * Pregunta 2 de nuevo (antes solo se revisaba desde el input de
+     * la Pregunta 2, así que había que escribir algo ahí, como un
+     * espacio, para que el botón reaccionara).
+     */
+
+    actualizarEstadoContinuar();
+
 }
 
 /*****************************************************
@@ -5042,7 +5053,7 @@ function inicializarAccesoFEM(){
  * VALIDAR CÓDIGO DE ACCESO FEM
  *****************************************************/
 
-function validarCodigoAccesoFEM(){
+function validarCodigoAccesoFEM(forzar){
 
     const campoCodigo =
         document.getElementById(
@@ -5161,6 +5172,30 @@ function validarCodigoAccesoFEM(){
                     !resultado ||
                     resultado.ok !== true
                 ){
+
+                    /*
+                     * Ya hay una sesión activa para esta IE en otro
+                     * dispositivo: en vez de bloquear silenciosamente,
+                     * se le pregunta al usuario si quiere tomar el
+                     * control de la sesión (esto cierra la conexión
+                     * del otro dispositivo). Solo una conexión por IE.
+                     */
+                    if(
+                        resultado &&
+                        resultado.codigo === "SESION_YA_ABIERTA"
+                    ){
+
+                        const confirmarTakeover = window.confirm(
+                            (resultado.mensaje || "Ya hay una sesión activa para esta IE.") +
+                            "\n\n¿Desea continuar en este dispositivo?"
+                        );
+
+                        if(confirmarTakeover){
+                            validarCodigoAccesoFEM(true);
+                            return;
+                        }
+
+                    }
 
                     mensaje.style.display =
                         "block";
@@ -5339,7 +5374,8 @@ try{
         .validarAccesoIE(
             token,
             codigo,
-            obtenerDispositivoIdFEM()
+            obtenerDispositivoIdFEM(),
+            !!forzar
         );
 
 }
@@ -5460,7 +5496,15 @@ function inicializarPlenaria(){
     });
 
     const ant=document.getElementById("btnAnteriorPlenaria");
-    if(ant) ant.addEventListener("click",function(){ plenariaIrA(plenariaPaginaActual-1); });
+    if(ant) ant.addEventListener("click",function(){
+        if(plenariaPaginaActual<=0){
+            // Ya estamos en la primera página de la plenaria: volver
+            // a la pantalla de Evidencias (fotografía + QR de asistencia).
+            cambiarPantalla("pantallaPlenaria","pantallaEvidencias",9);
+            return;
+        }
+        plenariaIrA(plenariaPaginaActual-1);
+    });
     const sig=document.getElementById("btnContinuarPlenaria");
     if(sig) sig.addEventListener("click",async function(){
         const pages=document.querySelectorAll("#plenariaContenido .plenariaPagina");
@@ -5611,17 +5655,29 @@ function actualizarQRAsistencia_(){
     if(!idForo || !URL_WEBAPP_PRODUCCION_CLIENTE) return;
 
     const urlAsistencia=URL_WEBAPP_PRODUCCION_CLIENTE+"?asistencia="+encodeURIComponent(idForo);
-    img.src="https://chart.googleapis.com/chart?cht=qr&chs=260x260&chl="+encodeURIComponent(urlAsistencia);
+    // chart.googleapis.com (Google Charts) está descontinuado y ya no
+    // sirve códigos QR — se reemplaza por api.qrserver.com, que sigue
+    // funcionando y no requiere clave de API.
+    img.src="https://api.qrserver.com/v1/create-qr-code/?size=260x260&data="+encodeURIComponent(urlAsistencia);
 
     const conteo=document.getElementById("conteoAsistentesQR");
+    const conteoCaracterizacion=document.getElementById("conteoCaracterizacionQR");
+    if(conteoCaracterizacion){
+        const totalCaracterizacion=getTotalParticipantes()||0;
+        conteoCaracterizacion.textContent=totalCaracterizacion===1
+            ? "1 participante reportado en este foro."
+            : totalCaracterizacion+" participantes reportados en este foro.";
+    }
     if(conteo){
         conteo.textContent="Consultando firmas…";
         google.script.run
             .withSuccessHandler(function(res){
                 if(!conteo) return;
-                conteo.textContent=(res && res.ok)
-                    ? (res.total===1 ? "1 persona ya firmó asistencia." : res.total+" personas ya firmaron asistencia.")
-                    : "No fue posible consultar las firmas.";
+                if(!res || !res.ok){
+                    conteo.textContent="No fue posible consultar las firmas.";
+                    return;
+                }
+                conteo.textContent=(res.total===1 ? "1 persona ya firmó asistencia." : res.total+" personas ya firmaron asistencia.");
             })
             .withFailureHandler(function(){
                 if(conteo) conteo.textContent="No fue posible consultar las firmas.";
@@ -5732,7 +5788,7 @@ function renderizarPlenaria(opciones){
             if(q[2]==="__S2_ACCIONES__") cuerpo=[1,2,3,4,5].map(i=>["respuestaSesion2Pregunta2Accion"+i,"Acción "+i]).map(x=>`<label class="labelEditorPlenaria">${x[1]}</label><textarea class="editorRespuestaPlenaria" data-campo="${x[0]}" ${sent?'readonly':''}>${escapeHtml(getCampoValor(x[0]))}</textarea>`).join("");
             else if(q[2]==="__S3_ACCIONES__") cuerpo=[1,2,3,4,5].map(i=>["respuestaSesion3Pregunta2Accion"+i,"Acción "+i]).map(x=>`<label class="labelEditorPlenaria">${x[1]}</label><textarea class="editorRespuestaPlenaria" data-campo="${x[0]}" ${sent?'readonly':''}>${escapeHtml(getCampoValor(x[0]))}</textarea>`).join("");
             else cuerpo=`<textarea class="editorRespuestaPlenaria" data-campo="${q[2]}" ${sent?'readonly':''}>${escapeHtml(getCampoValor(q[2]))}</textarea>`;
-            html+=`<div class="plenariaPagina${sent?' enviada':''}" data-page="${pageIndex}" data-sesion="${grupo.sesion}"><div class="plenariaPregunta"><span>${grupo.titulo}</span><h3>${escapeHtml(q[1])}</h3></div>${cuerpo}<div class="plenariaEditHint">${sent?'✅ Respuesta enviada definitivamente.':'✏️ Modo edición: puede ajustar únicamente las respuestas antes de enviarlas.'}</div></div>`;
+            html+=`<div class="plenariaPagina${sent?' enviada':''}" data-page="${pageIndex}" data-sesion="${grupo.sesion}"><div class="plenariaPregunta"><span>${grupo.titulo}</span><h3>${escapeHtml(q[1])}</h3><button type="button" class="btnAmpliarPregunta" title="Ampliar esta sección" aria-label="Ampliar esta sección">👁️</button></div>${cuerpo}<div class="plenariaEditHint">${sent?'✅ Respuesta enviada definitivamente.':'✏️ Modo edición: puede ajustar únicamente las respuestas antes de enviarlas.'}</div>${sent?'':'<button type="button" class="btnGuardarPregunta">💾 Guardar</button>'}</div>`;
             plenariaPaginas.push({id:q[0],sesion:grupo.sesion,campo:q[2],sent});
         });
     });
@@ -5743,6 +5799,27 @@ function renderizarPlenaria(opciones){
     nav?.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>plenariaIrA(Number(b.dataset.nav))));
     contenido.querySelectorAll("textarea.editorRespuestaPlenaria").forEach(t=>t.addEventListener("input",function(){
         const original=document.getElementById(this.dataset.campo); if(original){ original.value=this.value; original.dispatchEvent(new Event("input",{bubbles:true})); }
+    }));
+    /*
+     * Ícono del ojo: amplía la pregunta a pantalla completa para
+     * editarla con más comodidad. El botón "Guardar" solo se hace
+     * visible mientras esa pregunta está en pantalla completa (ver
+     * CSS ".plenariaPagina:fullscreen .btnGuardarPregunta") — igual
+     * que en las demás sesiones, da la sensación de seguridad de que
+     * el avance quedó guardado antes de volver a la vista normal.
+     */
+    contenido.querySelectorAll(".btnAmpliarPregunta").forEach(b=>b.addEventListener("click",async function(){
+        const pagina=this.closest(".plenariaPagina"); if(!pagina) return;
+        try{
+            if(!document.fullscreenElement) await pagina.requestFullscreen();
+            else await document.exitFullscreen();
+        }catch(error){ console.error("No fue posible ampliar la pregunta:",error); }
+    }));
+    contenido.querySelectorAll(".btnGuardarPregunta").forEach(b=>b.addEventListener("click",function(){
+        guardarBorradorLocal();
+        const original=this.textContent;
+        this.textContent="✓ Guardado";
+        setTimeout(()=>{ this.textContent=original; },1500);
     }));
     /*
      * Al reconstruir la plenaria justo después de enviar una
@@ -5778,8 +5855,24 @@ function renderCaracterizacionHTML(){
 function etiquetaCampo(id){ const m={institucion:"Institución Educativa",dane:"Código DANE",rector:"Rector(a)",direccion:"Dirección",zona:"Zona",comuna:"Comuna / Corregimiento",grupo:"Grupo de trabajo",correoIE:"Correo institucional",nombre:"Responsable del informe",correo:"Correo del responsable",cargo:"Cargo"}; return m[id]||id; }
 function renderGraficoParticipacionHTML(){
     const defs=["Rector","Coordinador","Docentes","TutorPTA","Orientador","Estudiantes","Padres","Administrativos","Egresados","Sector","Otros"];
+    // Etiquetas completas para mostrar — "defs" solo son los sufijos
+    // de los id de campo, no deben mostrarse tal cual (p. ej. "Sector"
+    // aparecía en el gráfico en vez de "Sector productivo").
+    const etiquetas={
+        Rector:"Rector(a)",
+        Coordinador:"Coordinador(a)",
+        Docentes:"Docentes",
+        TutorPTA:"Tutor(a) PTA/PFI 3.0",
+        Orientador:"Orientador(a)",
+        Estudiantes:"Estudiantes",
+        Padres:"Padres/madres/acudientes",
+        Administrativos:"Personal administrativo",
+        Egresados:"Egresados",
+        Sector:"Sector productivo",
+        Otros:"Otros"
+    };
     const total=getTotalParticipantes()||1;
-    return `<div class="graficoParticipacionBarras">${defs.map(d=>{const n=Number(document.getElementById("participantes"+d)?.value||0);const p=(n/total*100);return `<div class="barraParticipante"><span>${escapeHtml(d)}</span><div><i style="width:${p.toFixed(2)}%"></i></div><b>${p.toFixed(1)}%</b></div>`}).join("")}</div>`;
+    return `<div class="graficoParticipacionBarras">${defs.map(d=>{const n=Number(document.getElementById("participantes"+d)?.value||0);const p=(n/total*100);return `<div class="barraParticipante"><span>${escapeHtml(etiquetas[d]||d)}</span><div><i style="width:${p.toFixed(2)}%"></i></div><b>${p.toFixed(1)}%</b></div>`}).join("")}</div>`;
 }
 function escapeHtml(s){return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");}
 function escapeAttr(s){return escapeHtml(s);}

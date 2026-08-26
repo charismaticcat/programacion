@@ -56,6 +56,9 @@ const COLOR_VERDE_DOC = "#0B6A44";
 const COLOR_GRIS_TEXTO_DOC = "#4A4A4A";
 const COLOR_GRIS_FONDO_DOC = "#F7F8FA";
 const COLOR_GRIS_BORDE_DOC = "#DADCE0";
+const COLOR_AZUL_CLARO_DOC = "#EAF3FB";
+const COLOR_AMARILLO_DOC = "#F4B400";
+const COLOR_NEGRO_DOC = "#000000";
 // Ya no se usa: generarInformeFEM() construye el informe con
 // DocumentApp.create() en vez de copiar este archivo, que resultó
 // ser un Word (.docx) y no un Google Doc nativo. Se conserva el
@@ -69,6 +72,31 @@ const COPIAS_INFORME_FEM = [
   "angelica.rojas@alcaldianeiva.gov.co",
   "ronald.polania@alcaldianeiva.gov.co"
 ];
+
+/*
+ * "El servicio de Hojas de cálculo no ha podido acceder al
+ * documento" es un error transitorio conocido del servicio de
+ * Google (no de este código): ocurre sobre todo cuando una misma
+ * ejecución abre la hoja muchas veces seguidas (enviarForoDefinitivo
+ * la abre más de diez veces). Se reintenta unas pocas veces con
+ * espera corta antes de fallar de verdad, en vez de abrir la hoja
+ * directamente en cada función.
+ */
+function abrirSpreadsheet_(){
+  let ultimoError = null;
+  for(let i = 0; i < 4; i++){
+    try{
+      return SpreadsheetApp.openById(SPREADSHEET_ID);
+    }catch(error){
+      ultimoError = error;
+      Utilities.sleep(500 * (i + 1));
+    }
+  }
+  throw new Error(
+    "El servicio de Hojas de cálculo no respondió después de varios intentos: " +
+    (ultimoError ? ultimoError.message : "error desconocido")
+  );
+}
 
 
 /*****************************************************
@@ -147,9 +175,7 @@ const token =
     try {
 
       const ss =
-        SpreadsheetApp.openById(
-          SPREADSHEET_ID
-        );
+        abrirSpreadsheet_();
 
       const hoja =
         ss.getSheetByName("AccesosIE");
@@ -402,9 +428,7 @@ function obtenerInstitucionesJSON(){
     try{
 
         const ss =
-            SpreadsheetApp.openById(
-                SPREADSHEET_ID
-            );
+            abrirSpreadsheet_();
 
         const hoja =
             ss.getSheetByName(
@@ -775,9 +799,7 @@ if(
 function diagnosticarOficiales() {
 
   const ss =
-    SpreadsheetApp.openById(
-      SPREADSHEET_ID
-    );
+    abrirSpreadsheet_();
 
   const hoja =
     ss.getSheetByName(
@@ -1063,9 +1085,7 @@ function obtenerCabecerasAvancesForo() {
 function prepararHojaAvancesForo() {
 
   const ss =
-    SpreadsheetApp.openById(
-      SPREADSHEET_ID
-    );
+    abrirSpreadsheet_();
 
 
   let hoja =
@@ -1505,9 +1525,7 @@ function obtenerAccesoPorIdForo_(idForo) {
   }
 
   const ss =
-    SpreadsheetApp.openById(
-      SPREADSHEET_ID
-    );
+    abrirSpreadsheet_();
 
   const hoja =
     ss.getSheetByName(
@@ -1667,9 +1685,7 @@ function obtenerAvanceForo(idForo) {
     }
 
     const ss =
-      SpreadsheetApp.openById(
-        SPREADSHEET_ID
-      );
+      abrirSpreadsheet_();
 
     const hoja =
       ss.getSheetByName(
@@ -1901,9 +1917,7 @@ function guardarAvanceForo(datos) {
 
 
     const ss =
-      SpreadsheetApp.openById(
-        SPREADSHEET_ID
-      );
+      abrirSpreadsheet_();
 
 
     let hoja =
@@ -2325,14 +2339,22 @@ function guardarAvanceForo(datos) {
  * el mismo código.
  *****************************************************/
 
-const SESION_CODIGO_TTL_MS = 2 * 60 * 1000;
+/*
+ * Ya NO hay temporizador de inactividad: una sesión reclamada por un
+ * dispositivo permanece activa indefinidamente (sin importar cuánto
+ * tiempo pase sin actividad) hasta que:
+ *   a) ese mismo dispositivo la libera (liberarSesionCodigo_), o
+ *   b) otro dispositivo la toma explícitamente con "forzar:true",
+ *      tras la confirmación del usuario en pantalla.
+ * "Solo un envío y una conexión es posible por IE."
+ */
 
 function obtenerClaveSesionCodigo_(token, codigo, idForo) {
   const claveBase = String(idForo || "").trim() || (String(token || "").trim()+"|"+String(codigo || "").trim());
   return "FEM_SESION_FORO_" + Utilities.base64EncodeWebSafe(claveBase);
 }
 
-function reclamarSesionCodigo_(token, codigo, dispositivoId, idForo) {
+function reclamarSesionCodigo_(token, codigo, dispositivoId, idForo, forzar) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(10000);
@@ -2342,8 +2364,12 @@ function reclamarSesionCodigo_(token, codigo, dispositivoId, idForo) {
     let actual = null;
     const guardado = props.getProperty(clave);
     if (guardado) { try { actual=JSON.parse(guardado); } catch(e){ actual=null; } }
-    if (actual && actual.deviceId && actual.deviceId !== dispositivoId && Number(actual.ultimaActividad||0) > ahora-SESION_CODIGO_TTL_MS) {
-      return {ok:false,codigo:"SESION_YA_ABIERTA",mensaje:"Este código está siendo utilizado en otro dispositivo. Si acaba de cambiar de equipo, espere 3 minutos mientras se libera la sesión anterior o solicite otro código de su institución al email de la SEM o al WhatsApp 3184561081."};
+    if (actual && actual.deviceId && actual.deviceId !== dispositivoId && !forzar) {
+      return {
+        ok:false,
+        codigo:"SESION_YA_ABIERTA",
+        mensaje:"Ya hay una sesión activa para esta IE. Si desea continuar en este dispositivo, se cerrará la conexión del otro dispositivo y podrá seguir en este dispositivo. Solo un envío y una conexión es posible por IE."
+      };
     }
     const tokenSesion = actual && actual.deviceId===dispositivoId && actual.tokenSesion ? actual.tokenSesion : Utilities.getUuid();
     props.setProperty(clave,JSON.stringify({deviceId:dispositivoId,tokenSesion:tokenSesion,ultimaActividad:ahora,idForo:idForo}));
@@ -2363,7 +2389,9 @@ function mantenerSesionCodigo_(token,codigo,dispositivoId,tokenSesion,idForo){
     const clave=obtenerClaveSesionCodigo_(token,codigo,idForo);
     const guardado=props.getProperty(clave); if(!guardado)return {ok:false,codigo:"SESION_NO_ENCONTRADA"};
     const actual=JSON.parse(guardado);
-    if(actual.deviceId!==dispositivoId || actual.tokenSesion!==tokenSesion)return {ok:false,codigo:"SESION_NO_AUTORIZADA"};
+    // Si otro dispositivo ya tomó la sesión (takeover), se lo informamos
+    // al cliente para que deje de intentar seguir trabajando en silencio.
+    if(actual.deviceId!==dispositivoId || actual.tokenSesion!==tokenSesion)return {ok:false,codigo:"SESION_NO_AUTORIZADA",mensaje:"Otro dispositivo tomó el control de esta sesión."};
     actual.ultimaActividad=Date.now(); props.setProperty(clave,JSON.stringify(actual)); return {ok:true};
   }catch(e){return {ok:false,codigo:"HEARTBEAT_ERROR"};} finally{try{lock.releaseLock();}catch(e){}}
 }
@@ -2375,7 +2403,7 @@ function liberarSesionCodigo_(token,codigo,dispositivoId,tokenSesion,idForo){
   catch(e){return {ok:false};} finally{try{lock.releaseLock();}catch(e){}}
 }
 
-function validarAccesoIE(token, codigo, dispositivoId) {
+function validarAccesoIE(token, codigo, dispositivoId, forzar) {
 
   try {
 
@@ -2431,9 +2459,7 @@ function validarAccesoIE(token, codigo, dispositivoId) {
      */
 
     const ss =
-      SpreadsheetApp.openById(
-        SPREADSHEET_ID
-      );
+      abrirSpreadsheet_();
 
 
     const hoja =
@@ -2872,12 +2898,15 @@ function validarAccesoIE(token, codigo, dispositivoId) {
      * La ocupación persistente se guarda en ScriptProperties.
      * Cada código tiene su propio lock lógico.
      *
-     * La sesión se libera después de 2 minutos sin heartbeat.
-     * El navegador la mantiene viva mientras el formulario siga abierto.
-     */ 
+     * Sin temporizador de inactividad: la sesión no se libera sola
+     * por tiempo. Si otro dispositivo ya tiene la sesión abierta, se
+     * devuelve SESION_YA_ABIERTA para que el cliente muestre la
+     * confirmación de takeover; si el usuario confirma, esta misma
+     * función se vuelve a llamar con forzar=true.
+     */
 
     const resultadoSesion =
-      reclamarSesionCodigo_(token, codigo, dispositivoId, idForo);
+      reclamarSesionCodigo_(token, codigo, dispositivoId, idForo, !!forzar);
 
     if (!resultadoSesion.ok) {
 
@@ -2981,9 +3010,7 @@ function validarAccesoIE(token, codigo, dispositivoId) {
 function enviarAccesosTodasIE(){
 
   const ss =
-    SpreadsheetApp.openById(
-      SPREADSHEET_ID
-    );
+    abrirSpreadsheet_();
 
   const hoja =
     ss.getSheetByName(
@@ -3351,7 +3378,7 @@ function programarEnvioAccesos28Agosto(){
  *****************************************************/
 function actualizarURLsAccesoIE() {
 
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const ss = abrirSpreadsheet_();
 
   const hoja = ss.getSheetByName("AccesosIE");
 
@@ -3695,9 +3722,7 @@ function generarAccesosIE() {
     try {
 
         const ss =
-            SpreadsheetApp.openById(
-                SPREADSHEET_ID
-            );
+            abrirSpreadsheet_();
 
         /*
          * =================================================
@@ -4578,7 +4603,7 @@ function normalizarAccesoIE_(texto){
 }
 
 function asegurarColumnasAccesosIE_(){
-  const ss=SpreadsheetApp.openById(SPREADSHEET_ID);
+  const ss=abrirSpreadsheet_();
   let hoja=ss.getSheetByName(HOJA_ACCESOS);
   if(!hoja) hoja=ss.insertSheet(HOJA_ACCESOS);
   const requeridas=["ID_ACCESO","IE","DANE","CODIGO_ACCESO","TOKEN","URL_ACCESO","ID_FORO","ESTADO","TOKEN_SESION","DISPOSITIVO_ID","FECHA_GENERACION","FECHA_PRIMER_ACCESO","ULTIMA_ACTIVIDAD","FECHA_ENVIO","EMAIL_IE","EMAIL_RESPONSABLE","TIPO","S1_ENVIADA","S2_ENVIADA","S3_ENVIADA","ID_INFORME","ID_PDF_INFORME"];
@@ -4622,7 +4647,7 @@ function nombreHojaIE_(nombre){
 
 function inicializarHojasIE(){
   try{
-    const ss=SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ss=abrirSpreadsheet_();
     const instituciones=obtenerInstituciones();
     const headers=obtenerCabecerasAvancesForo();
     const created=[];
@@ -4639,7 +4664,7 @@ function inicializarHojasIE(){
 
 
 function inicializarParticipacion_(){
-  const ss=SpreadsheetApp.openById(SPREADSHEET_ID); let sh=ss.getSheetByName(HOJA_PARTICIPACION); if(!sh)sh=ss.insertSheet(HOJA_PARTICIPACION);
+  const ss=abrirSpreadsheet_(); let sh=ss.getSheetByName(HOJA_PARTICIPACION); if(!sh)sh=ss.insertSheet(HOJA_PARTICIPACION);
   const h=["IE","ID_FORO","FECHA","Rector(a)","Coordinador(a)","Docentes","Tutor PTA PFI/3.0","Orientador(a)","Estudiantes","Padres/madres/acudientes","Personal administrativo","Egresados","Sector productivo","Otros","Total"];
   const last=sh.getLastColumn(); if(!last)sh.getRange(1,1,1,h.length).setValues([h]); else{const ex=sh.getRange(1,1,1,last).getValues()[0].map(String);const f=h.filter(x=>ex.indexOf(x)===-1);if(f.length)sh.getRange(1,last+1,1,f.length).setValues([f]);}
   return sh;
@@ -4654,7 +4679,7 @@ function actualizarParticipacion_(datos){
 
 
 function guardarEnHojaIE_(datos){
-  const ss=SpreadsheetApp.openById(SPREADSHEET_ID); const shName=nombreHojaIE_(datos.institucion); let sh=ss.getSheetByName(shName); if(!sh){sh=ss.insertSheet(shName); const headers=obtenerCabecerasAvancesForo(); sh.getRange(1,1,1,headers.length).setValues([headers]);}
+  const ss=abrirSpreadsheet_(); const shName=nombreHojaIE_(datos.institucion); let sh=ss.getSheetByName(shName); if(!sh){sh=ss.insertSheet(shName); const headers=obtenerCabecerasAvancesForo(); sh.getRange(1,1,1,headers.length).setValues([headers]);}
   if(!sh)return; const headers=obtenerCabecerasAvancesForo(); if(sh.getLastColumn()<headers.length)sh.getRange(1,1,1,headers.length).setValues([headers]); const m=mapaHoja_(sh); const respuestas=extraerRespuestasSesiones_(datos);
   const row=Object.assign({ID_FORO:datos.idForo,INSTITUCION:datos.institucion,DANE:datos.dane,FECHA_INICIO:datos.fechaInicio||new Date(),ULTIMA_ACTUALIZACION:new Date(),ESTADO:"En proceso"},respuestas,{DATOS:JSON.stringify(datos)});
   const out=new Array(sh.getLastColumn()).fill(""); Object.keys(row).forEach(k=>{if(m[k])out[m[k]-1]=normalizarValorHoja_(row[k]);}); let found=-1;if(sh.getLastRow()>=2){const ids=sh.getRange(2,m.ID_FORO,sh.getLastRow()-1,1).getValues();for(let i=0;i<ids.length;i++)if(String(ids[i][0]||"")===String(datos.idForo||"")){found=i+2;break;}} if(found>0)sh.getRange(found,1,1,out.length).setValues([out]);else sh.appendRow(out);
@@ -4662,12 +4687,12 @@ function guardarEnHojaIE_(datos){
 
 
 function obtenerEstadoSesiones_(idForo){
-  const sh=SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(HOJA_AVANCES); if(!sh||sh.getLastRow()<2)return {s1:false,s2:false,s3:false}; const m=mapaHoja_(sh); const row=buscarFilaPorIdForo_(sh,idForo,m); if(row<0)return {s1:false,s2:false,s3:false}; return {s1:String(sh.getRange(row,m.S1_ENVIADA).getValue()).toUpperCase()==="SI",s2:String(sh.getRange(row,m.S2_ENVIADA).getValue()).toUpperCase()==="SI",s3:String(sh.getRange(row,m.S3_ENVIADA).getValue()).toUpperCase()==="SI"};
+  const sh=abrirSpreadsheet_().getSheetByName(HOJA_AVANCES); if(!sh||sh.getLastRow()<2)return {s1:false,s2:false,s3:false}; const m=mapaHoja_(sh); const row=buscarFilaPorIdForo_(sh,idForo,m); if(row<0)return {s1:false,s2:false,s3:false}; return {s1:String(sh.getRange(row,m.S1_ENVIADA).getValue()).toUpperCase()==="SI",s2:String(sh.getRange(row,m.S2_ENVIADA).getValue()).toUpperCase()==="SI",s3:String(sh.getRange(row,m.S3_ENVIADA).getValue()).toUpperCase()==="SI"};
 }
 
 
 function obtenerDatosGuardadosPorIdForo_(idForo){
-  const sh=SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(HOJA_AVANCES); if(!sh||sh.getLastRow()<2)return null; const m=mapaHoja_(sh); const row=buscarFilaPorIdForo_(sh,idForo,m); if(row<0)return null; const raw=sh.getRange(row,m.DATOS).getValue(); if(!raw)return null; try{return JSON.parse(raw);}catch(e){return null;}
+  const sh=abrirSpreadsheet_().getSheetByName(HOJA_AVANCES); if(!sh||sh.getLastRow()<2)return null; const m=mapaHoja_(sh); const row=buscarFilaPorIdForo_(sh,idForo,m); if(row<0)return null; const raw=sh.getRange(row,m.DATOS).getValue(); if(!raw)return null; try{return JSON.parse(raw);}catch(e){return null;}
 }
 
 
@@ -4693,7 +4718,7 @@ function hacerPublicoSiEsPosible_(file){try{file.setSharing(DriveApp.Access.ANYO
 const CARGOS_ASISTENCIA_QR=["Rector(a)","Coordinador(a)","Docente","Tutor(a) PTA/PFI 3.0","Orientador(a)","Estudiante","Padre/madre/acudiente","Personal administrativo","Egresado(a)","Sector productivo","Otro"];
 
 function asegurarHojaAsistenciaQR_(){
-  const ss=SpreadsheetApp.openById(SPREADSHEET_ID);
+  const ss=abrirSpreadsheet_();
   let hoja=ss.getSheetByName(HOJA_ASISTENCIA_QR);
   if(!hoja) hoja=ss.insertSheet(HOJA_ASISTENCIA_QR);
   const requeridas=["ID_FORO","IE","NOMBRE_COMPLETO","CARGO","NUMERO_DOCUMENTO","CORREO","TELEFONO","FECHA","HORA"];
@@ -4785,7 +4810,14 @@ function obtenerAsistentesQR_(idForo){
  */
 function contarAsistentesQR(idForo){
   try{
-    return {ok:true, total:obtenerAsistentesQR_(idForo).length};
+    const datos=obtenerDatosGuardadosPorIdForo_(idForo);
+    const estado=obtenerEstadoSesiones_(idForo);
+    return {
+      ok:true,
+      total:obtenerAsistentesQR_(idForo).length,
+      totalCaracterizacion:datos?totalParticipantesServer_(datos):0,
+      cerrado:!!(estado&&estado.s3)
+    };
   }catch(error){
     return {ok:false, mensaje:error.message};
   }
@@ -4840,6 +4872,34 @@ function agregarListadoAsistenciaAlInforme_(body, idForo, datos){
 function paginaAsistenciaQR_(idForo){
   const acceso=obtenerAccesoPorIdForo_(idForo);
   const ie=acceso?acceso.ie:"";
+
+  /*
+   * Una vez enviada definitivamente la Sesión 3, el registro de
+   * asistencia por QR se cierra: ya no tiene sentido seguir firmando
+   * porque el informe ejecutivo (con el listado incluido) ya pudo
+   * haberse generado.
+   */
+  const estadoSesiones=obtenerEstadoSesiones_(idForo);
+  if(estadoSesiones && estadoSesiones.s3){
+    const htmlCerrado=
+      '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'+
+      '<meta name="viewport" content="width=device-width, initial-scale=1">'+
+      '<title>Registro de asistencia cerrado — FEM 2026</title>'+
+      '<style>'+
+      'body{font-family:Arial,Helvetica,sans-serif;background:#F7F8FA;color:#4A4A4A;margin:0;padding:24px;}'+
+      '.tarjeta{max-width:420px;margin:60px auto 0;background:#fff;border-radius:16px;padding:32px;box-shadow:0 8px 24px rgba(0,0,0,.12);text-align:center;}'+
+      'h1{color:#0B6A44;font-size:22px;margin:0 0 12px;}'+
+      'p{line-height:1.5;}'+
+      '</style></head><body>'+
+      '<div class="tarjeta">'+
+      '<h1>Registro de asistencia cerrado</h1>'+
+      '<p>La Institución Educativa <b>'+String(ie).replace(/</g,"&lt;")+'</b> ya envió definitivamente sus respuestas del Foro Educativo 2026.</p>'+
+      '<p>El registro de firmas de asistencia ya no está disponible.</p>'+
+      '</div></body></html>';
+    return HtmlService.createHtmlOutput(htmlCerrado)
+      .setTitle("Registro de asistencia cerrado — FEM 2026")
+      .addMetaTag("viewport","width=device-width, initial-scale=1");
+  }
 
   const opcionesCargo=CARGOS_ASISTENCIA_QR.map(function(c){
     return '<option value="'+c.replace(/"/g,"&quot;")+'">'+c+'</option>';
@@ -4918,7 +4978,7 @@ function subirEvidenciasFEM(idForo,fotoData,fotoName,fotoMime,datos){
 
 
 function obtenerGraficoParticipacionBlob_(datos){
-  const ss=SpreadsheetApp.openById(SPREADSHEET_ID); const sh=ss.getSheetByName(HOJA_PARTICIPACION); if(!sh)return null; const m=mapaHoja_(sh); const row=buscarFilaPorIdForo_(sh,datos.idForo,m); if(row<0)return null;
+  const ss=abrirSpreadsheet_(); const sh=ss.getSheetByName(HOJA_PARTICIPACION); if(!sh)return null; const m=mapaHoja_(sh); const row=buscarFilaPorIdForo_(sh,datos.idForo,m); if(row<0)return null;
   const labels=["Rector(a)","Coordinador(a)","Docentes","Tutor PTA PFI/3.0","Orientador(a)","Estudiantes","Padres/madres/acudientes","Personal administrativo","Egresados","Sector productivo","Otros"];
   const nums=labels.map(l=>Number(sh.getRange(row,m[l]).getValue()||0));
   // Paleta pastel — un color por estamento.
@@ -4976,6 +5036,7 @@ function generarInformeFEM(idForo,datosCliente){
      * Paleta institucional del FEM 2026 (la misma del formulario).
      */
     const VERDE=COLOR_VERDE_DOC, GRIS_TEXTO=COLOR_GRIS_TEXTO_DOC, GRIS_FONDO=COLOR_GRIS_FONDO_DOC, GRIS_BORDE=COLOR_GRIS_BORDE_DOC;
+    const AZUL_CLARO=COLOR_AZUL_CLARO_DOC, AMARILLO=COLOR_AMARILLO_DOC, NEGRO=COLOR_NEGRO_DOC;
 
     const body=doc.getBody(); body.clear(); body.setPageWidth(612).setPageHeight(792).setMarginTop(50).setMarginBottom(50).setMarginLeft(48).setMarginRight(48);
     const h=doc.getHeader()||doc.addHeader(); h.clear(); const hi=h.appendParagraph(""); hi.setAlignment(DocumentApp.HorizontalAlignment.RIGHT); try{hi.appendInlineImage(DriveApp.getFileById(LOGO_ENCABEZADO_ID).getBlob()).setWidth(90).setHeight(50);}catch(e){};
@@ -5015,13 +5076,50 @@ function generarInformeFEM(idForo,datosCliente){
       return t;
     }
 
+    /*
+     * Tabla de caracterización con el mismo lenguaje visual que las
+     * tarjetas de la plenaria (.tarjetaPregunta): título en verde y
+     * negrita, fondo de los cuadros en azul claro, texto en negro y
+     * esquinas redondeadas. La API de tablas de Google Docs no admite
+     * bordes por un solo lado ni esquinas redondeadas, así que la
+     * franja amarilla de la izquierda se aproxima con una primera
+     * columna angosta de fondo amarillo, a modo de acento.
+     */
+    function tablaCaracterizacion_(filas){
+      const t=body.appendTable();
+      t.setBorderColor(AZUL_CLARO); t.setBorderWidth(1);
+      filas.forEach(function(x){
+        const r=t.appendTableRow();
+        const acento=r.appendTableCell("");
+        acento.setBackgroundColor(AMARILLO);
+        acento.setWidth(6);
+        const c1=r.appendTableCell(String(x[0]||""));
+        c1.setBackgroundColor(AZUL_CLARO);
+        c1.editAsText().setBold(true).setForegroundColor(VERDE).setFontSize(10);
+        const c2=r.appendTableCell(String(x[1]||"—"));
+        c2.setBackgroundColor(AZUL_CLARO);
+        c2.editAsText().setForegroundColor(NEGRO).setFontSize(10);
+      });
+      return t;
+    }
+
     encabezadoSeccion_("Caracterización y participación");
     const c=datos.campos||{};
-    tablaClaveValor_([["Institución Educativa",datos.institucion],["DANE",datos.dane],["Rector(a)",c.rector?.valor||""],["Grupo de trabajo",c.grupo?.valor||""],["Responsable",c.nombre?.valor||""],["Cargo",c.cargo?.valor||""],["Correo responsable",c.correo?.valor||""],["Correo institucional",c.correoIE?.valor||""]]);
+    tablaCaracterizacion_([["Institución Educativa",datos.institucion],["DANE",datos.dane],["Rector(a)",c.rector?.valor||""],["Grupo de trabajo",c.grupo?.valor||""],["Responsable",c.nombre?.valor||""],["Cargo",c.cargo?.valor||""],["Correo responsable",c.correo?.valor||""],["Correo institucional",c.correoIE?.valor||""]]);
 
-    const pPart=body.appendParagraph("Participantes: "+totalParticipantesServer_(datos));
+    const totalParticipantesInforme=totalParticipantesServer_(datos);
+    const pPart=body.appendParagraph("Participantes: "+totalParticipantesInforme);
     pPart.setHeading(DocumentApp.ParagraphHeading.HEADING2); pPart.editAsText().setForegroundColor(VERDE).setBold(true);
     const chart=obtenerGraficoParticipacionBlob_(datos); if(chart)body.appendImage(chart).setWidth(430);
+
+    // Mismo párrafo introductorio que se muestra en la portada de la
+    // sesión de plenaria, en la primera página del informe, junto al
+    // gráfico de participación.
+    const parrafoIntro=body.appendParagraph(
+      "La institución educativa "+String(datos.institucion||"")+" construyó colectivamente las conclusiones que se presentan a continuación con la participación de "+totalParticipantesInforme+" integrantes de su comunidad educativa."
+    );
+    parrafoIntro.editAsText().setForegroundColor(GRIS_TEXTO);
+
     body.appendPageBreak();
 
     /*
@@ -5127,7 +5225,7 @@ function finalizarFormularioFEM(idForo,tokenSesion,dispositivoId,pdfId){
     if(!pdfId)return {ok:false,mensaje:"No se ha registrado el PDF del informe."};
     if(ac.mapa.FECHA_ENVIO)ac.hoja.getRange(ac.fila,ac.mapa.FECHA_ENVIO).setValue(new Date());
     const props=PropertiesService.getScriptProperties(); props.deleteProperty(obtenerClaveSesionCodigo_("","",idForo));
-    const sh=SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(HOJA_AVANCES);
+    const sh=abrirSpreadsheet_().getSheetByName(HOJA_AVANCES);
     if(sh){const mm=obtenerMapaCabeceras_(sh);const row=buscarFilaPorIdForo_(sh,idForo,mm);if(row>0&&mm.ESTADO)sh.getRange(row,mm.ESTADO).setValue("ENVIADO");}
     return {ok:true,pdfId:pdfId};
   }finally{try{lock.releaseLock();}catch(e){}}
@@ -5145,7 +5243,7 @@ function finalizarFormularioFEM(idForo,tokenSesion,dispositivoId,pdfId){
 const HOJA_VALORACION_FEM = "Valoración FEMI2026";
 
 function asegurarHojaValoracionFEM_(){
-  const ss=SpreadsheetApp.openById(SPREADSHEET_ID);
+  const ss=abrirSpreadsheet_();
   let hoja=ss.getSheetByName(HOJA_VALORACION_FEM);
   if(!hoja) hoja=ss.insertSheet(HOJA_VALORACION_FEM);
   const requeridas=["ID_FORO","IE","FECHA","P1_DIALOGO_REFLEXION","P2_PARTICIPACION","P3_IDEAS_PROPUESTAS","P4_SATISFACCION_INSTRUMENTO","P5_SUGERENCIAS"];
@@ -5244,7 +5342,7 @@ function enviarRespuestasSesion(idForo, tokenSesion, dispositivoId, sesion, dato
       throw new Error((guardado && guardado.mensaje) || "No fue posible guardar las respuestas.");
     }
 
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ss = abrirSpreadsheet_();
     const hoja = ss.getSheetByName(HOJA_AVANCES);
     const mapa = obtenerMapaCabeceras_(hoja);
     const fila = buscarFilaPorIdForo_(hoja, idForo, mapa);
@@ -5280,13 +5378,16 @@ function enviarRespuestasSesion(idForo, tokenSesion, dispositivoId, sesion, dato
  *****************************************************/
 function obtenerAccesoPorIdForoRaw_(idForo){
   const id=String(idForo||"").trim(); if(!id)return null;
-  const ss=SpreadsheetApp.openById(SPREADSHEET_ID); const sh=ss.getSheetByName(HOJA_ACCESOS); if(!sh||sh.getLastRow()<2)return null;
+  const ss=abrirSpreadsheet_(); const sh=ss.getSheetByName(HOJA_ACCESOS); if(!sh||sh.getLastRow()<2)return null;
   const vals=sh.getDataRange().getDisplayValues(); const h=vals[0].map(String); const m={}; h.forEach((x,i)=>m[String(x).trim()]=i);
   for(let i=1;i<vals.length;i++) if(String(vals[i][m.ID_FORO]||"").trim()===id) return {hoja:sh,fila:i+1,mapa:Object.fromEntries(Object.keys(m).map(k=>[k,m[k]+1])),ie:String(vals[i][m.IE]||""),dane:String(vals[i][m.DANE]||""),email:m.EMAIL_IE!==undefined?String(vals[i][m.EMAIL_IE]||""):""};
   return null;
 }
 function sesionActivaPorIdForo_(idForo,dispositivoId,tokenSesion){
-  const props=PropertiesService.getScriptProperties(); const clave=obtenerClaveSesionCodigo_("","",idForo); const raw=props.getProperty(clave); if(!raw)return false; let a; try{a=JSON.parse(raw);}catch(e){return false;} if(a.deviceId!==String(dispositivoId||"")||a.tokenSesion!==String(tokenSesion||""))return false; if(Date.now()-Number(a.ultimaActividad||0)>SESION_CODIGO_TTL_MS)return false; return true;
+  // Sin temporizador de inactividad: la sesión es válida mientras
+  // pertenezca a este mismo dispositivo/token — sin límite de tiempo —
+  // hasta que otro dispositivo la tome explícitamente (takeover).
+  const props=PropertiesService.getScriptProperties(); const clave=obtenerClaveSesionCodigo_("","",idForo); const raw=props.getProperty(clave); if(!raw)return false; let a; try{a=JSON.parse(raw);}catch(e){return false;} if(a.deviceId!==String(dispositivoId||"")||a.tokenSesion!==String(tokenSesion||""))return false; return true;
 }
 function validarEnvioFinal_(datos){
   const c=datos?.campos||{}; const v=id=>String(c[id]?.valor||"").trim(); const words=t=>String(t||"").trim().split(/\s+/).filter(Boolean).length;
@@ -5302,23 +5403,23 @@ function enviarForoDefinitivo(idForo,tokenSesion,dispositivoId,datos){
     const raw=obtenerAccesoPorIdForoRaw_(idForo); if(!raw)return {ok:false,mensaje:"La institución no está autorizada."};
     const estado=String(raw.hoja.getRange(raw.fila,raw.mapa.ESTADO).getValue()||"").toUpperCase();
     if(estado==="ENVIADO")return {ok:true,yaEnviado:true,mensaje:"Las respuestas ya fueron enviadas definitivamente."};
-    if(!sesionActivaPorIdForo_(idForo,dispositivoId,tokenSesion))return {ok:false,mensaje:"La sesión ya no está activa. Ingrese nuevamente con uno de los códigos de la institución."};
+    if(!sesionActivaPorIdForo_(idForo,dispositivoId,tokenSesion))return {ok:false,mensaje:"Otro dispositivo tomó el control de esta sesión. Ingrese nuevamente con uno de los códigos de la institución si desea continuar aquí."};
     const valida=validarEnvioFinal_(datos); if(!valida.ok)return valida;
     datos.idForo=String(idForo); datos.institucion=raw.ie; datos.dane=raw.dane;
     const guardado=guardarAvanceForo(datos); if(!guardado?.ok)throw new Error(guardado?.mensaje||"No fue posible guardar las respuestas.");
-    const sh=SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(HOJA_AVANCES); const m=obtenerMapaCabeceras_(sh); const row=buscarFilaPorIdForo_(sh,idForo,m); const now=new Date();
+    const sh=abrirSpreadsheet_().getSheetByName(HOJA_AVANCES); const m=obtenerMapaCabeceras_(sh); const row=buscarFilaPorIdForo_(sh,idForo,m); const now=new Date();
     ["S1_ENVIADA","S2_ENVIADA","S3_ENVIADA"].forEach(k=>{if(m[k])sh.getRange(row,m[k]).setValue("SI")});
     ["FECHA_ENVIO_S1","FECHA_ENVIO_S2","FECHA_ENVIO_S3","FECHA_ENVIO_DEFINITIVO"].forEach(k=>{if(m[k])sh.getRange(row,m[k]).setValue(now)});
     if(m.ESTADO)sh.getRange(row,m.ESTADO).setValue("ENVIADO");
     guardarEnHojaIE_(datos); actualizarParticipacion_(datos); actualizarGraficoHojaIE_(datos);
-    const shIE=SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(nombreHojaIE_(datos.institucion)); if(shIE&&shIE.getLastRow()>=2){const mi=obtenerMapaCabeceras_(shIE);const rr=buscarFilaPorIdForo_(shIE,idForo,mi);if(rr>0&&mi.ESTADO)shIE.getRange(rr,mi.ESTADO).setValue("ENVIADO");}
+    const shIE=abrirSpreadsheet_().getSheetByName(nombreHojaIE_(datos.institucion)); if(shIE&&shIE.getLastRow()>=2){const mi=obtenerMapaCabeceras_(shIE);const rr=buscarFilaPorIdForo_(shIE,idForo,mi);if(rr>0&&mi.ESTADO)shIE.getRange(rr,mi.ESTADO).setValue("ENVIADO");}
     actualizarGraficosParticipacion_();
     const am=raw.mapa; if(am.ESTADO)raw.hoja.getRange(raw.fila,am.ESTADO).setValue("ENVIADO"); if(am.FECHA_ENVIO)raw.hoja.getRange(raw.fila,am.FECHA_ENVIO).setValue(now);
     return {ok:true,fecha:now.toISOString(),idForo:idForo};
   }finally{try{lock.releaseLock();}catch(e){}}
 }
 function actualizarGraficosParticipacion_(){
-  const ss=SpreadsheetApp.openById(SPREADSHEET_ID); const sh=ss.getSheetByName(HOJA_PARTICIPACION); if(!sh||sh.getLastRow()<2)return;
+  const ss=abrirSpreadsheet_(); const sh=ss.getSheetByName(HOJA_PARTICIPACION); if(!sh||sh.getLastRow()<2)return;
   sh.getCharts().forEach(c=>sh.removeChart(c));
   const headers=sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0].map(String); const idx={};headers.forEach((h,i)=>idx[h]=i+1);
   const labels=["Rector(a)","Coordinador(a)","Docentes","Tutor PTA PFI/3.0","Orientador(a)","Estudiantes","Padres/madres/acudientes","Personal administrativo","Egresados","Sector productivo","Otros"];
@@ -5332,7 +5433,7 @@ function actualizarGraficosParticipacion_(){
 
 function actualizarGraficoHojaIE_(datos){
   try{
-    const ss=SpreadsheetApp.openById(SPREADSHEET_ID); const sh=ss.getSheetByName(nombreHojaIE_(datos.institucion)); if(!sh)return;
+    const ss=abrirSpreadsheet_(); const sh=ss.getSheetByName(nombreHojaIE_(datos.institucion)); if(!sh)return;
     sh.getCharts().forEach(c=>sh.removeChart(c));
     const c=datos.campos||{}; const labels=["Rector(a)","Coordinador(a)","Docentes","Tutor PTA PFI/3.0","Orientador(a)","Estudiantes","Padres/madres/acudientes","Personal administrativo","Egresados","Sector productivo","Otros"];
     const ids=["Rector","Coordinador","Docentes","TutorPTA","Orientador","Estudiantes","Padres","Administrativos","Egresados","Sector","Otros"];
