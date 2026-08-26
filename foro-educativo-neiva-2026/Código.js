@@ -3225,43 +3225,60 @@ function enviarAccesosTodasIE(){
     try{
 
       const asunto =
-        "Acceso al Foro Educativo Institucional – " +
+        "🎓 Acceso al Foro Educativo Institucional – " +
         ie;
+
+      const textoEnlace =
+        "Ingreso de la IE " + ie + " al Foro Educativo Institucional";
 
       const cuerpoTexto =
         "Secretaría de Educación de Neiva\n\n" +
-        "La Institución Educativa " +
-        ie +
-        " ha sido habilitada para participar en el Foro Educativo Institucional – Neiva 2026.\n\n" +
-        "Código de acceso: " +
-        codigo +
-        "\n\n" +
-        "Enlace personalizado:\n" +
-        url +
-        "\n\n" +
-        "Este código y este enlace corresponden exclusivamente a esta institución educativa. " +
-        "No comparta el acceso con otra IE.\n\n" +
-        "Secretaría de Educación de Neiva";
+        "Estimada comunidad educativa de la Institución Educativa " + ie + ":\n\n" +
+        "Ya pueden ingresar al Foro Educativo Institucional – Neiva 2026 con el código de acceso exclusivo de su institución.\n\n" +
+        "Código de acceso: " + codigo + "\n\n" +
+        textoEnlace + ":\n" + url + "\n\n" +
+        "Este código y este enlace son exclusivos de su institución: no deben compartirse con otra IE.\n\n" +
+        "Ante cualquier inconveniente pueden escribir a este mismo correo o comunicarse al WhatsApp 318 456 1081.\n\n" +
+        "Secretaría de Educación de Neiva\n" +
+        "Foro Educativo Institucional – Neiva 2026\n" +
+        "“Escuela Viva: Voces que construyen territorio”";
 
+      /*
+       * HTML del correo con el mismo lenguaje visual del formulario
+       * (verde institucional, acento amarillo, tarjeta redondeada con
+       * sombra) — con estilos en línea para que se vea igual en la
+       * mayoría de los clientes de correo, que no siempre respetan
+       * bloques <style>.
+       */
       const cuerpoHTML =
-        "<div style=\"font-family:Arial,sans-serif;line-height:1.6;max-width:700px;margin:auto\">" +
-        "<h2>Foro Educativo Institucional – Neiva 2026</h2>" +
-        "<p>La Institución Educativa <strong>" +
-        ie +
-        "</strong> ha sido habilitada para participar en el Foro Educativo Institucional.</p>" +
-        "<p><strong>Código de acceso:</strong><br>" +
-        "<span style=\"font-size:26px;font-weight:bold;letter-spacing:4px\">" +
-        codigo +
-        "</span></p>" +
-        "<p><strong>Enlace personalizado:</strong><br>" +
-        "<a href=\"" +
-        url +
-        "\" target=\"_blank\">Ingresar al Foro Educativo</a></p>" +
-        "<p style=\"color:#666;font-size:13px\">" +
-        "Este código y este enlace corresponden exclusivamente a esta institución educativa. " +
-        "No comparta el acceso con otra IE." +
+        "<div style=\"background:#F7F8FA;padding:28px 12px;font-family:Arial,Helvetica,sans-serif;\">" +
+        "<div style=\"max-width:520px;margin:0 auto;background:#FFFFFF;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.10);\">" +
+        "<div style=\"background:#0B6A44;padding:26px 28px;text-align:center;\">" +
+        "<div style=\"color:#FFFFFF;font-size:20px;font-weight:700;\">Foro Educativo Institucional</div>" +
+        "<div style=\"color:#CFE8DC;font-size:14px;margin-top:2px;\">Neiva 2026</div>" +
+        "</div>" +
+        "<div style=\"padding:28px 28px 8px;\">" +
+        "<p style=\"font-size:16px;color:#333333;margin:0 0 14px;\">Estimada comunidad educativa de la Institución Educativa <strong>" + ie + "</strong>:</p>" +
+        "<p style=\"font-size:15px;color:#4A4A4A;line-height:1.6;margin:0 0 22px;\">" +
+        "Ya pueden ingresar al Foro Educativo Institucional – Neiva 2026 con el código de acceso exclusivo de su institución." +
         "</p>" +
-        "<p>Secretaría de Educación de Neiva</p>" +
+        "<div style=\"background:#F7F8FA;border-left:6px solid #F4B400;border-radius:10px;padding:16px 20px;margin:0 0 24px;text-align:center;\">" +
+        "<div style=\"font-size:12px;font-weight:700;color:#0B6A44;text-transform:uppercase;letter-spacing:.5px;\">Código de acceso</div>" +
+        "<div style=\"font-size:30px;font-weight:700;letter-spacing:6px;color:#0B6A44;margin-top:4px;\">" + codigo + "</div>" +
+        "</div>" +
+        "<div style=\"text-align:center;margin:0 0 24px;\">" +
+        "<a href=\"" + url + "\" target=\"_blank\" style=\"display:inline-block;background:#0B6A44;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:15px;padding:14px 26px;border-radius:10px;\">" + textoEnlace + "</a>" +
+        "</div>" +
+        "<div style=\"background:#FFF8E1;border-left:6px solid #F4B400;border-radius:10px;padding:12px 16px;margin:0 0 20px;\">" +
+        "<p style=\"font-size:13px;color:#7A5B00;margin:0;\">🔒 Este código y este enlace son exclusivos de su institución: no deben compartirse con otra IE.</p>" +
+        "</div>" +
+        "<p style=\"font-size:13px;color:#888888;margin:0 0 24px;\">Ante cualquier inconveniente, pueden escribir a este mismo correo o comunicarse al WhatsApp 318 456 1081.</p>" +
+        "</div>" +
+        "<div style=\"background:#F7F8FA;padding:18px 28px;text-align:center;border-top:1px solid #E5E7EA;\">" +
+        "<p style=\"font-size:13px;color:#0B6A44;font-weight:700;margin:0;\">Secretaría de Educación de Neiva</p>" +
+        "<p style=\"font-size:12px;color:#888888;margin:4px 0 0;font-style:italic;\">“Escuela Viva: Voces que construyen territorio”</p>" +
+        "</div>" +
+        "</div>" +
         "</div>";
 
       const opciones = {
@@ -5415,6 +5432,9 @@ function guardarValoracionFEM(idForo, respuestas){
   try{
     lock.waitLock(10000);
 
+    idForo = String(idForo||"").trim();
+    if(!idForo) return {ok:false, mensaje:"No fue posible identificar el registro para guardar la valoración."};
+
     respuestas = respuestas || {};
     const puntajes = ["p1","p2","p3","p4"].map(k=>Number(respuestas[k]));
     for(let i=0;i<puntajes.length;i++){
@@ -5423,15 +5443,28 @@ function guardarValoracionFEM(idForo, respuestas){
       }
     }
 
-    const acceso=obtenerAccesoPorIdForo_(idForo);
-    if(!acceso) return {ok:false, mensaje:"El ID_FORO no está autorizado."};
+    /*
+     * La valoración es una encuesta de satisfacción, no un envío que
+     * deba bloquearse por una validación estricta de acceso: si por
+     * cualquier motivo no se encuentra la fila en AccesosIE (llegó a
+     * pasar justo después de "Finalizar", con "El ID_FORO no está
+     * autorizado"), se intenta el nombre de la IE desde AvancesForo
+     * — donde también queda guardado — en vez de rechazar la
+     * valoración completa por no poder mostrar ese dato.
+     */
+    const acceso = obtenerAccesoPorIdForo_(idForo);
+    let nombreIE = acceso ? acceso.ie : "";
+    if(!nombreIE){
+      const datosGuardados = obtenerDatosGuardadosPorIdForo_(idForo);
+      nombreIE = datosGuardados?.institucion || "";
+    }
 
     const hoja=asegurarHojaValoracionFEM_();
     const m=mapaHoja_(hoja);
     const fila=new Array(hoja.getLastColumn()).fill("");
     const valores={
       ID_FORO:String(idForo),
-      IE:acceso.ie,
+      IE:nombreIE,
       FECHA:new Date(),
       P1_DIALOGO_REFLEXION:puntajes[0],
       P2_PARTICIPACION:puntajes[1],

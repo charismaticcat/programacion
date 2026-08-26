@@ -13,7 +13,7 @@ let instituciones = {};
 let institucionSeleccionada = "";
 let pantallaActual = 1;
 
-const TOTAL_PANTALLAS = 11;
+const TOTAL_PANTALLAS = 12;
 /*****************************************************
  * GRUPOS DE TRABAJO — CARACTERIZACIÓN
  *****************************************************/
@@ -4575,7 +4575,8 @@ function mostrarPantallaGuardada(paso){
         8: "pantallaSesion3",
         9: "pantallaEvidencias",
         10: "pantallaPlenaria",
-        11: "pantallaFinalFEM"
+        11: "pantallaFinalFEM",
+        12: "pantallaCierreFEM"
     };
 
     const id =
@@ -5623,7 +5624,7 @@ function inicializarValoracionFEM_(){
         google.script.run
             .withSuccessHandler(function(res){
                 if(res && res.ok){
-                    if(estado) estado.textContent="¡Gracias por tu valoración!";
+                    if(estado) estado.textContent="¡Gracias por su valoración!";
                     btnEnviar.textContent="✓ Valoración enviada";
                 }else{
                     btnEnviar.disabled=false; btnEnviar.textContent="Enviar valoración";
@@ -6057,7 +6058,7 @@ async function enviarInformeFinalUI(){
 async function finalizarFEMUI(){
     if(!informeFinalData?.descargado||!informeFinalData?.enviado){mostrarEstadoInformeFinal("Debe descargar y enviar el informe antes de finalizar.");return;}
     const b=document.getElementById("btnFinalizarFEM");b.disabled=true;b.textContent="Cerrando…";
-    try{const datos=obtenerDatosFormularioActual_();const r=await new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).finalizarFormularioFEM(datos.idForo,window.DATOS_ACCESO_FEM?.tokenSesion||"",window.DATOS_ACCESO_FEM?.dispositivoId||obtenerDispositivoIdFEM(),informeFinalData.pdfId));if(!r?.ok)throw new Error(r?.mensaje||"No fue posible cerrar el formulario.");document.querySelectorAll(".pantalla").forEach(p=>p.classList.remove("visible"));document.getElementById("pantallaCierreFEM")?.classList.add("visible");pantallaActual=11;actualizarBarra();const link=document.getElementById("linkInformeCierre");if(link)link.href=informeFinalData.pdfUrl;
+    try{const datos=obtenerDatosFormularioActual_();const r=await new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).finalizarFormularioFEM(datos.idForo,window.DATOS_ACCESO_FEM?.tokenSesion||"",window.DATOS_ACCESO_FEM?.dispositivoId||obtenerDispositivoIdFEM(),informeFinalData.pdfId));if(!r?.ok)throw new Error(r?.mensaje||"No fue posible cerrar el formulario.");document.querySelectorAll(".pantalla").forEach(p=>p.classList.remove("visible"));document.getElementById("pantallaCierreFEM")?.classList.add("visible");pantallaActual=12;actualizarBarra();const link=document.getElementById("linkInformeCierre");if(link)link.href=informeFinalData.pdfUrl;
     /*
      * El borrador local YA NO se borra al finalizar: si se borra,
      * la sesión de plenaria (que se reconstruye leyendo los campos
