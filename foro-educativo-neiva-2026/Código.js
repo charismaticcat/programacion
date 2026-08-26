@@ -5495,7 +5495,7 @@ function enviarComprobanteParticipacionFEM(idForo, datos){
     "Secretaría de Educación de Neiva\n\n"+
     "Estimada comunidad educativa de la Institución Educativa "+ie+":\n\n"+
     "Confirmamos la recepción de la valoración de la actividad enviada por "+(nombreResponsable||"su institución")+".\n\n"+
-    "Este correo es el comprobante de participación de la Institución Educativa "+ie+" en el Foro Educativo Institucional – Neiva 2026, dentro del grupo "+grupo+".\n\n"+
+    "Este correo es el comprobante de participación de la Institución Educativa "+ie+" dentro del grupo "+grupo+" para el Foro Educativo Comunitario, el 24 de septiembre de 2026.\n\n"+
     "Agradecemos nuevamente su participación y los aportes construidos durante la jornada.\n\n"+
     "Secretaría de Educación de Neiva\n"+
     "Foro Educativo Institucional – Neiva 2026\n"+
@@ -5515,7 +5515,7 @@ function enviarComprobanteParticipacionFEM(idForo, datos){
     "Confirmamos la recepción de la valoración de la actividad enviada por "+(nombreResponsable?"<strong>"+nombreResponsable+"</strong>":"su institución")+"."+
     "</p>"+
     "<div style=\"background:#F7F8FA;border-left:6px solid #F4B400;border-radius:10px;padding:16px 20px;margin:0 0 22px;\">"+
-    "<p style=\"font-size:14px;color:#333333;margin:0;\">Este correo es el <strong>comprobante de participación</strong> de la Institución Educativa <strong>"+ie+"</strong> en el Foro Educativo Institucional – Neiva 2026, dentro del <strong>grupo "+grupo+"</strong>.</p>"+
+    "<p style=\"font-size:14px;color:#333333;margin:0;\">Este correo es el <strong>comprobante de participación</strong> de la Institución Educativa <strong>"+ie+"</strong> dentro del <strong>grupo "+grupo+"</strong> para el <strong>Foro Educativo Comunitario</strong>, el <strong>24 de septiembre de 2026</strong>.</p>"+
     "</div>"+
     "<p style=\"font-size:14px;color:#4A4A4A;line-height:1.6;margin:0;\">Agradecemos nuevamente su participación y los aportes construidos colectivamente durante la jornada.</p>"+
     "</div>"+
