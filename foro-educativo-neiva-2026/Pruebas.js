@@ -1497,6 +1497,159 @@ function reiniciarPrueba1234(){
 
 
 /*****************************************************
+ * REINICIAR TODOS LOS REGISTROS DEL FEM 2026
+ *
+ * Generaliza reiniciarPrueba1234() a TODAS las filas de AccesosIE
+ * (no solo la IE de pruebas): borra todo rastro de progreso o
+ * envíos anteriores para poder recorrer el formulario completo
+ * desde cero, con los MISMOS códigos y enlaces de acceso ya
+ * generados y enviados por correo — no hace falta reenviar nada.
+ *
+ * Por cada IE de AccesosIE:
+ *   - Borra sus fila(s) en AvancesForo, Participacion, AsistenciaQR
+ *     y "Valoración FEMI2026".
+ *   - Elimina su pestaña propia (si existe).
+ *   - Dentro de AccesosIE, deja ESTADO en "DISPONIBLE" y limpia
+ *     S1/S2/S3_ENVIADA, todas las fechas de envío, TOKEN_SESION,
+ *     DISPOSITIVO_ID, ID_INFORME e ID_PDF_INFORME.
+ * Además libera TODOS los candados de sesión activa
+ * (PropertiesService) para que ningún dispositivo quede "con la
+ * sesión tomada" de una prueba anterior.
+ *
+ * NO TOCA — quedan exactamente igual que antes de ejecutarla —:
+ *   - IE, DANE, CODIGO_ACCESO, TOKEN, URL_ACCESO, ID_FORO,
+ *     EMAIL_IE, EMAIL_RESPONSABLE, TIPO ni LOGO_ID: los códigos y
+ *     enlaces que ya se enviaron por correo siguen siendo válidos.
+ *   - Los archivos ya generados en Drive (fotos e informes) — eso
+ *     se borra a mano desde la carpeta de cada IE si hace falta.
+ *
+ * IMPORTANTE — esto NO alcanza el localStorage del navegador de
+ * cada equipo (es un respaldo aparte, guardado fuera de Google, en
+ * el propio dispositivo de quien probó). Si al volver a probar con
+ * el MISMO navegador siguen apareciendo respuestas viejas después
+ * de ejecutar esto, hay que borrar también los datos del sitio en
+ * ese navegador (Ajustes del sitio → Borrar datos, o simplemente
+ * probar en una ventana de incógnito) — ninguna función del
+ * servidor puede alcanzar esos datos.
+ *
+ * Ejecutar manualmente desde el editor de Apps Script.
+ *****************************************************/
+function reiniciarTodosLosRegistrosFEM(){
+
+  const ss = abrirSpreadsheet_();
+  const resumen = [];
+
+  const hojaAccesos = ss.getSheetByName(HOJA_ACCESOS);
+  if(!hojaAccesos){
+    Logger.log("No existe la hoja " + HOJA_ACCESOS + ".");
+    return { ok: false, mensaje: "No existe " + HOJA_ACCESOS + "." };
+  }
+
+  const mapaAccesos = mapaHoja_(hojaAccesos);
+  const ultimaFila = hojaAccesos.getLastRow();
+  if(ultimaFila < 2){
+    Logger.log("AccesosIE no tiene filas.");
+    return { ok: true, resumen: ["AccesosIE no tiene filas."] };
+  }
+  if(!mapaAccesos.ID_FORO || !mapaAccesos.IE){
+    Logger.log("Falta la columna ID_FORO o IE en AccesosIE.");
+    return { ok: false, mensaje: "Falta la columna ID_FORO o IE en AccesosIE." };
+  }
+
+  const totalFilas = ultimaFila - 1;
+  const valores = hojaAccesos.getRange(2, 1, totalFilas, hojaAccesos.getLastColumn()).getDisplayValues();
+  const idsForo = {};
+  const nombresIE = [];
+  valores.forEach(function(fila){
+    const id = String(fila[mapaAccesos.ID_FORO - 1] || "").trim();
+    const ie = String(fila[mapaAccesos.IE - 1] || "").trim();
+    if(id) idsForo[id] = true;
+    if(ie) nombresIE.push(ie);
+  });
+
+  function borrarFilasPorIdForoEnTodas_(nombreHoja){
+    const hoja = ss.getSheetByName(nombreHoja);
+    if(!hoja){ resumen.push(nombreHoja + ": la hoja no existe."); return; }
+    const mapa = mapaHoja_(hoja);
+    if(!mapa["ID_FORO"]){ resumen.push(nombreHoja + ": no tiene columna ID_FORO."); return; }
+    const ultima = hoja.getLastRow();
+    if(ultima < 2){ resumen.push(nombreHoja + ": sin filas."); return; }
+    const idsHoja = hoja.getRange(2, mapa["ID_FORO"], ultima - 1, 1).getDisplayValues();
+    let borradas = 0;
+    // De abajo hacia arriba para no desordenar los índices al borrar.
+    for(let i = idsHoja.length - 1; i >= 0; i--){
+      const id = String(idsHoja[i][0] || "").trim();
+      if(id && idsForo[id]){ hoja.deleteRow(i + 2); borradas++; }
+    }
+    resumen.push(nombreHoja + ": " + borradas + " fila(s) borrada(s).");
+  }
+
+  borrarFilasPorIdForoEnTodas_(HOJA_AVANCES);
+  borrarFilasPorIdForoEnTodas_(HOJA_PARTICIPACION);
+  borrarFilasPorIdForoEnTodas_(HOJA_ASISTENCIA_QR);
+  borrarFilasPorIdForoEnTodas_(HOJA_VALORACION_FEM);
+
+  let pestañasEliminadas = 0;
+  nombresIE.forEach(function(ie){
+    const nombreHoja = nombreHojaIE_(ie);
+    const hoja = ss.getSheetByName(nombreHoja);
+    if(hoja){ ss.deleteSheet(hoja); pestañasEliminadas++; }
+  });
+  resumen.push("Pestañas propias por IE eliminadas: " + pestañasEliminadas + " de " + nombresIE.length + " IE.");
+
+  /*
+   * Reiniciar el estado de TODAS las filas de AccesosIE de una
+   * sola vez por columna (un solo setValue por columna, no uno por
+   * celda) — mucho más rápido y evita agotar la cuota de llamadas
+   * con hojas grandes.
+   */
+  if(mapaAccesos.ESTADO){
+    hojaAccesos.getRange(2, mapaAccesos.ESTADO, totalFilas, 1).setValue("DISPONIBLE");
+  }
+  [
+    "S1_ENVIADA", "S2_ENVIADA", "S3_ENVIADA",
+    "FECHA_PRIMER_ACCESO", "ULTIMA_ACTIVIDAD", "FECHA_ENVIO",
+    "FECHA_ENVIO_S1", "FECHA_ENVIO_S2", "FECHA_ENVIO_S3", "FECHA_ENVIO_DEFINITIVO",
+    "TOKEN_SESION", "DISPOSITIVO_ID", "ID_INFORME", "ID_PDF_INFORME"
+  ].forEach(function(col){
+    if(mapaAccesos[col]) hojaAccesos.getRange(2, mapaAccesos[col], totalFilas, 1).setValue("");
+  });
+  resumen.push(
+    "AccesosIE: " + totalFilas + " fila(s) reiniciada(s) a DISPONIBLE " +
+    "(IE, DANE, CODIGO_ACCESO, TOKEN, URL_ACCESO, ID_FORO, EMAIL_IE, " +
+    "EMAIL_RESPONSABLE, TIPO y LOGO_ID quedan intactos)."
+  );
+
+  try{
+    const props = PropertiesService.getScriptProperties();
+    const todas = props.getProperties();
+    let liberados = 0;
+    Object.keys(todas).forEach(function(clave){
+      if(clave.indexOf("FEM_SESION_FORO_") === 0){
+        props.deleteProperty(clave);
+        liberados++;
+      }
+    });
+    resumen.push("Candados de sesión activa liberados: " + liberados + ".");
+  }catch(error){
+    resumen.push("Candados de sesión: " + error.message);
+  }
+
+  resumen.push("");
+  resumen.push(
+    "⚠ Esto NO borra archivos en Drive (fotos e informes ya generados) " +
+    "ni el localStorage del navegador de cada equipo. Si al volver a " +
+    "probar con el MISMO navegador siguen apareciendo respuestas " +
+    "viejas, hay que borrar los datos del sitio en ese navegador o " +
+    "usar una ventana de incógnito."
+  );
+
+  Logger.log(resumen.join("\n"));
+  return { ok: true, resumen: resumen };
+}
+
+
+/*****************************************************
  * PROBAR REMITENTE calidadeducacion@alcaldianeiva.gov.co
  *
  * Verifica, con un envío real y mínimo, que la cuenta que
