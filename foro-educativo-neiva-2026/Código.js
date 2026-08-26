@@ -4717,12 +4717,13 @@ function hacerPublicoSiEsPosible_(file){try{file.setSharing(DriveApp.Access.ANYO
 // desplegable de "Cargo" que llena cada asistente al firmar por QR.
 const CARGOS_ASISTENCIA_QR=["Rector(a)","Coordinador(a)","Docente","Tutor(a) PTA/PFI 3.0","Orientador(a)","Estudiante","Padre/madre/acudiente","Personal administrativo","Egresado(a)","Sector productivo","Otro"];
 const TIPOS_ASISTENCIA_QR=["Presencial","Virtual","No asistió: con permiso institucional o incapacidad médica.","No asistió: con permiso de comisión o con acto administrativo."];
+const ROLES_FORO_QR=["👑 Líder – Rector(a)","🎓 Dinamizador Pedagógico – Tutor(a) PTA / PFI 3.0","👥 Dinamizador(a) de Mesas de Trabajo","📝 Relator(a)","⏱️ Dinamizador(a) del Tiempo","💻 Dinamizador(a) de la Sistematización","🙋 Participante"];
 
 function asegurarHojaAsistenciaQR_(){
   const ss=abrirSpreadsheet_();
   let hoja=ss.getSheetByName(HOJA_ASISTENCIA_QR);
   if(!hoja) hoja=ss.insertSheet(HOJA_ASISTENCIA_QR);
-  const requeridas=["ID_FORO","IE","NOMBRE_COMPLETO","TIPO_ASISTENCIA","CARGO","NUMERO_DOCUMENTO","CORREO","TELEFONO","FECHA","HORA","DISPOSITIVO_ID"];
+  const requeridas=["ID_FORO","IE","NOMBRE_COMPLETO","TIPO_ASISTENCIA","CARGO","ROL_FORO","NUMERO_DOCUMENTO","CORREO","TELEFONO","FECHA","HORA","DISPOSITIVO_ID"];
   const last=hoja.getLastColumn();
   const existentes=last?hoja.getRange(1,1,1,last).getValues()[0].map(String):[];
   if(!last){ hoja.getRange(1,1,1,requeridas.length).setValues([requeridas]); }
@@ -4755,7 +4756,7 @@ function formatearFechaHoraFirma_(fecha){
   return "Firmado a las "+horas12+":"+minutos+" "+sufijo+" el día "+dia+" del mes de "+(meses[mesIndex]||"")+" del año "+anio+".";
 }
 
-function registrarAsistenciaQR(idForo, nombre, tipoAsistencia, cargo, documento, correo, telefono, dispositivoId){
+function registrarAsistenciaQR(idForo, nombre, tipoAsistencia, cargo, rolForo, documento, correo, telefono, dispositivoId){
   const lock=LockService.getScriptLock();
   try{
     lock.waitLock(10000);
@@ -4764,14 +4765,16 @@ function registrarAsistenciaQR(idForo, nombre, tipoAsistencia, cargo, documento,
     nombre=String(nombre||"").trim();
     tipoAsistencia=String(tipoAsistencia||"").trim();
     cargo=String(cargo||"").trim();
+    rolForo=String(rolForo||"").trim();
     documento=String(documento||"").trim();
     correo=String(correo||"").trim();
     telefono=String(telefono||"").trim();
     dispositivoId=String(dispositivoId||"").trim();
 
     if(!idForo) return {ok:false, mensaje:"Enlace de asistencia inválido."};
-    if(!nombre || !tipoAsistencia || !cargo || !documento || !correo) return {ok:false, mensaje:"Complete nombre, tipo de asistencia, cargo, número de documento y correo electrónico."};
+    if(!nombre || !tipoAsistencia || !cargo || !rolForo || !documento || !correo) return {ok:false, mensaje:"Complete nombre, tipo de asistencia, cargo, rol en el Foro, número de documento y correo electrónico."};
     if(TIPOS_ASISTENCIA_QR.indexOf(tipoAsistencia)===-1) return {ok:false, mensaje:"Seleccione un tipo de asistencia válido."};
+    if(ROLES_FORO_QR.indexOf(rolForo)===-1) return {ok:false, mensaje:"Seleccione un rol válido en el Foro Educativo Institucional."};
 
     const acceso=obtenerAccesoPorIdForo_(idForo);
     if(!acceso) return {ok:false, mensaje:"Este código de asistencia ya no está disponible."};
@@ -4809,7 +4812,7 @@ function registrarAsistenciaQR(idForo, nombre, tipoAsistencia, cargo, documento,
     const ahora=new Date();
     const zona=Session.getScriptTimeZone();
     const fila=new Array(hoja.getLastColumn()).fill("");
-    const valores={ID_FORO:idForo, IE:acceso.ie, NOMBRE_COMPLETO:nombre, TIPO_ASISTENCIA:tipoAsistencia, CARGO:cargo, NUMERO_DOCUMENTO:documento, CORREO:correo, TELEFONO:telefono, DISPOSITIVO_ID:dispositivoId,
+    const valores={ID_FORO:idForo, IE:acceso.ie, NOMBRE_COMPLETO:nombre, TIPO_ASISTENCIA:tipoAsistencia, CARGO:cargo, ROL_FORO:rolForo, NUMERO_DOCUMENTO:documento, CORREO:correo, TELEFONO:telefono, DISPOSITIVO_ID:dispositivoId,
       FECHA:Utilities.formatDate(ahora,zona,"dd/MM/yyyy"), HORA:Utilities.formatDate(ahora,zona,"HH:mm:ss")};
     Object.keys(valores).forEach(k=>{ if(m[k]) fila[m[k]-1]=valores[k]; });
     hoja.appendRow(fila);
@@ -4834,6 +4837,7 @@ function obtenerAsistentesQR_(idForo){
       nombre:String(fila[m.NOMBRE_COMPLETO-1]||""),
       tipoAsistencia:String(fila[m.TIPO_ASISTENCIA-1]||""),
       cargo:String(fila[m.CARGO-1]||""),
+      rolForo:String(fila[m.ROL_FORO-1]||""),
       documento:String(fila[m.NUMERO_DOCUMENTO-1]||""),
       correo:String(fila[m.CORREO-1]||""),
       telefono:String(fila[m.TELEFONO-1]||""),
@@ -4884,14 +4888,14 @@ function agregarListadoAsistenciaAlInforme_(body, idForo, datos){
   const t=body.appendTable();
   t.setBorderColor(COLOR_GRIS_BORDE_DOC); t.setBorderWidth(1);
   const encabezado=t.appendTableRow();
-  ["Nombre completo","Asistencia","Cargo","N.° documento","Correo","Teléfono","Fecha","Hora"].forEach(function(texto){
+  ["Nombre completo","Asistencia","Cargo","Rol en el Foro","N.° documento","Correo","Teléfono","Fecha","Hora"].forEach(function(texto){
     const celda=encabezado.appendTableCell(texto);
     celda.setBackgroundColor(COLOR_VERDE_DOC);
     celda.editAsText().setForegroundColor("#FFFFFF").setBold(true).setFontSize(9);
   });
   asistentes.forEach(function(a){
     const r=t.appendTableRow();
-    [a.nombre,a.tipoAsistencia,a.cargo,a.documento,a.correo,a.telefono,a.fecha,a.hora].forEach(function(valor){
+    [a.nombre,a.tipoAsistencia,a.cargo,a.rolForo,a.documento,a.correo,a.telefono,a.fecha,a.hora].forEach(function(valor){
       r.appendTableCell(String(valor||"—")).editAsText().setForegroundColor(COLOR_GRIS_TEXTO_DOC).setFontSize(9);
     });
   });
@@ -4939,6 +4943,10 @@ function paginaAsistenciaQR_(idForo){
     return '<option value="'+t.replace(/"/g,"&quot;")+'">'+t+'</option>';
   }).join("");
 
+  const opcionesRolForo=ROLES_FORO_QR.map(function(r){
+    return '<option value="'+r.replace(/"/g,"&quot;")+'">'+r+'</option>';
+  }).join("");
+
   const tituloPagina="Firmar asistencia al Foro Educativo Institucional "+ieTitulo;
 
   const html=
@@ -4970,6 +4978,8 @@ function paginaAsistenciaQR_(idForo){
     '<select id="tipoAsistencia"><option value="">Seleccione…</option>'+opcionesTipoAsistencia+'</select>'+
     '<label>Cargo</label>'+
     '<select id="cargo"><option value="">Seleccione…</option>'+opcionesCargo+'</select>'+
+    '<label>Rol que desempeñó en el Foro Educativo Institucional '+ieTitulo.replace(/</g,"&lt;")+'</label>'+
+    '<select id="rolForo"><option value="">Seleccione…</option>'+opcionesRolForo+'</select>'+
     '<label>Número de documento</label>'+
     '<input id="documento" inputmode="numeric" autocomplete="off">'+
     '<label>Correo electrónico</label>'+
@@ -5020,17 +5030,18 @@ function paginaAsistenciaQR_(idForo){
     'var nombre=document.getElementById("nombre").value.trim();'+
     'var tipoAsistencia=document.getElementById("tipoAsistencia").value.trim();'+
     'var cargo=document.getElementById("cargo").value.trim();'+
+    'var rolForo=document.getElementById("rolForo").value.trim();'+
     'var documento=document.getElementById("documento").value.trim();'+
     'var correo=document.getElementById("correo").value.trim();'+
     'var telefono=document.getElementById("telefono").value.trim();'+
-    'if(!nombre||!tipoAsistencia||!cargo||!documento||!correo){estado.textContent="Complete nombre, tipo de asistencia, cargo, número de documento y correo electrónico.";return;}'+
+    'if(!nombre||!tipoAsistencia||!cargo||!rolForo||!documento||!correo){estado.textContent="Complete nombre, tipo de asistencia, cargo, rol en el Foro, número de documento y correo electrónico.";return;}'+
     'btn.disabled=true; btn.textContent="Firmando…";'+
     'google.script.run.withSuccessHandler(function(res){'+
     'if(res&&res.ok){ marcarFirmadoLocal(res.textoFirma); mostrarYaFirmado(res.textoFirma); }'+
     'else if(res&&res.yaFirmoDispositivo){ marcarFirmadoLocal(res.textoFirma); mostrarYaFirmado(res.textoFirma); }'+
     'else{ btn.disabled=false; btn.textContent="Firmar asistencia"; estado.textContent=(res&&res.mensaje)||"No fue posible registrar la asistencia."; }'+
     '}).withFailureHandler(function(err){ btn.disabled=false; btn.textContent="Firmar asistencia"; estado.textContent="No fue posible registrar la asistencia: "+(err.message||err); })'+
-    '.registrarAsistenciaQR('+JSON.stringify(idForo)+',nombre,tipoAsistencia,cargo,documento,correo,telefono,dispositivoIdAsistencia);'+
+    '.registrarAsistenciaQR('+JSON.stringify(idForo)+',nombre,tipoAsistencia,cargo,rolForo,documento,correo,telefono,dispositivoIdAsistencia);'+
     '});'+
     '</script>'+
     '</body></html>';
