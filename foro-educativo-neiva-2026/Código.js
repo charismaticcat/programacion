@@ -5449,11 +5449,18 @@ function sesionActivaPorIdForo_(idForo,dispositivoId,tokenSesion){
   const props=PropertiesService.getScriptProperties(); const clave=obtenerClaveSesionCodigo_("","",idForo); const raw=props.getProperty(clave); if(!raw)return false; let a; try{a=JSON.parse(raw);}catch(e){return false;} if(a.deviceId!==String(dispositivoId||"")||a.tokenSesion!==String(tokenSesion||""))return false; return true;
 }
 function validarEnvioFinal_(datos){
-  const c=datos?.campos||{}; const v=id=>String(c[id]?.valor||"").trim(); const words=t=>String(t||"").trim().split(/\s+/).filter(Boolean).length;
+  const c=datos?.campos||{}; const v=id=>String(c[id]?.valor||"").trim();
+  /*
+   * Los mínimos de palabras y de selección de cada sesión ya se
+   * validan y se hacen cumplir en su propio momento (Sesión 1, 2 y
+   * 3, al enviarlas una por una desde la plenaria/formulario) — no
+   * se vuelven a exigir aquí como criterios nuevos. Este envío
+   * definitivo solo comprueba que exista una respuesta guardada en
+   * cada campo obligatorio; no bloquea el envío por cantidad de
+   * palabras ni por ningún otro criterio de longitud o selección.
+   */
   const req=["respuestaSesion1","respuestaSesion1Pregunta2","respuestaSesion2Pregunta1","respuestaSesion2Pregunta2Accion1","respuestaSesion2Pregunta2Accion2","respuestaSesion2Pregunta2Accion3","respuestaSesion2Pregunta3","respuestaSesion2Pregunta4","respuestaSesion2Pregunta5","respuestaSesion3Pregunta1","respuestaSesion3Pregunta2Accion1","respuestaSesion3Pregunta2Accion2","respuestaSesion3Pregunta2Accion3","respuestaSesion3Pregunta3","respuestaSesion3Pregunta4"];
   const falt=req.filter(id=>!v(id)); if(falt.length)return {ok:false,mensaje:"Faltan respuestas obligatorias antes de realizar el envío definitivo."};
-  const s3p1=words(v("respuestaSesion3Pregunta1")); if(s3p1<40||s3p1>200)return {ok:false,mensaje:"La pregunta 1 de la Sesión 3 debe tener entre 40 y 200 palabras."};
-  for(let i=1;i<=3;i++){const n=words(v("respuestaSesion3Pregunta2Accion"+i));if(n<20||n>100)return {ok:false,mensaje:"Las acciones 1, 2 y 3 de la Sesión 3 deben tener entre 20 y 100 palabras."};}
   return {ok:true};
 }
 function enviarForoDefinitivo(idForo,tokenSesion,dispositivoId,datos){
