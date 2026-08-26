@@ -944,6 +944,7 @@ function cambiarPantalla(actual,nueva,paso){
 
     if(nueva === "pantallaEvidencias") {
         setTimeout(actualizarQRAsistencia_, 50);
+        actualizarPreviaFotoEvidencia_();
     }
 
     if(nueva === "pantallaPlenaria") {
@@ -4416,6 +4417,7 @@ function aplicarDatosDeBorrador_(datos, mostrarPantalla, mensajeEstado){
     ){
         contEvidenciasBtn.disabled = false;
     }
+    actualizarPreviaFotoEvidencia_();
 
     // Recalcular datos derivados.
     if(typeof actualizarTotalParticipantes === "function"){
@@ -5748,6 +5750,26 @@ function actualizarQRAsistencia_(){
     }
 }
 
+/*
+ * Muestra la fotografía de evidencia ya registrada (si la hay) al
+ * volver a esta pantalla — antes solo quedaba en un input oculto,
+ * sin ningún indicio visual, y daba la impresión de haberse
+ * perdido u obligaba a creer que había que subirla de nuevo.
+ */
+function actualizarPreviaFotoEvidencia_(){
+    const url=document.getElementById("evidenciaFotoUrl")?.value||"";
+    const img=document.getElementById("previaFotoEvidencia");
+    const texto=document.getElementById("textoFotoRegistrada");
+    if(!img) return;
+    if(url){
+        img.src=url;
+        img.style.display="block";
+        if(texto) texto.style.display="block";
+    }else{
+        img.style.display="none";
+        if(texto) texto.style.display="none";
+    }
+}
 function actualizarEstadoEvidencias(){
     const foto=document.getElementById("archivoFoto")?.files?.[0];
     const subir=document.getElementById("btnSubirEvidencias");
@@ -5828,6 +5850,7 @@ async function subirEvidenciasFEM(){
         }
         if(!resultado || !resultado.ok) throw new Error(resultado?.mensaje||"No fue posible registrar las evidencias.");
         document.getElementById("evidenciaFotoUrl").value=resultado.foto.url;
+        actualizarPreviaFotoEvidencia_();
         document.getElementById("evidenciaFotoId").value=resultado.foto.id;
         const campos=["evidenciaFotoUrl","evidenciaFotoId"];
         campos.forEach(id=>document.getElementById(id)?.dispatchEvent(new Event("change")));
