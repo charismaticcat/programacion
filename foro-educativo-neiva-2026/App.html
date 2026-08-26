@@ -5706,6 +5706,8 @@ function mostrarMensajeEvidencias(msg){ const el=document.getElementById("mensaj
 function leerArchivoDataURL(file){
     return new Promise((resolve,reject)=>{ const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(file); });
 }
+function esperar_(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
 async function subirEvidenciasFEM(){
     const foto=document.getElementById("archivoFoto")?.files?.[0];
     const btn=document.getElementById("btnSubirEvidencias");
@@ -5731,11 +5733,40 @@ async function subirEvidenciasFEM(){
             throw new Error("No fue posible recuperar el ID_FORO de la institución autenticada. Regrese al acceso e ingrese nuevamente el código.");
         }
         const fotoData=await leerArchivoDataURL(foto);
-        const resultado=await new Promise((resolve,reject)=>{
-            google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).subirEvidenciasFEM(
-                datos.idForo, fotoData, foto.name, foto.type, datos
+
+        /*
+         * Si se pierde la conexión a mitad de la subida, no debe
+         * quedar en un estado confuso donde parece que "no pasó
+         * nada": se reintenta unas pocas veces (típico de una señal
+         * intermitente), y si de verdad no hay forma de subirla, se
+         * avisa explícitamente que la fotografía NUEVA no quedó
+         * guardada y que sigue registrada la anterior — nunca se
+         * deja pensando que sí se actualizó cuando no fue así.
+         */
+        let resultado=null, ultimoError=null;
+        for(let intento=1; intento<=3; intento++){
+            try{
+                resultado=await new Promise((resolve,reject)=>{
+                    google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).subirEvidenciasFEM(
+                        datos.idForo, fotoData, foto.name, foto.type, datos
+                    );
+                });
+                ultimoError=null;
+                break;
+            }catch(err){
+                ultimoError=err;
+                if(intento<3){
+                    btn.textContent="Reintentando ("+intento+"/3)…";
+                    await esperar_(1500*intento);
+                }
+            }
+        }
+        if(ultimoError){
+            throw new Error(
+                "No fue posible subir la nueva fotografía por un problema de conexión, después de varios intentos. " +
+                "Sigue registrada la fotografía anterior (si había una). Verifique su conexión a Internet e intente de nuevo."
             );
-        });
+        }
         if(!resultado || !resultado.ok) throw new Error(resultado?.mensaje||"No fue posible registrar las evidencias.");
         document.getElementById("evidenciaFotoUrl").value=resultado.foto.url;
         document.getElementById("evidenciaFotoId").value=resultado.foto.id;
