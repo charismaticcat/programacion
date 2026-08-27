@@ -2443,10 +2443,10 @@ function hacerPublicosLogosGlobales(){
  *     (Valoración FEMI2026, hojas propias por IE, etc.) se elimina
  *     por completo.
  *   - Vacía todas las filas de datos (deja solo la cabecera) de
- *     AvancesForo, Participacion, AsistenciaQR y AccesosIE — incluye
- *     los códigos/tokens/enlaces de acceso de TODAS las IE, oficiales
- *     y de prueba. Oficiales NO se toca: es el catálogo oficial de
- *     instituciones, no una respuesta.
+ *     Oficiales, AvancesForo, Participacion, AsistenciaQR y
+ *     AccesosIE — incluye el catálogo de instituciones y los
+ *     códigos/tokens/enlaces de acceso de TODAS las IE, oficiales y
+ *     de prueba.
  *   - En Drive, envía a la papelera todas las carpetas por IE dentro
  *     de DRIVE_CARPETA_FEM_ID (fotos, informes Doc y PDF de todas las
  *     instituciones).
@@ -2456,10 +2456,10 @@ function hacerPublicosLogosGlobales(){
  * eliminadas quedan en el historial de versiones del archivo, y los
  * archivos de Drive quedan en la papelera 30 días.
  *
- * Después de ejecutar esto hay que volver a generar los accesos
- * (generarAccesosIE() para las IE oficiales; crearAccesoPrueba1234()
- * y crearIEsPruebaAdicionales() para las 10 de prueba) antes de poder
- * usar el formulario de nuevo.
+ * Después de ejecutar esto hay que volver a cargar Oficiales y a
+ * generar los accesos (generarAccesosIE() para las IE oficiales;
+ * crearAccesoPrueba1234() y crearIEsPruebaAdicionales() para las 10
+ * de prueba) antes de poder usar el formulario de nuevo.
  *
  * NO borra el documento de análisis (Análisis FEM 2026): es el
  * histórico separado, pensado para sobrevivir a un reset del origen.
@@ -2483,7 +2483,7 @@ function resetTotalProduccionFEM(){
   });
   resumen.push("Total de hojas adicionales eliminadas: " + eliminadas);
 
-  [HOJA_AVANCES, HOJA_PARTICIPACION, HOJA_ASISTENCIA_QR, HOJA_ACCESOS].forEach(function(nombreHoja){
+  HOJAS_ELEMENTALES.forEach(function(nombreHoja){
     const hoja = ss.getSheetByName(nombreHoja);
     if(!hoja){ resumen.push(nombreHoja + ": no existe."); return; }
     const ultima = hoja.getLastRow();
@@ -2491,7 +2491,6 @@ function resetTotalProduccionFEM(){
     if(ultima >= 2) hoja.deleteRows(2, ultima - 1);
     resumen.push(nombreHoja + ": vaciada (" + borradas + " fila(s) borrada(s)), cabecera intacta.");
   });
-  resumen.push(HOJA_OFICIALES + ": NO se tocó (catálogo oficial de instituciones, no es una respuesta).");
 
   let carpetasBorradas = 0, archivosBorrados = 0;
   try{
@@ -2530,6 +2529,7 @@ function resetTotalProduccionFEM(){
   resumen.push("");
   resumen.push("⚠ Esto NO borra el documento de análisis (Análisis FEM 2026) ni el localStorage de los navegadores que ya usaron el formulario.");
   resumen.push("⚠ Los códigos de acceso de TODAS las IE (oficiales y de prueba) quedaron vacíos: hay que volver a generarlos.");
+  resumen.push("⚠ Oficiales quedó vacía (solo cabecera): hay que volver a cargar el catálogo de instituciones antes de generar accesos.");
 
   Logger.log(resumen.join("\n"));
   return { ok:true, resumen: resumen };
