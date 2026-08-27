@@ -459,6 +459,59 @@ body{
 
 }
 
+.grupoResponsablesAdicionales{
+    background:var(--gris-fondo, #F7F8FA);
+    border:1px solid var(--color-border);
+    border-radius:var(--radio, 12px);
+    padding:18px 20px;
+}
+
+.textoAyudaResponsables{
+    font-size:13.5px;
+    line-height:1.6;
+    color:var(--gris-texto, #4A4A4A);
+    margin:0 0 16px;
+}
+
+.tarjetaResponsableAdicional{
+    background:#fff;
+    border:1px solid var(--color-border);
+    border-radius:10px;
+    padding:16px 18px;
+    margin-bottom:14px;
+}
+
+.tarjetaResponsableEncabezado{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:12px;
+}
+
+.tarjetaResponsableEncabezado strong{
+    color:var(--verde-neiva, var(--color-primary));
+    font-size:14px;
+}
+
+.btnQuitarResponsable{
+    width:auto;
+    min-height:auto;
+    padding:6px 12px;
+    font-size:12.5px;
+    background:#FBEAEA;
+    color:var(--rojo-neiva, #C62828);
+}
+
+.grupoResponsablesAdicionales #btnAgregarResponsable{
+    width:auto;
+    padding:10px 20px;
+}
+
+.grupoResponsablesAdicionales #btnAgregarResponsable:disabled{
+    opacity:.6;
+    cursor:default;
+}
+
 .ayudaCampo{
 
     display:block;
@@ -2171,6 +2224,18 @@ CONSENTIMIENTO INFORMADO
 
 }
 
+.seccionConsentimientoInstitucional{
+    background:#FFF8E1;
+    border-left:6px solid var(--amarillo-neiva, #F4B400);
+    border-radius:10px;
+    padding:16px 20px;
+}
+
+.seccionConsentimientoInstitucional h3{
+    border-bottom:none;
+    padding-bottom:0;
+}
+
 .seccionConsentimiento h3{
 
     color:var(--color-primary);
@@ -3621,6 +3686,11 @@ Su ancho ya queda acotado por .cajaTexto > * (--reading-width).
 /* =====================================================
    INFORME FINAL / CIERRE DEL FORMULARIO
    ===================================================== */
+
+.despedidaFEMTarjeta{max-width:640px;margin:60px auto;text-align:center;padding:0 20px;}
+.despedidaFEMIcono{font-size:64px;margin-bottom:16px;}
+.despedidaFEMTexto{color:var(--gris-texto);font-size:17px;line-height:1.8;margin:0 0 24px;}
+.despedidaFEMCierre{color:var(--verde-neiva);font-weight:600;font-size:14px;}
 
 .finalCard{max-width:640px;margin:0 auto;text-align:center;}
 .finalIcono{font-size:56px;margin-bottom:12px;}

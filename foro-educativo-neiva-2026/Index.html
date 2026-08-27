@@ -392,6 +392,16 @@ CONTENEDOR PRINCIPAL
             CONSENTIMIENTO INFORMADO PARA LA PARTICIPACIÓN Y EL TRATAMIENTO DE LA INFORMACIÓN
         </h2>
 
+        <div class="seccionConsentimiento seccionConsentimientoInstitucional">
+
+            <h3>🏛️ Carácter institucional</h3>
+
+            <p>
+                Este aplicativo tiene carácter <b>institucional y oficial</b>: es una iniciativa del equipo de Calidad Educativa de la Secretaría de Educación de Neiva (SEM Neiva), de diseño propio y exclusivo para la SEM Neiva, desarrollado por un integrante del equipo de Calidad Educativa sin ningún costo para la entidad — <b>no hace parte de ningún contrato con prestadores de servicio externos</b>. La Secretaría de Educación de Neiva se reserva el derecho de reclamación de los derechos de autor de este aplicativo web. Toda la lógica del código base no podrá ser replicada ni modificada bajo ninguna circunstancia.
+            </p>
+
+        </div>
+
         <div class="seccionConsentimiento">
 
             <h3>🎯 Objetivo</h3>
@@ -769,6 +779,22 @@ Seleccione...
 <option>Otro</option>
 
 </select>
+
+</div>
+
+<!-- RESPONSABLES ADICIONALES DEL DILIGENCIAMIENTO: varias personas
+     del equipo institucional pueden completar/enviar este
+     cuestionario usando el MISMO código de acceso de la IE — no se
+     necesita un código por persona. -->
+<div class="grupo grupoResponsablesAdicionales">
+
+    <p class="textoAyudaResponsables">
+        💡 Si más de una persona del equipo institucional va a ingresar y diligenciar este cuestionario, agréguela aquí como responsable adicional. Todas ingresan con el <strong>mismo código de acceso</strong> de la institución, sin necesidad de códigos nuevos. Ejemplo: si la IE Limonar designa 3 personas responsables de responder el cuestionario, agregue aquí a la segunda y a la tercera — la primera ya quedó registrada arriba.
+    </p>
+
+    <div id="listaResponsablesAdicionales"></div>
+
+    <button type="button" id="btnAgregarResponsable" class="botonSecundarioFEM">+ Agregar otro responsable</button>
 
 </div>
 
@@ -2405,6 +2431,21 @@ Aspectos para orientar la discusión
         <p class="textoCierreVentana" id="textoCierreVentanaFEM"></p>
     </div>
 </div>
+
+<!-- =================== PANTALLA DE DESPEDIDA =================== -->
+<!-- Reemplaza el "cerrar la pestaña" (que casi nunca funciona: los
+     navegadores solo permiten cerrar por script una pestaña que el
+     propio script abrió) con un cierre real de la experiencia: un
+     mensaje final personalizado, sin depender de que la pestaña se
+     cierre sola. -->
+<section id="pantallaDespedidaFEM" class="pantalla">
+    <div class="despedidaFEMTarjeta">
+        <div class="despedidaFEMIcono">🌱</div>
+        <h1 class="tituloPrincipal">¡Gracias por su participación!</h1>
+        <p id="textoDespedidaFEM" class="despedidaFEMTexto"></p>
+        <p class="despedidaFEMCierre">Ya puede cerrar esta pestaña.</p>
+    </div>
+</section>
 
 <!-- MODAL TRAS ENVIAR TODAS LAS RESPUESTAS DEFINITIVAMENTE -->
 <div id="modalContinuarInformeFEM" class="modalFEM" aria-hidden="true">

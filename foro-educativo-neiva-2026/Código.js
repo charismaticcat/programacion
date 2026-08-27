@@ -4983,6 +4983,8 @@ const DIFICULTADES_ASISTENCIA_QR=["Bajo logro de aprendizajes fundamentales.","B
 // la página (ver paginaAsistenciaQR_).
 const TEXTO_CONSENTIMIENTO_ASISTENCIA_QR=
 "CONSENTIMIENTO INFORMADO PARA EL TRATAMIENTO DE DATOS PERSONALES\n\n"+
+"AVISO INSTITUCIONAL\n\n"+
+"Este aplicativo tiene carácter institucional y oficial: es una iniciativa del equipo de Calidad Educativa de la Secretaría de Educación de Neiva (SEM Neiva), de diseño propio y exclusivo para la SEM Neiva, desarrollado por un integrante del equipo de Calidad Educativa sin ningún costo para la entidad — no hace parte de ningún contrato con prestadores de servicio externos. La Secretaría de Educación de Neiva se reserva el derecho de reclamación de los derechos de autor de este aplicativo web. Toda la lógica del código base no podrá ser replicada ni modificada bajo ninguna circunstancia.\n\n"+
 "En el marco del Foro Educativo Institucional de Neiva 2026 — FEM 2026, la Secretaría de Educación de Neiva (SEM Neiva) y la Institución Educativa {{IE}}, en el ámbito de sus respectivas competencias y de conformidad con la normativa colombiana aplicable sobre protección de datos personales, podrán realizar el tratamiento de los datos personales suministrados mediante este formulario de asistencia.\n\n"+
 "Los datos serán tratados exclusivamente para las finalidades informadas en este formulario y de acuerdo con los principios, derechos y condiciones establecidos en la normativa vigente sobre protección de datos personales.\n\n"+
 "¿PARA QUÉ SE UTILIZARÁN MIS DATOS?\n\n"+
