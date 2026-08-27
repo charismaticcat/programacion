@@ -123,14 +123,26 @@ CONTENEDOR PRINCIPAL
                 Código de acceso
             </label>
 
-            <input
-                type="text"
-                id="codigoAccesoFEM"
-                autocomplete="off"
-                inputmode="text"
-                maxlength="30"
-                placeholder="Escriba su código"
-            >
+            <div class="filaCodigoConPegar">
+                <input
+                    type="text"
+                    id="codigoAccesoFEM"
+                    autocomplete="off"
+                    inputmode="text"
+                    maxlength="30"
+                    placeholder="Escriba su código"
+                >
+
+                <button
+                    type="button"
+                    id="btnPegarCodigoFEM"
+                    class="botonPegarCodigo"
+                    title="Pegar código copiado"
+                    aria-label="Pegar código copiado"
+                >
+                    📋 Pegar
+                </button>
+            </div>
 
             <button
                 type="button"
@@ -158,7 +170,7 @@ CONTENEDOR PRINCIPAL
             </p>
 
             <p class="contactoAccesoFEMDato">
-                educacion@alcaldianeiva.gov.co
+                calidadeducacion@alcaldianeiva.gov.co
             </p>
 
             <p class="contactoAccesoFEMDato">
@@ -202,7 +214,7 @@ CONTENEDOR PRINCIPAL
         <div class="contactoAccesoFEM">
             <p class="contactoAccesoFEMPregunta">¿Tiene dificultades para ingresar?</p>
             <p class="contactoAccesoFEMEntidad">Secretaría de Educación de Neiva</p>
-            <p class="contactoAccesoFEMDato">educacion@alcaldianeiva.gov.co</p>
+            <p class="contactoAccesoFEMDato">calidadeducacion@alcaldianeiva.gov.co</p>
             <p class="contactoAccesoFEMDato">318 456 1081</p>
         </div>
 
@@ -470,7 +482,7 @@ CONTENEDOR PRINCIPAL
             <h3>✅ Aceptación</h3>
 
             <p>
-                Al seleccionar la opción <b>"He leído y acepto participar"</b>, manifiesto que he leído este consentimiento informado, comprendo el propósito del instrumento y autorizo el tratamiento de la información suministrada conforme a las condiciones aquí descritas.
+                Al seleccionar la opción <b>"Hemos leído y aceptamos participar"</b>, manifestamos que hemos leído este consentimiento informado, comprendemos el propósito del instrumento y autorizamos el tratamiento de la información suministrada conforme a las condiciones aquí descritas.
             </p>
 
         </div>
@@ -493,6 +505,10 @@ CONTENEDOR PRINCIPAL
 
         <p>
             La información será utilizada exclusivamente con fines estadísticos e institucionales para la consolidación de los resultados del Foro Educativo.
+        </p>
+
+        <p>
+            Al participar de la firma de asistencia por código QR, cada asistente diligencia y comparte datos personales (nombre completo, cargo, número de documento, correo electrónico y teléfono), los cuales serán compartidos con su Institución Educativa y con la Secretaría de Educación Municipal (SEM) para su inclusión en los informes generados del Foro Educativo. Estos datos se tratarán conforme a la Ley Estatutaria 1581 de 2012 y el Decreto 1377 de 2013 (normatividad de Habeas Data), que garantizan a cada titular el derecho a conocer, actualizar y rectificar la información recolectada sobre sí mismo en las bases de datos de eventos académicos e institucionales.
         </p>
 
         <h3>📷 Fotografía de la plenaria final</h3>
@@ -548,7 +564,7 @@ CONTENEDOR PRINCIPAL
 
         <label for="acepto">
 
-            He leído y acepto participar.
+            Hemos leído y aceptamos participar.
 
         </label>
 
@@ -2517,7 +2533,7 @@ Aspectos para orientar la discusión
 
         <div class="valoracionFEM" id="valoracionFEM">
             <h3 class="valoracionFEMTitulo">📋 Valoración de la actividad</h3>
-            <p class="valoracionFEMIntro">Este espacio lo responde únicamente quien diligenció el formulario.</p>
+            <p class="valoracionFEMIntro">Este espacio lo responde únicamente quien diligenció (o quienes diligenciaron, si son más de una persona) el formulario.</p>
 
             <div class="valoracionPregunta" data-pregunta="p1">
                 <p>🏫 ¿La fase del Foro Educativo Institucional permitió generar espacios de diálogo y reflexión sobre los retos y oportunidades de la educación en nuestra comunidad educativa?</p>
@@ -2600,7 +2616,7 @@ Aspectos para orientar la discusión
         <div class="finalIconoGrande">✅</div>
         <h2>Foro finalizado correctamente</h2>
         <p>Las respuestas definitivas fueron registradas y el acceso de la institución educativa ha quedado cerrado.</p>
-        <button type="button" id="btnCerrarDefinitivoFEM">Cerrar</button>
+        <button type="button" id="btnCerrarDefinitivoFEM">Recibir comprobante de recibido por SEM al correo</button>
         <p class="textoCierreVentana" id="textoCierreVentanaFEM"></p>
     </div>
 </div>
@@ -2616,6 +2632,7 @@ Aspectos para orientar la discusión
         <div class="despedidaFEMIcono">🌱</div>
         <h1 class="tituloPrincipal">¡Gracias por su participación!</h1>
         <p id="textoDespedidaFEM" class="despedidaFEMTexto"></p>
+        <img id="logoIEDespedida" class="logoIEDespedida" alt="Logo de la institución educativa" style="display:none;">
         <p class="despedidaFEMCierre">Ya puede cerrar esta pestaña.</p>
     </div>
 </section>

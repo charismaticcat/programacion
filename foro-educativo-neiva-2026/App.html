@@ -1229,7 +1229,8 @@ function cambiarPantalla(actual,nueva,paso){
             let idForo=""; try{ idForo=obtenerIdForo(); }catch(e){}
             actualizarContadoresAsistenciaQR_(idForo);
         }, 50);
-        const nombreIEFinal=getCampoNombreIE();
+        // Sin "IE" duplicado (ver mensajeValoracionFinal más abajo).
+        const nombreIEFinal=String(getCampoNombreIE()||"").replace(/^\s*(instituci[oó]n\s+educativa|i\.?\s*e\.?)\s+/i,"").trim();
         if(nombreIEFinal) document.querySelectorAll(".nombreIEFinal").forEach(function(el){ el.textContent=nombreIEFinal; });
     }
 
@@ -1828,15 +1829,16 @@ function validarCaracterizacion(){
 
     const campos = [
 
-        {id:"institucion", nombre:"Institución Educativa"},
-        {id:"nombre", nombre:"Nombre de quien diligencia el instrumento"},
-        {id:"correo", nombre:"Correo electrónico personal"},
-        {id:"cargo", nombre:"Cargo"},
-        {id:"rolForoResponsable", nombre:"Rol dentro del Foro"}
+        {id:"institucion", nombre:"Institución Educativa", seccion:"Información de la Institución Educativa"},
+        {id:"nombre", nombre:"Nombre de quien diligencia el instrumento", seccion:"Información de quien diligencia el instrumento"},
+        {id:"correo", nombre:"Correo electrónico personal", seccion:"Información de quien diligencia el instrumento"},
+        {id:"cargo", nombre:"Cargo", seccion:"Información de quien diligencia el instrumento"},
+        {id:"rolForoResponsable", nombre:"Rol dentro del Foro", seccion:"Información de quien diligencia el instrumento"}
 
     ];
 
     let errores = [];
+    const seccionesConError = [];
 
     document
         .querySelectorAll(".campoError")
@@ -1854,6 +1856,10 @@ function validarCaracterizacion(){
 
             errores.push(c.nombre);
 
+            if(seccionesConError.indexOf(c.seccion) === -1){
+                seccionesConError.push(c.seccion);
+            }
+
             control.classList.add("campoError");
 
         }
@@ -1867,8 +1873,18 @@ function validarCaracterizacion(){
 
         mensaje.style.display = "block";
 
+        /*
+         * Además de listar cada campo puntual, se indica de entrada
+         * en cuál(es) sección(es) de la pantalla están — así no hay
+         * que adivinar dónde buscar cuando la lista de campos es
+         * larga.
+         */
+        const textoSecciones = seccionesConError.length === 1
+            ? "Complete la sección: <b>" + seccionesConError[0] + "</b>."
+            : "Complete las secciones: <b>" + seccionesConError.join("</b>, <b>") + "</b>.";
+
         mensaje.innerHTML =
-            "<b>Debe completar los siguientes campos:</b><br><br>• "
+            textoSecciones + "<br><br><b>Debe completar los siguientes campos:</b><br><br>• "
             + errores.join("<br>• ");
 
         /*
@@ -5812,7 +5828,7 @@ function obtenerIdForo(){
             throw new Error(
                 "Esta institución no tiene un ID_FORO autorizado. " +
                 "Solicite asistencia a la Secretaría de Educación de Neiva " +
-                "al correo educacion@alcaldianeiva.gov.co " +
+                "al correo calidadeducacion@alcaldianeiva.gov.co " +
                 "o al 318 456 1081."
             );
 
@@ -6753,12 +6769,47 @@ function inicializarAccesoFEM(){
 
     /*
      * Botón INGRESAR.
+     *
+     * NUNCA pasar validarCodigoAccesoFEM directo como handler: click
+     * llama al handler con el propio Event como primer argumento, y
+     * ese objeto es "truthy" — como el parámetro se llama "forzar",
+     * cada clic normal forzaría silenciosamente la toma de sesión
+     * (desalojando el dispositivo con menos actividad al llegar al
+     * cupo máximo) sin pasar nunca por el modal de confirmación.
      */
-
     boton.addEventListener(
         "click",
-        validarCodigoAccesoFEM
+        function(){ validarCodigoAccesoFEM(); }
     );
+
+    /*
+     * Botón PEGAR: pega el contenido del portapapeles en el campo de
+     * código. navigator.clipboard.readText() exige HTTPS y un gesto
+     * genuino del usuario (este clic lo es) — algunos navegadores
+     * pueden bloquearlo igual por política de permisos dentro del
+     * iframe de Apps Script, así que si falla se avisa en vez de
+     * quedar en silencio.
+     */
+    const btnPegarCodigo = document.getElementById("btnPegarCodigoFEM");
+    if(btnPegarCodigo && !btnPegarCodigo.dataset.inicializado){
+        btnPegarCodigo.dataset.inicializado = "1";
+        btnPegarCodigo.addEventListener("click", async function(){
+            try{
+                const texto = await navigator.clipboard.readText();
+                if(texto && texto.trim()){
+                    campoCodigo.value = texto.trim();
+                    campoCodigo.focus();
+                    if(mensaje){ mensaje.style.display = "none"; }
+                }
+            }catch(error){
+                console.error("No fue posible leer el portapapeles:", error);
+                if(mensaje){
+                    mensaje.style.display = "block";
+                    mensaje.textContent = "No fue posible pegar automáticamente. Péguelo manualmente en el campo (Ctrl+V o mantenga presionado y elija Pegar).";
+                }
+            }
+        });
+    }
 
 
     /*
@@ -6913,12 +6964,21 @@ function validarCodigoAccesoFEM(forzar){
         .withSuccessHandler(
             async function(resultado){
 
-                boton.disabled =
-                    false;
-
-                boton.textContent =
-                    "INGRESAR";
-
+                /*
+                 * El botón se vuelve a habilitar SOLO si el acceso
+                 * falla o queda pendiente de confirmación — nunca de
+                 * entrada. Antes se rehabilitaba aquí mismo, ANTES de
+                 * terminar de restaurar el borrador/avance en la
+                 * nube (otro par de segundos de trabajo asíncrono);
+                 * durante esa ventana la pantalla de acceso seguía
+                 * visible con el botón ya habilitado, así que un
+                 * segundo clic de alguien impaciente disparaba una
+                 * segunda validación completa — el conocido bug de
+                 * "hay que darle dos veces". Ahora permanece
+                 * deshabilitado hasta que la pantalla realmente
+                 * cambie (éxito), o hasta que el flujo termine en un
+                 * error concreto que sí amerita reintentar.
+                 */
 
                 /*
                  * Código incorrecto
@@ -6941,6 +7001,9 @@ function validarCodigoAccesoFEM(forzar){
                         resultado &&
                         resultado.codigo === "BLOQUEADO_POR_HORARIO"
                     ){
+
+                        boton.disabled = false;
+                        boton.textContent = "INGRESAR";
 
                         const horaBloqueo = document.getElementById("bloqueoHorarioHora");
                         if(horaBloqueo) horaBloqueo.textContent = resultado.horaHabilitacion || "la hora programada";
@@ -6981,6 +7044,9 @@ function validarCodigoAccesoFEM(forzar){
 
                     }
 
+                    boton.disabled = false;
+                    boton.textContent = "INGRESAR";
+
                     mensaje.style.display =
                         "block";
 
@@ -7002,6 +7068,12 @@ function validarCodigoAccesoFEM(forzar){
                  * ACCESO AUTORIZADO
                  * =================================================
                  */
+
+                // El botón sigue deshabilitado (ver nota arriba),
+                // pero cambia de texto para confirmar visualmente que
+                // el clic sí se registró mientras termina de
+                // restaurar el borrador/avance en la nube.
+                boton.textContent = "Entrando…";
 
                 window.DATOS_ACCESO_FEM =
                     resultado;
@@ -7565,7 +7637,7 @@ function mostrarModalCierreDefinitivoFEM_(idForo){
         // reenviar el correo). Un segundo clic solo repite el paso a
         // la pantalla de despedida, nunca reenvía nada.
         if(btnCerrar.dataset.enviado==="1"){
-            mostrarPantallaDespedidaFEM_();
+            await transicionCierreDespedida_();
             return;
         }
 
@@ -7581,8 +7653,20 @@ function mostrarModalCierreDefinitivoFEM_(idForo){
         }
         btnCerrar.dataset.enviado="1";
         try{ window.close(); }catch(e){}
-        mostrarPantallaDespedidaFEM_();
+        await transicionCierreDespedida_();
     });
+}
+
+/*
+ * Transición de 5 segundos (uno de los GIF de carga ya usados en
+ * este recorrido, elegido al azar) antes de mostrar la pantalla de
+ * despedida con el agradecimiento — en vez de un salto instantáneo.
+ */
+async function transicionCierreDespedida_(){
+    mostrarOverlayProgreso_(gifCargaAleatorio_(), "Cerrando el Foro Educativo…", {duracionMs:4600});
+    await esperar_(5000);
+    ocultarOverlayProgreso_();
+    mostrarPantallaDespedidaFEM_();
 }
 
 /*
@@ -7604,12 +7688,16 @@ function mostrarPantallaDespedidaFEM_(){
     const rector=String(document.getElementById("rector")?.value||"").trim()||"su rector(a)";
     const responsables=(typeof obtenerNombresResponsablesFEM_==="function" ? obtenerNombresResponsablesFEM_() : []);
 
-    let textoResponsables="";
+    // "Responsables" aquí es quien diligenció el formulario (nombre)
+    // más cada responsable adicional agregado en Caracterización —
+    // ver obtenerNombresResponsablesFEM_(). Singular/plural según
+    // cuántos haya, sin dar por hecho que siempre hay más de uno.
+    let fraseResponsables="";
     if(responsables.length===1){
-        textoResponsables=" y a "+escapeHtml(responsables[0]);
+        fraseResponsables=" al responsable de haber enviado este formulario, <strong>"+escapeHtml(responsables[0])+"</strong>,";
     }else if(responsables.length>1){
         const todosMenosUltimo=responsables.slice(0,-1).map(escapeHtml).join(", ");
-        textoResponsables=" y a "+todosMenosUltimo+" y "+escapeHtml(responsables[responsables.length-1]);
+        fraseResponsables=" a los(as) responsables de haber enviado este formulario, <strong>"+todosMenosUltimo+"</strong> y <strong>"+escapeHtml(responsables[responsables.length-1])+"</strong>,";
     }
 
     const fraseInspiradora="La educación se construye entre todos: gracias por sembrar, con su voz, la escuela viva que soñamos para Neiva.";
@@ -7617,10 +7705,16 @@ function mostrarPantallaDespedidaFEM_(){
     const mensaje=document.getElementById("textoDespedidaFEM");
     if(mensaje){
         mensaje.innerHTML =
-            "¡Muchas gracias a los <strong>"+total+"</strong> integrantes de la comunidad educativa de la IE <strong>"+escapeHtml(ie)+"</strong>, a su líder <strong>"+escapeHtml(rector)+"</strong>"+
-            textoResponsables+
-            " por enviar diligentemente las respuestas construidas desde el diálogo."+
+            "¡Agradecemos a los <strong>"+total+"</strong> integrantes de la comunidad educativa de la IE <strong>"+escapeHtml(ie)+"</strong> por haber construido las respuestas de este espacio de diálogo. Gracias a su rector(a) <strong>"+escapeHtml(rector)+"</strong>,"+
+            fraseResponsables+
+            " por haber enviado diligentemente las respuestas construidas desde el diálogo dentro de la IE <strong>"+escapeHtml(ie)+"</strong>."+
             "<br><br><em>"+fraseInspiradora+"</em>";
+    }
+
+    const logoDespedida=document.getElementById("logoIEDespedida");
+    if(logoDespedida && typeof LOGO_IE_URL!=="undefined" && LOGO_IE_URL){
+        logoDespedida.src=LOGO_IE_URL;
+        logoDespedida.style.display="block";
     }
 
     document.querySelectorAll(".pantalla").forEach(function(p){ p.classList.remove("visible"); });
@@ -8410,7 +8504,7 @@ function renderizarPlenaria(opciones){
         const fechaTextoPlenaria=getCampoValor("evidenciaFotoFecha");
         const fechaPlenaria=fechaTextoPlenaria?new Date(fechaTextoPlenaria):new Date();
         const piePlenaria=fotoUrlPlenaria?construirPieFotoEvidenciaCliente_(fechaPlenaria):"";
-        const nombreIEPlenaria=getCampoNombreIE();
+        const nombreIEPlenaria=String(getCampoNombreIE()||"").replace(/^\s*(instituci[oó]n\s+educativa|i\.?\s*e\.?)\s+/i,"").trim();
         /*
          * La foto se muestra embebida (no como enlace a Drive) usando
          * la URL de imagen directa (construirUrlImagenEmbebible_) — la
@@ -8698,10 +8792,13 @@ async function enviarInformeFinalUI(){
         document.getElementById("btnFinalizarFEM").disabled=!informeFinalData.descargado;
         // Mensaje en negrita + botón de valoración resaltado: el
         // siguiente paso claro tras enviar el informe.
-        const nombreIE=getCampoNombreIE()||"";
+        // Sin "IE" duplicado: el nombre de la institución ya empieza
+        // con "IE" (p. ej. "IE PRUEBA 1234"), así que se quita ese
+        // prefijo antes de anteponer la palabra "IE" en el texto.
+        const nombreIE=String(getCampoNombreIE()||"").replace(/^\s*(instituci[oó]n\s+educativa|i\.?\s*e\.?)\s+/i,"").trim();
         const mensajeValoracion=document.getElementById("mensajeValoracionFinal");
         if(mensajeValoracion){
-            mensajeValoracion.textContent="Ahora termine el foro formalmente dando su valoración del Foro Educativo de la IE "+nombreIE+". Recibirá un correo de confirmación de recepción de sus respuestas cuando finalice la valoración.";
+            mensajeValoracion.textContent="Ahora termine formalmente la actividad dando su valoración del Foro Educativo de la IE "+nombreIE+". Recibirá un correo de confirmación de recepción de sus respuestas cuando finalice la valoración.";
             mensajeValoracion.style.display="block";
         }
         document.getElementById("btnFinalizarFEM")?.classList.add("botonResaltado");

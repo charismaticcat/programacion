@@ -2055,7 +2055,7 @@ function guardarAvanceForo(datos) {
       throw new Error(
         "El ID_FORO no está autorizado. " +
         "Solicite un nuevo acceso a la Secretaría de Educación de Neiva " +
-        "al correo educacion@alcaldianeiva.gov.co " +
+        "al correo calidadeducacion@alcaldianeiva.gov.co " +
         "o al WhatsApp 318 456 1081."
       );
 
@@ -3013,7 +3013,7 @@ function validarAccesoIE(token, codigo, dispositivoId, forzar) {
         ok: false,
         codigo: "CODIGO_INCORRECTO",
         mensaje:
-                "El código es incorrecto. Verifique el código que se envió a su I.E. Si el error persiste, comuníquese con la Secretaría de Educación de Neiva al correo educacion@alcaldianeiva.gov.co o al WhatsApp 318 456 1081."
+                "El código es incorrecto. Verifique el código que se envió a su I.E. Si el error persiste, comuníquese con la Secretaría de Educación de Neiva al correo calidadeducacion@alcaldianeiva.gov.co o al WhatsApp 318 456 1081."
       };
 
     }
@@ -3335,6 +3335,18 @@ function construirCorreoAccesoIE_(ie, ieSinPrefijo, codigo, url, logoIEUrlCorreo
     "</div>" +
     "<div style=\"text-align:center;margin:0 0 24px;\">" +
     "<a href=\"" + url + "\" target=\"_blank\" style=\"display:inline-block;background:#0B6A44;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:15px;padding:14px 26px;border-radius:10px;\">" + textoEnlace + "</a>" +
+    "</div>" +
+    /*
+     * Un correo no puede ejecutar JavaScript (Gmail/Outlook eliminan
+     * cualquier <script> y atributo onclick), así que un botón de
+     * "copiar" real no funcionaría dentro del cuerpo del mensaje. En
+     * su lugar, el enlace se repite también como texto plano
+     * seleccionable — mantener presionado (celular) o triple clic
+     * (computador) para copiarlo manualmente.
+     */
+    "<div style=\"background:#F7F8FA;border:1px dashed #C7CDD1;border-radius:10px;padding:10px 14px;margin:0 0 24px;text-align:center;\">" +
+    "<p style=\"font-size:11px;font-weight:700;color:#888888;text-transform:uppercase;letter-spacing:.4px;margin:0 0 4px;\">También puede copiar este enlace</p>" +
+    "<p style=\"font-size:12px;color:#0B6A44;word-break:break-all;margin:0;\">" + url + "</p>" +
     "</div>" +
     "<div style=\"background:#FFF8E1;border-left:6px solid #F4B400;border-radius:10px;padding:12px 16px;margin:0 0 20px;\">" +
     "<p style=\"font-size:13px;color:#7A5B00;margin:0;\">🔒 Este código y este enlace son exclusivos de su institución: no deben compartirse con otra IE.</p>" +
@@ -5600,7 +5612,12 @@ function obtenerSugerenciasValoracion_(idForo){
 
 function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
   const asistentes=obtenerAsistentesQR_(idForo);
-  const ieTitulo=capitalizarNombreIE_(datos.institucion||"");
+  // Sin prefijo ("IE"/"Institución Educativa"): en esta función
+  // ieTitulo siempre se usa como "...de la IE {ieTitulo}" / "...en la
+  // IE {ieTitulo}", así que dejarlo con el prefijo original duplicaba
+  // la palabra "IE" para instituciones cuyo nombre ya empieza así
+  // (p. ej. "de la IE IE PRUEBA 1234").
+  const ieTitulo=nombreIESinPrefijoInstitucional_(capitalizarNombreIE_(datos.institucion||""));
   const c=datos.campos||{};
 
   const tituloSeccion=body.appendParagraph("Perfil de los participantes y percepción del Foro");
@@ -5820,7 +5837,11 @@ function paginaAsistenciaQR_(idForo){
 
   const cargosSinCondicionJSON=JSON.stringify(CARGOS_SIN_CONDICION_QR);
 
-  const textoConsentimiento=TEXTO_CONSENTIMIENTO_ASISTENCIA_QR.split("{{IE}}").join(ieTitulo);
+  // {{IE}} siempre aparece en el texto precedido de "la Institución
+  // Educativa {{IE}}": se usa la versión sin prefijo para no duplicar
+  // esa frase en instituciones cuyo nombre ya empieza con "IE"/
+  // "Institución Educativa".
+  const textoConsentimiento=TEXTO_CONSENTIMIENTO_ASISTENCIA_QR.split("{{IE}}").join(nombreIESinPrefijoInstitucional_(ieTitulo));
 
   const tituloPagina="Firmar asistencia al Foro Educativo Institucional "+ieTitulo;
 
