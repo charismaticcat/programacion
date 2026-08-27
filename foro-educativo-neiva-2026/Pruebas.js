@@ -1980,10 +1980,16 @@ function crearIEsPruebaAdicionales(){
   const mapa = mapaHoja_(hoja);
   const ultimaFila = hoja.getLastRow();
 
-  const nombresExistentes = {};
+  // Mapa nombre (en minúscula) -> número de fila, para saltar las
+  // que ya existen SIN dejar de poder repararlas (ver más abajo:
+  // si a una que ya existía le falta LINK_ACCESO, se completa).
+  const filasExistentes = {};
   if(ultimaFila >= 2 && mapa.IE){
     const ies = hoja.getRange(2, mapa.IE, ultimaFila - 1, 1).getDisplayValues();
-    ies.forEach(function(fila){ nombresExistentes[String(fila[0]||"").trim().toLowerCase()] = true; });
+    ies.forEach(function(fila, i){
+      const nombre = String(fila[0]||"").trim().toLowerCase();
+      if(nombre) filasExistentes[nombre] = i + 2;
+    });
   }
 
   const urlBase = URL_WEBAPP_PRODUCCION;
@@ -1998,13 +2004,31 @@ function crearIEsPruebaAdicionales(){
 
   const creadas = [];
   const omitidas = [];
+  const reparadas = [];
 
   IES_PRUEBA_ADICIONALES.forEach(function(item){
 
     const nombreIE = item.ie;
+    const filaExistente = filasExistentes[nombreIE.trim().toLowerCase()];
 
-    if(nombresExistentes[nombreIE.trim().toLowerCase()]){
+    if(filaExistente){
       omitidas.push(nombreIE + " (ya existía)");
+      // Reparación: si ya existía pero le falta LINK_ACCESO (el
+      // texto/enlace que arma la lista visual de links y códigos),
+      // se completa con su propia URL_ACCESO — sin tocar nada más
+      // de esa fila.
+      if(mapa.LINK_ACCESO && mapa.URL_ACCESO){
+        const linkActual = String(hoja.getRange(filaExistente, mapa.LINK_ACCESO).getDisplayValue()||"").trim();
+        const urlExistente = String(hoja.getRange(filaExistente, mapa.URL_ACCESO).getDisplayValue()||"").trim();
+        if(!linkActual && urlExistente){
+          const richTextReparado = SpreadsheetApp.newRichTextValue()
+            .setText("IE - " + nombreIE)
+            .setLinkUrl(urlExistente)
+            .build();
+          hoja.getRange(filaExistente, mapa.LINK_ACCESO).setRichTextValue(richTextReparado);
+          reparadas.push(nombreIE);
+        }
+      }
       return;
     }
 
@@ -2030,9 +2054,24 @@ function crearIEsPruebaAdicionales(){
     set("TIPO", "PRUEBA");
     set("FECHA_GENERACION", fecha);
     if(logoIdPruebaOriginal) set("LOGO_ID", logoIdPruebaOriginal);
+    // LINK_ACCESO (texto "IE - <nombre>" con el enlace real) es la
+    // columna que arma la lista visual de links y códigos de la
+    // hoja — sin ella la IE queda creada en AccesosIE, pero no
+    // aparece en esa lista.
+    if(mapa.LINK_ACCESO) set("LINK_ACCESO", "IE - " + nombreIE);
 
     hoja.appendRow(nuevaFila);
     SpreadsheetApp.flush();
+
+    if(mapa.LINK_ACCESO){
+      const filaNueva = hoja.getLastRow();
+      const richText = SpreadsheetApp.newRichTextValue()
+        .setText("IE - " + nombreIE)
+        .setLinkUrl(url)
+        .build();
+      hoja.getRange(filaNueva, mapa.LINK_ACCESO).setRichTextValue(richText);
+    }
+
     creadas.push(nombreIE);
 
     /*
@@ -2074,13 +2113,14 @@ function crearIEsPruebaAdicionales(){
   const resumen = [
     "Creadas (" + creadas.length + "): " + (creadas.join(", ") || "(ninguna)"),
     "Omitidas, ya existían (" + omitidas.length + "): " + (omitidas.join(", ") || "(ninguna)"),
+    "LINK_ACCESO reparado en filas que ya existían (" + reparadas.length + "): " + (reparadas.join(", ") || "(ninguna)"),
     logoIdPruebaOriginal
       ? "Logo reutilizado de IE PRUEBA 1234: " + logoIdPruebaOriginal
       : "IE PRUEBA 1234 no tiene logo vinculado todavía — las IE de prueba quedan sin logo."
   ];
 
   Logger.log(resumen.join("\n"));
-  return { ok:true, creadas: creadas, omitidas: omitidas, resumen: resumen };
+  return { ok:true, creadas: creadas, omitidas: omitidas, reparadas: reparadas, resumen: resumen };
 
 }
 
