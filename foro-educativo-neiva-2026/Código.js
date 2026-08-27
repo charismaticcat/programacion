@@ -3290,6 +3290,67 @@ function validarAccesoIE(token, codigo, dispositivoId, forzar) {
 }
 
 
+/*
+ * Arma el asunto, el texto plano y el HTML del correo de acceso al
+ * Foro — el mismo diseño para toda IE que lo reciba (oficial, de
+ * prueba, o una simulación): el lenguaje visual del formulario
+ * (verde institucional, acento amarillo, tarjeta redondeada) con
+ * estilos en línea para que se vea igual en la mayoría de clientes de
+ * correo. Extraído de enviarAccesosTodasIE() para reutilizarse
+ * también en los envíos restringidos a IE de prueba/oficiales y en la
+ * simulación de una IE puntual (ver Pruebas.js).
+ */
+function construirCorreoAccesoIE_(ie, ieSinPrefijo, codigo, url, logoIEUrlCorreo){
+  const asunto = "🎓 Acceso al Foro Educativo Institucional – " + ie;
+  const textoEnlace = "Ingreso de la IE " + ieSinPrefijo + " al Foro Educativo Institucional";
+
+  const cuerpoTexto =
+    "Secretaría de Educación de Neiva\n\n" +
+    "Estimada comunidad educativa de la Institución Educativa " + ieSinPrefijo + ":\n\n" +
+    "Ya pueden ingresar al Foro Educativo Institucional – Neiva 2026 con el código de acceso exclusivo de su institución.\n\n" +
+    "Código de acceso: " + codigo + "\n\n" +
+    textoEnlace + ":\n" + url + "\n\n" +
+    "Este código y este enlace son exclusivos de su institución: no deben compartirse con otra IE.\n\n" +
+    "Ante cualquier inconveniente pueden escribir a este mismo correo o comunicarse al WhatsApp 318 456 1081.\n\n" +
+    "Secretaría de Educación de Neiva\n" +
+    "Foro Educativo Institucional – Neiva 2026\n" +
+    "“Escuela Viva: Voces que construyen territorio”";
+
+  const cuerpoHTML =
+    "<div style=\"background:#F7F8FA;padding:28px 12px;font-family:Arial,Helvetica,sans-serif;\">" +
+    "<div style=\"max-width:520px;margin:0 auto;background:#FFFFFF;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.10);\">" +
+    "<div style=\"background:#0B6A44;padding:26px 28px;text-align:center;\">" +
+    (logoIEUrlCorreo ? "<img src=\""+logoIEUrlCorreo+"\" alt=\"Logo de la institución educativa\" style=\"display:block;max-width:56px;max-height:56px;margin:0 auto 10px;border-radius:8px;\">" : "") +
+    "<div style=\"color:#FFFFFF;font-size:20px;font-weight:700;\">Foro Educativo Institucional</div>" +
+    "<div style=\"color:#CFE8DC;font-size:14px;margin-top:2px;\">Neiva 2026</div>" +
+    "</div>" +
+    "<div style=\"padding:28px 28px 8px;\">" +
+    "<p style=\"font-size:16px;color:#333333;margin:0 0 14px;\">Estimada comunidad educativa de la Institución Educativa <strong>" + ieSinPrefijo + "</strong>:</p>" +
+    "<p style=\"font-size:15px;color:#4A4A4A;line-height:1.6;margin:0 0 22px;\">" +
+    "Ya pueden ingresar al Foro Educativo Institucional – Neiva 2026 con el código de acceso exclusivo de su institución." +
+    "</p>" +
+    "<div style=\"background:#F7F8FA;border-left:6px solid #F4B400;border-radius:10px;padding:16px 20px;margin:0 0 24px;text-align:center;\">" +
+    "<div style=\"font-size:12px;font-weight:700;color:#0B6A44;text-transform:uppercase;letter-spacing:.5px;\">Código de acceso</div>" +
+    "<div style=\"font-size:30px;font-weight:700;letter-spacing:6px;color:#0B6A44;margin-top:4px;\">" + codigo + "</div>" +
+    "</div>" +
+    "<div style=\"text-align:center;margin:0 0 24px;\">" +
+    "<a href=\"" + url + "\" target=\"_blank\" style=\"display:inline-block;background:#0B6A44;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:15px;padding:14px 26px;border-radius:10px;\">" + textoEnlace + "</a>" +
+    "</div>" +
+    "<div style=\"background:#FFF8E1;border-left:6px solid #F4B400;border-radius:10px;padding:12px 16px;margin:0 0 20px;\">" +
+    "<p style=\"font-size:13px;color:#7A5B00;margin:0;\">🔒 Este código y este enlace son exclusivos de su institución: no deben compartirse con otra IE.</p>" +
+    "</div>" +
+    "<p style=\"font-size:13px;color:#888888;margin:0 0 24px;\">Ante cualquier inconveniente, pueden escribir a este mismo correo o comunicarse al WhatsApp 318 456 1081.</p>" +
+    "</div>" +
+    "<div style=\"background:#F7F8FA;padding:18px 28px;text-align:center;border-top:1px solid #E5E7EA;\">" +
+    "<p style=\"font-size:13px;color:#0B6A44;font-weight:700;margin:0;\">Secretaría de Educación de Neiva</p>" +
+    "<p style=\"font-size:12px;color:#888888;margin:4px 0 0;font-style:italic;\">“Escuela Viva: Voces que construyen territorio”</p>" +
+    "</div>" +
+    "</div>" +
+    "</div>";
+
+  return { asunto: asunto, textoEnlace: textoEnlace, cuerpoTexto: cuerpoTexto, cuerpoHTML: cuerpoHTML };
+}
+
 /*****************************************************
  * ENVÍO DE ACCESOS A TODAS LAS IE
  *
@@ -3479,63 +3540,10 @@ function enviarAccesosTodasIE(){
 
     try{
 
-      const asunto =
-        "🎓 Acceso al Foro Educativo Institucional – " +
-        ie;
-
-      const textoEnlace =
-        "Ingreso de la IE " + ieSinPrefijo + " al Foro Educativo Institucional";
-
-      const cuerpoTexto =
-        "Secretaría de Educación de Neiva\n\n" +
-        "Estimada comunidad educativa de la Institución Educativa " + ieSinPrefijo + ":\n\n" +
-        "Ya pueden ingresar al Foro Educativo Institucional – Neiva 2026 con el código de acceso exclusivo de su institución.\n\n" +
-        "Código de acceso: " + codigo + "\n\n" +
-        textoEnlace + ":\n" + url + "\n\n" +
-        "Este código y este enlace son exclusivos de su institución: no deben compartirse con otra IE.\n\n" +
-        "Ante cualquier inconveniente pueden escribir a este mismo correo o comunicarse al WhatsApp 318 456 1081.\n\n" +
-        "Secretaría de Educación de Neiva\n" +
-        "Foro Educativo Institucional – Neiva 2026\n" +
-        "“Escuela Viva: Voces que construyen territorio”";
-
-      /*
-       * HTML del correo con el mismo lenguaje visual del formulario
-       * (verde institucional, acento amarillo, tarjeta redondeada con
-       * sombra) — con estilos en línea para que se vea igual en la
-       * mayoría de los clientes de correo, que no siempre respetan
-       * bloques <style>.
-       */
-      const cuerpoHTML =
-        "<div style=\"background:#F7F8FA;padding:28px 12px;font-family:Arial,Helvetica,sans-serif;\">" +
-        "<div style=\"max-width:520px;margin:0 auto;background:#FFFFFF;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.10);\">" +
-        "<div style=\"background:#0B6A44;padding:26px 28px;text-align:center;\">" +
-        (logoIEUrlCorreo ? "<img src=\""+logoIEUrlCorreo+"\" alt=\"Logo de la institución educativa\" style=\"display:block;max-width:56px;max-height:56px;margin:0 auto 10px;border-radius:8px;\">" : "") +
-        "<div style=\"color:#FFFFFF;font-size:20px;font-weight:700;\">Foro Educativo Institucional</div>" +
-        "<div style=\"color:#CFE8DC;font-size:14px;margin-top:2px;\">Neiva 2026</div>" +
-        "</div>" +
-        "<div style=\"padding:28px 28px 8px;\">" +
-        "<p style=\"font-size:16px;color:#333333;margin:0 0 14px;\">Estimada comunidad educativa de la Institución Educativa <strong>" + ieSinPrefijo + "</strong>:</p>" +
-        "<p style=\"font-size:15px;color:#4A4A4A;line-height:1.6;margin:0 0 22px;\">" +
-        "Ya pueden ingresar al Foro Educativo Institucional – Neiva 2026 con el código de acceso exclusivo de su institución." +
-        "</p>" +
-        "<div style=\"background:#F7F8FA;border-left:6px solid #F4B400;border-radius:10px;padding:16px 20px;margin:0 0 24px;text-align:center;\">" +
-        "<div style=\"font-size:12px;font-weight:700;color:#0B6A44;text-transform:uppercase;letter-spacing:.5px;\">Código de acceso</div>" +
-        "<div style=\"font-size:30px;font-weight:700;letter-spacing:6px;color:#0B6A44;margin-top:4px;\">" + codigo + "</div>" +
-        "</div>" +
-        "<div style=\"text-align:center;margin:0 0 24px;\">" +
-        "<a href=\"" + url + "\" target=\"_blank\" style=\"display:inline-block;background:#0B6A44;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:15px;padding:14px 26px;border-radius:10px;\">" + textoEnlace + "</a>" +
-        "</div>" +
-        "<div style=\"background:#FFF8E1;border-left:6px solid #F4B400;border-radius:10px;padding:12px 16px;margin:0 0 20px;\">" +
-        "<p style=\"font-size:13px;color:#7A5B00;margin:0;\">🔒 Este código y este enlace son exclusivos de su institución: no deben compartirse con otra IE.</p>" +
-        "</div>" +
-        "<p style=\"font-size:13px;color:#888888;margin:0 0 24px;\">Ante cualquier inconveniente, pueden escribir a este mismo correo o comunicarse al WhatsApp 318 456 1081.</p>" +
-        "</div>" +
-        "<div style=\"background:#F7F8FA;padding:18px 28px;text-align:center;border-top:1px solid #E5E7EA;\">" +
-        "<p style=\"font-size:13px;color:#0B6A44;font-weight:700;margin:0;\">Secretaría de Educación de Neiva</p>" +
-        "<p style=\"font-size:12px;color:#888888;margin:4px 0 0;font-style:italic;\">“Escuela Viva: Voces que construyen territorio”</p>" +
-        "</div>" +
-        "</div>" +
-        "</div>";
+      const correoArmado = construirCorreoAccesoIE_(ie, ieSinPrefijo, codigo, url, logoIEUrlCorreo);
+      const asunto = correoArmado.asunto;
+      const cuerpoTexto = correoArmado.cuerpoTexto;
+      const cuerpoHTML = correoArmado.cuerpoHTML;
 
       const opciones = {
         htmlBody: cuerpoHTML,

@@ -2645,6 +2645,246 @@ function restablecerAccesosOficialesFEM(){
 
 
 /*****************************************************
+ * ENVIAR CORREO DE ACCESO A TODAS LAS IE DE PRUEBA
+ *
+ * Envía el mismo correo real de "acceso al Foro"
+ * (construirCorreoAccesoIE_, Código.js) restringido a las 10 IE de
+ * prueba (IE PRUEBA 1234 + IES_PRUEBA_ADICIONALES), a sus EMAIL_IE
+ * reales registrados en AccesosIE — útil para verificar cómo se ve y
+ * se comporta el correo real sin tocar ninguna IE oficial.
+ *
+ * Ejecutar manualmente:  enviarAccesosTodasLasPruebasFEM()
+ *****************************************************/
+function enviarAccesosTodasLasPruebasFEM(){
+  const cuenta = Session.getEffectiveUser().getEmail().toLowerCase();
+  const aliases = GmailApp.getAliases().map(function(a){ return a.toLowerCase(); });
+  if(cuenta !== REMITENTE_FEM && aliases.indexOf(REMITENTE_FEM) === -1){
+    const mensaje = "La cuenta que ejecuta Apps Script no puede enviar como " + REMITENTE_FEM + ".";
+    Logger.log("❌ " + mensaje);
+    return { ok:false, mensaje: mensaje };
+  }
+
+  const hoja = asegurarColumnasAccesosIE_();
+  const mapa = mapaHoja_(hoja);
+  if(hoja.getLastRow() < 2){
+    Logger.log("AccesosIE no tiene filas.");
+    return { ok:false, mensaje:"AccesosIE no tiene filas." };
+  }
+  const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues();
+  const nombresPrueba = ["IE PRUEBA 1234"].concat(IES_PRUEBA_ADICIONALES.map(function(x){ return x.ie; }));
+
+  let enviados = 0;
+  const resultados = [];
+
+  nombresPrueba.forEach(function(nombreIE){
+    try{
+      const fila = valores.find(function(f){ return String(f[mapa.IE - 1] || "").trim() === nombreIE; });
+      if(!fila) throw new Error("No existe en AccesosIE.");
+      const correoIE = String(fila[mapa.EMAIL_IE - 1] || "").trim();
+      if(!correoIE) throw new Error("Sin EMAIL_IE.");
+      const codigo = String(fila[mapa.CODIGO_ACCESO - 1] || "").trim();
+      const url = String(fila[mapa.URL_ACCESO - 1] || "").trim();
+      const correoResponsable = mapa.EMAIL_RESPONSABLE ? String(fila[mapa.EMAIL_RESPONSABLE - 1] || "").trim() : "";
+      const ieSinPrefijo = nombreIESinPrefijoInstitucional_(nombreIE);
+      const logoIEUrlCorreo = mapa.LOGO_ID ? urlPublicaLogoDrive_(String(fila[mapa.LOGO_ID - 1] || "").trim()) : "";
+
+      const correoArmado = construirCorreoAccesoIE_(nombreIE, ieSinPrefijo, codigo, url, logoIEUrlCorreo);
+      const opciones = { htmlBody: correoArmado.cuerpoHTML, name: "Secretaría de Educación de Neiva", replyTo: REMITENTE_FEM };
+      if(cuenta !== REMITENTE_FEM) opciones.from = REMITENTE_FEM;
+      if(correoResponsable && correoResponsable !== correoIE) opciones.cc = correoResponsable;
+
+      GmailApp.sendEmail(correoIE, correoArmado.asunto, correoArmado.cuerpoTexto, opciones);
+      enviados++;
+      resultados.push(nombreIE + ": ✅ enviado a " + correoIE + (opciones.cc ? " (cc " + opciones.cc + ")" : ""));
+    }catch(error){
+      resultados.push(nombreIE + ": ⚠ " + error.message);
+    }
+  });
+
+  Logger.log("========================================");
+  Logger.log("ENVÍO DE ACCESOS A LAS " + nombresPrueba.length + " IE DE PRUEBA");
+  resultados.forEach(function(r){ Logger.log(r); });
+  Logger.log("Enviados: " + enviados + " / " + nombresPrueba.length);
+  Logger.log("========================================");
+
+  return { ok:true, enviados: enviados, total: nombresPrueba.length, resultados: resultados };
+}
+
+
+/*****************************************************
+ * SIMULAR EL CORREO DE ACCESO DE UNA IE OFICIAL PUNTUAL
+ * (por defecto, la que contenga "Limonar" en el nombre) — enviado
+ * ÚNICAMENTE al correo del administrador, nunca a los correos reales
+ * registrados de esa IE.
+ *
+ * Sirve para revisar cómo se vería el correo real de una IE oficial
+ * concreta (logo, código, enlace) sin arriesgarse a que le llegue a
+ * la propia institución ni a su responsable: el EMAIL_IE/
+ * EMAIL_RESPONSABLE de la fila real NUNCA se usan como destinatario
+ * ni como copia en esta función — solo se leen el nombre, el código
+ * y el enlace para armar la vista previa.
+ *
+ * Ejecutar manualmente:  simularCorreoAccesoIEFEM("Limonar")
+ * (sin argumento, usa "Limonar" por defecto)
+ *****************************************************/
+function simularCorreoAccesoIEFEM(nombreIEBuscado){
+  const CORREO_SIMULACION = "jhonefrainsanchez@gmail.com";
+  nombreIEBuscado = String(nombreIEBuscado || "Limonar").trim();
+
+  const cuenta = Session.getEffectiveUser().getEmail().toLowerCase();
+  const aliases = GmailApp.getAliases().map(function(a){ return a.toLowerCase(); });
+  if(cuenta !== REMITENTE_FEM && aliases.indexOf(REMITENTE_FEM) === -1){
+    const mensaje = "La cuenta que ejecuta Apps Script no puede enviar como " + REMITENTE_FEM + ".";
+    Logger.log("❌ " + mensaje);
+    return { ok:false, mensaje: mensaje };
+  }
+
+  const hoja = asegurarColumnasAccesosIE_();
+  const mapa = mapaHoja_(hoja);
+  if(hoja.getLastRow() < 2){
+    const mensaje = "AccesosIE no tiene filas.";
+    Logger.log(mensaje);
+    return { ok:false, mensaje: mensaje };
+  }
+  const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues();
+
+  // Búsqueda flexible (sin tildes/mayúsculas, por si el nombre exacto
+  // en AccesosIE trae un prefijo distinto, p. ej. "I.E. Limonar").
+  const claveBuscada = normalizarNombreIE_(nombreIEBuscado);
+  const fila = valores.find(function(f){ return normalizarNombreIE_(String(f[mapa.IE - 1] || "")).indexOf(claveBuscada) !== -1; });
+  if(!fila){
+    const mensaje = 'No se encontró ninguna IE que contenga "' + nombreIEBuscado + '" en AccesosIE.';
+    Logger.log("❌ " + mensaje);
+    return { ok:false, mensaje: mensaje };
+  }
+
+  const nombreIEReal = String(fila[mapa.IE - 1] || "").trim();
+  const codigo = String(fila[mapa.CODIGO_ACCESO - 1] || "").trim();
+  const url = String(fila[mapa.URL_ACCESO - 1] || "").trim();
+  const ieSinPrefijo = nombreIESinPrefijoInstitucional_(nombreIEReal);
+  const logoIEUrlCorreo = mapa.LOGO_ID ? urlPublicaLogoDrive_(String(fila[mapa.LOGO_ID - 1] || "").trim()) : "";
+
+  const correoArmado = construirCorreoAccesoIE_(nombreIEReal, ieSinPrefijo, codigo, url, logoIEUrlCorreo);
+
+  const avisoSimulacion =
+    "<div style=\"background:#FFF3CD;border-left:6px solid #C62828;border-radius:10px;padding:12px 16px;margin:14px auto 0;max-width:520px;font-family:Arial,Helvetica,sans-serif;\">" +
+    "<p style=\"font-size:13px;color:#7A5B00;margin:0;\"><strong>🧪 SIMULACIÓN interna:</strong> este correo es una vista previa de lo que recibiría la IE <strong>" + nombreIEReal + "</strong>. Se envió únicamente a " + CORREO_SIMULACION + " — NO se envió a ningún correo registrado de esa institución.</p>" +
+    "</div>";
+
+  const opciones = {
+    htmlBody: correoArmado.cuerpoHTML + avisoSimulacion,
+    name: "Secretaría de Educación de Neiva",
+    replyTo: REMITENTE_FEM
+  };
+  if(cuenta !== REMITENTE_FEM) opciones.from = REMITENTE_FEM;
+
+  /*
+   * Destinatario fijo, sin excepción: nunca correoIE ni
+   * correoResponsable de la fila real.
+   */
+  GmailApp.sendEmail(
+    CORREO_SIMULACION,
+    "[SIMULACIÓN] " + correoArmado.asunto,
+    "[SIMULACIÓN — vista previa del correo real de " + nombreIEReal + ", no enviado a la institución]\n\n" + correoArmado.cuerpoTexto,
+    opciones
+  );
+
+  Logger.log("========================================");
+  Logger.log("✅ Simulación enviada a " + CORREO_SIMULACION + " con el contenido real de: " + nombreIEReal);
+  Logger.log("Código: " + codigo + " | Link: " + url);
+  Logger.log("========================================");
+
+  return { ok:true, ieSimulada: nombreIEReal, enviadoA: CORREO_SIMULACION };
+}
+
+
+/*****************************************************
+ * ENVIAR CORREO DE ACCESO A TODAS LAS IE OFICIALES (SIN PRUEBAS)
+ *
+ * Envía el correo real de acceso (construirCorreoAccesoIE_) a las 37
+ * IE oficiales de la hoja Oficiales — igual que enviarAccesosTodasIE(),
+ * pero excluyendo explícitamente cualquier IE de prueba (IE PRUEBA
+ * 1234, IE Prueba Ronald, etc.), aunque estas también tengan
+ * ESTADO=DISPONIBLE en AccesosIE.
+ *
+ * Requisito de seguridad, igual que generarAccesosIE()/
+ * restablecerAccesosOficialesFEM(): Oficiales debe tener exactamente
+ * 37 IE cargadas — si no, se aborta sin enviar nada.
+ *
+ * Ejecutar manualmente:  enviarAccesosSoloOficialesFEM()
+ *****************************************************/
+function enviarAccesosSoloOficialesFEM(){
+  const cuenta = Session.getEffectiveUser().getEmail().toLowerCase();
+  const aliases = GmailApp.getAliases().map(function(a){ return a.toLowerCase(); });
+  if(cuenta !== REMITENTE_FEM && aliases.indexOf(REMITENTE_FEM) === -1){
+    const mensaje = "La cuenta que ejecuta Apps Script no puede enviar como " + REMITENTE_FEM + ".";
+    Logger.log("❌ " + mensaje);
+    return { ok:false, mensaje: mensaje };
+  }
+
+  const instituciones = JSON.parse(obtenerInstitucionesJSON());
+  const nombresOficiales = Object.keys(instituciones || {});
+  if(nombresOficiales.length !== 37){
+    const mensaje = "ABORTADO: se esperaban exactamente 37 IE en Oficiales y se encontraron " + nombresOficiales.length + ". No se envió ningún correo.";
+    Logger.log("❌ " + mensaje);
+    return { ok:false, mensaje: mensaje };
+  }
+  const clavesOficiales = {};
+  nombresOficiales.forEach(function(n){ clavesOficiales[normalizarAccesoIE_(n)] = true; });
+
+  const hoja = asegurarColumnasAccesosIE_();
+  const mapa = mapaHoja_(hoja);
+  if(hoja.getLastRow() < 2){
+    const mensaje = "AccesosIE no tiene filas.";
+    Logger.log(mensaje);
+    return { ok:false, mensaje: mensaje };
+  }
+  const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues();
+
+  let enviados = 0, omitidos = 0;
+  const errores = [];
+
+  valores.forEach(function(fila){
+    const nombreIE = String(fila[mapa.IE - 1] || "").trim();
+    // No es una de las 37 oficiales (incluye a todas las de prueba): se ignora.
+    if(!nombreIE || !clavesOficiales[normalizarAccesoIE_(nombreIE)]) return;
+
+    const estado = String(fila[mapa.ESTADO - 1] || "").trim().toUpperCase();
+    if(estado !== "DISPONIBLE"){ omitidos++; return; }
+
+    const correoIE = String(fila[mapa.EMAIL_IE - 1] || "").trim();
+    if(!correoIE){ omitidos++; return; }
+
+    try{
+      const codigo = String(fila[mapa.CODIGO_ACCESO - 1] || "").trim();
+      const url = String(fila[mapa.URL_ACCESO - 1] || "").trim();
+      const correoResponsable = mapa.EMAIL_RESPONSABLE ? String(fila[mapa.EMAIL_RESPONSABLE - 1] || "").trim() : "";
+      const ieSinPrefijo = nombreIESinPrefijoInstitucional_(nombreIE);
+      const logoIEUrlCorreo = mapa.LOGO_ID ? urlPublicaLogoDrive_(String(fila[mapa.LOGO_ID - 1] || "").trim()) : "";
+
+      const correoArmado = construirCorreoAccesoIE_(nombreIE, ieSinPrefijo, codigo, url, logoIEUrlCorreo);
+      const opciones = { htmlBody: correoArmado.cuerpoHTML, name: "Secretaría de Educación de Neiva", replyTo: REMITENTE_FEM };
+      if(cuenta !== REMITENTE_FEM) opciones.from = REMITENTE_FEM;
+      if(correoResponsable && correoResponsable !== correoIE) opciones.cc = correoResponsable;
+
+      GmailApp.sendEmail(correoIE, correoArmado.asunto, correoArmado.cuerpoTexto, opciones);
+      enviados++;
+    }catch(error){
+      errores.push({ ie: nombreIE, correo: correoIE, mensaje: error.message });
+    }
+  });
+
+  Logger.log("========================================");
+  Logger.log("ENVÍO DE ACCESOS A LAS 37 IE OFICIALES (sin IE de prueba)");
+  Logger.log("Enviados: " + enviados + " | Omitidos (sin ESTADO=DISPONIBLE o sin EMAIL_IE): " + omitidos + " | Errores: " + errores.length);
+  if(errores.length) Logger.log(JSON.stringify(errores, null, 2));
+  Logger.log("========================================");
+
+  return { ok: errores.length === 0, enviados: enviados, omitidos: omitidos, errores: errores };
+}
+
+
+/*****************************************************
  * CONSTRUIR / RECONSTRUIR EL DOCUMENTO DE ANÁLISIS — FEM 2026
  *
  * Crea (si no existe) el documento de análisis separado y reconstruye
