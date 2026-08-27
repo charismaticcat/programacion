@@ -4904,7 +4904,11 @@ function obtenerLogoIdPorNombreIE_(nombreIE){
 // desplegable de "Cargo" que llena cada asistente al firmar por QR.
 const CARGOS_ASISTENCIA_QR=["Rector(a)","Coordinador(a)","Docente","Tutor(a) PTA/PFI 3.0","Orientador(a)","Estudiante","Padre/madre/acudiente","Personal administrativo","Egresado(a)","Sector productivo","Otro"];
 const TIPOS_ASISTENCIA_QR=["Presencial","No asistió: con permiso institucional o incapacidad médica.","No asistió: con permiso de comisión o con acto administrativo."];
-const ROLES_FORO_QR=["👑 Líder – Rector(a)","🎓 Dinamizador Pedagógico – Tutor(a) PTA / PFI 3.0","👥 Dinamizador(a) de Mesas de Trabajo","📝 Relator(a)","⏱️ Dinamizador(a) del Tiempo","💻 Dinamizador(a) de la Sistematización","🙋 Participante"];
+// Género femenino fijo (en vez de "(a)"): evita que el "(a)" quede
+// literal al insertar el rol dentro de una oración ("En mi papel
+// como Relator(a)..."), y no depende de saber el género de quien
+// firma.
+const ROLES_FORO_QR=["👑 Líder – Rectora","🎓 Dinamizadora Pedagógica – Tutora PTA / PFI 3.0","👥 Dinamizadora de Mesas de Trabajo","📝 Relatora","⏱️ Dinamizadora del Tiempo","💻 Dinamizadora de la Sistematización","🙋 Participante"];
 
 // Sexo (para el conteo demográfico del informe: niños/niñas,
 // jóvenes hombres/mujeres, adultos hombres/mujeres).
@@ -5563,12 +5567,15 @@ function paginaAsistenciaQR_(idForo){
     'h1{color:#0B6A44;font-size:20px;margin:0 0 6px;line-height:1.35;}'+
     'p{line-height:1.5;}'+
     'label{display:block;font-weight:bold;color:#0B6A44;margin:16px 0 6px;}'+
-    'input,select{width:100%;padding:12px;font-size:16px;border:1px solid #DADCE0;border-radius:8px;box-sizing:border-box;font-family:inherit;}'+
+    'input,select{width:100%;padding:12px;font-size:16px;border:1px solid #DADCE0;border-radius:8px;box-sizing:border-box;font-family:inherit;transition:border-color .15s ease, background-color .15s ease;}'+
     'button{width:100%;margin-top:22px;padding:14px;font-size:17px;background:#0B6A44;color:#fff;border:none;border-radius:10px;cursor:pointer;}'+
     'button:disabled{background:#bdbdbd;}'+
     '#estado{margin-top:14px;font-weight:600;min-height:20px;}'+
     '#textoFirma{margin-top:6px;font-size:12px;font-weight:400;color:#4A4A4A;}'+
     '.logoAsistenciaIE{display:block;max-width:64px;max-height:64px;margin:0 auto 10px;border-radius:8px;}'+
+    // Un campo ya diligenciado se pone verde (en vez de quedarse
+    // gris), para que se note de un vistazo qué falta por llenar.
+    '.campoCompletado{border-color:#0B6A44;background:#F7FAF7;}'+
     '.correoInvalido{border-color:#C62828 !important;background:#FFFDE7;}'+
     '.mensajeErrorCorreo{display:none;margin-top:6px;}'+
     '.mensajeErrorCorreo b{background:#FFF3CD;color:#C62828;font-weight:600;padding:3px 8px;border-radius:6px;display:inline-block;}'+
@@ -5655,6 +5662,24 @@ function paginaAsistenciaQR_(idForo){
     'document.getElementById("btnFirmar").disabled=!acepto;'+
     '}'+
     'document.getElementById("aceptoConsentimiento").addEventListener("change",actualizarBotonFirmar);'+
+    /*
+     * Un campo ya diligenciado se pone verde (border-color/fondo) en
+     * vez de quedarse gris — igual idea que el resto del formulario
+     * principal. No aplica a checkboxes ni a inputs ocultos, y
+     * respeta el estado rojo del correo cuando no es válido (esa
+     * regla usa !important, así que gana igual aunque las dos
+     * clases estén presentes a la vez).
+     */
+    'function marcarCampoCompletado_(campo){'+
+    'var lleno=!!(campo.value&&String(campo.value).trim());'+
+    'campo.classList.toggle("campoCompletado",lleno);'+
+    '}'+
+    'document.querySelectorAll("#formulario input, #formulario select").forEach(function(campo){'+
+    'if(campo.type==="checkbox"||campo.type==="hidden") return;'+
+    'marcarCampoCompletado_(campo);'+
+    'campo.addEventListener("input",function(){ marcarCampoCompletado_(campo); });'+
+    'campo.addEventListener("change",function(){ marcarCampoCompletado_(campo); });'+
+    '});'+
     'document.getElementById("cargo").addEventListener("change",function(){'+
     'var requiere=CARGOS_SIN_CONDICION.indexOf(this.value)===-1 && this.value!=="";'+
     'document.getElementById("bloqueCondicion").classList.toggle("condicionOculta",!requiere);'+
