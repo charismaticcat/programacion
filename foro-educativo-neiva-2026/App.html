@@ -6587,7 +6587,21 @@ function inicializarPlenaria(){
     if(volver) volver.addEventListener("click",function(){ cambiarPantalla("pantallaEvidencias","pantallaSesion3",8); });
 
     const foto=document.getElementById("archivoFoto");
-    if(foto) foto.addEventListener("change",actualizarEstadoEvidencias);
+    if(foto){
+        foto.addEventListener("change",actualizarEstadoEvidencias);
+        /*
+         * Si ya hay una foto elegida y la persona vuelve a hacer
+         * clic para "seleccionar foto", se confirma antes de abrir
+         * el explorador de archivos — evita reemplazarla sin
+         * querer con un clic accidental.
+         */
+        foto.addEventListener("click",function(evento){
+            if(foto.files && foto.files.length > 0){
+                const cambiar=confirm("Ya tiene una fotografía seleccionada. ¿Desea cambiarla?");
+                if(!cambiar){ evento.preventDefault(); }
+            }
+        });
+    }
 
     const btnQrPantallaCompleta=document.getElementById("btnQrPantallaCompleta");
     if(btnQrPantallaCompleta) btnQrPantallaCompleta.addEventListener("click",async function(){

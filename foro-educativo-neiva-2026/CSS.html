@@ -3653,6 +3653,21 @@ Su ancho ya queda acotado por .cajaTexto > * (--reading-width).
 .estadoArchivo.ok{color:var(--verde-neiva);font-weight:600;}
 .estadoArchivo.error{color:var(--rojo-neiva);font-weight:600;}
 
+/*
+ * Fotografía ya seleccionada: más grande y resaltada en amarillo,
+ * para que se note claramente que ya hay un archivo listo (antes
+ * era el mismo texto pequeño en verde que el resto de los avisos).
+ */
+#estadoFoto.ok{
+    color:#7A5B00;
+    background:#FFF3CD;
+    border:1px solid var(--amarillo-neiva);
+    border-radius:10px;
+    padding:12px 16px;
+    font-size:16px;
+    font-weight:700;
+}
+
 /* Fotografía de evidencia ya registrada — visible al volver a la
    pantalla de Evidencias, para que nunca dé la impresión de haberse
    perdido: se ve la miniatura de lo que ya quedó guardado. */
