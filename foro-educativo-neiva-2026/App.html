@@ -6569,7 +6569,7 @@ function inicializarPlenaria(){
     const sig=document.getElementById("btnContinuarPlenaria");
     if(sig) sig.addEventListener("click",async function(){
         const s=window._FEM_SESIONES_ENVIADAS||{};
-        if(!s[1]||!s[2]||!s[3]){ alert("Debe enviar definitivamente las respuestas de las tres sesiones antes de continuar al informe final."); return; }
+        if(!s[1]||!s[2]||!s[3]){ alert("Antes de continuar al informe final, envíe definitivamente las respuestas de las tres sesiones: Primera, Segunda y Tercera Sesión."); return; }
 
         /*
          * Cierra el envío: guarda en la hoja propia de la IE,
@@ -6943,12 +6943,12 @@ function renderizarPlenaria(opciones){
             const renderAccion_=(campo,etiqueta,indice)=>{
                 const valor=getCampoValor(campo);
                 if(indice>3 && !String(valor||"").trim()) return "";
-                return `<label class="labelEditorPlenaria">${etiqueta}</label><textarea class="editorRespuestaPlenaria" data-campo="${campo}">${escapeHtml(valor)}</textarea>`;
+                return `<label class="labelEditorPlenaria">${etiqueta}</label><textarea class="editorRespuestaPlenaria" data-campo="${campo}"${sent?' readonly':''}>${escapeHtml(valor)}</textarea>`;
             };
             if(q[2]==="__S2_ACCIONES__") cuerpo=[1,2,3,4,5].map(i=>renderAccion_("respuestaSesion2Pregunta2Accion"+i,"Acción "+i,i)).join("");
             else if(q[2]==="__S3_ACCIONES__") cuerpo=[1,2,3,4,5].map(i=>renderAccion_("respuestaSesion3Pregunta2Accion"+i,"Acción "+i,i)).join("");
-            else cuerpo=`<textarea class="editorRespuestaPlenaria" data-campo="${q[2]}">${escapeHtml(getCampoValor(q[2]))}</textarea>`;
-            html+=`<div class="plenariaPagina${sent?' enviada':''}" data-page="${pageIndex}" data-sesion="${grupo.sesion}"><div class="plenariaPregunta"><span>${grupo.titulo}</span><h3>${escapeHtml(q[1])}</h3><button type="button" class="btnAmpliarPregunta" title="Ampliar esta sección" aria-label="Ampliar esta sección">👁️</button></div>${cuerpo}<div class="plenariaEditHint">${sent?'✅ Respuesta enviada definitivamente. Aún puede corregirla y guardar los cambios.':'✏️ Modo edición: puede ajustar únicamente las respuestas antes de enviarlas.'}</div><button type="button" class="btnGuardarPregunta">💾 Guardar</button></div>`;
+            else cuerpo=`<textarea class="editorRespuestaPlenaria" data-campo="${q[2]}"${sent?' readonly':''}>${escapeHtml(getCampoValor(q[2]))}</textarea>`;
+            html+=`<div class="plenariaPagina${sent?' enviada':''}" data-page="${pageIndex}" data-sesion="${grupo.sesion}"><div class="plenariaPregunta"><span>${grupo.titulo}</span><h3>${escapeHtml(q[1])}</h3><button type="button" class="btnAmpliarPregunta" title="Ampliar esta sección" aria-label="Ampliar esta sección">👁️</button></div>${cuerpo}<div class="plenariaEditHint">${sent?'✅ Respuesta enviada definitivamente. No puede hacer cambios.':'✏️ Modo edición: puede ajustar únicamente las respuestas antes de enviarlas.'}</div>${sent?'':'<button type="button" class="btnGuardarPregunta">💾 Guardar</button>'}</div>`;
             plenariaPaginas.push({id:q[0],sesion:grupo.sesion,campo:q[2],sent});
         });
     });

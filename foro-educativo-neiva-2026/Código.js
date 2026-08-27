@@ -4827,7 +4827,7 @@ function obtenerLogoIdPorNombreIE_(nombreIE){
 // Mismas categorías de la caracterización, en singular — para el
 // desplegable de "Cargo" que llena cada asistente al firmar por QR.
 const CARGOS_ASISTENCIA_QR=["Rector(a)","Coordinador(a)","Docente","Tutor(a) PTA/PFI 3.0","Orientador(a)","Estudiante","Padre/madre/acudiente","Personal administrativo","Egresado(a)","Sector productivo","Otro"];
-const TIPOS_ASISTENCIA_QR=["Presencial","Virtual","No asistió: con permiso institucional o incapacidad médica.","No asistió: con permiso de comisión o con acto administrativo."];
+const TIPOS_ASISTENCIA_QR=["Presencial","No asistió: con permiso institucional o incapacidad médica.","No asistió: con permiso de comisión o con acto administrativo."];
 const ROLES_FORO_QR=["👑 Líder – Rector(a)","🎓 Dinamizador Pedagógico – Tutor(a) PTA / PFI 3.0","👥 Dinamizador(a) de Mesas de Trabajo","📝 Relator(a)","⏱️ Dinamizador(a) del Tiempo","💻 Dinamizador(a) de la Sistematización","🙋 Participante"];
 
 function asegurarHojaAsistenciaQR_(){
