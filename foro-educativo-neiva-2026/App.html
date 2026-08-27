@@ -1229,6 +1229,8 @@ function cambiarPantalla(actual,nueva,paso){
             let idForo=""; try{ idForo=obtenerIdForo(); }catch(e){}
             actualizarContadoresAsistenciaQR_(idForo);
         }, 50);
+        const nombreIEFinal=getCampoNombreIE();
+        if(nombreIEFinal) document.querySelectorAll(".nombreIEFinal").forEach(function(el){ el.textContent=nombreIEFinal; });
     }
 
     if(nueva === "pantallaPlenaria") {
@@ -7263,6 +7265,16 @@ function inicializarPlenaria(){
         }catch(error){ console.error("No fue posible mostrar el QR en pantalla completa:",error); }
     });
 
+    const btnFotoPantallaCompleta=document.getElementById("btnFotoEvidenciaPantallaCompleta");
+    if(btnFotoPantallaCompleta) btnFotoPantallaCompleta.addEventListener("click",async function(){
+        const img=document.getElementById("previaFotoEvidencia");
+        if(!img) return;
+        try{
+            if(!document.fullscreenElement) await img.requestFullscreen();
+            else await document.exitFullscreen();
+        }catch(error){ console.error("No fue posible mostrar la fotografía en pantalla completa:",error); }
+    });
+
     inicializarSelectorMetodoAsistencia_();
     inicializarDescargaQR_();
     inicializarFirmasEnVivo_();
@@ -7271,6 +7283,8 @@ function inicializarPlenaria(){
     if(pdfAsistencia) pdfAsistencia.addEventListener("change",actualizarEstadoEvidencias);
     const numeroAsistentesPdf=document.getElementById("numeroAsistentesPDF");
     if(numeroAsistentesPdf) numeroAsistentesPdf.addEventListener("input",actualizarEstadoEvidencias);
+    const numeroParticipantes=document.getElementById("numeroParticipantesEvidencias");
+    if(numeroParticipantes) numeroParticipantes.addEventListener("input",actualizarEstadoEvidencias);
 
     const subir=document.getElementById("btnSubirEvidencias");
     if(subir) subir.addEventListener("click",subirEvidenciasFEM);
@@ -7328,7 +7342,12 @@ function inicializarPlenaria(){
     const sig=document.getElementById("btnContinuarPlenaria");
     if(sig) sig.addEventListener("click",async function(){
         const s=window._FEM_SESIONES_ENVIADAS||{};
-        if(!s[1]||!s[2]||!s[3]){ alert("Antes de continuar al informe final, envíe definitivamente las respuestas de las tres sesiones: Primera, Segunda y Tercera Sesión."); return; }
+        if(!s[1]||!s[2]||!s[3]){
+            mostrarMensajePlenaria_("Antes de continuar al informe final, envíe definitivamente las respuestas de las tres sesiones: Primera, Segunda y Tercera Sesión.");
+            document.getElementById("mensajePlenaria")?.scrollIntoView({behavior:"smooth", block:"center"});
+            return;
+        }
+        mostrarMensajePlenaria_("");
 
         /*
          * Cierra el envío: guarda en la hoja propia de la IE,
@@ -7355,7 +7374,7 @@ function inicializarPlenaria(){
             mostrarModalContinuarInforme_();
         }catch(error){
             ocultarOverlayProgreso_(true);
-            alert(error.message||error);
+            mostrarMensajePlenaria_(error.message||String(error));
         }finally{
             sig.disabled=false; sig.textContent="Continuar →";
         }
@@ -7747,12 +7766,71 @@ function aplicarEstadoMetodoAsistencia_(){
     if(tarjetaPDF) tarjetaPDF.style.display=metodo==="PDF"?"":"none";
 }
 
-function elegirMetodoAsistencia_(metodo){
+// Solo se permiten 2 cambios de método en total, contados desde la
+// primera vez que se elige uno (esa primera elección NO cuenta como
+// "cambio"). Al tercer intento se bloquea y se avisa que se enviará
+// con el último método ya seleccionado.
+const MAX_CAMBIOS_METODO_ASISTENCIA_=2;
+
+function mostrarMensajeMetodoAsistencia_(texto){
+    const el=document.getElementById("mensajeMetodoAsistencia");
+    if(!el) return;
+    el.textContent=texto;
+    el.style.display=texto?"block":"none";
+}
+
+function nombreMetodoAsistencia_(metodo){
+    return metodo==="QR" ? "código QR" : "PDF escaneado";
+}
+
+function elegirMetodoAsistencia_(metodoNuevo){
     const campo=document.getElementById("metodoAsistencia");
-    if(campo){ campo.value=metodo; campo.dispatchEvent(new Event("change")); }
+    const campoAnterior=document.getElementById("metodoAsistenciaAnterior");
+    const campoCambios=document.getElementById("metodoAsistenciaCambios");
+    const metodoAnterior=campoAnterior?.value||"";
+    const cambios=Number(campoCambios?.value||0);
+    const esCambioReal=!!metodoAnterior && metodoAnterior!==metodoNuevo;
+
+    if(campo){ campo.value=metodoNuevo; campo.dispatchEvent(new Event("change")); }
     aplicarEstadoMetodoAsistencia_();
     actualizarContadoresAsistenciaQR_((function(){ try{ return obtenerIdForo(); }catch(e){ return ""; } })());
     actualizarEstadoEvidencias();
+
+    if(esCambioReal){
+        const nuevoConteo=cambios+1;
+        if(campoCambios) campoCambios.value=String(nuevoConteo);
+
+        /*
+         * Efectos del cambio sobre el método abandonado: si se deja
+         * de usar QR, se eliminan todas las firmas ya registradas
+         * (dejan de tener sentido, y con ellas se va también el
+         * análisis demográfico/de percepción del informe). Si se
+         * deja de usar PDF, se borra el archivo de Drive y se limpian
+         * sus campos, para que el informe no vuelva a referenciarlo.
+         */
+        let idForo=""; try{ idForo=obtenerIdForo(); }catch(e){}
+        if(metodoAnterior==="QR" && idForo){
+            google.script.run.eliminarAsistenciaQRPorCambioMetodo(idForo);
+        }else if(metodoAnterior==="PDF"){
+            const pdfId=document.getElementById("asistenciaPdfId")?.value||"";
+            if(pdfId) google.script.run.eliminarAsistenciaPDFPorCambioMetodo(pdfId);
+            ["asistenciaPdfUrl","asistenciaPdfId","numeroAsistentesPDF"].forEach(function(id){
+                const c=document.getElementById(id); if(c) c.value="";
+            });
+            const estadoPdfEl=document.getElementById("estadoAsistenciaPDF");
+            if(estadoPdfEl){ estadoPdfEl.textContent=""; estadoPdfEl.className="estadoArchivo"; }
+        }
+
+        if(nuevoConteo>=MAX_CAMBIOS_METODO_ASISTENCIA_){
+            mostrarMensajeMetodoAsistencia_("⚠️ Este fue el último cambio de método de asistencia permitido. No se aceptarán más cambios: el Foro se enviará con el método ya seleccionado ("+nombreMetodoAsistencia_(metodoNuevo)+").");
+        }else{
+            mostrarMensajeMetodoAsistencia_("Cambió el método de asistencia. Solo podrá cambiarlo una vez más.");
+        }
+    }else{
+        mostrarMensajeMetodoAsistencia_("");
+    }
+
+    if(campoAnterior) campoAnterior.value=metodoNuevo;
     guardarBorradorLocal({silencioso:true});
 }
 
@@ -7765,6 +7843,12 @@ function inicializarSelectorMetodoAsistencia_(){
     if(btnCambiar && !btnCambiar.dataset.inicializado){
         btnCambiar.dataset.inicializado="1";
         btnCambiar.addEventListener("click",function(){
+            const cambios=Number(document.getElementById("metodoAsistenciaCambios")?.value||0);
+            if(cambios>=MAX_CAMBIOS_METODO_ASISTENCIA_){
+                const metodoActual=document.getElementById("metodoAsistencia")?.value||"";
+                mostrarMensajeMetodoAsistencia_("⚠️ Ya alcanzó el máximo de "+MAX_CAMBIOS_METODO_ASISTENCIA_+" cambios de método de asistencia. No se aceptan más cambios: el Foro se enviará con el método ya seleccionado ("+nombreMetodoAsistencia_(metodoActual)+").");
+                return;
+            }
             const campo=document.getElementById("metodoAsistencia");
             if(campo){ campo.value=""; campo.dispatchEvent(new Event("change")); }
             aplicarEstadoMetodoAsistencia_();
@@ -7920,11 +8004,13 @@ function actualizarPreviaFotoEvidencia_(){
     const img=document.getElementById("previaFotoEvidencia");
     const texto=document.getElementById("textoFotoRegistrada");
     const pie=document.getElementById("pieFotoEvidencia");
+    const ojo=document.getElementById("btnFotoEvidenciaPantallaCompleta");
     if(!img) return;
     if(url){
         img.src=url;
         img.style.display="block";
         if(texto) texto.style.display="block";
+        if(ojo) ojo.style.display="";
         if(pie){
             const fechaTexto=document.getElementById("evidenciaFotoFecha")?.value||"";
             const fecha=fechaTexto?new Date(fechaTexto):new Date();
@@ -7934,6 +8020,7 @@ function actualizarPreviaFotoEvidencia_(){
     }else{
         img.style.display="none";
         if(texto) texto.style.display="none";
+        if(ojo) ojo.style.display="none";
         if(pie) pie.style.display="none";
     }
 }
@@ -7949,6 +8036,11 @@ function actualizarEstadoEvidencias(){
      * asistentes. El método QR no exige ningún archivo aquí: la
      * asistencia se firma aparte, por celular.
      */
+    // Independiente del método elegido: siempre hay que escribir
+    // cuántos participantes hubo en la jornada para poder continuar.
+    const numeroParticipantes=Number(document.getElementById("numeroParticipantesEvidencias")?.value||0);
+    const okParticipantes=numeroParticipantes>0;
+
     const metodo=document.getElementById("metodoAsistencia")?.value||"";
     let okAsistencia=metodo==="QR";
     if(metodo==="PDF"){
@@ -7971,7 +8063,7 @@ function actualizarEstadoEvidencias(){
         }
     }
 
-    if(subir) subir.disabled=!(okFoto && okAsistencia);
+    if(subir) subir.disabled=!(okFoto && okAsistencia && okParticipantes);
 
     /*
      * Vista previa inmediata (antes de subir): se muestra debajo del
@@ -7982,10 +8074,12 @@ function actualizarEstadoEvidencias(){
         const img=document.getElementById("previaFotoEvidencia");
         const pie=document.getElementById("pieFotoEvidencia");
         const texto=document.getElementById("textoFotoRegistrada");
+        const ojo=document.getElementById("btnFotoEvidenciaPantallaCompleta");
         if(img){
             img.src=URL.createObjectURL(foto);
             img.style.display="block";
         }
+        if(ojo) ojo.style.display="";
         if(pie){
             pie.textContent=construirPieFotoEvidenciaCliente_(new Date());
             pie.style.display="block";
@@ -8004,6 +8098,15 @@ function pintarEstadoArchivo(id,file,ok,si,no){
     el.className="estadoArchivo "+(ok?"ok":"error");
 }
 function mostrarMensajeEvidencias(msg){ const el=document.getElementById("mensajeEvidencias"); if(el){el.textContent=msg;el.style.display="block";} }
+// Reemplaza los alert() nativos del navegador (inconsistentes con el
+// resto del diseño del proyecto) por el mismo cuadro de advertencia
+// amarillo ya usado en Plenaria (.plenariaAdvertencia).
+function mostrarMensajePlenaria_(msg){
+    const el=document.getElementById("mensajePlenaria");
+    if(!el) return;
+    el.textContent=msg;
+    el.style.display=msg?"block":"none";
+}
 function leerArchivoDataURL(file){
     return new Promise((resolve,reject)=>{ const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(file); });
 }
@@ -8020,6 +8123,21 @@ function esperar_(ms){ return new Promise(r=>setTimeout(r,ms)); }
  * calcularColorBarraProgreso_) hasta el 90% mientras se espera la
  * respuesta del servidor, y salta a 100% verde al terminar.
  *****************************************************/
+
+// Mismos GIF ya usados en distintos puntos de este recorrido —
+// reutilizados aquí (en vez de sumar uno nuevo) para transiciones
+// puramente visuales que no esperan ninguna respuesta del servidor,
+// como pantallaFinalFEM → pantallaCierreFEM (valoración).
+const GIFS_CARGA_FEM_=[
+    "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3dHo3dDl6OW5vbHR0djAweGcxMjg1NGV3YWx5Z3MzcnU3b2JqNnplMCZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/iqHiDg6dymfsQnaIng/giphy.gif",
+    "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3Z200YzZoNnpwajM5b3N5dWlob3IwZHdkeDc3bnlwMnlkbWl5OGRqciZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/cV4LUYbSFpDrIdOmIh/giphy.gif",
+    "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3azZjM2xiazltNWVhNmcwMXVtaDF2eGZoMG1vZ2g1cTV4bTJsYTE5dyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/UX0cPFtehDrVtvuwit/giphy.gif",
+    "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExdmZiMnlxYWQxbDMxMjZzOXl1cTY3bnJzbXgzM3ZkdmpydHlzODlrbiZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/BWJd36DXWBwJW5odCx/giphy.gif",
+    "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3ZGp6NWF3YWYzZ2ppeTVjbHcydzFiZjF0empxamFtemZ0ZTQxNmo5NSZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/nG0Ts1UgGcNQq6cn10/giphy.gif"
+];
+function gifCargaAleatorio_(){
+    return GIFS_CARGA_FEM_[Math.floor(Math.random()*GIFS_CARGA_FEM_.length)];
+}
 
 let overlayProgresoActivo_ = null;
 
@@ -8551,7 +8669,17 @@ async function generarInformeFinalUI(){
     }
 }
 function mostrarEstadoInformeFinal(msg){const e=document.getElementById("estadoInformeFinal");if(e)e.textContent=msg;}
-function descargarInformeFinalUI(){ if(!informeFinalData?.pdfUrl)return; window.open(informeFinalData.pdfUrl,"_blank"); informeFinalData.descargado=true; document.getElementById("btnFinalizarFEM").disabled=!informeFinalData.enviado; }
+function descargarInformeFinalUI(){
+    if(!informeFinalData?.pdfUrl)return;
+    window.open(informeFinalData.pdfUrl,"_blank");
+    informeFinalData.descargado=true;
+    // Se pone gris (disabled), igual que las demás opciones ya
+    // completadas de esta pantalla — no hace falta descargarlo de
+    // nuevo, aunque siga pudiendo abrirse desde el enlace del correo.
+    const d=document.getElementById("btnDescargarInformeFinal");
+    if(d){ d.disabled=true; d.textContent="✓ Informe descargado"; }
+    document.getElementById("btnFinalizarFEM").disabled=!informeFinalData.enviado;
+}
 async function enviarInformeFinalUI(){
     if(!informeFinalData?.pdfId)return;
     const b=document.getElementById("btnEnviarInformeFinal"); b.disabled=true; b.textContent="Enviando…";
@@ -8568,6 +8696,15 @@ async function enviarInformeFinalUI(){
         mostrarEstadoInformeFinal("✓ Informe enviado por correo.");
         b.textContent="✓ Informe enviado";
         document.getElementById("btnFinalizarFEM").disabled=!informeFinalData.descargado;
+        // Mensaje en negrita + botón de valoración resaltado: el
+        // siguiente paso claro tras enviar el informe.
+        const nombreIE=getCampoNombreIE()||"";
+        const mensajeValoracion=document.getElementById("mensajeValoracionFinal");
+        if(mensajeValoracion){
+            mensajeValoracion.textContent="Ahora termine el foro formalmente dando su valoración del Foro Educativo de la IE "+nombreIE+". Recibirá un correo de confirmación de recepción de sus respuestas cuando finalice la valoración.";
+            mensajeValoracion.style.display="block";
+        }
+        document.getElementById("btnFinalizarFEM")?.classList.add("botonResaltado");
         ocultarOverlayProgreso_();
     }catch(e){
         b.disabled=false; b.textContent="✉️ Enviar informe"; mostrarEstadoInformeFinal("⚠ "+(e.message||e));
@@ -8576,8 +8713,15 @@ async function enviarInformeFinalUI(){
 }
 async function finalizarFEMUI(){
     if(!informeFinalData?.descargado||!informeFinalData?.enviado){mostrarEstadoInformeFinal("Debe descargar y enviar el informe antes de finalizar.");return;}
-    const b=document.getElementById("btnFinalizarFEM");b.disabled=true;b.textContent="Cerrando…";
-    try{const datos=obtenerDatosFormularioActual_();const r=await new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).finalizarFormularioFEM(datos.idForo,window.DATOS_ACCESO_FEM?.tokenSesion||"",window.DATOS_ACCESO_FEM?.dispositivoId||obtenerDispositivoIdFEM(),informeFinalData.pdfId));if(!r?.ok)throw new Error(r?.mensaje||"No fue posible cerrar el formulario.");document.querySelectorAll(".pantalla").forEach(p=>p.classList.remove("visible"));document.getElementById("pantallaCierreFEM")?.classList.add("visible");pantallaActual=12;actualizarBarra();const link=document.getElementById("linkInformeCierre");if(link)link.href=informeFinalData.pdfUrl;
+    const b=document.getElementById("btnFinalizarFEM");b.disabled=true;b.textContent="Cerrando…";b.classList.remove("botonResaltado");
+    try{const datos=obtenerDatosFormularioActual_();const r=await new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).finalizarFormularioFEM(datos.idForo,window.DATOS_ACCESO_FEM?.tokenSesion||"",window.DATOS_ACCESO_FEM?.dispositivoId||obtenerDispositivoIdFEM(),informeFinalData.pdfId));if(!r?.ok)throw new Error(r?.mensaje||"No fue posible cerrar el formulario.");
+    // Transición puramente visual (no espera nada del servidor: ya
+    // se cerró arriba) con uno de los mismos GIF ya usados en el
+    // recorrido, antes de mostrar la pantalla de valoración.
+    mostrarOverlayProgreso_(gifCargaAleatorio_(), "Preparando la valoración…", {duracionMs:1400});
+    await esperar_(1500);
+    ocultarOverlayProgreso_();
+    document.querySelectorAll(".pantalla").forEach(p=>p.classList.remove("visible"));document.getElementById("pantallaCierreFEM")?.classList.add("visible");pantallaActual=12;actualizarBarra();const link=document.getElementById("linkInformeCierre");if(link)link.href=informeFinalData.pdfUrl;
     /*
      * El borrador local YA NO se borra al finalizar: si se borra,
      * la sesión de plenaria (que se reconstruye leyendo los campos

@@ -2374,6 +2374,13 @@ Aspectos para orientar la discusión
         </p>
     </div>
 
+    <!-- Independiente del método elegido: se exige siempre para
+         poder continuar, junto con la fotografía. -->
+    <div class="grupo grupoParticipantesEvidencias">
+        <label for="numeroParticipantesEvidencias">Número de participantes en la jornada *</label>
+        <input type="number" id="numeroParticipantesEvidencias" min="1" inputmode="numeric" placeholder="Ej: 45">
+    </div>
+
     <!-- SELECTOR DE MÉTODO: un solo clic activa uno u otro -->
     <div id="selectorMetodoAsistencia" class="selectorMetodoAsistencia">
         <button type="button" id="btnElegirMetodoQR" class="tarjetaMetodoAsistencia">
@@ -2388,6 +2395,7 @@ Aspectos para orientar la discusión
         </button>
     </div>
     <button type="button" id="btnCambiarMetodoAsistencia" class="botonSecundarioFEM" style="display:none;">← Cambiar método de asistencia</button>
+    <div id="mensajeMetodoAsistencia" class="plenariaAdvertencia" style="display:none;"></div>
 
     <div class="avisoAsistenciaQR" id="avisoAsistenciaQR" style="display:none;">
         ℹ️ Mientras se va completando la asistencia por código QR, ya puede continuar con la revisión de las respuestas, la sesión de plenaria y el envío del formulario — no es necesario esperar a que todos hayan firmado.
@@ -2423,7 +2431,10 @@ Aspectos para orientar la discusión
             <input type="file" id="archivoFoto" accept="image/jpeg,image/png">
             <div id="estadoFoto" class="estadoArchivo"></div>
             <p id="textoFotoRegistrada" class="textoFotoRegistrada" style="display:none;">✓ Ya hay una fotografía registrada. Si sube una nueva, la reemplazará.</p>
-            <img id="previaFotoEvidencia" class="previaFotoEvidencia" alt="Fotografía de evidencia" style="display:none;">
+            <div class="previaFotoEvidenciaWrap">
+                <img id="previaFotoEvidencia" class="previaFotoEvidencia" alt="Fotografía de evidencia" style="display:none;">
+                <button type="button" id="btnFotoEvidenciaPantallaCompleta" class="btnOjoFotoEvidencia" style="display:none;" title="Ver en pantalla completa" aria-label="Ver fotografía en pantalla completa">👁</button>
+            </div>
             <p id="pieFotoEvidencia" class="pieFotoEvidencia" style="display:none;"></p>
         </div>
     </div>
@@ -2432,6 +2443,8 @@ Aspectos para orientar la discusión
     <input type="hidden" id="evidenciaFotoId">
     <input type="hidden" id="evidenciaFotoFecha">
     <input type="hidden" id="metodoAsistencia">
+    <input type="hidden" id="metodoAsistenciaAnterior">
+    <input type="hidden" id="metodoAsistenciaCambios" value="0">
     <input type="hidden" id="asistenciaPdfUrl">
     <input type="hidden" id="asistenciaPdfId">
 
@@ -2460,6 +2473,7 @@ Aspectos para orientar la discusión
     </div>
     <nav id="plenariaNavegacion" class="plenariaNavegacion"></nav>
     <div id="plenariaContenido"></div>
+    <div id="mensajePlenaria" class="plenariaAdvertencia" style="display:none;"></div>
     <div class="plenariaFooter">
         <button type="button" id="btnAnteriorPlenaria">← Anterior</button>
         <button type="button" id="btnContinuarPlenaria">Continuar →</button>
@@ -2486,7 +2500,8 @@ Aspectos para orientar la discusión
         </div>
         <div id="estadoInformeFinal" class="mensajeEstadoInforme"></div>
         <div class="finalCierre">
-            <p><strong>Para terminar:</strong> descargue el informe y guárdelo en la base de datos institucional. Después de enviarlo, podrá continuar con la valoración de la actividad.</p>
+            <p><strong>Para terminar:</strong> descargue el informe y guárdelo en la base de datos institucional. Después de enviarlo, podrá continuar con la valoración de la actividad y cerrar formalmente el Foro educativo de la IE <strong class="nombreIEFinal">—</strong>.</p>
+            <p id="mensajeValoracionFinal" class="mensajeValoracionFinal" style="display:none;"></p>
             <button type="button" id="btnFinalizarFEM" disabled>💬 Valoración del Foro Educativo Institucional</button>
         </div>
     </div>

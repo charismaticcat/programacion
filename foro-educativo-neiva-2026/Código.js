@@ -5045,8 +5045,15 @@ function obtenerLogoIdPorNombreIE_(nombreIE){
   if(!m.IE || !m.LOGO_ID) return "";
   const ultimaFila=hoja.getLastRow(); if(ultimaFila<2) return "";
   const valores=hoja.getRange(2,1,ultimaFila-1,hoja.getLastColumn()).getDisplayValues();
+  // Comparación normalizada (sin tildes, mayúsculas ni espacios
+  // repetidos) en vez de exacta: el nombre que llega aquí puede venir
+  // con una capitalización o acentuación ligeramente distinta a como
+  // quedó guardado en AccesosIE (por ejemplo, tal como se escribió en
+  // Caracterización), y una comparación exacta hacía que el logo de
+  // la IE no apareciera al inicio del informe aunque sí existiera.
+  const nombreBuscado=normalizarNombreIE_(nombre);
   for(let i=0;i<valores.length;i++){
-    if(String(valores[i][m.IE-1]||"").trim()===nombre){
+    if(normalizarNombreIE_(valores[i][m.IE-1]||"")===nombreBuscado){
       return String(valores[i][m.LOGO_ID-1]||"").trim();
     }
   }
@@ -5334,6 +5341,53 @@ function obtenerAsistentesQR_(idForo){
       fecha:String(fila[m.FECHA-1]||""),
       hora:String(fila[m.HORA-1]||"")
     }));
+}
+
+/*
+ * Se llama al cambiar el método de asistencia de QR a PDF: al dejar
+ * de usarse el QR, se eliminan todas las firmas ya registradas para
+ * este foro. No tendría sentido conservarlas — el análisis demográfico
+ * y de fortalezas/dificultades del informe solo se genera a partir de
+ * firmas por QR, así que dejarlas huérfanas podría confundirse con
+ * datos vigentes del método ya no elegido.
+ */
+function eliminarAsistenciaQRPorCambioMetodo(idForo){
+  try{
+    idForo=String(idForo||"").trim();
+    if(!idForo) return {ok:false, mensaje:"ID_FORO inválido."};
+    const hoja=asegurarHojaAsistenciaQR_();
+    const m=mapaHoja_(hoja);
+    const ultimaFila=hoja.getLastRow();
+    if(ultimaFila<2) return {ok:true, eliminadas:0};
+    const valores=hoja.getRange(2,1,ultimaFila-1,hoja.getLastColumn()).getValues();
+    let eliminadas=0;
+    for(let i=valores.length-1;i>=0;i--){
+      if(String(valores[i][m.ID_FORO-1]||"").trim()===idForo){
+        hoja.deleteRow(i+2);
+        eliminadas++;
+      }
+    }
+    return {ok:true, eliminadas:eliminadas};
+  }catch(error){
+    return {ok:false, mensaje:error.message};
+  }
+}
+
+/*
+ * Se llama al cambiar el método de asistencia de PDF a QR: se envía a
+ * la papelera el archivo PDF ya subido a la carpeta de Drive de la
+ * IE (si lo había), para no dejar un documento huérfano que ya no
+ * aparecerá referenciado en el informe.
+ */
+function eliminarAsistenciaPDFPorCambioMetodo(pdfFileId){
+  try{
+    pdfFileId=String(pdfFileId||"").trim();
+    if(!pdfFileId) return {ok:true, eliminado:false};
+    DriveApp.getFileById(pdfFileId).setTrashed(true);
+    return {ok:true, eliminado:true};
+  }catch(error){
+    return {ok:false, mensaje:error.message};
+  }
 }
 
 /*
@@ -6435,27 +6489,28 @@ function generarInformeFEM(idForo,datosCliente){
     const c=datos.campos||{};
     tablaCaracterizacion_([["Institución Educativa",datos.institucion],["DANE",datos.dane],["Rector(a)",c.rector?.valor||""],["Grupo de trabajo",c.grupo?.valor||""],["Responsable",c.nombre?.valor||""],["Cargo",c.cargo?.valor||""],["Correo responsable",c.correo?.valor||""],["Correo institucional",c.correoIE?.valor||""]]);
 
-    /*
-     * Logo, título y caracterización quedan en la primera hoja; la
-     * participación y el párrafo introductorio empiezan en una
-     * segunda hoja aparte.
-     */
-    body.appendPageBreak();
-
-    encabezadoSeccion_("Participación");
     const totalParticipantesInforme=totalParticipantesServer_(datos);
-    const pPart=body.appendParagraph("Participantes: "+totalParticipantesInforme);
-    pPart.setHeading(DocumentApp.ParagraphHeading.HEADING2); pPart.setSpacingBefore(2).setSpacingAfter(4);
-    pPart.editAsText().setForegroundColor(VERDE).setBold(true);
-    tablaParticipacionDoc_(datos);
 
     // Mismo párrafo introductorio que se muestra en la portada de la
-    // sesión de plenaria, en la primera página del informe, junto al
-    // gráfico de participación.
+    // sesión de plenaria, justo después de la caracterización (no
+    // después de la tabla de participación).
     const parrafoIntro=body.appendParagraph(
       "La institución educativa "+String(datos.institucion||"")+" construyó colectivamente las conclusiones que se presentan a continuación con la participación de "+totalParticipantesInforme+" integrantes de su comunidad educativa."
     );
     parrafoIntro.editAsText().setForegroundColor(GRIS_TEXTO);
+
+    /*
+     * Logo, título, caracterización y el párrafo introductorio quedan
+     * en la primera hoja; la participación empieza en una segunda
+     * hoja aparte.
+     */
+    body.appendPageBreak();
+
+    encabezadoSeccion_("Participación");
+    const pPart=body.appendParagraph("Participantes: "+totalParticipantesInforme);
+    pPart.setHeading(DocumentApp.ParagraphHeading.HEADING2); pPart.setSpacingBefore(2).setSpacingAfter(4);
+    pPart.editAsText().setForegroundColor(VERDE).setBold(true);
+    tablaParticipacionDoc_(datos);
 
     body.appendPageBreak();
 
@@ -6530,10 +6585,20 @@ function generarInformeFEM(idForo,datosCliente){
      */
     encabezadoSeccion_("Evidencias de la jornada");
     const textoEvidenciasAsistencia=metodoAsistenciaInforme==="PDF"
-      ? "La asistencia se registró mediante un PDF escaneado, incluido más adelante."
+      ? "La asistencia se registró mediante un PDF escaneado, que puede verse aquí:"
       : "La asistencia se firmó de manera digital (código QR/link) durante la jornada; el listado completo se incluye a continuación.";
     const pEv=body.appendParagraph(textoEvidenciasAsistencia);
     pEv.editAsText().setForegroundColor(GRIS_TEXTO);
+
+    // El enlace de descarga del PDF de asistencia va justo debajo del
+    // aviso ("que puede verse aquí:"), no varias secciones después de
+    // la fotografía como antes.
+    if(metodoAsistenciaInforme==="PDF" && datos.campos?.asistenciaPdfUrl?.valor){
+      const pEnlacePdfAsistencia=body.appendParagraph("");
+      const rangoEnlacePdfAsistencia=pEnlacePdfAsistencia.appendText(String(datos.campos.asistenciaPdfUrl.valor));
+      rangoEnlacePdfAsistencia.setLinkUrl(String(datos.campos.asistenciaPdfUrl.valor));
+      rangoEnlacePdfAsistencia.setForegroundColor(VERDE);
+    }
 
     /*
      * La fotografía se inserta como imagen dentro del cuerpo del
@@ -6569,15 +6634,7 @@ function generarInformeFEM(idForo,datosCliente){
       rangoEnlace.setForegroundColor(VERDE);
     }
 
-    if(String(datos.campos?.metodoAsistencia?.valor||"QR")==="PDF"){
-      if(datos.campos?.asistenciaPdfUrl?.valor){
-        const pDescargaAsistencia=body.appendParagraph("Descarga de la asistencia (PDF escaneado): ");
-        pDescargaAsistencia.editAsText().setForegroundColor(GRIS_TEXTO);
-        const rangoEnlaceAsistencia=pDescargaAsistencia.appendText(String(datos.campos.asistenciaPdfUrl.valor));
-        rangoEnlaceAsistencia.setLinkUrl(String(datos.campos.asistenciaPdfUrl.valor));
-        rangoEnlaceAsistencia.setForegroundColor(VERDE);
-      }
-    }else{
+    if(metodoAsistenciaInforme!=="PDF"){
       agregarListadoAsistenciaAlInforme_(body, idForo, datos);
     }
 
