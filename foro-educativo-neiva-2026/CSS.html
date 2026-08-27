@@ -1269,9 +1269,20 @@ SESIÓN 1
 
     border-left:8px solid var(--verde-neiva);
 
-    padding:30px;
+    /*
+     * Menos relleno lateral que antes (era 30px parejo): el texto
+     * del objetivo llega más cerca del borde de la tarjeta/marco de
+     * la pantalla, en vez de quedar "encogido" en el centro.
+     */
+    padding:30px 20px;
 
     margin:35px 0 25px;
+
+}
+
+.tarjetaObjetivo p{
+
+    max-width:none;
 
 }
 
@@ -1449,13 +1460,13 @@ SESIÓN 1
 .panelGuia{
 
     /*
-     * De-saturado a propósito (antes tenía fondo/borde verdes que
-     * competían visualmente con las tarjetas de pregunta): ahora es
-     * un panel neutro con un acento amarillo a la izquierda, que lo
-     * identifica como "guía/orientación" sin sumar más verde a la
-     * pantalla.
+     * Fondo verde institucional (tenue, para no competir con el
+     * texto) con la línea lateral amarilla como acento — identifica
+     * el panel como "guía/orientación". La línea pasa a verde sólo
+     * cuando la pregunta asociada ya cumplió el mínimo de palabras
+     * (ver .minimoPalabrasCumplido más abajo).
      */
-    background:var(--color-surface, #fff);
+    background:rgba(11,106,68,.07);
 
     border:1px solid var(--color-border, #e2e2e2);
 
@@ -1464,6 +1475,8 @@ SESIÓN 1
     border-radius:var(--radius-md);
 
     padding:var(--space-5);
+
+    transition:border-left-color var(--transition-fast);
 
     /*
      * El encabezado ahora es compacto (antes ocupaba ~130px de
@@ -1481,7 +1494,7 @@ SESIÓN 1
 
 .panelGuia h3{
 
-    color:var(--color-text, #222);
+    color:var(--amarillo-neiva);
 
     margin-bottom:18px;
 
@@ -1584,8 +1597,37 @@ SESIÓN 1
 
     background:var(--color-surface);
     border:1px solid var(--color-border);
+    border-left:4px solid transparent;
     border-radius:var(--radius-md);
     padding:var(--space-5);
+    transition:border-left-color var(--transition-fast);
+
+}
+
+/*
+ * Estado "mínimo cumplido": se agrega con JS (ver
+ * actualizarMarcaMinimoCumplido_ en App.html) sobre el
+ * .contenedorTrabajoSesion de la pregunta, y sobre su
+ * .tarjetaPregunta cuando aplica, en cuanto el texto alcanza el
+ * mínimo de palabras exigido.
+ */
+.contenedorTrabajoSesion.minimoPalabrasCumplido .panelGuia{
+
+    border-left-color:var(--verde-neiva);
+
+}
+
+.contenedorTrabajoSesion.minimoPalabrasCumplido .panelRespuesta{
+
+    border-left-color:var(--verde-neiva);
+
+}
+
+.tarjetaPregunta.minimoPalabrasCumplido{
+
+    background:rgba(11,106,68,.07);
+    border-left-color:var(--verde-neiva);
+    box-shadow:0 0 0 2px rgba(11,106,68,.18);
 
 }
 
@@ -1692,7 +1734,16 @@ SESIÓN 1
 
 }
 
-#progresoPalabrasSesion1{
+/*
+ * Selector por prefijo de id (en vez de listar cada pregunta de
+ * Sesión 1/2/3 una por una): todas las barras de progreso de
+ * palabras comparten id "progresoPalabrasSesion...". Antes solo
+ * existía esta regla para "progresoPalabrasSesion1" (Sesión 1,
+ * Pregunta 1) — el resto de las preguntas de las tres sesiones no
+ * tenían ni alto ni color de fondo definidos, así que su barra de
+ * progreso era invisible (ancho correcto, pero 0 de alto).
+ */
+[id^="progresoPalabrasSesion"]{
 
     width:0%;
 

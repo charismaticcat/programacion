@@ -1988,6 +1988,92 @@ function contarPalabras(texto){
     return coincidencias ? coincidencias.length : 0;
 
 }
+
+/*****************************************************
+ * COLOR DINÁMICO DE LA BARRA DE PROGRESO
+ * Compartida por las tres sesiones. De 0 al 25% del mínimo se ve
+ * roja, entre 25% y 50% pasa de roja a amarilla, entre 50% y 100%
+ * pasa de amarilla a verde. Superado el mínimo, el verde se sigue
+ * intensificando (hacia un verde "encendido") a medida que se
+ * acerca al máximo permitido.
+ *****************************************************/
+
+function calcularColorBarraProgreso_(palabras, minimo, maximo){
+
+    const base = minimo > 0 ? minimo : 1;
+    const porcentajeMinimo = palabras / base;
+
+    const ROJO = [198, 40, 40];
+    const AMARILLO = [244, 180, 0];
+    const VERDE = [11, 106, 68];
+    const VERDE_ENCENDIDO = [0, 200, 83];
+
+    function mezclar(colorA, colorB, avance){
+        avance = Math.max(0, Math.min(1, avance));
+        return [
+            Math.round(colorA[0] + (colorB[0] - colorA[0]) * avance),
+            Math.round(colorA[1] + (colorB[1] - colorA[1]) * avance),
+            Math.round(colorA[2] + (colorB[2] - colorA[2]) * avance)
+        ];
+    }
+
+    let color;
+
+    if(porcentajeMinimo <= 0.25){
+
+        color = ROJO;
+
+    }else if(porcentajeMinimo <= 0.5){
+
+        color = mezclar(ROJO, AMARILLO, (porcentajeMinimo - 0.25) / 0.25);
+
+    }else if(porcentajeMinimo <= 1){
+
+        color = mezclar(AMARILLO, VERDE, (porcentajeMinimo - 0.5) / 0.5);
+
+    }else{
+
+        const techo = (maximo && maximo > minimo) ? maximo : minimo * 2;
+        const porcentajeSobreMinimo = (palabras - minimo) / (techo - minimo);
+        color = mezclar(VERDE, VERDE_ENCENDIDO, porcentajeSobreMinimo);
+
+    }
+
+    return "rgb(" + color[0] + "," + color[1] + "," + color[2] + ")";
+
+}
+
+/*****************************************************
+ * MARCA VISUAL DE "MÍNIMO CUMPLIDO"
+ * Enciende en verde la línea del panel de apoyo y la línea de la
+ * respuesta (misma idea que la línea lateral del panel de apoyo)
+ * en cuanto el texto alcanza el mínimo de palabras exigido. Si se
+ * indica idBloquePregunta (solo aplica a preguntas de una sola
+ * respuesta, no a los campos de "acción"), también ilumina el
+ * cuadro de la pregunta.
+ *****************************************************/
+
+function actualizarMarcaMinimoCumplido_(campo, palabras, minimo, idBloquePregunta){
+
+    if(!campo) return;
+
+    const cumplido = palabras >= minimo;
+
+    const contenedor = campo.closest(".contenedorTrabajoSesion");
+    if(contenedor){
+        contenedor.classList.toggle("minimoPalabrasCumplido", cumplido);
+    }
+
+    if(idBloquePregunta){
+        const bloque = document.getElementById(idBloquePregunta);
+        const tarjeta = bloque && bloque.querySelector(":scope > .tarjetaPregunta");
+        if(tarjeta){
+            tarjeta.classList.toggle("minimoPalabrasCumplido", cumplido);
+        }
+    }
+
+}
+
 /*****************************************************
  * ACTUALIZAR CONTADOR PREGUNTA 1
  *****************************************************/
@@ -2056,6 +2142,13 @@ function actualizarContadorPregunta1(){
         barra.style.width =
             porcentaje + "%";
 
+        barra.style.backgroundColor =
+            calcularColorBarraProgreso_(
+                palabras,
+                MINIMO_PALABRAS_SESION,
+                MAXIMO_PALABRAS_SESION
+            );
+
     }
 
 
@@ -2092,6 +2185,20 @@ function actualizarContadorPregunta1(){
         }
 
     }
+
+    /*
+     * Ilumina en verde el cuadro de la pregunta, la línea del panel
+     * de apoyo y la línea de la respuesta en cuanto se alcanza el
+     * mínimo de palabras.
+     */
+
+    actualizarMarcaMinimoCumplido_(
+        campo,
+        palabras,
+        MINIMO_PALABRAS_SESION,
+        "bloquePregunta1"
+    );
+
     /*
      * Cada cambio en la Pregunta 1
      * revisa si se puede habilitar
@@ -2181,6 +2288,13 @@ function actualizarContadorPregunta2(){
         barra.style.width =
             porcentaje + "%";
 
+        barra.style.backgroundColor =
+            calcularColorBarraProgreso_(
+                palabras,
+                MINIMO_PALABRAS_SESION,
+                MAXIMO_PALABRAS_SESION
+            );
+
     }
 
 
@@ -2218,6 +2332,18 @@ function actualizarContadorPregunta2(){
 
     }
 
+    /*
+     * Ilumina en verde el cuadro de la pregunta, la línea del panel
+     * de apoyo y la línea de la respuesta en cuanto se alcanza el
+     * mínimo de palabras.
+     */
+
+    actualizarMarcaMinimoCumplido_(
+        campo,
+        palabras,
+        MINIMO_PALABRAS_SESION,
+        "bloquePregunta2"
+    );
 
     /*
      * Revisar botón Continuar.
@@ -2773,7 +2899,7 @@ function estadoPalabrasSesion2(campo,min,max){
     return n >= min && n <= max;
 }
 
-function actualizarContadorSesion2(idCampo,idContador,idBarra,idMensaje,min,max){
+function actualizarContadorSesion2(idCampo,idContador,idBarra,idMensaje,min,max,idBloquePregunta){
     const campo = document.getElementById(idCampo);
     if(!campo) return false;
 
@@ -2783,7 +2909,10 @@ function actualizarContadorSesion2(idCampo,idContador,idBarra,idMensaje,min,max)
     const mensaje = document.getElementById(idMensaje);
 
     if(contador) contador.textContent = n + " / " + max + " palabras";
-    if(barra) barra.style.width = Math.min((n / max) * 100,100) + "%";
+    if(barra){
+        barra.style.width = Math.min((n / max) * 100,100) + "%";
+        barra.style.backgroundColor = calcularColorBarraProgreso_(n, min, max);
+    }
 
     if(mensaje){
         if(n < min){
@@ -2797,6 +2926,9 @@ function actualizarContadorSesion2(idCampo,idContador,idBarra,idMensaje,min,max)
             mensaje.style.color = "#C62828";
         }
     }
+
+    actualizarMarcaMinimoCumplido_(campo, n, min, idBloquePregunta);
+
     return n >= min && n <= max;
 }
 
@@ -3510,7 +3642,8 @@ function actualizarEstadoSesion2(){
         "progresoPalabrasSesion2Pregunta1",
         "mensajeContadorSesion2Pregunta1",
         MIN_P1_S2,
-        MAX_P1_S2
+        MAX_P1_S2,
+        "bloqueSesion2Pregunta1"
     );
 
     habilitarBloqueSesion2(
@@ -3636,7 +3769,8 @@ function actualizarEstadoSesion2(){
         "progresoPalabrasSesion2Pregunta4",
         "mensajeContadorSesion2Pregunta4",
         MIN_P4_S2,
-        MAX_P4_S2
+        MAX_P4_S2,
+        "bloqueSesion2Pregunta4"
     );
 
 
@@ -3898,7 +4032,7 @@ function estadoPalabrasSesion3(campo,min,max){
     return n >= min && n <= max;
 }
 
-function actualizarContadorSesion3(idCampo,idContador,idBarra,idMensaje,min,max){
+function actualizarContadorSesion3(idCampo,idContador,idBarra,idMensaje,min,max,idBloquePregunta){
     const campo = document.getElementById(idCampo);
     if(!campo) return false;
 
@@ -3908,7 +4042,10 @@ function actualizarContadorSesion3(idCampo,idContador,idBarra,idMensaje,min,max)
     const mensaje = document.getElementById(idMensaje);
 
     if(contador) contador.textContent = n + " / " + max + " palabras";
-    if(barra) barra.style.width = Math.min((n / max) * 100,100) + "%";
+    if(barra){
+        barra.style.width = Math.min((n / max) * 100,100) + "%";
+        barra.style.backgroundColor = calcularColorBarraProgreso_(n, min, max);
+    }
 
     if(mensaje){
         if(n < min){
@@ -3922,6 +4059,8 @@ function actualizarContadorSesion3(idCampo,idContador,idBarra,idMensaje,min,max)
             mensaje.style.color = "#C62828";
         }
     }
+
+    actualizarMarcaMinimoCumplido_(campo, n, min, idBloquePregunta);
 
     return n >= min && n <= max;
 }
@@ -4040,7 +4179,8 @@ function actualizarEstadoSesion3(){
         "progresoPalabrasSesion3Pregunta1",
         "mensajeContadorSesion3Pregunta1",
         MIN_P1_S3,
-        MAX_P1_S3
+        MAX_P1_S3,
+        "bloqueSesion3Pregunta1"
     );
 
     habilitarBloqueSesion3("bloqueSesion3Pregunta2",p1);
@@ -4727,6 +4867,18 @@ function guardarBorradorLocal(opciones){
  */
 function aplicarDatosDeBorrador_(datos, mostrarPantalla, mensajeEstado){
 
+    /*
+     * Campos de texto/textarea restaurados: se recuerdan aparte para
+     * disparar su evento "input" DESPUÉS de asignar todos los
+     * valores (ver más abajo). Antes solo se hacía esto para
+     * "respuestaSesion1", así que al retomar el formulario todas las
+     * demás preguntas (Sesión 1 Pregunta 2, y las de Sesión 2 y 3)
+     * mostraban "0 palabras" y su barra de progreso en 0% hasta que
+     * la persona volvía a escribir algo — aunque el texto guardado
+     * sí estuviera ahí, dentro del campo.
+     */
+    const camposDeTextoRestaurados = [];
+
     Object.keys(datos.campos || {})
         .forEach(function(id){
 
@@ -4748,9 +4900,20 @@ function aplicarDatosDeBorrador_(datos, mostrarPantalla, mensajeEstado){
                 campo.value =
                     informacion.valor ?? "";
 
+                if(
+                    campo.tagName === "TEXTAREA" ||
+                    campo.tagName === "INPUT"
+                ){
+                    camposDeTextoRestaurados.push(campo);
+                }
+
             }
 
         });
+
+    camposDeTextoRestaurados.forEach(function(campo){
+        campo.dispatchEvent(new Event("input"));
+    });
 
     /*
      * Si ya se habían subido las evidencias en una sesión
@@ -4792,14 +4955,12 @@ function aplicarDatosDeBorrador_(datos, mostrarPantalla, mensajeEstado){
         mostrarResumen(false);
     }
 
-    const respuesta =
-        document.getElementById("respuestaSesion1");
-
-    if(respuesta){
-        respuesta.dispatchEvent(
-            new Event("input")
-        );
-    }
+    /*
+     * (El disparo de "input" sobre los campos de texto restaurados
+     * ya se hizo arriba, justo después de asignar sus valores, para
+     * todas las preguntas de las tres sesiones — no solo
+     * "respuestaSesion1".)
+     */
 
     if(
         mostrarPantalla &&
