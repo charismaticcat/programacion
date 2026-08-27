@@ -81,6 +81,12 @@ const LOGO_PIE_ID = "1Cmx7c3ec2gQCjRc8kcNeUbZt5LiURyD5";
 // plano, sin plantilla) — por eso necesita estar públicamente
 // compartido (ver hacerPublicosLogosGlobales() en Pruebas.js).
 const MARCO_ACCESO_ID = "1qKHFEoq61uBOn1tNusZxXcK8rutIxDAS";
+// Foto del diseñador de la aplicación, mostrada en una insignia fija
+// abajo a la izquierda de cada pantalla (ver .marcaDisenador en
+// CSS.html). Debe estar compartida como "cualquiera con el enlace"
+// (ver hacerPublicosLogosGlobales() en Pruebas.js) para poder
+// mostrarse como <img> sin sesión de Google.
+const DISENADOR_LOGO_ID = "1BXkKDuSH_XhlLbdPtyYlXpJypbFH9f38";
 const REMITENTE_FEM = "calidadeducacion@alcaldianeiva.gov.co";
 const COPIAS_INFORME_FEM = [
   "adriana.cedeno@alcaldianeiva.gov.co",
@@ -190,6 +196,7 @@ const token =
   // logo de la IE.
   plantilla.logoFemUrl = urlPublicaLogoDrive_(LOGO_ENCABEZADO_ID);
   plantilla.logoSemUrl = urlPublicaLogoDrive_(LOGO_PIE_ID);
+  plantilla.disenadorLogoUrl = urlPublicaLogoDrive_(DISENADOR_LOGO_ID);
 
   /*
    * El servidor identifica la IE a partir del TOKEN.

@@ -274,6 +274,74 @@ body{
 }
 
 /* =====================================================
+06B. MARCA DEL DISEÑADOR — insignia fija, con relieve 3D,
+     visible abajo a la izquierda en TODAS las pantallas.
+===================================================== */
+
+.marcaDisenador{
+    position:fixed;
+    left:14px;
+    bottom:14px;
+    z-index:900;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:7px 16px 7px 7px;
+    background:linear-gradient(145deg,#ffffff,#e9edf1);
+    border:1px solid rgba(0,0,0,.06);
+    border-radius:999px;
+    box-shadow:
+        0 12px 22px rgba(0,0,0,.18),
+        0 3px 6px rgba(0,0,0,.10),
+        inset 0 1px 0 rgba(255,255,255,.7);
+    transform:perspective(700px) rotateX(4deg) rotateY(-2deg);
+    transform-origin:bottom left;
+    transition:transform .25s ease, box-shadow .25s ease;
+    cursor:default;
+}
+
+.marcaDisenador:hover{
+    transform:perspective(700px) rotateX(0deg) rotateY(0deg) translateY(-3px);
+    box-shadow:
+        0 18px 30px rgba(0,0,0,.22),
+        0 5px 10px rgba(0,0,0,.12),
+        inset 0 1px 0 rgba(255,255,255,.7);
+}
+
+.marcaDisenadorImagen{
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    object-fit:cover;
+    display:block;
+    background:#fff;
+    border:2px solid #ffffff;
+    box-shadow:
+        0 5px 10px rgba(0,0,0,.28),
+        inset 0 -3px 5px rgba(0,0,0,.18),
+        inset 0 2px 3px rgba(255,255,255,.55);
+}
+
+.marcaDisenadorTexto{
+    font-size:12px;
+    font-weight:700;
+    color:var(--gris-texto, #4A4A4A);
+    white-space:nowrap;
+    letter-spacing:.2px;
+}
+
+@media (max-width:480px){
+    .marcaDisenador{
+        left:8px;
+        bottom:8px;
+        padding:5px 12px 5px 5px;
+        gap:7px;
+    }
+    .marcaDisenadorImagen{ width:30px; height:30px; }
+    .marcaDisenadorTexto{ font-size:10.5px; }
+}
+
+/* =====================================================
 04. CONTENEDOR / LAYOUT GLOBAL
 ===================================================== */
 

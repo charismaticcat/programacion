@@ -2445,6 +2445,18 @@ Aspectos para orientar la discusión
 
 </main>
 
+<!-- =====================================================
+     MARCA DEL DISEÑADOR — fija abajo a la izquierda en TODAS
+     las pantallas (vive fuera de .pantalla a propósito).
+     ===================================================== -->
+<div class="marcaDisenador" aria-hidden="false">
+    <img
+        class="marcaDisenadorImagen"
+        src="<?!= disenadorLogoUrl ?>"
+        alt="Foto del diseñador de la aplicación">
+    <span class="marcaDisenadorTexto">Diseño: Jhon E. Sánchez.</span>
+</div>
+
 <script>
     const TOKEN_ACCESO =
         <?!= JSON.stringify(tokenAcceso || "") ?>;

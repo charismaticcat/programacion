@@ -2410,7 +2410,8 @@ function hacerPublicosLogosGlobales(){
   const ids = {
     "LOGO_ENCABEZADO_ID (FEM)": LOGO_ENCABEZADO_ID,
     "LOGO_PIE_ID (SEM)": LOGO_PIE_ID,
-    "MARCO_ACCESO_ID": MARCO_ACCESO_ID
+    "MARCO_ACCESO_ID": MARCO_ACCESO_ID,
+    "DISENADOR_LOGO_ID": DISENADOR_LOGO_ID
   };
 
   const resumen = [];
