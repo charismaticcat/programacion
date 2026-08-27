@@ -5125,9 +5125,17 @@ function obtenerAsistentesQR_(idForo){
     .filter(fila=>String(fila[m.ID_FORO-1]||"").trim()===String(idForo||"").trim())
     .map(fila=>({
       nombre:String(fila[m.NOMBRE_COMPLETO-1]||""),
+      sexo:String(m.SEXO?fila[m.SEXO-1]:""||""),
+      edad:String(m.EDAD?fila[m.EDAD-1]:""||""),
       tipoAsistencia:String(fila[m.TIPO_ASISTENCIA-1]||""),
       cargo:String(fila[m.CARGO-1]||""),
       rolForo:String(fila[m.ROL_FORO-1]||""),
+      jornada:String(m.JORNADA?fila[m.JORNADA-1]:""||""),
+      sede:String(m.SEDE?fila[m.SEDE-1]:""||""),
+      fortalezas:String(m.FORTALEZAS?fila[m.FORTALEZAS-1]:""||"").split(" | ").filter(Boolean),
+      fortalezaOtro:String(m.FORTALEZA_OTRO?fila[m.FORTALEZA_OTRO-1]:""||""),
+      dificultades:String(m.DIFICULTADES?fila[m.DIFICULTADES-1]:""||"").split(" | ").filter(Boolean),
+      dificultadOtro:String(m.DIFICULTAD_OTRO?fila[m.DIFICULTAD_OTRO-1]:""||""),
       documento:String(fila[m.NUMERO_DOCUMENTO-1]||""),
       correo:String(fila[m.CORREO-1]||""),
       telefono:String(fila[m.TELEFONO-1]||""),
@@ -5196,6 +5204,278 @@ function agregarListadoAsistenciaAlInforme_(body, idForo, datos){
     "Total de participantes según caracterización institucional: "+totalCaracterizacion
   );
   resumen.editAsText().setForegroundColor(COLOR_GRIS_TEXTO_DOC).setBold(true);
+}
+
+/*****************************************************
+ * PERFIL DE LOS PARTICIPANTES Y PERCEPCIÓN DEL FORO
+ * (a partir de las firmas de asistencia por QR: sexo, edad,
+ * jornada, sede, fortalezas y dificultades/oportunidades)
+ *
+ * Se construye con párrafos ESTÁNDAR (conectores fijos) y las
+ * respuestas literales de las personas — nunca parafraseadas: Apps
+ * Script no tiene ninguna función de parafraseo, y hacerlo con una
+ * IA externa implicaría costo, latencia y riesgo de inventar texto
+ * que la persona no escribió. Ver la respuesta dada al usuario.
+ *****************************************************/
+
+// Edad: niños/niñas 0–14, jóvenes 15–17, adultos 18+.
+function categoriaEdad_(edad){
+  const n=Number(edad);
+  if(isNaN(n)) return "";
+  if(n<=14) return "nino";
+  if(n<=17) return "joven";
+  return "adulto";
+}
+
+function calcularDemografiaAsistentes_(asistentes){
+  const t={ninos:0,ninas:0,jovenesHombres:0,jovenesMujeres:0,hombresAdultos:0,mujeresAdultas:0,otro:0};
+  asistentes.forEach(function(p){
+    const cat=categoriaEdad_(p.edad);
+    const sexo=String(p.sexo||"");
+    const esHombre=sexo==="Masculino", esMujer=sexo==="Femenino";
+    if(cat==="nino"){ if(esHombre)t.ninos++; else if(esMujer)t.ninas++; else t.otro++; }
+    else if(cat==="joven"){ if(esHombre)t.jovenesHombres++; else if(esMujer)t.jovenesMujeres++; else t.otro++; }
+    else if(cat==="adulto"){ if(esHombre)t.hombresAdultos++; else if(esMujer)t.mujeresAdultas++; else t.otro++; }
+  });
+  return t;
+}
+
+// Cuenta votos de una pregunta de selección múltiple (fortalezas o
+// dificultades), sin contar "Otro" como opción tallada — esas se
+// listan aparte, literales.
+function tallyOpciones_(personas,campo){
+  const conteo={};
+  personas.forEach(function(p){
+    (p[campo]||[]).forEach(function(o){ if(o&&o!=="Otro") conteo[o]=(conteo[o]||0)+1; });
+  });
+  return Object.keys(conteo).map(function(k){return {opcion:k,votos:conteo[k]};}).sort(function(a,b){return b.votos-a.votos;});
+}
+
+function construirGraficoColumnas_(titulo,etiquetas,valores){
+  const dt=Charts.newDataTable().addColumn(Charts.ColumnType.STRING,"Categoría").addColumn(Charts.ColumnType.NUMBER,"Cantidad");
+  etiquetas.forEach(function(e,i){ dt.addRow([e,valores[i]]); });
+  return Charts.newColumnChart().setDataTable(dt.build()).setTitle(titulo).setDimensions(480,300).setColors(["#0B6A44"]).build().getAs("image/png");
+}
+
+function construirGraficoBarrasHorizontal_(titulo,etiquetas,valores){
+  const dt=Charts.newDataTable().addColumn(Charts.ColumnType.STRING,"Opción").addColumn(Charts.ColumnType.NUMBER,"Votos");
+  etiquetas.forEach(function(e,i){ dt.addRow([e,valores[i]]); });
+  return Charts.newBarChart().setDataTable(dt.build()).setTitle(titulo).setDimensions(500,320).setColors(["#0B6A44"]).build().getAs("image/png");
+}
+
+function agregarGraficoConOtro_(body,estilos,titulo,tally,otrosTextos){
+  const top5=tally.slice(0,5);
+  if(top5.length){
+    try{
+      const blob=construirGraficoBarrasHorizontal_(titulo,top5.map(function(x){return x.opcion;}),top5.map(function(x){return x.votos;}));
+      body.appendImage(blob).setWidth(430);
+    }catch(errorGrafico){ Logger.log("Gráfico \""+titulo+"\": "+errorGrafico.message); }
+  }
+  if(otrosTextos&&otrosTextos.length){
+    const pOtro=body.appendParagraph("Otro:");
+    pOtro.editAsText().setBold(true).setForegroundColor(estilos.VERDE);
+    otrosTextos.forEach(function(texto){
+      const p=body.appendParagraph("• "+texto);
+      p.editAsText().setForegroundColor(estilos.GRIS_TEXTO).setFontSize(10);
+    });
+  }
+}
+
+/*
+ * Párrafos estándar de percepción por categoría de edad: mismo
+ * conector fijo para todas las instituciones (no se elige al azar
+ * entre las variantes propuestas, para que el informe sea
+ * consistente), con las 3 fortalezas y 3 dificultades más votadas
+ * por esa categoría. top3_ recorta el punto final de cada opción
+ * (las de dificultades ya lo traen) para que la lista con "; " se
+ * lea bien dentro de la frase.
+ */
+function top3Texto_(tally){
+  const texto=tally.slice(0,3).map(function(x){ return x.opcion.replace(/\.$/,""); }).join("; ");
+  return texto||"sin datos suficientes registrados en esta jornada";
+}
+
+/*
+ * Sugerencias/comentarios (P5, pregunta abierta) de la valoración de
+ * la actividad, citados de forma literal. NOTA: en el flujo actual,
+ * la valoración se responde DESPUÉS de generar el informe ejecutivo
+ * (ver enviarAccesoIndividualIEPrueba_/flujo de cierre en App.html),
+ * así que esta función normalmente no encontrará nada la primera
+ * vez que se genera el informe — solo si este se vuelve a generar
+ * más adelante para la misma IE.
+ */
+function obtenerSugerenciasValoracion_(idForo){
+  try{
+    const hoja=abrirSpreadsheet_().getSheetByName(HOJA_VALORACION_FEM);
+    if(!hoja) return "";
+    const m=mapaHoja_(hoja);
+    if(!m.ID_FORO||!m.P5_SUGERENCIAS) return "";
+    const ultimaFila=hoja.getLastRow();
+    if(ultimaFila<2) return "";
+    const filas=hoja.getRange(2,1,ultimaFila-1,hoja.getLastColumn()).getDisplayValues();
+    // Si se envió más de una vez, se usa la más reciente (última fila).
+    for(let i=filas.length-1;i>=0;i--){
+      if(String(filas[i][m.ID_FORO-1]||"").trim()===String(idForo||"").trim()){
+        return String(filas[i][m.P5_SUGERENCIAS-1]||"").trim();
+      }
+    }
+    return "";
+  }catch(error){
+    Logger.log("obtenerSugerenciasValoracion_: "+error.message);
+    return "";
+  }
+}
+
+function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
+  const asistentes=obtenerAsistentesQR_(idForo);
+  const ieTitulo=capitalizarNombreIE_(datos.institucion||"");
+  const c=datos.campos||{};
+
+  const tituloSeccion=body.appendParagraph("Perfil de los participantes y percepción del Foro");
+  tituloSeccion.setHeading(DocumentApp.ParagraphHeading.HEADING1);
+  tituloSeccion.editAsText().setForegroundColor(estilos.VERDE).setBold(true);
+
+  if(!asistentes.length){
+    const vacio=body.appendParagraph("No hay firmas de asistencia por código QR registradas para calcular el perfil demográfico ni la percepción del Foro en esta jornada.");
+    vacio.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
+    return;
+  }
+
+  /*
+   * Párrafo de consolidación: quién diligenció el formulario, con
+   * cuántos participantes y con cuántas firmas de asistencia.
+   */
+  const nombreResponsable=String(c.nombre?.valor||"quien diligenció el formulario").trim();
+  const fechaHoy=Utilities.formatDate(new Date(),Session.getScriptTimeZone(),"dd 'de' MMMM 'de' yyyy 'a las' HH:mm");
+  const totalCaracterizacion=totalParticipantesServer_(datos);
+  const pConsolidado=body.appendParagraph(
+    "El presente informe fue consolidado por "+nombreResponsable+" el día "+fechaHoy+", siguiendo las indicaciones dadas por la Secretaría de Educación de Neiva (SEM Neiva) y en cooperación con "+totalCaracterizacion+" integrantes de la comunidad académica de la IE "+ieTitulo+", con una asistencia registrada de "+asistentes.length+" personas que firmaron por código QR."
+  );
+  pConsolidado.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
+
+  /*
+   * Desglose por sede (a partir de la respuesta a la pregunta de
+   * condición en la firma de asistencia por QR).
+   */
+  const conteoSedes={};
+  asistentes.forEach(function(p){ if(p.sede) conteoSedes[p.sede]=(conteoSedes[p.sede]||0)+1; });
+  const sedesOrdenadas=Object.keys(conteoSedes).sort(function(a,b){ return conteoSedes[b]-conteoSedes[a]; });
+  if(sedesOrdenadas.length){
+    const listaSedes=sedesOrdenadas.map(function(s){ return conteoSedes[s]+" a la sede "+s; }).join(", ");
+    const pSedes=body.appendParagraph("De los participantes, "+listaSedes+".");
+    pSedes.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
+    try{
+      const blobSedes=construirGraficoColumnas_("Participantes por sede",sedesOrdenadas,sedesOrdenadas.map(function(s){return conteoSedes[s];}));
+      body.appendImage(blobSedes).setWidth(430);
+    }catch(errorSedes){ Logger.log("Gráfico de sedes: "+errorSedes.message); }
+  }
+
+  /*
+   * Desglose por jornada.
+   */
+  const conteoJornadas={};
+  asistentes.forEach(function(p){ if(p.jornada) conteoJornadas[p.jornada]=(conteoJornadas[p.jornada]||0)+1; });
+  const jornadasOrdenadas=Object.keys(conteoJornadas);
+  if(jornadasOrdenadas.length){
+    try{
+      const blobJornadas=construirGraficoColumnas_("Participantes por jornada",jornadasOrdenadas,jornadasOrdenadas.map(function(j){return conteoJornadas[j];}));
+      body.appendImage(blobJornadas).setWidth(430);
+    }catch(errorJornadas){ Logger.log("Gráfico de jornadas: "+errorJornadas.message); }
+  }
+
+  /*
+   * Desglose por sexo y edad.
+   */
+  const dem=calcularDemografiaAsistentes_(asistentes);
+  const totalHombres=dem.hombresAdultos+dem.jovenesHombres+dem.ninos;
+  const totalMujeres=dem.mujeresAdultas+dem.jovenesMujeres+dem.ninas;
+  const pDemografia=body.appendParagraph(
+    "En cuanto a la composición demográfica de los asistentes, se registraron "+dem.hombresAdultos+" hombres mayores de edad y "+dem.mujeresAdultas+" mujeres mayores de edad; "+dem.jovenesHombres+" jóvenes hombres y "+dem.jovenesMujeres+" jóvenes mujeres (entre los 15 y los 17 años); y "+dem.ninos+" niños y "+dem.ninas+" niñas (entre los 0 y los 14 años)."+
+    (dem.otro?" Adicionalmente, "+dem.otro+" personas seleccionaron la opción \"Prefiero no decirlo\" o no registraron su edad.":"")
+  );
+  pDemografia.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
+  try{
+    const etiquetasSexo=["Niños","Niñas","Jóvenes hombres","Jóvenes mujeres","Hombres adultos","Mujeres adultas"];
+    const valoresSexo=[dem.ninos,dem.ninas,dem.jovenesHombres,dem.jovenesMujeres,dem.hombresAdultos,dem.mujeresAdultas];
+    const blobSexo=construirGraficoColumnas_("Participantes por sexo y edad ("+(totalHombres+totalMujeres)+" total)",etiquetasSexo,valoresSexo);
+    body.appendImage(blobSexo).setWidth(430);
+  }catch(errorSexo){ Logger.log("Gráfico de sexo/edad: "+errorSexo.message); }
+
+  /*
+   * Percepciones por categoría de edad: niños, jóvenes, adultos, y
+   * percepción general (a partir de las respuestas abiertas de la
+   * valoración de la actividad, citadas de forma literal).
+   */
+  const ninosYNinas=asistentes.filter(function(p){ return categoriaEdad_(p.edad)==="nino"; });
+  const jovenes=asistentes.filter(function(p){ return categoriaEdad_(p.edad)==="joven"; });
+  const adultos=asistentes.filter(function(p){ return categoriaEdad_(p.edad)==="adulto"; });
+
+  const tituloPercepcion=body.appendParagraph("Percepción de la comunidad educativa sobre el Foro Educativo Institucional");
+  tituloPercepcion.setHeading(DocumentApp.ParagraphHeading.HEADING2);
+  tituloPercepcion.editAsText().setForegroundColor(estilos.VERDE).setBold(true);
+
+  if(ninosYNinas.length){
+    const tF=tallyOpciones_(ninosYNinas,"fortalezas"), tD=tallyOpciones_(ninosYNinas,"dificultades");
+    const pNinos=body.appendParagraph(
+      "Percepción de los niños y las niñas de la IE "+ieTitulo+" sobre el Foro Educativo Institucional\n\n"+
+      "Desde la perspectiva de los niños y niñas, en la IE "+ieTitulo+" se valora especialmente "+top3Texto_(tF)+
+      ". No obstante, también manifiestan dificultades relacionadas con "+top3Texto_(tD)+
+      ", las cuales constituyen oportunidades para fortalecer la experiencia educativa y la vida escolar."
+    );
+    pNinos.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
+  }
+
+  if(jovenes.length){
+    const tF=tallyOpciones_(jovenes,"fortalezas"), tD=tallyOpciones_(jovenes,"dificultades");
+    const pJovenes=body.appendParagraph(
+      "Percepción de los y las jóvenes de la IE "+ieTitulo+" sobre el Foro Educativo Institucional\n\n"+
+      "Los jóvenes hombres y mujeres de la IE "+ieTitulo+" reconocen que la institución promueve "+top3Texto_(tF)+
+      ". De igual manera, identifican "+top3Texto_(tD)+
+      " como aspectos que representan oportunidades para el mejoramiento institucional."
+    );
+    pJovenes.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
+  }
+
+  if(adultos.length){
+    const tF=tallyOpciones_(adultos,"fortalezas"), tD=tallyOpciones_(adultos,"dificultades");
+    const pAdultos=body.appendParagraph(
+      "Percepción de los adultos de la IE "+ieTitulo+" sobre el Foro Educativo Institucional\n\n"+
+      "De acuerdo con las respuestas de los adultos participantes, la IE "+ieTitulo+" se destaca por "+top3Texto_(tF)+
+      ". A su vez, señalan "+top3Texto_(tD)+
+      " como aspectos que requieren atención y pueden orientar acciones de mejoramiento institucional."
+    );
+    pAdultos.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
+  }
+
+  /*
+   * Percepción general: se cita LITERALMENTE (sin parafrasear) lo
+   * que la persona responsable escribió en la pregunta abierta de
+   * la valoración de la actividad (P5: sugerencias/comentarios).
+   */
+  const sugerenciasValoracion=obtenerSugerenciasValoracion_(idForo);
+  const pGeneralTitulo=body.appendParagraph("Percepción general de la comunidad de la IE "+ieTitulo+" sobre el Foro Educativo Institucional");
+  pGeneralTitulo.editAsText().setBold(true).setForegroundColor(estilos.GRIS_TEXTO);
+  const pGeneral=body.appendParagraph(sugerenciasValoracion||"La comunidad educativa no registró comentarios adicionales en la valoración de la actividad.");
+  pGeneral.editAsText().setForegroundColor(estilos.GRIS_TEXTO).setItalic(!!sugerenciasValoracion);
+
+  /*
+   * Gráficos de fortalezas y dificultades institucionales (top 5,
+   * todas las personas), con las respuestas "Otro" listadas de
+   * forma literal debajo de cada gráfico.
+   */
+  const tituloFortalezas=body.appendParagraph("Fortalezas institucionales identificadas en el Foro");
+  tituloFortalezas.setHeading(DocumentApp.ParagraphHeading.HEADING2);
+  tituloFortalezas.editAsText().setForegroundColor(estilos.VERDE).setBold(true);
+  agregarGraficoConOtro_(body,estilos,"Fortalezas más votadas",tallyOpciones_(asistentes,"fortalezas"),
+    asistentes.map(function(p){return p.fortalezaOtro;}).filter(Boolean));
+
+  const tituloDificultades=body.appendParagraph("Oportunidades de mejoramiento institucional identificadas en el Foro");
+  tituloDificultades.setHeading(DocumentApp.ParagraphHeading.HEADING2);
+  tituloDificultades.editAsText().setForegroundColor(estilos.VERDE).setBold(true);
+  agregarGraficoConOtro_(body,estilos,"Aspectos de mejora más votados",tallyOpciones_(asistentes,"dificultades"),
+    asistentes.map(function(p){return p.dificultadOtro;}).filter(Boolean));
+
+  body.appendPageBreak();
 }
 
 /*
@@ -5747,6 +6027,9 @@ function generarInformeFEM(idForo,datosCliente){
     parrafoIntro.editAsText().setForegroundColor(GRIS_TEXTO);
 
     body.appendPageBreak();
+
+    try{ agregarPerfilYPercepcionAlInforme_(body, idForo, datos, {VERDE,GRIS_TEXTO,GRIS_FONDO,GRIS_BORDE,AZUL_CLARO,AMARILLO,NEGRO}); }
+    catch(errorPerfil){ Logger.log("No fue posible agregar el perfil de participantes/percepción: "+errorPerfil.message); }
 
     /*
      * Cada fila de "Acciones" queda dividida en una fila propia por
