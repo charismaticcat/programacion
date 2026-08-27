@@ -74,8 +74,13 @@ const COLOR_NEGRO_DOC = "#000000";
 // ser un Word (.docx) y no un Google Doc nativo. Se conserva el
 // ID por si se quiere revisar el diseño original de la plantilla.
 const TEMPLATE_INFORME_ID = "1Gtsccdbnlcyjl6TcDDjTOA7pAW3JQbHM";
-const LOGO_ENCABEZADO_ID = "1mFOOUZ5aFAuwMJMxNUaDnPPznDlQ2bj";
+const LOGO_ENCABEZADO_ID = "1mFOOUZ5aFAuwM-JMxNUaDnPPznDlQ2bj";
 const LOGO_PIE_ID = "1Cmx7c3ec2gQCjRc8kcNeUbZt5LiURyD5";
+// Marco/composición decorativa de la pantalla de acceso. Se referencia
+// como URL fija directamente en CSS.html (que se incluye como texto
+// plano, sin plantilla) — por eso necesita estar públicamente
+// compartido (ver hacerPublicosLogosGlobales() en Pruebas.js).
+const MARCO_ACCESO_ID = "1qKHFEoq61uBOn1tNusZxXcK8rutIxDAS";
 const REMITENTE_FEM = "calidadeducacion@alcaldianeiva.gov.co";
 const COPIAS_INFORME_FEM = [
   "adriana.cedeno@alcaldianeiva.gov.co",
@@ -177,6 +182,14 @@ const token =
   plantilla.logoIEUrl = "";
   plantilla.tituloHeaderIE = "FORO EDUCATIVO INSTITUCIONAL";
   plantilla.urlWebapp = URL_WEBAPP_PRODUCCION;
+  // Logos institucionales del encabezado (FEM a la izquierda, SEM a
+  // la derecha). Antes se intentaban cargar desde variables globales
+  // del cliente (LOGO_FEM/LOGO_SEM) que nunca llegaron a declararse
+  // en ningún archivo — por eso aparecían como imagen rota en todas
+  // las pantallas. Se resuelven aquí, en el servidor, igual que el
+  // logo de la IE.
+  plantilla.logoFemUrl = urlPublicaLogoDrive_(LOGO_ENCABEZADO_ID);
+  plantilla.logoSemUrl = urlPublicaLogoDrive_(LOGO_PIE_ID);
 
   /*
    * El servidor identifica la IE a partir del TOKEN.

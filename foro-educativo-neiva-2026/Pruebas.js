@@ -2389,3 +2389,44 @@ function diagnosticarYLiberarIEsPruebaAdicionales(){
   return { ok:true, resumen: resumen };
 
 }
+
+
+/*****************************************************
+ * HACER PÚBLICOS LOS LOGOS/MARCO GLOBALES
+ *
+ * LOGO_ENCABEZADO_ID (FEM) y LOGO_PIE_ID (SEM) ya se usaban dentro
+ * del informe generado (DriveApp.getFileById(...).getBlob(), con la
+ * identidad del script — no necesita que el archivo sea público).
+ * Pero para mostrarlos como <img> en el encabezado de la página web
+ * (visible sin sesión de Google, para cualquier visitante) sí hace
+ * falta que estén compartidos como "cualquiera con el enlace" — lo
+ * mismo para MARCO_ACCESO_ID, la composición de fondo de la pantalla
+ * de acceso, referenciada como URL fija en CSS.html.
+ *
+ * Ejecutar UNA sola vez manualmente desde el editor de Apps Script.
+ *****************************************************/
+function hacerPublicosLogosGlobales(){
+
+  const ids = {
+    "LOGO_ENCABEZADO_ID (FEM)": LOGO_ENCABEZADO_ID,
+    "LOGO_PIE_ID (SEM)": LOGO_PIE_ID,
+    "MARCO_ACCESO_ID": MARCO_ACCESO_ID
+  };
+
+  const resumen = [];
+
+  Object.keys(ids).forEach(function(nombre){
+    const id = ids[nombre];
+    try{
+      const archivo = DriveApp.getFileById(id);
+      hacerPublicoSiEsPosible_(archivo);
+      resumen.push(nombre + " (" + id + "): compartido como \"cualquiera con el enlace\". Nombre real: " + archivo.getName());
+    }catch(error){
+      resumen.push(nombre + " (" + id + "): ERROR — " + error.message);
+    }
+  });
+
+  Logger.log(resumen.join("\n"));
+  return { ok:true, resumen: resumen };
+
+}

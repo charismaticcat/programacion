@@ -200,7 +200,6 @@ function iniciarApp(){
      */
 
     const inicializadores = [
-        ["cargarImagenes", cargarImagenes],
         ["configurarBotones", configurarBotones]
     ];
 
@@ -303,23 +302,15 @@ function iniciarApp(){
 
 /*****************************************************
  * IMÁGENES
+ *
+ * Los logos del encabezado (FEM y SEM) ya no se cargan desde aquí:
+ * dependían de variables globales (LOGO_SEM/LOGO_FEM/MARCO) que
+ * nunca llegaron a declararse en ningún archivo, así que esta
+ * función nunca hacía nada — las tres condiciones eran siempre
+ * falsas — y las imágenes se veían rotas en todas las pantallas.
+ * Ahora el servidor resuelve esas URLs directamente en Index.html
+ * (logoFemUrl/logoSemUrl, calculadas en doGet junto con logoIEUrl).
  *****************************************************/
-
-function cargarImagenes(){
-
-    if(typeof LOGO_SEM !== "undefined"){
-        document.getElementById("logoSEM").src = LOGO_SEM;
-    }
-
-    if(typeof LOGO_FEM !== "undefined"){
-        document.getElementById("logoFEM").src = LOGO_FEM;
-    }
-
-    if(typeof MARCO !== "undefined"){
-        document.body.style.backgroundImage = `url(${MARCO})`;
-    }
-
-}
 
 /*****************************************************
  * BOTONES
