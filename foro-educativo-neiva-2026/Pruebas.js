@@ -2539,6 +2539,112 @@ function resetTotalProduccionFEM(){
 
 
 /*****************************************************
+ * RESTABLECER SOLO LOS ACCESOS DE LAS 37 IE OFICIALES
+ *
+ * generarAccesosIE() CONSERVA cualquier fila de AccesosIE cuya IE ya
+ * exista (así esté rota o incompleta) — por diseño, para no pisar
+ * códigos ya entregados. Eso significa que si las 37 IE oficiales
+ * quedaron con filas a medias (por ejemplo, tras un
+ * resetTotalProduccionFEM() a medio terminar, o una carga previa que
+ * falló), volver a ejecutar generarAccesosIE() no arregla nada: las
+ * sigue viendo como "ya existentes" y las salta.
+ *
+ * Esta función SÍ fuerza el restablecimiento completo: borra de
+ * AccesosIE únicamente las filas de las 37 IE oficiales (identificadas
+ * por nombre normalizado contra la hoja Oficiales) — sin tocar NINGUNA
+ * fila de las IE de prueba (IE PRUEBA 1234, IE Prueba Ronald, etc.) —
+ * y luego llama a generarAccesosIE(), que al no encontrarlas ya
+ * existentes les genera código, contingencias, token, ID_FORO y
+ * URL_ACCESO/LINK_ACCESO nuevos para las 37.
+ *
+ * Requisito de seguridad (heredado de generarAccesosIE()): la hoja
+ * Oficiales debe tener exactamente 37 IE cargadas. Si no las tiene,
+ * esta función se detiene sin borrar ni generar nada, y lo dice en el
+ * log — hay que recargar Oficiales primero.
+ *
+ * Ejecutar manualmente:  restablecerAccesosOficialesFEM()
+ *****************************************************/
+function restablecerAccesosOficialesFEM(){
+  const resultado = { pasos: {}, errores: [] };
+  try{
+    const instituciones = JSON.parse(obtenerInstitucionesJSON());
+    const nombresOficiales = Object.keys(instituciones || {});
+    Logger.log("IE encontradas en Oficiales: " + nombresOficiales.length);
+
+    if(nombresOficiales.length !== 37){
+      const mensaje = "ABORTADO: se esperaban exactamente 37 IE en Oficiales y se encontraron " + nombresOficiales.length + ". Recargue el catálogo de Oficiales antes de reintentar — no se borró ni se generó nada.";
+      Logger.log("❌ " + mensaje);
+      resultado.errores.push(mensaje);
+      return { ok:false, resultado: resultado };
+    }
+
+    const clavesOficiales = {};
+    nombresOficiales.forEach(function(n){ clavesOficiales[normalizarAccesoIE_(n)] = true; });
+
+    const ss = abrirSpreadsheet_();
+    const hoja = ss.getSheetByName(HOJA_ACCESOS);
+    let borradas = 0;
+    const nombresBorrados = [];
+
+    if(!hoja){
+      Logger.log("No existe todavía la hoja " + HOJA_ACCESOS + " — no hay filas que borrar, se continúa directo a generarAccesosIE().");
+    }else{
+      const m = mapaHoja_(hoja);
+      const ultimaFila = hoja.getLastRow();
+      if(ultimaFila >= 2 && m.IE){
+        const valores = hoja.getRange(2, 1, ultimaFila - 1, hoja.getLastColumn()).getValues();
+        for(let i = valores.length - 1; i >= 0; i--){
+          const nombre = String(valores[i][m.IE - 1] || "").trim();
+          if(nombre && clavesOficiales[normalizarAccesoIE_(nombre)]){
+            hoja.deleteRow(i + 2);
+            borradas++;
+            nombresBorrados.push(nombre);
+          }
+        }
+      }
+    }
+    resultado.pasos.filasOficialesBorradas = borradas;
+    Logger.log("Filas de IE oficiales borradas de " + HOJA_ACCESOS + ": " + borradas + (borradas ? " (" + nombresBorrados.join(", ") + ")" : " (ninguna — probablemente ya estaban vacías o nunca se crearon)"));
+
+    const generado = generarAccesosIE();
+    resultado.pasos.generarAccesosIE = generado;
+    Logger.log("Resultado de generarAccesosIE(): " + JSON.stringify(generado));
+    if(!generado || !generado.ok){
+      resultado.errores.push("generarAccesosIE() no terminó OK: " + (generado && generado.mensaje));
+      return { ok:false, resultado: resultado };
+    }
+
+    /*
+     * Imprime código y link de cada una de las 37, igual que
+     * crearTodosLosAccesosDePruebaFEM() hace con las de prueba, para
+     * poder copiarlos directo del log sin abrir la hoja.
+     */
+    const hojaFinal = ss.getSheetByName(HOJA_ACCESOS);
+    const mFinal = mapaHoja_(hojaFinal);
+    const filasFinal = hojaFinal.getRange(2, 1, hojaFinal.getLastRow() - 1, hojaFinal.getLastColumn()).getValues();
+    Logger.log("========================================");
+    Logger.log("LINKS DE LAS 37 IE OFICIALES");
+    filasFinal.forEach(function(fila){
+      const nombre = String(fila[mFinal.IE - 1] || "").trim();
+      if(!nombre || !clavesOficiales[normalizarAccesoIE_(nombre)]) return;
+      const codigo = mFinal.CODIGO_ACCESO ? String(fila[mFinal.CODIGO_ACCESO - 1] || "") : "";
+      const link = (mFinal.URL_ACCESO ? String(fila[mFinal.URL_ACCESO - 1] || "") : "") || (mFinal.LINK_ACCESO ? String(fila[mFinal.LINK_ACCESO - 1] || "") : "");
+      Logger.log(nombre + " -> código: " + codigo + " | " + link);
+    });
+    Logger.log("========================================");
+    Logger.log("✅ LISTO: las 37 IE oficiales quedaron con accesos nuevos y funcionales.");
+
+    return { ok:true, resultado: resultado };
+
+  }catch(error){
+    resultado.errores.push(error.message);
+    Logger.log("❌ ERROR: " + error.message);
+    return { ok:false, resultado: resultado };
+  }
+}
+
+
+/*****************************************************
  * CONSTRUIR / RECONSTRUIR EL DOCUMENTO DE ANÁLISIS — FEM 2026
  *
  * Crea (si no existe) el documento de análisis separado y reconstruye
