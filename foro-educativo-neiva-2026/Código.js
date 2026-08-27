@@ -5629,11 +5629,11 @@ function paginaAsistenciaQR_(idForo){
     '<label>Teléfono (opcional)</label>'+
     '<input id="telefono" type="tel" autocomplete="tel">'+
 
-    '<label>En mi papel en este Foro Educativo, ¿qué fortalezas identifiqué en nuestra IE '+ieTitulo.replace(/</g,"&lt;")+'? Seleccione máximo 3.</label>'+
+    '<label id="labelFortalezas">En mi papel como <span id="rolEnLabelFortalezas">(seleccione su rol arriba)</span>, ¿qué fortalezas identifiqué en este Foro Educativo en nuestra IE '+nombreIESinPrefijoInstitucional_(ieTitulo).replace(/</g,"&lt;")+'? Seleccione máximo 3.</label>'+
     '<div class="checklistBox" id="listaFortalezas">'+checklistFortalezas+'</div>'+
     '<input type="text" id="fortalezaOtroTexto" class="otroTextoOculto" placeholder="Especifique la fortaleza...">'+
 
-    '<label>¿Qué aspectos pueden ser oportunidad de mejora institucional? Seleccione máximo 3.</label>'+
+    '<label>¿Qué aspectos pueden ser oportunidad de mejora institucional en la IE '+nombreIESinPrefijoInstitucional_(ieTitulo).replace(/</g,"&lt;")+'? Seleccione máximo 3.</label>'+
     '<div class="checklistBox" id="listaDificultades">'+checklistDificultades+'</div>'+
     '<input type="text" id="dificultadOtroTexto" class="otroTextoOculto" placeholder="Especifique la dificultad...">'+
 
@@ -5658,6 +5658,17 @@ function paginaAsistenciaQR_(idForo){
     'document.getElementById("cargo").addEventListener("change",function(){'+
     'var requiere=CARGOS_SIN_CONDICION.indexOf(this.value)===-1 && this.value!=="";'+
     'document.getElementById("bloqueCondicion").classList.toggle("condicionOculta",!requiere);'+
+    '});'+
+    /*
+     * El texto de la pregunta de fortalezas ("En mi papel como...")
+     * se completa con el rol que la persona seleccionó arriba, ya
+     * que esta página se genera antes de que exista esa respuesta.
+     */
+    'document.getElementById("rolForo").addEventListener("change",function(){'+
+    'var span=document.getElementById("rolEnLabelFortalezas");'+
+    'if(!span) return;'+
+    'var texto=String(this.value||"").replace(/^[^\\p{L}]+/u,"").trim();'+
+    'span.textContent=texto||"(seleccione su rol arriba)";'+
     '});'+
     'function activarChecklistMaximo3(claseCheck,idOtroTexto){'+
     'var checks=document.querySelectorAll("."+claseCheck);'+
@@ -5714,14 +5725,30 @@ function paginaAsistenciaQR_(idForo){
     '}catch(e){ return "fp-desconocida"; }'+
     '}'+
     'function claveYaFirmado(){ return "FEM_ASISTENCIA_FIRMADA_"+'+JSON.stringify(String(idForo))+'; }'+
-    'function marcarFirmadoLocal(textoFirma){ try{ localStorage.setItem(claveYaFirmado(), textoFirma||"1"); }catch(e){} }'+
-    'function mostrarYaFirmado(textoFirma){'+
+    /*
+     * Se guarda el nombre junto con el texto de la firma (antes solo
+     * se guardaba el texto) para poder mostrar el mensaje
+     * personalizado también si la persona vuelve a esta página más
+     * tarde (recarga, o el navegador la reabre) y no solo justo
+     * después de firmar.
+     */
+    'function marcarFirmadoLocal(nombrePersona,textoFirma){ try{ localStorage.setItem(claveYaFirmado(), JSON.stringify({nombre:nombrePersona||"",texto:textoFirma||""})); }catch(e){} }'+
+    'function mostrarYaFirmado(nombrePersona,textoFirma){'+
     'document.getElementById("formulario").style.display="none";'+
-    'document.getElementById("estado").textContent="✓ Este dispositivo ya registró su firma de asistencia. ¡Gracias! Ya puede cerrar esta página y continuar en la plenaria.";'+
+    'var saludo=nombrePersona?(nombrePersona+", su asistencia está firmada!"):"Su asistencia está firmada.";'+
+    'document.getElementById("estado").textContent="✓ "+saludo+" Ya puede cerrar esta página y continuar en la plenaria.";'+
     'document.getElementById("textoFirma").textContent=textoFirma||"";'+
     '}'+
     'var dispositivoIdAsistencia=calcularHuellaDispositivo();'+
-    '(function(){ try{ var previo=localStorage.getItem(claveYaFirmado()); if(previo){ mostrarYaFirmado(previo==="1"?"":previo); } }catch(e){} })();'+
+    '(function(){'+
+    'try{'+
+    'var previo=localStorage.getItem(claveYaFirmado());'+
+    'if(!previo) return;'+
+    'var datos;'+
+    'try{ datos=JSON.parse(previo); }catch(e2){ datos={nombre:"",texto:(previo==="1"?"":previo)}; }'+
+    'mostrarYaFirmado(datos.nombre,datos.texto);'+
+    '}catch(e){}'+
+    '})();'+
     /*
      * Validación de correo en vivo: mensaje en rojo sobre fondo
      * amarillo (mismo lenguaje visual que los demás errores del
@@ -5744,15 +5771,20 @@ function paginaAsistenciaQR_(idForo){
     '}'+
     /*
      * Autocompletado de dominio: @g -> @gmail.com, @h -> @hotmail.com,
-     * y "usuario@dominio." -> "usuario@dominio.com". Siempre queda
-     * como texto normal del campo, así que se puede seguir editando
-     * o borrando sin ninguna restricción.
+     * y "usuario@dominio." -> "usuario@dominio.com". Solo se activa
+     * cuando la persona está ESCRIBIENDO hacia adelante (inputType
+     * que empieza por "insert"): si se ignora esto, al borrar con
+     * backspace se vuelve a completar apenas el texto queda de nuevo
+     * en "@g"/"@h", y el campo parece que no se puede borrar.
      */
-    'document.getElementById("correo").addEventListener("input",function(){'+
+    'document.getElementById("correo").addEventListener("input",function(e){'+
     'var v=this.value;'+
+    'var esBorrado=e&&e.inputType&&e.inputType.indexOf("delete")===0;'+
+    'if(!esBorrado){'+
     'if(/@g$/i.test(v)){ this.value=v+"mail.com"; }'+
     'else if(/@h$/i.test(v)){ this.value=v+"otmail.com"; }'+
     'else if(/@[^@\\s.]+\\.$/.test(v)){ this.value=v+"com"; }'+
+    '}'+
     'validarCorreoUI();'+
     '});'+
     'document.getElementById("correo").addEventListener("blur",validarCorreoUI);'+
@@ -5783,8 +5815,8 @@ function paginaAsistenciaQR_(idForo){
     'if(!correoEsValido(correo)){validarCorreoUI();estado.textContent="Revise el correo electrónico: no es válido.";return;}'+
     'btn.disabled=true; btn.textContent="Firmando…";'+
     'google.script.run.withSuccessHandler(function(res){'+
-    'if(res&&res.ok){ marcarFirmadoLocal(res.textoFirma); mostrarYaFirmado(res.textoFirma); }'+
-    'else if(res&&res.yaFirmoDispositivo){ marcarFirmadoLocal(res.textoFirma); mostrarYaFirmado(res.textoFirma); }'+
+    'if(res&&res.ok){ marcarFirmadoLocal(nombre,res.textoFirma); mostrarYaFirmado(nombre,res.textoFirma); }'+
+    'else if(res&&res.yaFirmoDispositivo){ marcarFirmadoLocal(nombre,res.textoFirma); mostrarYaFirmado(nombre,res.textoFirma); }'+
     'else{ btn.disabled=false; btn.textContent="Firmar asistencia"; estado.textContent=(res&&res.mensaje)||"No fue posible registrar la asistencia."; }'+
     '}).withFailureHandler(function(err){ btn.disabled=false; btn.textContent="Firmar asistencia"; estado.textContent="No fue posible registrar la asistencia: "+(err.message||err); })'+
     '.registrarAsistenciaQR('+JSON.stringify(idForo)+',nombre,sexo,edad,tipoAsistencia,cargo,rolForo,jornada,sede,fortalezas,fortalezaOtro,dificultades,dificultadOtro,documento,correo,telefono,acepto,dispositivoIdAsistencia);'+
