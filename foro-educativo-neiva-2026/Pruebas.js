@@ -2299,3 +2299,93 @@ function enviarTresCorreosIEsPruebaAdicionales(){
   return { ok:true, resultados: resultados };
 
 }
+
+
+/*****************************************************
+ * DIAGNOSTICAR Y LIBERAR IE DE PRUEBA ADICIONALES
+ *
+ * Para cada IE de IES_PRUEBA_ADICIONALES, revisa su fila real en
+ * AccesosIE (existe/no existe, TOKEN, CODIGO_ACCESO, ESTADO, TIPO,
+ * URL_ACCESO) y si tiene una sesión de prueba tomada en
+ * PropertiesService (puede quedar así si
+ * enviarTresCorreosIEsPruebaAdicionales() se interrumpió a mitad de
+ * camino en alguna IE, antes de liberar esa sesión) — de ser así, la
+ * libera. Un candado de sesión tomado por otro dispositivo es
+ * exactamente lo que produce "no ingresa a la interfaz de sesiones":
+ * el código se valida bien, pero reclamarSesionCodigo_ la rechaza
+ * porque, según ScriptProperties, ya la tiene otro dispositivo (en
+ * este caso, el de la propia prueba automática).
+ *
+ * No modifica AvancesForo, Participacion ni ninguna otra hoja: solo
+ * lee AccesosIE y libera candados de sesión si los encuentra.
+ *
+ * Ejecutar manualmente desde el editor de Apps Script y revisar el
+ * log — si describe algo distinto a "todo en orden", pégamelo.
+ *****************************************************/
+function diagnosticarYLiberarIEsPruebaAdicionales(){
+
+  const hoja = asegurarColumnasAccesosIE_();
+  const mapa = mapaHoja_(hoja);
+  const ultimaFila = hoja.getLastRow();
+  const props = PropertiesService.getScriptProperties();
+  const resumen = [];
+
+  if(ultimaFila < 2){
+    Logger.log("AccesosIE no tiene filas.");
+    return { ok:false, mensaje:"AccesosIE no tiene filas." };
+  }
+
+  const valores = hoja.getRange(2, 1, ultimaFila - 1, hoja.getLastColumn()).getDisplayValues();
+
+  IES_PRUEBA_ADICIONALES.forEach(function(item){
+
+    const nombreIE = item.ie;
+    const fila = valores.find(function(f){ return String(f[mapa.IE-1]||"").trim() === nombreIE; });
+
+    if(!fila){
+      resumen.push(nombreIE + " -> NO EXISTE en AccesosIE. Ejecute crearIEsPruebaAdicionales().");
+      return;
+    }
+
+    const token = String(fila[mapa.TOKEN-1]||"").trim();
+    const codigo = String(fila[mapa.CODIGO_ACCESO-1]||"").trim();
+    const estado = String(fila[mapa.ESTADO-1]||"").trim();
+    const tipo = mapa.TIPO ? String(fila[mapa.TIPO-1]||"").trim() : "";
+    const url = mapa.URL_ACCESO ? String(fila[mapa.URL_ACCESO-1]||"").trim() : "";
+    const idForo = String(fila[mapa.ID_FORO-1]||"").trim();
+
+    let sesion = "sin sesión tomada";
+    if(idForo){
+      const clave = obtenerClaveSesionCodigo_("", "", idForo);
+      const guardado = props.getProperty(clave);
+      if(guardado){
+        try{
+          const actual = JSON.parse(guardado);
+          sesion = "TOMADA por dispositivo \"" + actual.deviceId + "\" -> LIBERADA ahora";
+        }catch(e){
+          sesion = "propiedad de sesión ilegible -> LIBERADA ahora";
+        }
+        props.deleteProperty(clave);
+      }
+    }
+
+    const problemas = [];
+    if(!token) problemas.push("TOKEN vacío");
+    if(!codigo) problemas.push("CODIGO_ACCESO vacío");
+    if(tipo !== "PRUEBA") problemas.push("TIPO no es \"PRUEBA\" (es \"" + tipo + "\")");
+    if(estado === "BLOQUEADO" || estado === "INACTIVO") problemas.push("ESTADO=" + estado + " (bloquea el ingreso)");
+    if(!url) problemas.push("URL_ACCESO vacío");
+
+    resumen.push(
+      nombreIE + " -> ESTADO=" + estado + " | TIPO=" + tipo + " | CODIGO=" + codigo +
+      " | sesión: " + sesion +
+      (problemas.length ? " | ⚠ " + problemas.join("; ") : " | sin problemas detectados") +
+      "\n   URL: " + url
+    );
+
+  });
+
+  Logger.log(resumen.join("\n\n"));
+  return { ok:true, resumen: resumen };
+
+}
