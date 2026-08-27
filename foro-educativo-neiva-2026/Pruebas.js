@@ -3327,3 +3327,43 @@ function crearTodosLosAccesosDePruebaFEM(){
 
   return { ok:true, lista: lista };
 }
+
+
+/*****************************************************
+ * LIBERAR EL CANDADO DE SESIÓN DE UNA IE
+ *
+ * El código de acceso puede estar perfectamente bien en AccesosIE
+ * (como confirmó diagnosticarAccesoPruebaFEM) y aun así no dejar
+ * entrar: reclamarSesionCodigo_() solo permite UN dispositivo
+ * conectado por IE (guarda el candado en ScriptProperties, con la
+ * clave FEM_SESION_FORO_<idForo codificado>). Si alguna prueba
+ * automática anterior (probarEnvioCompletoAleatorio,
+ * probarFlujoPlenariaHastaDocumentoAnalisis,
+ * ejecutarDebugCompletoFEM, etc.) reclamó esa sesión con un
+ * "dispositivo" simulado y se interrumpió antes de liberarla, el
+ * candado queda tomado por ese dispositivo simulado — y el
+ * navegador real, al entrar con el código, recibe
+ * SESION_YA_ABIERTA en vez de pasar. Esto libera ese candado sin
+ * tocar ningún dato de AccesosIE, AvancesForo ni nada más.
+ *
+ * Ejecutar manualmente:  liberarCandadoSesionIE("IE PRUEBA 1234")
+ *****************************************************/
+function liberarCandadoSesionIE(nombreIE){
+  const hoja = asegurarColumnasAccesosIE_();
+  const mapa = mapaHoja_(hoja);
+  if(hoja.getLastRow() < 2) return { ok:false, mensaje:"AccesosIE no tiene filas." };
+  const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues();
+  const fila = valores.find(function(f){ return String(f[mapa.IE - 1] || "").trim() === nombreIE; });
+  if(!fila) return { ok:false, mensaje:"No existe " + nombreIE + " en AccesosIE." };
+  const idForo = String(fila[mapa.ID_FORO - 1] || "").trim();
+  if(!idForo) return { ok:false, mensaje:nombreIE + " no tiene ID_FORO." };
+
+  const clave = obtenerClaveSesionCodigo_("", "", idForo);
+  const props = PropertiesService.getScriptProperties();
+  const habia = props.getProperty(clave);
+  props.deleteProperty(clave);
+
+  const mensaje = nombreIE + " (ID_FORO " + idForo + "): " + (habia ? "candado de sesión liberado (estaba tomado por: " + habia + ")." : "no tenía ningún candado activo — el código ya estaba libre para entrar.");
+  Logger.log(mensaje);
+  return { ok:true, habiaCandado: !!habia, mensaje: mensaje };
+}
