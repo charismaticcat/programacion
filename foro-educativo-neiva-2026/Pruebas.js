@@ -2645,6 +2645,80 @@ function restablecerAccesosOficialesFEM(){
 
 
 /*****************************************************
+ * REPARAR EMAIL_IE DE LAS 37 IE OFICIALES SIN TOCAR SUS CÓDIGOS
+ *
+ * Bug encontrado y corregido en generarAccesosIE() (Código.js): al
+ * crear un acceso nuevo nunca copiaba el correo institucional desde
+ * Oficiales (columna "E-MAIL INSTITUCIONAL") a la columna EMAIL_IE de
+ * AccesosIE — por eso enviarAccesosSoloOficialesFEM() (y
+ * enviarAccesosTodasIE()) omitían las 37 IE con "sin EMAIL_IE",
+ * aunque sus códigos/enlaces sí se hubieran generado bien.
+ *
+ * Esta función repara SOLO ese campo en las filas ya existentes de
+ * las 37 IE oficiales — no toca CODIGO_ACCESO, TOKEN, URL_ACCESO ni
+ * ID_FORO, así que los códigos/enlaces ya generados (y que ya podrían
+ * haberse compartido) siguen siendo válidos. Úsese en vez de
+ * restablecerAccesosOficialesFEM() cuando el único problema es el
+ * correo — evita invalidar códigos innecesariamente.
+ *
+ * Ejecutar manualmente:  repararEmailIEOficialesFEM()
+ *****************************************************/
+function repararEmailIEOficialesFEM(){
+  const resultado = { pasos: {}, errores: [] };
+  try{
+    const instituciones = JSON.parse(obtenerInstitucionesJSON());
+    const nombresOficiales = Object.keys(instituciones || {});
+    Logger.log("IE encontradas en Oficiales: " + nombresOficiales.length);
+    if(nombresOficiales.length !== 37){
+      const mensaje = "ABORTADO: se esperaban exactamente 37 IE en Oficiales y se encontraron " + nombresOficiales.length + ".";
+      Logger.log("❌ " + mensaje);
+      resultado.errores.push(mensaje);
+      return { ok:false, resultado: resultado };
+    }
+
+    const hoja = asegurarColumnasAccesosIE_();
+    const m = mapaHoja_(hoja);
+    if(hoja.getLastRow() < 2){
+      const mensaje = "AccesosIE no tiene filas.";
+      Logger.log(mensaje);
+      return { ok:false, mensaje: mensaje };
+    }
+    const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues();
+
+    let reparadas = 0, yaTenianCorreo = 0, sinCorreoEnOficiales = 0, noEncontradas = 0;
+    const detalle = [];
+
+    nombresOficiales.forEach(function(nombreIE){
+      const indiceFila = valores.findIndex(function(f){ return normalizarAccesoIE_(String(f[m.IE - 1] || "")) === normalizarAccesoIE_(nombreIE); });
+      if(indiceFila === -1){ noEncontradas++; detalle.push(nombreIE + ": ⚠ no existe en AccesosIE (ejecute restablecerAccesosOficialesFEM() primero)."); return; }
+
+      const correoActual = String(valores[indiceFila][m.EMAIL_IE - 1] || "").trim();
+      if(correoActual){ yaTenianCorreo++; return; }
+
+      const correoOficial = String(instituciones[nombreIE]?.correo || "").trim();
+      if(!correoOficial){ sinCorreoEnOficiales++; detalle.push(nombreIE + ": ⚠ tampoco tiene E-MAIL INSTITUCIONAL en Oficiales."); return; }
+
+      hoja.getRange(indiceFila + 2, m.EMAIL_IE).setValue(correoOficial);
+      reparadas++;
+      detalle.push(nombreIE + ": ✅ EMAIL_IE = " + correoOficial);
+    });
+
+    Logger.log("========================================");
+    Logger.log("REPARACIÓN DE EMAIL_IE — 37 IE OFICIALES");
+    detalle.forEach(function(d){ Logger.log(d); });
+    Logger.log("Reparadas: " + reparadas + " | Ya tenían correo: " + yaTenianCorreo + " | Sin correo en Oficiales: " + sinCorreoEnOficiales + " | No encontradas en AccesosIE: " + noEncontradas);
+    Logger.log("========================================");
+
+    return { ok:true, reparadas: reparadas, yaTenianCorreo: yaTenianCorreo, sinCorreoEnOficiales: sinCorreoEnOficiales, noEncontradas: noEncontradas };
+  }catch(error){
+    resultado.errores.push(error.message);
+    Logger.log("❌ ERROR: " + error.message);
+    return { ok:false, resultado: resultado };
+  }
+}
+
+
+/*****************************************************
  * ENVIAR CORREO DE ACCESO A TODAS LAS IE DE PRUEBA
  *
  * Envía el mismo correo real de "acceso al Foro"

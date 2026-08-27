@@ -4708,6 +4708,21 @@ function generarAccesosIE() {
                 ] =
                     dane;
 
+                /*
+                 * Correo institucional (columna "E-MAIL INSTITUCIONAL"
+                 * de Oficiales): faltaba esta asignación por completo,
+                 * así que cada acceso nuevo quedaba con EMAIL_IE
+                 * vacío — el correo de acceso nunca podía enviarse
+                 * (enviarAccesosTodasIE/enviarAccesosSoloOficialesFEM
+                 * omiten cualquier fila sin EMAIL_IE).
+                 */
+                if(columna("EMAIL_IE") >= 0){
+                    nuevaFila[
+                        columna("EMAIL_IE")
+                    ] =
+                        String(datosIE.correo || "").trim();
+                }
+
 
                 nuevaFila[
                     columna("CODIGO_ACCESO")
