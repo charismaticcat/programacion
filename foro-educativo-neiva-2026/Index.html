@@ -298,7 +298,7 @@ CONTENEDOR PRINCIPAL
             <li>Información necesaria para el desarrollo del Foro.</li>
             <li>Número de participantes por estamento.</li>
             <li>Fotografía horizontal HD del trabajo de la comunidad educativa.</li>
-            <li>Un celular por asistente para firmar la asistencia escaneando un código QR (ya no se sube en PDF).</li>
+            <li>Un celular por asistente para firmar la asistencia escaneando un código QR.</li>
             <li>Un espacio adecuado para el diálogo y la construcción colectiva.</li>
         </ul>
 
@@ -420,7 +420,7 @@ CONTENEDOR PRINCIPAL
         <h3>📱 Asistencia por código QR</h3>
 
         <p>
-            Con el propósito de consolidar las <b>estadísticas de participación</b> y apoyar los procesos de análisis, sistematización y elaboración de los informes generales del Foro Educativo, la asistencia de la jornada <b>ya no se carga en PDF</b>: cada asistente la firma escaneando con su celular un código QR, completando institución, nombre completo, cargo, número de documento, correo y teléfono.
+            Con el propósito de consolidar las <b>estadísticas de participación</b> y apoyar los procesos de análisis, sistematización y elaboración de los informes generales del Foro Educativo, cada asistente firma la asistencia de la jornada escaneando con su celular un código QR, completando institución, nombre completo, cargo, número de documento, correo y teléfono.
         </p>
 
         <p>
@@ -451,7 +451,7 @@ CONTENEDOR PRINCIPAL
 
             <ul>
 
-                <li>Un celular por asistente para <b>firmar la asistencia escaneando un código QR</b> (ya no se sube en PDF).</li>
+                <li>Un celular por asistente para <b>firmar la asistencia escaneando un código QR</b>.</li>
 
                 <li><b>Una fotografía de la sesión de plenaria final</b>, en <b>formato horizontal</b> y con <b>calidad HD (alta resolución)</b>.</li>
 
@@ -1616,32 +1616,40 @@ Aspectos para orientar la discusión
     </div>
 
 
-    <div id="contenedorAccion1Sesion2" class="contenedorTrabajoSesion">
+    <div id="contenedorAccion1Sesion2" class="bloqueAccionSesion2">
 
-        <div class="panelGuia">
-            <h3>Acción 1</h3>
-            <p>Describa una acción concreta que se esté implementando.</p>
+        <div class="encabezadoAccionSesion2">Acción 1</div>
+
+        <div class="contenedorTrabajoSesion">
+
+            <div class="panelGuia">
+                <h3>Acción 1</h3>
+                <p>Describa una acción concreta que se esté implementando.</p>
+            </div>
+
+            <div class="panelRespuesta">
+                <textarea
+                    id="respuestaSesion2Pregunta2Accion1"
+                    rows="5"
+                    placeholder="Describa la acción concreta..."></textarea>
+            </div>
+
         </div>
 
-        <div class="panelRespuesta">
-            <textarea
-                id="respuestaSesion2Pregunta2Accion1"
-                rows="5"
-                placeholder="Describa la acción concreta..."></textarea>
+        <div class="contadorPalabras">
+            <span id="contadorSesion2Pregunta2Accion1">0 / 100 palabras</span>
+        </div>
+
+        <div id="mensajeContadorSesion2Pregunta2Accion1" class="mensajeContador">
+            ⚠ Debe escribir al menos 20 palabras.
         </div>
 
     </div>
 
-    <div class="contadorPalabras">
-        <span id="contadorSesion2Pregunta2Accion1">0 / 100 palabras</span>
-    </div>
 
-    <div id="mensajeContadorSesion2Pregunta2Accion1" class="mensajeContador">
-        ⚠ Debe escribir al menos 20 palabras.
-    </div>
+    <div id="contenedorAccion2Sesion2" class="bloqueAccionSesion2 bloquePreguntaBloqueada">
 
-
-    <div id="contenedorAccion2Sesion2" class="bloquePreguntaBloqueada">
+        <div class="encabezadoAccionSesion2">Acción 2</div>
 
         <div class="contenedorTrabajoSesion">
 
@@ -1671,7 +1679,9 @@ Aspectos para orientar la discusión
     </div>
 
 
-    <div id="contenedorAccion3Sesion2" class="bloquePreguntaBloqueada">
+    <div id="contenedorAccion3Sesion2" class="bloqueAccionSesion2 bloquePreguntaBloqueada">
+
+        <div class="encabezadoAccionSesion2">Acción 3</div>
 
         <div class="contenedorTrabajoSesion">
 
@@ -1704,13 +1714,13 @@ Aspectos para orientar la discusión
     <div id="contenedorAccion4Sesion2" class="bloquePreguntaBloqueada">
 
         <button type="button" id="abrirAccion4Sesion2" class="botonAccionOpcional">
-            + Añadir Acción 4 (opcional)
+            + Añadir otra opción
         </button>
 
         <div id="contenidoAccion4Sesion2" class="contenedorTrabajoSesion accionOpcionalOculta">
 
             <div class="panelGuia">
-                <h3>Acción 4 <small>(opcional)</small></h3>
+                <h3>Opción adicional 1 <small>(opcional)</small></h3>
                 <p>Describa otra acción concreta, si existe.</p>
             </div>
 
@@ -1727,16 +1737,16 @@ Aspectos para orientar la discusión
     </div>
 
 
-    <div id="contenedorAccion5Sesion2" class="bloquePreguntaBloqueada">
+    <div id="contenedorAccion5Sesion2" class="accionOpcionalOculta">
 
         <button type="button" id="abrirAccion5Sesion2" class="botonAccionOpcional">
-            + Añadir Acción 5 (opcional)
+            + Añadir otra opción
         </button>
 
         <div id="contenidoAccion5Sesion2" class="contenedorTrabajoSesion accionOpcionalOculta">
 
             <div class="panelGuia">
-                <h3>Acción 5 <small>(opcional)</small></h3>
+                <h3>Opción adicional 2 <small>(opcional)</small></h3>
                 <p>Describa otra acción concreta, si existe.</p>
             </div>
 
@@ -1918,10 +1928,9 @@ Aspectos para orientar la discusión
                 <label><input type="checkbox" id="mecanismoSesion2_comparacion"> Comparación histórica de resultados internos y externos</label><br>
                 <label><input type="checkbox" id="mecanismoSesion2_encuestas"> Encuestas de satisfacción docente y estudiantil</label><br>
                 <label><input type="checkbox" id="mecanismoSesion2_reprobacion"> Tasa de deserción/reprobación por asignatura</label><br>
-                <label><input type="checkbox" id="mecanismoSesion2_plataformas"> Plataformas de gestión académica (SIMAT, Q10, Phidias, Master 2000)</label><br>
-                <label><input type="checkbox" id="mecanismoSesion2_dashboards"> Tableros de control (dashboards)</label><br>
+                <label><input type="checkbox" id="mecanismoSesion2_plataformas"> Plataformas de gestión académica (JIGRA)</label><br>
                 <label><input type="checkbox" id="mecanismoSesion2_evidencia"> Bancos de evidencia digital</label><br>
-                <label><input type="checkbox" id="mecanismoSesion2_phva"> Ciclos PHVA</label><br>
+                <label><input type="checkbox" id="mecanismoSesion2_phva"> Evaluación por Matriz DOFA</label><br>
                 <label><input type="checkbox" id="mecanismoSesion2_autoevaluacion"> Autoevaluación institucional anual</label><br>
                 <label><input type="checkbox" id="mecanismoSesion2_mesas"> Mesas de trabajo con padres y estudiantes</label><br>
                 <label><input type="checkbox" id="mecanismoSesion2_visitas"> Visitas de las Secretarías de Educación</label><br>
@@ -1944,7 +1953,7 @@ Aspectos para orientar la discusión
 
         <div class="panelRespuesta">
 
-            <h3>Respuesta construida</h3>
+            <h3>Mecanismos de seguimiento institucionales para liderar la transformación curricular</h3>
 
             <textarea
                 id="respuestaSesion2Pregunta5"
@@ -2037,38 +2046,47 @@ Aspectos para orientar la discusión
             <p><strong>Enuncie mínimo 3 y máximo 5 acciones concretas.</strong></p>
         </div>
 
-        <div id="contenedorAccion1Sesion3" class="contenedorTrabajoSesion">
-            <div class="panelGuia"><h3>Acción 1 *</h3><p>Describa una acción concreta.</p></div>
-            <div class="panelRespuesta"><textarea id="respuestaSesion3Pregunta2Accion1" rows="5" placeholder="Describa la acción concreta..."></textarea></div>
+        <div id="contenedorAccion1Sesion3" class="bloqueAccionSesion3">
+            <div class="encabezadoAccionSesion3">Acción 1</div>
+            <div class="contenedorTrabajoSesion">
+                <div class="panelGuia"><h3>Acción 1 *</h3><p>Describa una acción concreta.</p></div>
+                <div class="panelRespuesta"><textarea id="respuestaSesion3Pregunta2Accion1" rows="5" placeholder="Describa la acción concreta..."></textarea></div>
+            </div>
+            <div class="contadorPalabras"><span id="contadorSesion3Pregunta2Accion1">0 / 100 palabras</span></div>
+            <div id="mensajeContadorSesion3Pregunta2Accion1" class="mensajeContador">⚠ Debe escribir al menos 20 palabras.</div>
         </div>
-        <div class="contadorPalabras"><span id="contadorSesion3Pregunta2Accion1">0 / 100 palabras</span></div>
-        <div id="mensajeContadorSesion3Pregunta2Accion1" class="mensajeContador">⚠ Debe escribir al menos 20 palabras.</div>
 
-        <div id="contenedorAccion2Sesion3" class="contenedorTrabajoSesion bloquePreguntaBloqueada">
-            <div class="panelGuia"><h3>Acción 2 *</h3><p>Describa una acción concreta.</p></div>
-            <div class="panelRespuesta"><textarea id="respuestaSesion3Pregunta2Accion2" rows="5" placeholder="Describa la acción concreta..."></textarea></div>
+        <div id="contenedorAccion2Sesion3" class="bloqueAccionSesion3 bloquePreguntaBloqueada">
+            <div class="encabezadoAccionSesion3">Acción 2</div>
+            <div class="contenedorTrabajoSesion">
+                <div class="panelGuia"><h3>Acción 2 *</h3><p>Describa una acción concreta.</p></div>
+                <div class="panelRespuesta"><textarea id="respuestaSesion3Pregunta2Accion2" rows="5" placeholder="Describa la acción concreta..."></textarea></div>
+            </div>
+            <div class="contadorPalabras"><span id="contadorSesion3Pregunta2Accion2">0 / 100 palabras</span></div>
+            <div id="mensajeContadorSesion3Pregunta2Accion2" class="mensajeContador">⚠ Debe escribir al menos 20 palabras.</div>
         </div>
-        <div class="contadorPalabras"><span id="contadorSesion3Pregunta2Accion2">0 / 100 palabras</span></div>
-        <div id="mensajeContadorSesion3Pregunta2Accion2" class="mensajeContador">⚠ Debe escribir al menos 20 palabras.</div>
 
-        <div id="contenedorAccion3Sesion3" class="contenedorTrabajoSesion bloquePreguntaBloqueada">
-            <div class="panelGuia"><h3>Acción 3 *</h3><p>Describa una acción concreta.</p></div>
-            <div class="panelRespuesta"><textarea id="respuestaSesion3Pregunta2Accion3" rows="5" placeholder="Describa la acción concreta..."></textarea></div>
+        <div id="contenedorAccion3Sesion3" class="bloqueAccionSesion3 bloquePreguntaBloqueada">
+            <div class="encabezadoAccionSesion3">Acción 3</div>
+            <div class="contenedorTrabajoSesion">
+                <div class="panelGuia"><h3>Acción 3 *</h3><p>Describa una acción concreta.</p></div>
+                <div class="panelRespuesta"><textarea id="respuestaSesion3Pregunta2Accion3" rows="5" placeholder="Describa la acción concreta..."></textarea></div>
+            </div>
+            <div class="contadorPalabras"><span id="contadorSesion3Pregunta2Accion3">0 / 100 palabras</span></div>
+            <div id="mensajeContadorSesion3Pregunta2Accion3" class="mensajeContador">⚠ Debe escribir al menos 20 palabras.</div>
         </div>
-        <div class="contadorPalabras"><span id="contadorSesion3Pregunta2Accion3">0 / 100 palabras</span></div>
-        <div id="mensajeContadorSesion3Pregunta2Accion3" class="mensajeContador">⚠ Debe escribir al menos 20 palabras.</div>
 
         <div id="contenedorAccion4Sesion3" class="bloquePreguntaBloqueada">
-            <button type="button" id="abrirAccion4Sesion3" class="botonAccionOpcional">+ Añadir Acción 4 (opcional)</button>
+            <button type="button" id="abrirAccion4Sesion3" class="botonAccionOpcional">+ Añadir otra opción</button>
             <div id="contenidoAccion4Sesion3" class="contenedorTrabajoSesion accionOpcionalOculta">
-                <div class="panelGuia"><h3>Acción 4 <small>(opcional)</small></h3><p>Puede registrar otra acción si existe.</p></div>
+                <div class="panelGuia"><h3>Opción adicional 1 <small>(opcional)</small></h3><p>Puede registrar otra acción si existe.</p></div>
                 <div class="panelRespuesta"><textarea id="respuestaSesion3Pregunta2Accion4" rows="5" placeholder="Esta respuesta es opcional"></textarea></div>
             </div>
         </div>
-        <div id="contenedorAccion5Sesion3" class="bloquePreguntaBloqueada">
-            <button type="button" id="abrirAccion5Sesion3" class="botonAccionOpcional">+ Añadir Acción 5 (opcional)</button>
+        <div id="contenedorAccion5Sesion3" class="accionOpcionalOculta">
+            <button type="button" id="abrirAccion5Sesion3" class="botonAccionOpcional">+ Añadir otra opción</button>
             <div id="contenidoAccion5Sesion3" class="contenedorTrabajoSesion accionOpcionalOculta">
-                <div class="panelGuia"><h3>Acción 5 <small>(opcional)</small></h3><p>Puede registrar otra acción si existe.</p></div>
+                <div class="panelGuia"><h3>Opción adicional 2 <small>(opcional)</small></h3><p>Puede registrar otra acción si existe.</p></div>
                 <div class="panelRespuesta"><textarea id="respuestaSesion3Pregunta2Accion5" rows="5" placeholder="Esta respuesta es opcional"></textarea></div>
             </div>
         </div>
@@ -2162,7 +2180,7 @@ Aspectos para orientar la discusión
         <h3>¿Qué haremos?</h3>
         <p>Registraremos las evidencias del desarrollo del Foro antes de iniciar la plenaria. En esta etapa podremos revisar todas las respuestas, añadir o quitar información y dejar listos los soportes documentales del informe institucional.</p>
         <h3 style="margin-top:18px;">¿Qué debemos registrar?</h3>
-        <p>Una fotografía horizontal HD con la mayor cantidad posible de participantes trabajando, y la asistencia de la jornada — que ya <strong>no se sube en PDF</strong>: cada participante la firma escaneando con su celular el código QR de abajo, en un solo momento de la sesión, completando institución, nombre, cargo, número de documento, correo y teléfono.</p>
+        <p>Una fotografía horizontal HD con la mayor cantidad posible de participantes trabajando, y la asistencia de la jornada: cada participante la firma escaneando con su celular el código QR de abajo, en un solo momento de la sesión, completando institución, nombre, cargo, número de documento, correo y teléfono.</p>
         <p style="margin-top:12px;">La fotografía debe pesar máximo <strong>10 MB</strong> y ser JPG o PNG.</p>
     </div>
 
@@ -2330,7 +2348,7 @@ Aspectos para orientar la discusión
         <h2>📌 Antes de comenzar la Sesión 3</h2>
         <p>Por favor tenga listo:</p>
         <ul>
-            <li>📱 Un código QR para que cada asistente firme la asistencia desde su celular en un solo momento de la sesión (ya no se sube un PDF).</li>
+            <li>📱 Un código QR para que cada asistente firme la asistencia desde su celular en un solo momento de la sesión.</li>
             <li>📷 Una fotografía horizontal en calidad HD de menos de 10 MB.</li>
         </ul>
         <p>Se solicitarán al finalizar la sesión, antes de iniciar la plenaria.</p>

@@ -1494,13 +1494,16 @@ SESIÓN 1
 
 .panelGuia h3{
 
-    color:var(--amarillo-neiva);
+    color:var(--verde-neiva);
 
     margin-bottom:18px;
 
+    /* 15% más grande que el tamaño heredado. */
+    font-size:1.15em;
+
     /*
-     * Sombra oscura para que el amarillo no se pierda sobre el
-     * fondo claro del panel.
+     * Sombra oscura para reforzar el contraste sobre el fondo claro
+     * del panel.
      */
     text-shadow:0 1px 2px rgba(0,0,0,.55);
 
@@ -1687,6 +1690,76 @@ SESIÓN 1
 .accionOpcionalOculta{
 
     display:none;
+
+}
+
+/*
+ * Acordeón de acciones obligatorias (Sesión 2 y 3, Pregunta 2):
+ * cada acción empieza colapsada detrás de su propio encabezado
+ * clicable ("Acción 1", "Acción 2"...). Solo una queda abierta a la
+ * vez — ver cerrarAccionColapsable_/abrirAccionColapsable_ en
+ * App.html.
+ */
+.encabezadoAccionSesion2,
+.encabezadoAccionSesion3{
+
+    cursor:pointer;
+    padding:12px 16px;
+    background:var(--color-surface);
+    border:1px solid var(--color-border);
+    border-left:4px solid var(--amarillo-neiva);
+    border-radius:var(--radius-md);
+    font-weight:700;
+    color:var(--color-text);
+    margin-bottom:var(--space-3);
+    transition:border-color var(--transition-fast), background var(--transition-fast);
+
+}
+
+.encabezadoAccionSesion2:hover,
+.encabezadoAccionSesion3:hover{
+
+    border-color:var(--color-primary);
+
+}
+
+.encabezadoAccionSesion2:focus-visible,
+.encabezadoAccionSesion3:focus-visible{
+
+    outline:none;
+    box-shadow:0 0 0 3px rgba(11,106,68,.28);
+
+}
+
+.bloqueAccionSesion2.accionColapsada,
+.bloqueAccionSesion3.accionColapsada{
+
+    margin-bottom:var(--space-3);
+
+}
+
+.bloqueAccionSesion2.accionColapsada > .encabezadoAccionSesion2::before,
+.bloqueAccionSesion3.accionColapsada > .encabezadoAccionSesion3::before{
+
+    content:"+ ";
+    color:var(--color-primary);
+
+}
+
+/* ✓ en el encabezado en cuanto la acción cumple su mínimo. */
+[id^="contenedorAccion"].minimoPalabrasCumplido > .encabezadoAccionSesion2,
+[id^="contenedorAccion"].minimoPalabrasCumplido > .encabezadoAccionSesion3{
+
+    border-left-color:var(--verde-neiva);
+
+}
+
+[id^="contenedorAccion"].minimoPalabrasCumplido > .encabezadoAccionSesion2::after,
+[id^="contenedorAccion"].minimoPalabrasCumplido > .encabezadoAccionSesion3::after{
+
+    content:"  ✓";
+    color:var(--verde-neiva);
+    font-weight:700;
 
 }
 
@@ -2915,6 +2988,34 @@ Su ancho ya queda acotado por .cajaTexto > * (--reading-width).
 .preguntaCompletadaSesion3 > .tarjetaPregunta h3::after{
     content:"  ✓";
     color:var(--verde-neiva);
+    /* 3 veces más grande que el título, para que se note que ya está hecha. */
+    font-size:3em;
+    font-weight:700;
+    vertical-align:middle;
+    line-height:1;
+}
+
+/*
+ * Cuadro de pregunta en rojo cuando NO cumple el mínimo exigido (o
+ * superó el máximo) — misma idea que el semáforo de la barra de
+ * progreso / el borde de los textarea, pero a nivel de toda la
+ * pregunta. Se agrega/quita con JS (ver marcarTarjetaPreguntaInvalida_
+ * en App.html).
+ */
+.tarjetaPregunta.preguntaFueraDeRango{
+    background:rgba(198,40,40,.06);
+    border-left-color:#C62828;
+    box-shadow:0 0 0 2px rgba(198,40,40,.18);
+}
+
+/*
+ * Verde más intenso cuando se completan TODAS las acciones
+ * disponibles (no solo el mínimo de 3) — Sesión 2 y 3, Pregunta 2.
+ */
+.tarjetaPregunta.preguntaAccionesCompletas{
+    background:rgba(0,150,64,.14);
+    border-left-color:#009640;
+    box-shadow:0 0 0 2px rgba(0,150,64,.25);
 }
 
 #pantallaSesion1 .tarjetaPregunta:focus-visible,

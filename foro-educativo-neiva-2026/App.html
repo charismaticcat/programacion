@@ -926,7 +926,7 @@ const tarjetasRecorrido = [
         icono: "📷",
         titulo: "Evidencias",
         que: "Registraremos las evidencias del desarrollo del Foro antes de iniciar la plenaria.",
-        preparado: "Una fotografía horizontal HD con la mayor cantidad posible de participantes trabajando. La asistencia se firma por código QR, no en PDF.",
+        preparado: "Una fotografía horizontal HD con la mayor cantidad posible de participantes trabajando. La asistencia se firma por código QR.",
         paraQue: "Respaldar documentalmente el desarrollo del Foro y completar el informe institucional.",
         frase: "Cada evidencia respalda el trabajo realizado."
     },
@@ -2077,13 +2077,68 @@ function actualizarMarcaMinimoCumplido_(campo, palabras, minimo, idBloquePregunt
         contenedor.classList.toggle("minimoPalabrasCumplido", cumplido);
     }
 
+    /*
+     * Si el campo es una "acción" (Sesión 2/3, Pregunta 2), marca
+     * también su bloque colapsable — para el ✓ del encabezado
+     * (ver [id^="contenedorAccion"] en CSS.html).
+     */
+    const bloqueAccion = campo.closest('[id^="contenedorAccion"]');
+    if(bloqueAccion){
+        bloqueAccion.classList.toggle("minimoPalabrasCumplido", cumplido);
+    }
+
     if(idBloquePregunta){
         const bloque = document.getElementById(idBloquePregunta);
         const tarjeta = bloque && bloque.querySelector(":scope > .tarjetaPregunta");
         if(tarjeta){
             tarjeta.classList.toggle("minimoPalabrasCumplido", cumplido);
+            /*
+             * Rojo si no alcanza el mínimo o si superó el máximo —
+             * en cualquiera de los dos casos la respuesta no es
+             * válida todavía.
+             */
+            tarjeta.classList.toggle("preguntaFueraDeRango", !cumplido);
         }
     }
+
+}
+
+/*****************************************************
+ * ESTADO DE LA TARJETA "PREGUNTA 2" (ACCIONES) —
+ * SESIÓN 2 Y 3
+ * A diferencia de las preguntas de una sola respuesta, esta
+ * pregunta se completa por CANTIDAD de acciones (no por palabras):
+ * verde + ✓ con el mínimo de 3, más verde todavía si se responden
+ * las 5. Roja mientras no se llegue a 3.
+ *****************************************************/
+
+function contarAccionesCompletadas_(validezObligatorias, idsContenidoOpcionales){
+
+    let completas = validezObligatorias.filter(Boolean).length;
+
+    (idsContenidoOpcionales || []).forEach(function(idContenido){
+        const el = document.getElementById(idContenido);
+        if(el && el.classList.contains("minimoPalabrasCumplido")){
+            completas++;
+        }
+    });
+
+    return completas;
+
+}
+
+function actualizarEstadoTarjetaAcciones_(idBloquePregunta, completas, totalMaximo, minimoRequerido){
+
+    const bloque = document.getElementById(idBloquePregunta);
+    const tarjeta = bloque && bloque.querySelector(":scope > .tarjetaPregunta");
+    if(!tarjeta) return;
+
+    const cumpleMinimo = completas >= minimoRequerido;
+    const todasCompletas = totalMaximo > 0 && completas >= totalMaximo;
+
+    tarjeta.classList.toggle("minimoPalabrasCumplido", cumpleMinimo);
+    tarjeta.classList.toggle("preguntaAccionesCompletas", todasCompletas);
+    tarjeta.classList.toggle("preguntaFueraDeRango", !cumpleMinimo);
 
 }
 
@@ -2138,7 +2193,7 @@ function activarColorTextareaAccion_(campo, minimo, maximo){
  * escribir nada porque son opcionales.
  *****************************************************/
 
-function activarAccionOpcional_(idBoton, idContenido, idCampo){
+function activarAccionOpcional_(idBoton, idContenido, idCampo, idSiguienteContenedor){
 
     const boton = document.getElementById(idBoton);
     const contenido = document.getElementById(idContenido);
@@ -2151,6 +2206,26 @@ function activarAccionOpcional_(idBoton, idContenido, idCampo){
         contenido.classList.remove("accionOpcionalOculta");
         contenido.classList.add("minimoPalabrasCumplido");
         campo.disabled = false;
+
+        /*
+         * Por si el botón vive dentro de un contenedor que a su vez
+         * empieza oculto (la segunda opción adicional, encadenada a
+         * que se abra la primera): se descubre también, para que no
+         * quede escondida al restaurar un formulario que ya la
+         * tenía respondida.
+         */
+        if(boton.parentElement){
+            boton.parentElement.classList.remove("accionOpcionalOculta");
+        }
+
+        // Encadenar: al abrir esta opción, aparece el botón para
+        // agregar la siguiente (máximo 2 opciones adicionales).
+        if(idSiguienteContenedor){
+            const siguiente = document.getElementById(idSiguienteContenedor);
+            if(siguiente){
+                siguiente.classList.remove("accionOpcionalOculta");
+            }
+        }
     }
 
     /*
@@ -2169,6 +2244,155 @@ function activarAccionOpcional_(idBoton, idContenido, idCampo){
     boton.addEventListener("click", function(){
         revelar();
         campo.focus();
+    });
+
+}
+
+/*****************************************************
+ * SINCRONIZAR CASILLA "OTRO" CON SU TEXTO
+ * (Sesión 2: Preguntas 3 y 5. Sesión 3: Preguntas 3 y 4)
+ * Si se deselecciona "Otro", se borra el texto escrito. Si el
+ * texto queda vacío, se deselecciona "Otro" — deben comportarse
+ * igual en las cuatro preguntas.
+ *****************************************************/
+
+function sincronizarOtroCheckbox_(idCheckOtro, idTextoOtro, alCambiar){
+
+    const check = document.getElementById(idCheckOtro);
+    const texto = document.getElementById(idTextoOtro);
+
+    if(!check || !texto) return;
+    if(check.dataset.sincronizacionOtroInicializada) return;
+    check.dataset.sincronizacionOtroInicializada = "1";
+
+    check.addEventListener("change", function(){
+        if(!check.checked && texto.value){
+            texto.value = "";
+            if(typeof alCambiar === "function") alCambiar();
+        }
+    });
+
+    texto.addEventListener("input", function(){
+        if(check.checked && !texto.value.trim()){
+            check.checked = false;
+            if(typeof alCambiar === "function") alCambiar();
+        }
+    });
+
+}
+
+/*****************************************************
+ * ACORDEÓN DE ACCIONES (SESIÓN 2 Y 3, PREGUNTA 2)
+ * Todas las acciones empiezan colapsadas. Al terminar de escribir
+ * una (llega al mínimo y se sale del campo) se colapsa sola y se
+ * abre la siguiente — solo una acción visible a la vez. Una acción
+ * ya respondida puede volver a abrirse con un clic en su
+ * encabezado. Es genérico: sirve igual para Sesión 2 y Sesión 3,
+ * cuyos encabezados usan clases distintas
+ * (.encabezadoAccionSesion2 / .encabezadoAccionSesion3).
+ *****************************************************/
+
+function encabezadoAccionDe_(bloque){
+    return bloque.querySelector(
+        ":scope > .encabezadoAccionSesion2, :scope > .encabezadoAccionSesion3"
+    );
+}
+
+function cerrarAccionColapsable_(idBloque){
+
+    const bloque = document.getElementById(idBloque);
+    if(!bloque) return;
+
+    const encabezado = encabezadoAccionDe_(bloque);
+    if(!encabezado) return;
+
+    Array.from(bloque.children).forEach(function(hijo){
+        if(hijo !== encabezado){
+            hijo.dataset.ocultoPorColapsoAccion = "1";
+            hijo.style.display = "none";
+        }
+    });
+
+    bloque.classList.add("accionColapsada");
+
+}
+
+function abrirAccionColapsable_(idBloque, idsHermanos){
+
+    const bloque = document.getElementById(idBloque);
+    if(!bloque) return;
+    if(bloque.classList.contains("bloquePreguntaBloqueada")) return;
+
+    (idsHermanos || []).forEach(function(id){
+        if(id !== idBloque){
+            cerrarAccionColapsable_(id);
+        }
+    });
+
+    Array.from(bloque.children).forEach(function(hijo){
+        if(hijo.dataset.ocultoPorColapsoAccion === "1"){
+            hijo.style.display = "";
+            delete hijo.dataset.ocultoPorColapsoAccion;
+        }
+    });
+
+    bloque.classList.remove("accionColapsada");
+
+}
+
+function inicializarEncabezadoAccion_(idBloque, idsHermanos){
+
+    const bloque = document.getElementById(idBloque);
+    if(!bloque) return;
+
+    const encabezado = encabezadoAccionDe_(bloque);
+    if(!encabezado || encabezado.dataset.colapsoAccionInicializado) return;
+
+    encabezado.setAttribute("role", "button");
+    encabezado.setAttribute("tabindex", "0");
+
+    encabezado.addEventListener("click", function(){
+        if(bloque.classList.contains("bloquePreguntaBloqueada")) return;
+        if(bloque.classList.contains("accionColapsada")){
+            abrirAccionColapsable_(idBloque, idsHermanos);
+        }else{
+            cerrarAccionColapsable_(idBloque);
+        }
+    });
+
+    encabezado.addEventListener("keydown", function(evento){
+        if(evento.key === "Enter" || evento.key === " "){
+            evento.preventDefault();
+            encabezado.click();
+        }
+    });
+
+    encabezado.dataset.colapsoAccionInicializado = "1";
+
+}
+
+/*
+ * Al perder el foco (se "culmina" de escribir), si la acción ya es
+ * válida se colapsa sola y se abre la siguiente de la lista.
+ */
+function activarAvanceAutomaticoAccion_(idCampo, idBloque, minimo, maximo, idSiguienteBloque, idsHermanos){
+
+    const campo = document.getElementById(idCampo);
+    if(!campo || campo.dataset.avanceAutoInicializado) return;
+    campo.dataset.avanceAutoInicializado = "1";
+
+    campo.addEventListener("blur", function(){
+
+        const palabras = contarPalabras(campo.value);
+        const valida = palabras >= minimo && (!maximo || palabras <= maximo);
+
+        if(valida){
+            cerrarAccionColapsable_(idBloque);
+            if(idSiguienteBloque){
+                abrirAccionColapsable_(idSiguienteBloque, idsHermanos);
+            }
+        }
+
     });
 
 }
@@ -2975,10 +3199,9 @@ const opcionesMecanismosP5 = {
     mecanismoSesion2_comparacion: "Comparación histórica de resultados internos y externos",
     mecanismoSesion2_encuestas: "Encuestas de satisfacción docente y estudiantil",
     mecanismoSesion2_reprobacion: "Tasa de deserción/reprobación por asignatura",
-    mecanismoSesion2_plataformas: "Plataformas de gestión académica (SIMAT, Q10, Phidias, Master 2000)",
-    mecanismoSesion2_dashboards: "Tableros de control (dashboards)",
+    mecanismoSesion2_plataformas: "Plataformas de gestión académica (JIGRA)",
     mecanismoSesion2_evidencia: "Bancos de evidencia digital",
-    mecanismoSesion2_phva: "Ciclos PHVA",
+    mecanismoSesion2_phva: "Evaluación por Matriz DOFA",
     mecanismoSesion2_autoevaluacion: "Autoevaluación institucional anual",
     mecanismoSesion2_mesas: "Mesas de trabajo con padres y estudiantes",
     mecanismoSesion2_visitas: "Visitas de las Secretarías de Educación",
@@ -3818,7 +4041,8 @@ function actualizarEstadoSesion2(){
     activarAccionOpcional_(
         "abrirAccion4Sesion2",
         "contenidoAccion4Sesion2",
-        "respuestaSesion2Pregunta2Accion4"
+        "respuestaSesion2Pregunta2Accion4",
+        "contenedorAccion5Sesion2"
     );
 
     activarAccionOpcional_(
@@ -3854,6 +4078,16 @@ function actualizarEstadoSesion2(){
 
     const accionesCompletas =
         a1 && a2 && a3;
+
+    actualizarEstadoTarjetaAcciones_(
+        "bloqueSesion2Pregunta2",
+        contarAccionesCompletadas_(
+            [a1, a2, a3],
+            ["contenidoAccion4Sesion2", "contenidoAccion5Sesion2"]
+        ),
+        5,
+        3
+    );
 
     habilitarBloqueSesion2(
         "bloqueSesion2Pregunta3",
@@ -4015,8 +4249,49 @@ actualizarInterfazOtroSesion2();
 
 inicializarColapsoSesion2();
 
+inicializarAcordeonAccionesSesion2();
+
 actualizarEstadoSesion2();
-    
+
+}
+
+/*
+ * Las tres acciones obligatorias empiezan colapsadas: se abren de a
+ * una, en orden, y cada una se colapsa sola al terminar de
+ * escribirla (ver activarAvanceAutomaticoAccion_).
+ */
+function inicializarAcordeonAccionesSesion2(){
+
+    const ids = [
+        "contenedorAccion1Sesion2",
+        "contenedorAccion2Sesion2",
+        "contenedorAccion3Sesion2"
+    ];
+
+    ids.forEach(function(id, indice){
+
+        inicializarEncabezadoAccion_(id, ids);
+
+        const bloque = document.getElementById(id);
+
+        if(bloque && !bloque.dataset.colapsoAccionInicial){
+            cerrarAccionColapsable_(id);
+            bloque.dataset.colapsoAccionInicial = "1";
+        }
+
+        const siguiente = ids[indice + 1];
+
+        activarAvanceAutomaticoAccion_(
+            "respuestaSesion2Pregunta2Accion" + (indice + 1),
+            id,
+            MIN_ACCION_S2,
+            MAX_ACCION_S2,
+            siguiente,
+            ids
+        );
+
+    });
+
 }
 function configurarCheckboxesSesion2(){
 
@@ -4067,6 +4342,20 @@ function configurarCheckboxesSesion2(){
         });
         texto5.dataset.sesion2OtroInicializado = '1';
     }
+
+    sincronizarOtroCheckbox_('equipoSesion2_otro', 'equipoSesion2_otroTexto', function(){
+        actualizarRespuestaPregunta3Sesion2();
+        actualizarInterfazOtroSesion2();
+        actualizarEstadoSesion2();
+        guardarBorradorLocal({silencioso:true});
+    });
+
+    sincronizarOtroCheckbox_('mecanismoSesion2_otro', 'mecanismoSesion2_otroTexto', function(){
+        actualizarRespuestaPregunta5Sesion2();
+        actualizarInterfazOtroSesion2();
+        actualizarEstadoSesion2();
+        guardarBorradorLocal({silencioso:true});
+    });
 }
 
 function actualizarEdicionRespuestasSesion2(){
@@ -4373,7 +4662,8 @@ function actualizarEstadoSesion3(){
     activarAccionOpcional_(
         "abrirAccion4Sesion3",
         "contenidoAccion4Sesion3",
-        "respuestaSesion3Pregunta2Accion4"
+        "respuestaSesion3Pregunta2Accion4",
+        "contenedorAccion5Sesion3"
     );
 
     activarAccionOpcional_(
@@ -4383,6 +4673,16 @@ function actualizarEstadoSesion3(){
     );
 
     const accionesCompletas = a1 && a2 && a3;
+
+    actualizarEstadoTarjetaAcciones_(
+        "bloqueSesion3Pregunta2",
+        contarAccionesCompletadas_(
+            [a1, a2, a3],
+            ["contenidoAccion4Sesion3", "contenidoAccion5Sesion3"]
+        ),
+        5,
+        3
+    );
 
     habilitarBloqueSesion3(
         "bloqueSesion3Pregunta3",
@@ -4590,7 +4890,47 @@ function inicializarSesion3(){
 
     configurarOpcionesSesion3();
     inicializarColapsoSesion3();
+    inicializarAcordeonAccionesSesion3();
     actualizarEstadoSesion3();
+}
+
+/*
+ * Las tres acciones obligatorias empiezan colapsadas: se abren de a
+ * una, en orden, y cada una se colapsa sola al terminar de
+ * escribirla (ver activarAvanceAutomaticoAccion_).
+ */
+function inicializarAcordeonAccionesSesion3(){
+
+    const ids = [
+        "contenedorAccion1Sesion3",
+        "contenedorAccion2Sesion3",
+        "contenedorAccion3Sesion3"
+    ];
+
+    ids.forEach(function(id, indice){
+
+        inicializarEncabezadoAccion_(id, ids);
+
+        const bloque = document.getElementById(id);
+
+        if(bloque && !bloque.dataset.colapsoAccionInicial){
+            cerrarAccionColapsable_(id);
+            bloque.dataset.colapsoAccionInicial = "1";
+        }
+
+        const siguiente = ids[indice + 1];
+
+        activarAvanceAutomaticoAccion_(
+            "respuestaSesion3Pregunta2Accion" + (indice + 1),
+            id,
+            MIN_ACCION_S3,
+            MAX_ACCION_S3,
+            siguiente,
+            ids
+        );
+
+    });
+
 }
 
 function habilitarControlesSesion3Seleccion(idBloque,habilitado){
@@ -4669,6 +5009,21 @@ function configurarOpcionesSesion3(){
     const t4=document.getElementById('mecanismoSesion3_otroTexto');
     if(t3) t3.addEventListener('input',function(){ actualizarRespuestaPregunta3Sesion3(); actualizarEstadoSesion3(); guardarBorradorLocal({silencioso:true}); });
     if(t4) t4.addEventListener('input',function(){ actualizarRespuestaPregunta4Sesion3(); actualizarEstadoSesion3(); guardarBorradorLocal({silencioso:true}); });
+
+    sincronizarOtroCheckbox_('equipoSesion3_otro', 'equipoSesion3_otroTexto', function(){
+        actualizarRespuestaPregunta3Sesion3();
+        actualizarInterfazOpcionesSesion3();
+        actualizarEstadoSesion3();
+        guardarBorradorLocal({silencioso:true});
+    });
+
+    sincronizarOtroCheckbox_('mecanismoSesion3_otro', 'mecanismoSesion3_otroTexto', function(){
+        actualizarRespuestaPregunta4Sesion3();
+        actualizarInterfazOpcionesSesion3();
+        actualizarEstadoSesion3();
+        guardarBorradorLocal({silencioso:true});
+    });
+
     actualizarRespuestaPregunta3Sesion3();
     actualizarRespuestaPregunta4Sesion3();
     actualizarInterfazOpcionesSesion3();
