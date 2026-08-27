@@ -5014,6 +5014,26 @@ function formatearFechaHoraFirma_(fecha){
   return "Firmado a las "+horas12+":"+minutos+" "+sufijo+" el día "+dia+" del mes de "+(meses[mesIndex]||"")+" del año "+anio+".";
 }
 
+/*
+ * "26-Agosto-2026, a las 14:32" — usado en el pie de foto de
+ * evidencias (pantalla de Evidencias e informe ejecutivo).
+ */
+function formatearFechaFotoEvidencia_(fecha){
+  const zona=Session.getScriptTimeZone();
+  const meses=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  const dia=Utilities.formatDate(fecha,zona,"dd");
+  const mesIndex=Number(Utilities.formatDate(fecha,zona,"M"))-1;
+  const mes=(meses[mesIndex]||"");
+  const mesCapitalizado=mes.charAt(0).toUpperCase()+mes.slice(1);
+  const anio=Utilities.formatDate(fecha,zona,"yyyy");
+  const hora=Utilities.formatDate(fecha,zona,"HH:mm");
+  return dia+"-"+mesCapitalizado+"-"+anio+", a las "+hora;
+}
+
+function construirPieFotoEvidencia_(ieSinPrefijo,fecha){
+  return "Imagen 1: Docentes de la IE "+ieSinPrefijo+" en actividad del Foro Educativo Institucional — Neiva 2026 (fecha "+formatearFechaFotoEvidencia_(fecha)+").";
+}
+
 function registrarAsistenciaQR(idForo, nombre, sexo, edad, tipoAsistencia, cargo, rolForo, jornada, sede, fortalezas, fortalezaOtro, dificultades, dificultadOtro, documento, correo, telefono, consentimiento, dispositivoId){
   const lock=LockService.getScriptLock();
   try{
@@ -6131,9 +6151,42 @@ function generarInformeFEM(idForo,datosCliente){
      * mismo en vez de empezar siempre una hoja nueva.
      */
     encabezadoSeccion_("Evidencias de la jornada");
-    const pEv=body.appendParagraph("La fotografía original se encuentra almacenada en la carpeta institucional de la IE en Google Drive. La asistencia se firmó por código QR durante la jornada; el listado completo se incluye a continuación.");
+    const pEv=body.appendParagraph("La asistencia se firmó por código QR durante la jornada; el listado completo se incluye a continuación.");
     pEv.editAsText().setForegroundColor(GRIS_TEXTO);
-    if(c.evidenciaFotoUrl?.valor){ const p2=body.appendParagraph("📷 Ver fotografía de la plenaria"); const t2=p2.editAsText(); t2.setLinkUrl(String(c.evidenciaFotoUrl.valor)); t2.setForegroundColor(VERDE); }
+
+    /*
+     * La fotografía se inserta como imagen dentro del cuerpo del
+     * informe (no solo como enlace) con el mismo pie de página que
+     * ya se muestra en la pantalla de Evidencias. La fecha/hora del
+     * pie es la fecha real de creación del archivo en Drive (el
+     * momento en que se subió), no la fecha de generación del
+     * informe, que puede ser mucho después.
+     */
+    if(c.evidenciaFotoId?.valor){
+      try{
+        const fotoFile=DriveApp.getFileById(String(c.evidenciaFotoId.valor));
+        const imagenInsertada=body.appendImage(fotoFile.getBlob());
+        const anchoOriginal=imagenInsertada.getWidth(), altoOriginal=imagenInsertada.getHeight();
+        const anchoMax=460;
+        if(anchoOriginal>anchoMax){
+          const factor=anchoMax/anchoOriginal;
+          imagenInsertada.setWidth(anchoMax).setHeight(Math.round(altoOriginal*factor));
+        }
+        const pieFoto=body.appendParagraph(construirPieFotoEvidencia_(nombreIESinPrefijoInstitucional_(ieTitulo), fotoFile.getDateCreated()));
+        pieFoto.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+        pieFoto.editAsText().setForegroundColor(GRIS_TEXTO).setItalic(true).setFontSize(10);
+      }catch(errorFoto){
+        Logger.log("No fue posible insertar la fotografía en el informe: "+errorFoto.message);
+      }
+    }
+
+    if(c.evidenciaFotoUrl?.valor){
+      const pDescarga=body.appendParagraph("Descarga de fotografía: ");
+      pDescarga.editAsText().setForegroundColor(GRIS_TEXTO);
+      const rangoEnlace=pDescarga.appendText(String(c.evidenciaFotoUrl.valor));
+      rangoEnlace.setLinkUrl(String(c.evidenciaFotoUrl.valor));
+      rangoEnlace.setForegroundColor(VERDE);
+    }
 
     agregarListadoAsistenciaAlInforme_(body, idForo, datos);
 

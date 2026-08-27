@@ -2203,15 +2203,17 @@ Aspectos para orientar la discusión
         </div>
         <div class="evidenciaCard">
             <h3>📷 Fotografía horizontal HD</h3>
-            <p id="textoFotoRegistrada" class="textoFotoRegistrada" style="display:none;">✓ Ya hay una fotografía registrada. Si sube una nueva, la reemplazará.</p>
-            <img id="previaFotoEvidencia" class="previaFotoEvidencia" alt="Fotografía de evidencia ya registrada" style="display:none;">
             <input type="file" id="archivoFoto" accept="image/jpeg,image/png">
             <div id="estadoFoto" class="estadoArchivo"></div>
+            <p id="textoFotoRegistrada" class="textoFotoRegistrada" style="display:none;">✓ Ya hay una fotografía registrada. Si sube una nueva, la reemplazará.</p>
+            <img id="previaFotoEvidencia" class="previaFotoEvidencia" alt="Fotografía de evidencia" style="display:none;">
+            <p id="pieFotoEvidencia" class="pieFotoEvidencia" style="display:none;"></p>
         </div>
     </div>
 
     <input type="hidden" id="evidenciaFotoUrl">
     <input type="hidden" id="evidenciaFotoId">
+    <input type="hidden" id="evidenciaFotoFecha">
 
     <div class="botones">
         <button type="button" id="btnVolverSesion3DesdeEvidencias">← Anterior</button>

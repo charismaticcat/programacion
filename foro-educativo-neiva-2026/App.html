@@ -6902,14 +6902,22 @@ function actualizarPreviaFotoEvidencia_(){
     const url=document.getElementById("evidenciaFotoUrl")?.value||"";
     const img=document.getElementById("previaFotoEvidencia");
     const texto=document.getElementById("textoFotoRegistrada");
+    const pie=document.getElementById("pieFotoEvidencia");
     if(!img) return;
     if(url){
         img.src=url;
         img.style.display="block";
         if(texto) texto.style.display="block";
+        if(pie){
+            const fechaTexto=document.getElementById("evidenciaFotoFecha")?.value||"";
+            const fecha=fechaTexto?new Date(fechaTexto):new Date();
+            pie.textContent=construirPieFotoEvidenciaCliente_(fecha);
+            pie.style.display="block";
+        }
     }else{
         img.style.display="none";
         if(texto) texto.style.display="none";
+        if(pie) pie.style.display="none";
     }
 }
 function actualizarEstadoEvidencias(){
@@ -6918,6 +6926,30 @@ function actualizarEstadoEvidencias(){
     const okFoto=foto && ["image/jpeg","image/png"].includes(foto.type) && foto.size<=10*1024*1024;
     pintarEstadoArchivo("estadoFoto",foto,okFoto,"Imagen válida.","Seleccione JPG/PNG de máximo 10 MB.");
     if(subir) subir.disabled=!okFoto;
+
+    /*
+     * Vista previa inmediata (antes de subir): se muestra debajo del
+     * botón de elegir archivo apenas se selecciona la foto, sin
+     * esperar a que termine de subirse.
+     */
+    if(okFoto){
+        const img=document.getElementById("previaFotoEvidencia");
+        const pie=document.getElementById("pieFotoEvidencia");
+        const texto=document.getElementById("textoFotoRegistrada");
+        if(img){
+            img.src=URL.createObjectURL(foto);
+            img.style.display="block";
+        }
+        if(pie){
+            pie.textContent=construirPieFotoEvidenciaCliente_(new Date());
+            pie.style.display="block";
+        }
+        if(texto) texto.style.display="none";
+    }else if(!foto){
+        // Se deseleccionó sin elegir una nueva: volver a mostrar la
+        // que ya estuviera subida (si la hay).
+        actualizarPreviaFotoEvidencia_();
+    }
 }
 function pintarEstadoArchivo(id,file,ok,si,no){
     const el=document.getElementById(id); if(!el) return;
@@ -7058,9 +7090,10 @@ async function subirEvidenciasFEM(){
         }
         if(!resultado || !resultado.ok) throw new Error(resultado?.mensaje||"No fue posible registrar las evidencias.");
         document.getElementById("evidenciaFotoUrl").value=resultado.foto.url;
-        actualizarPreviaFotoEvidencia_();
         document.getElementById("evidenciaFotoId").value=resultado.foto.id;
-        const campos=["evidenciaFotoUrl","evidenciaFotoId"];
+        if(document.getElementById("evidenciaFotoFecha")) document.getElementById("evidenciaFotoFecha").value=new Date().toISOString();
+        actualizarPreviaFotoEvidencia_();
+        const campos=["evidenciaFotoUrl","evidenciaFotoId","evidenciaFotoFecha"];
         campos.forEach(id=>document.getElementById(id)?.dispatchEvent(new Event("change")));
         guardarBorradorLocal({silencioso:true});
         mostrarMensajeEvidencias("✓ Fotografía registrada. La asistencia se sigue firmando por QR — puede continuar a la plenaria mientras tanto.");
@@ -7075,6 +7108,29 @@ async function subirEvidenciasFEM(){
 
 function getCampoValor(id){ const el=document.getElementById(id); return el?String(el.value||""):""; }
 function getCampoNombreIE(){ return getCampoValor("institucion") || (window.DATOS_ACCESO_FEM?.ie||NOMBRE_IE_ACCESO||""); }
+
+/*
+ * Pie de página de la fotografía de evidencias: mismo texto en la
+ * pantalla de Evidencias (antes y después de subir), en la
+ * plenaria, y en el cuerpo del informe (ese lo arma Código.js con
+ * la fecha real de creación del archivo en Drive — aquí se usa la
+ * fecha guardada al subir, o el momento actual como aproximación
+ * antes de subir).
+ */
+function formatearFechaFotoEvidenciaCliente_(fecha){
+    const meses=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+    const dia=String(fecha.getDate()).padStart(2,"0");
+    const mes=meses[fecha.getMonth()]||"";
+    const mesCapitalizado=mes.charAt(0).toUpperCase()+mes.slice(1);
+    const anio=fecha.getFullYear();
+    const hora=String(fecha.getHours()).padStart(2,"0")+":"+String(fecha.getMinutes()).padStart(2,"0");
+    return dia+"-"+mesCapitalizado+"-"+anio+", a las "+hora;
+}
+
+function construirPieFotoEvidenciaCliente_(fecha){
+    const ieSinPrefijo=getCampoNombreIE().replace(/^\s*(instituci[oó]n\s+educativa|i\.?\s*e\.?)\s+/i,"").trim();
+    return "Imagen 1: Docentes de la IE "+ieSinPrefijo+" en actividad del Foro Educativo Institucional — Neiva 2026 (fecha "+formatearFechaFotoEvidenciaCliente_(fecha)+").";
+}
 function getTotalParticipantes(){ return Number(document.getElementById("totalParticipantes")?.textContent||0); }
 
 function renderizarPlenaria(opciones){
@@ -7130,7 +7186,25 @@ function renderizarPlenaria(opciones){
             plenariaPaginas.push({id:q[0],sesion:grupo.sesion,campo:q[2],sent});
         });
     });
-    html+=`<div class="plenariaPagina evidenciaInforme"><h2>Evidencias</h2><p>📷 <a href="${escapeAttr(getCampoValor("evidenciaFotoUrl"))}" target="_blank">Ver fotografía del Foro</a></p><p>✅ La asistencia se firmó por código QR durante la jornada. El listado completo se incluye al final del informe ejecutivo.</p></div>`;
+    {
+        const fotoUrlPlenaria=getCampoValor("evidenciaFotoUrl");
+        const fechaTextoPlenaria=getCampoValor("evidenciaFotoFecha");
+        const fechaPlenaria=fechaTextoPlenaria?new Date(fechaTextoPlenaria):new Date();
+        const piePlenaria=fotoUrlPlenaria?construirPieFotoEvidenciaCliente_(fechaPlenaria):"";
+        const nombreIEPlenaria=getCampoNombreIE();
+        /*
+         * La foto se muestra embebida (no como enlace a Drive). Si
+         * no llega a cargar por latencia de Internet, onerror oculta
+         * la imagen y el pie, y muestra en su lugar el enlace de
+         * respaldo para abrirla en una pestaña aparte.
+         */
+        const bloqueFoto=fotoUrlPlenaria?`<div class="fotoEvidenciaPlenaria">
+<img src="${escapeAttr(fotoUrlPlenaria)}" alt="Fotografía del Foro" class="imagenEvidenciaPlenaria" onerror="this.style.display='none';this.nextElementSibling.style.display='block';var p=this.parentElement.querySelector('.pieFotoEvidenciaPlenaria');if(p)p.style.display='none';">
+<p class="enlaceFotoFallback" style="display:none;">📷 <a href="${escapeAttr(fotoUrlPlenaria)}" target="_blank">Ver fotografía del Foro de la IE ${escapeHtml(nombreIEPlenaria)}</a></p>
+<p class="pieFotoEvidenciaPlenaria">${escapeHtml(piePlenaria)}</p>
+</div>`:"";
+        html+=`<div class="plenariaPagina evidenciaInforme"><h2>Evidencias</h2>${bloqueFoto}<p>✅ La asistencia se firmó por código QR durante la jornada. El listado completo se incluye al final del informe ejecutivo.</p></div>`;
+    }
     contenido.innerHTML=html;
     const nav=document.getElementById("plenariaNavegacion");
     if(nav) nav.innerHTML=plenariaPaginas.map((p,i)=>`<button type="button" data-nav="${i}">${i+1}</button>`).join("");
