@@ -2300,44 +2300,38 @@ Aspectos para orientar la discusión
 <!-- =================== SESIÓN 4 / SESIÓN PROPIA (OPCIONAL) =================== -->
 <section id="pantallaSesion4" class="pantalla">
 
-    <h2 class="tituloPrincipal">Sesión Propia de la IE <span class="nombreIESesion4">—</span></h2>
-    <h3 class="subtitulo">Complemento institucional — no se incluye en las conclusiones del foro comunitario</h3>
+    <h2 class="tituloPrincipal">Sesión 4</h2>
 
-    <div class="tarjetaObjetivo">
-        <h3>🎯 ¿Qué es esta sesión?</h3>
-        <p>Espacio para registrar hallazgos, desarrollos propios o una nueva línea temática que la institución quiera proponer, o que ya haya desarrollado, adicional a las tres sesiones anteriores.</p>
-    </div>
-
-    <!-- TÍTULO DE LA SESIÓN -->
-    <div class="bloqueSesionPropia">
+    <!-- TÍTULO DE LA SESIÓN: bloque agregable/eliminable con + y −.
+         Sin etiqueta fija: el texto de ayuda vive en el placeholder,
+         que desaparece al escribir. -->
+    <div class="bloqueSesionPropia" id="bloqueTituloSesionPropia">
         <div id="tituloSesionPropiaVacio">
             <button type="button" id="btnAgregarTituloSesionPropia" class="botonAccionOpcional">+ Título de la sesión</button>
         </div>
-        <div id="tituloSesionPropiaLleno" style="display:none;">
-            <label class="labelSesionPropia">Título de la sesión</label>
-            <input type="text" id="tituloSesionPropia" placeholder="Escriba el título único de esta sesión...">
-            <p class="ayudaSesionPropia">Solo pueden crear un único título para la sesión, que incluya todas las líneas temáticas y preguntas que hayan surgido adicionales a este Foro.</p>
+        <div id="tituloSesionPropiaLleno" class="filaSesionPropiaConQuitar" style="display:none;">
+            <input type="text" id="tituloSesionPropia" placeholder="Escriba aquí el título único de la sesión (incluye todas las líneas y preguntas)...">
+            <button type="button" id="btnQuitarTituloSesionPropia" class="btnQuitarSesionPropia" aria-label="Quitar título">−</button>
         </div>
     </div>
 
-    <!-- OBJETIVO DE LA SESIÓN -->
-    <div class="bloqueSesionPropia">
+    <!-- OBJETIVO DE LA SESIÓN: mismo patrón +/−. -->
+    <div class="bloqueSesionPropia" id="bloqueObjetivoSesionPropia">
         <div id="objetivoSesionPropiaVacio">
-            <button type="button" id="btnAgregarObjetivoSesionPropia" class="botonAccionOpcional">+ Agregar objetivo de la sesión</button>
+            <button type="button" id="btnAgregarObjetivoSesionPropia" class="botonAccionOpcional">+ Objetivo de la sesión</button>
         </div>
-        <div id="objetivoSesionPropiaLleno" style="display:none;">
-            <label class="labelSesionPropia">Objetivo de la sesión</label>
-            <textarea id="objetivoSesionPropia" rows="4" placeholder="Escriba el objetivo iniciando con un verbo en infinitivo (-ar, -er, -ir)..."></textarea>
-            <p class="ayudaSesionPropia">La primera palabra debe ser un verbo en infinitivo (terminado en <strong>-ar, -er o -ir</strong>). Se recomienda dar un alcance medible y de impacto claro para la IE <span class="nombreIESesion4">—</span>, y justificar la relevancia institucional para su comunidad educativa.</p>
-            <p id="errorObjetivoSesionPropia" class="mensajeContador" style="display:none;">⚠ La primera palabra debe ser un verbo conjugado en infinitivo (-ar, -er, -ir).</p>
+        <div id="objetivoSesionPropiaLleno" class="filaSesionPropiaConQuitar" style="display:none;">
+            <textarea id="objetivoSesionPropia" rows="3" placeholder="Escriba aquí el objetivo, iniciando con un verbo en infinitivo (-ar, -er, -ir)..."></textarea>
+            <button type="button" id="btnQuitarObjetivoSesionPropia" class="btnQuitarSesionPropia" aria-label="Quitar objetivo">−</button>
         </div>
+        <p id="errorObjetivoSesionPropia" class="mensajeContador" style="display:none;">⚠ La primera palabra debe ser un verbo conjugado en infinitivo (-ar, -er, -ir).</p>
     </div>
 
-    <!-- LÍNEAS TEMÁTICAS -->
+    <!-- LÍNEAS TEMÁTICAS: cada una y cada pregunta/respuesta dentro
+         se agrega y se quita con + / −, sin ningún título fijo. -->
     <div class="bloqueSesionPropia">
-        <h3 class="tituloLineasTematicas">Líneas Temáticas Institucionales Propias de las realidades de la IE <span class="nombreIESesion4">—</span></h3>
         <div id="listaLineasTematicasPropias"></div>
-        <button type="button" id="btnAgregarLineaTematica" class="botonAccionOpcional">+ Agregar línea temática</button>
+        <button type="button" id="btnAgregarLineaTematica" class="botonAccionOpcional">+ Línea temática</button>
     </div>
 
     <input type="hidden" id="sesionPropiaLineasJSON" value="[]">

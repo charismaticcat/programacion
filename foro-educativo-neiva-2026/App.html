@@ -5417,6 +5417,11 @@ function guardarLineasTematicasPropiasEnCampo_(){
     guardarBorradorLocal({silencioso:true});
 }
 
+/* Sin títulos ni etiquetas fijas en ninguna parte: toda orientación
+ * al usuario vive únicamente en el placeholder del campo (que
+ * desaparece en cuanto se escribe algo), y cada parte agregada
+ * (línea, pregunta, respuesta) tiene su propio botón "−" para
+ * eliminarla, junto al "+" correspondiente para volver a agregarla. */
 function renderLineasTematicasPropias_(){
     const cont = document.getElementById("listaLineasTematicasPropias");
     if(!cont) return;
@@ -5429,28 +5434,36 @@ function renderLineasTematicasPropias_(){
             let bloqueRespuesta = "";
             if(p.respuestaVisible || terminada){
                 bloqueRespuesta =
-                    '<label class="labelSesionPropia">Respuesta de pregunta '+numPregunta+'</label>'+
-                    '<textarea class="textareaRespuestaPropia" data-linea="'+li+'" data-pregunta="'+pi+'" '+(terminada?'disabled':'')+' placeholder="Escriba la respuesta...">'+escapeHtml(p.respuesta||"")+'</textarea>'+
+                    '<div class="filaSesionPropiaConQuitar">'+
+                        '<textarea class="textareaRespuestaPropia" data-linea="'+li+'" data-pregunta="'+pi+'" '+(terminada?'disabled':'')+' placeholder="Escriba aquí la respuesta '+numPregunta+'...">'+escapeHtml(p.respuesta||"")+'</textarea>'+
+                        (terminada
+                            ? ''
+                            : '<button type="button" class="btnQuitarSesionPropia btnQuitarRespuesta" data-linea="'+li+'" data-pregunta="'+pi+'" aria-label="Quitar respuesta">−</button>')+
+                    '</div>'+
                     (terminada
                         ? '<div class="okRespuestaTerminada">✓ OK</div>'
                         : '<button type="button" class="btnRespuestaTerminada" data-linea="'+li+'" data-pregunta="'+pi+'">✓ Respuesta terminada</button>');
             }else if(String(p.texto||"").trim()){
-                bloqueRespuesta = '<button type="button" class="btnAgregarRespuestaPregunta" data-linea="'+li+'" data-pregunta="'+pi+'">+ Agregar respuesta de pregunta '+numPregunta+'</button>';
+                bloqueRespuesta = '<button type="button" class="btnAgregarRespuestaPregunta" data-linea="'+li+'" data-pregunta="'+pi+'">+ Respuesta '+numPregunta+'</button>';
             }
             return '<div class="bloquePreguntaPropia'+(terminada?' terminada':'')+'" data-linea="'+li+'" data-pregunta="'+pi+'">'+
-                '<label class="labelSesionPropia">Pregunta '+numPregunta+'</label>'+
-                '<textarea class="textareaPreguntaPropia" data-linea="'+li+'" data-pregunta="'+pi+'" '+(terminada?'disabled':'')+' placeholder="Escriba la pregunta...">'+escapeHtml(p.texto||"")+'</textarea>'+
+                '<div class="filaSesionPropiaConQuitar">'+
+                    '<textarea class="textareaPreguntaPropia" data-linea="'+li+'" data-pregunta="'+pi+'" '+(terminada?'disabled':'')+' placeholder="Escriba aquí la pregunta '+numPregunta+'...">'+escapeHtml(p.texto||"")+'</textarea>'+
+                    (terminada
+                        ? ''
+                        : '<button type="button" class="btnQuitarSesionPropia btnQuitarPregunta" data-linea="'+li+'" data-pregunta="'+pi+'" aria-label="Quitar pregunta">−</button>')+
+                '</div>'+
                 bloqueRespuesta+
             '</div>';
         }).join("");
 
         return '<div class="tarjetaLineaTematicaPropia" data-linea="'+li+'">'+
-            '<div class="encabezadoLineaTematicaPropia">'+
-                '<label class="labelSesionPropia">Línea temática '+numLinea+'</label>'+
-                '<input type="text" class="inputTituloLinea" data-linea="'+li+'" value="'+escapeAttr(linea.titulo||"")+'" placeholder="Título de la línea temática...">'+
+            '<div class="encabezadoLineaTematicaPropia filaSesionPropiaConQuitar">'+
+                '<input type="text" class="inputTituloLinea" data-linea="'+li+'" value="'+escapeAttr(linea.titulo||"")+'" placeholder="Escriba aquí el título de la línea temática '+numLinea+'...">'+
+                '<button type="button" class="btnQuitarSesionPropia btnQuitarLinea" data-linea="'+li+'" aria-label="Quitar línea temática">−</button>'+
             '</div>'+
             '<div class="listaPreguntasLinea">'+preguntasHTML+'</div>'+
-            '<button type="button" class="btnAgregarPreguntaLinea" data-linea="'+li+'">+ Agregar pregunta</button>'+
+            '<button type="button" class="btnAgregarPreguntaLinea" data-linea="'+li+'">+ Pregunta</button>'+
         '</div>';
     }).join("");
 }
@@ -5477,7 +5490,7 @@ function inicializarSesionPropia_(){
     cargarLineasTematicasPropiasDesdeCampo_();
     renderLineasTematicasPropias_();
 
-    // TÍTULO (una sola vez).
+    // TÍTULO (agregable con + y eliminable con −).
     const btnAgregarTitulo=document.getElementById("btnAgregarTituloSesionPropia");
     if(btnAgregarTitulo && !btnAgregarTitulo.dataset.inicializado){
         btnAgregarTitulo.dataset.inicializado="1";
@@ -5492,8 +5505,19 @@ function inicializarSesionPropia_(){
         document.getElementById("tituloSesionPropiaLleno").style.display="";
     }
     document.getElementById("tituloSesionPropia")?.addEventListener("input",function(){ guardarBorradorLocal({silencioso:true}); });
+    const btnQuitarTitulo=document.getElementById("btnQuitarTituloSesionPropia");
+    if(btnQuitarTitulo && !btnQuitarTitulo.dataset.inicializado){
+        btnQuitarTitulo.dataset.inicializado="1";
+        btnQuitarTitulo.addEventListener("click",function(){
+            const campo=document.getElementById("tituloSesionPropia");
+            if(campo) campo.value="";
+            document.getElementById("tituloSesionPropiaLleno").style.display="none";
+            document.getElementById("tituloSesionPropiaVacio").style.display="";
+            guardarBorradorLocal({silencioso:true});
+        });
+    }
 
-    // OBJETIVO (una sola vez, valida verbo en infinitivo).
+    // OBJETIVO (agregable con + y eliminable con −; valida verbo en infinitivo).
     const btnAgregarObjetivo=document.getElementById("btnAgregarObjetivoSesionPropia");
     if(btnAgregarObjetivo && !btnAgregarObjetivo.dataset.inicializado){
         btnAgregarObjetivo.dataset.inicializado="1";
@@ -5512,6 +5536,20 @@ function inicializarSesionPropia_(){
         objetivoCampo.dataset.inicializado="1";
         objetivoCampo.addEventListener("input",function(){ validarObjetivoSesionPropia_(); guardarBorradorLocal({silencioso:true}); });
         validarObjetivoSesionPropia_();
+    }
+    const btnQuitarObjetivo=document.getElementById("btnQuitarObjetivoSesionPropia");
+    if(btnQuitarObjetivo && !btnQuitarObjetivo.dataset.inicializado){
+        btnQuitarObjetivo.dataset.inicializado="1";
+        btnQuitarObjetivo.addEventListener("click",function(){
+            const campo=document.getElementById("objetivoSesionPropia");
+            if(campo) campo.value="";
+            const error=document.getElementById("errorObjetivoSesionPropia");
+            if(error) error.style.display="none";
+            campo?.classList.remove("campoConError");
+            document.getElementById("objetivoSesionPropiaLleno").style.display="none";
+            document.getElementById("objetivoSesionPropiaVacio").style.display="";
+            guardarBorradorLocal({silencioso:true});
+        });
     }
 
     // + AGREGAR LÍNEA TEMÁTICA.
@@ -5575,6 +5613,21 @@ function inicializarSesionPropia_(){
             }else if(boton.classList.contains("btnRespuestaTerminada")){
                 const pi=Number(boton.dataset.pregunta);
                 if(linea.preguntas[pi]) linea.preguntas[pi].terminada=true;
+            }else if(boton.classList.contains("btnQuitarLinea")){
+                // Elimina la línea temática completa (y sus preguntas/respuestas).
+                lineasTematicasPropias_.splice(li,1);
+            }else if(boton.classList.contains("btnQuitarPregunta")){
+                // Elimina la pregunta completa (y su respuesta, si tenía).
+                const pi=Number(boton.dataset.pregunta);
+                linea.preguntas.splice(pi,1);
+            }else if(boton.classList.contains("btnQuitarRespuesta")){
+                // Solo borra la respuesta; la pregunta permanece y vuelve
+                // a mostrar el botón "+ Respuesta".
+                const pi=Number(boton.dataset.pregunta);
+                if(linea.preguntas[pi]){
+                    linea.preguntas[pi].respuesta="";
+                    linea.preguntas[pi].respuestaVisible=false;
+                }
             }else{
                 return;
             }

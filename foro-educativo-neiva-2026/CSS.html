@@ -1938,13 +1938,6 @@ SESIÓN 1
     padding:20px 22px;
     margin:18px 0;
 }
-.labelSesionPropia{
-    display:block;
-    font-weight:700;
-    color:var(--verde-neiva,var(--color-primary));
-    margin-bottom:8px;
-    font-size:14px;
-}
 .bloqueSesionPropia input[type="text"],
 .bloqueSesionPropia textarea{
     width:100%;
@@ -1956,16 +1949,33 @@ SESIÓN 1
     border-radius:10px;
     resize:vertical;
 }
-.ayudaSesionPropia{
-    font-size:13px;
-    color:var(--gris-texto,#4A4A4A);
-    line-height:1.6;
-    margin:10px 0 0;
-}
 .campoConError{ border-color:#C62828 !important; }
 #errorObjetivoSesionPropia{ color:#C62828; font-weight:600; margin-top:8px; }
 
-.tituloLineasTematicas{ color:var(--verde-neiva,var(--color-primary)); font-size:17px; margin-bottom:10px; }
+/* Fila con un campo editable + su botón "−" de eliminar al lado:
+   patrón reutilizado en título, objetivo, línea, pregunta y respuesta
+   de la Sesión Propia — sin ningún título ni texto fijo, todo vive en
+   el placeholder del propio campo. */
+.filaSesionPropiaConQuitar{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+}
+.filaSesionPropiaConQuitar input,
+.filaSesionPropiaConQuitar textarea{ flex:1 1 auto; }
+.btnQuitarSesionPropia{
+    flex:0 0 auto;
+    width:auto;
+    min-height:auto;
+    padding:10px 15px;
+    font-size:16px;
+    font-weight:700;
+    line-height:1;
+    background:#FBEAEA;
+    color:var(--rojo-neiva,#C62828);
+    border-radius:10px;
+}
+.btnQuitarSesionPropia:hover{ background:#F6D9D9; }
 
 .tarjetaLineaTematicaPropia{
     background:#fff;
