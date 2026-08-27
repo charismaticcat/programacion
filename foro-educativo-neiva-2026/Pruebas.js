@@ -3156,3 +3156,68 @@ function simular50RespuestasFEM(){
 
   return { ok:true, exitosas: exitosas, total: TOTAL, resultados: resultados };
 }
+
+
+/*****************************************************
+ * BLOQUEO POR HORARIO — página de bloqueo antes de una hora
+ *
+ * Pone en AccesosIE, en la columna HABILITAR_DESDE de la fila de la
+ * IE indicada, una fecha/hora (hoy, hora de Bogotá). Mientras esa
+ * hora no llegue, validarAccesoIE() rechaza el ingreso con el código
+ * BLOQUEADO_POR_HORARIO, que el cliente muestra como una página de
+ * bloqueo completa (pantallaBloqueoHorarioFEM en Index.html) en vez
+ * del formulario — el código de acceso sigue siendo el mismo, no hay
+ * que reenviar nada ni cambiar nada más.
+ *
+ * Al llegar la hora programada, el siguiente intento de ingreso ya
+ * entra normalmente: no hace falta ninguna acción manual para
+ * "abrir" el acceso.
+ *
+ * Ejecutar manualmente:
+ *   programarBloqueoHorarioIE("IE Prueba Ana", 9, 0)
+ *   quitarBloqueoHorarioIE("IE Prueba Ana")            (para levantarlo antes de tiempo)
+ *   bloquearPruebaAnaYNelsonHasta9am()                  (las dos de una vez)
+ *****************************************************/
+function programarBloqueoHorarioIE(nombreIE, hora, minuto){
+  const hoja = asegurarColumnasAccesosIE_();
+  const mapa = mapaHoja_(hoja);
+  if(!mapa.HABILITAR_DESDE) return { ok:false, mensaje:"No fue posible crear la columna HABILITAR_DESDE." };
+  if(hoja.getLastRow() < 2) return { ok:false, mensaje:"AccesosIE no tiene filas." };
+
+  const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues();
+  const indice = valores.findIndex(function(f){ return String(f[mapa.IE - 1] || "").trim() === nombreIE; });
+  if(indice === -1) return { ok:false, mensaje:"No existe " + nombreIE + " en AccesosIE." };
+
+  const zona = "America/Bogota";
+  const ahora = new Date();
+  const fechaHabilitacion = new Date(
+    Utilities.formatDate(ahora, zona, "yyyy-MM-dd") + "T" +
+    String(hora).padStart(2, "0") + ":" + String(minuto).padStart(2, "0") + ":00"
+  );
+
+  hoja.getRange(indice + 2, mapa.HABILITAR_DESDE).setValue(fechaHabilitacion);
+
+  const mensaje = nombreIE + ": bloqueada hasta las " + Utilities.formatDate(fechaHabilitacion, zona, "h:mm a") + " del " + Utilities.formatDate(fechaHabilitacion, zona, "dd/MM/yyyy") + ".";
+  Logger.log(mensaje);
+  return { ok:true, mensaje: mensaje, fechaHabilitacion: fechaHabilitacion.toISOString() };
+}
+
+function quitarBloqueoHorarioIE(nombreIE){
+  const hoja = asegurarColumnasAccesosIE_();
+  const mapa = mapaHoja_(hoja);
+  if(!mapa.HABILITAR_DESDE || hoja.getLastRow() < 2) return { ok:true, mensaje:"Nada que quitar." };
+  const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues();
+  const indice = valores.findIndex(function(f){ return String(f[mapa.IE - 1] || "").trim() === nombreIE; });
+  if(indice === -1) return { ok:false, mensaje:"No existe " + nombreIE + " en AccesosIE." };
+  hoja.getRange(indice + 2, mapa.HABILITAR_DESDE).setValue("");
+  const mensaje = nombreIE + ": bloqueo por horario retirado.";
+  Logger.log(mensaje);
+  return { ok:true, mensaje: mensaje };
+}
+
+function bloquearPruebaAnaYNelsonHasta9am(){
+  const resultadoAna = programarBloqueoHorarioIE("IE Prueba Ana", 9, 0);
+  const resultadoNelson = programarBloqueoHorarioIE("IE Prueba Nelson", 9, 0);
+  Logger.log([resultadoAna.mensaje, resultadoNelson.mensaje].join("\n"));
+  return { ok:true, ana: resultadoAna, nelson: resultadoNelson };
+}

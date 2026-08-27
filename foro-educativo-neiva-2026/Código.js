@@ -2948,6 +2948,50 @@ function validarAccesoIE(token, codigo, dispositivoId, forzar) {
 
 
     /*
+     * Bloqueo por horario (HABILITAR_DESDE).
+     *
+     * Permite dejar el código ya generado y enviado, pero sin abrir
+     * el formulario todavía: si la columna HABILITAR_DESDE tiene una
+     * fecha/hora futura para esta fila, se rechaza el ingreso con un
+     * código especial que el cliente muestra como una página de
+     * bloqueo (no un simple mensaje de error), en vez del formulario.
+     * Se lee el valor directamente de la celda (no de "filas", que
+     * viene en texto) para no depender del formato de fecha local.
+     */
+
+    if (mapa["HABILITAR_DESDE"]) {
+
+      const valorHabilitar =
+        hoja.getRange(numeroFila, mapa["HABILITAR_DESDE"]).getValue();
+
+      if (
+        valorHabilitar instanceof Date &&
+        !isNaN(valorHabilitar.getTime()) &&
+        new Date() < valorHabilitar
+      ) {
+
+        const zonaHabilitar = Session.getScriptTimeZone();
+        const horaHabilitacion =
+          Utilities.formatDate(valorHabilitar, zonaHabilitar, "h:mm a")
+            .replace("AM", "a. m.")
+            .replace("PM", "p. m.");
+
+        return {
+          ok: false,
+          codigo: "BLOQUEADO_POR_HORARIO",
+          mensaje:
+            "El Foro Educativo Institucional se habilitará a las " +
+            horaHabilitacion +
+            ". Por favor ingrese nuevamente a partir de esa hora.",
+          horaHabilitacion: horaHabilitacion
+        };
+
+      }
+
+    }
+
+
+    /*
      * Verificación de IE.
      *
      * Las IE oficiales deben existir en Oficiales.
@@ -4762,7 +4806,7 @@ function asegurarColumnasAccesosIE_(){
   const ss=abrirSpreadsheet_();
   let hoja=ss.getSheetByName(HOJA_ACCESOS);
   if(!hoja) hoja=ss.insertSheet(HOJA_ACCESOS);
-  const requeridas=["ID_ACCESO","IE","DANE","CODIGO_ACCESO","TOKEN","URL_ACCESO","ID_FORO","ESTADO","TOKEN_SESION","DISPOSITIVO_ID","FECHA_GENERACION","FECHA_PRIMER_ACCESO","ULTIMA_ACTIVIDAD","FECHA_ENVIO","EMAIL_IE","EMAIL_RESPONSABLE","TIPO","S1_ENVIADA","S2_ENVIADA","S3_ENVIADA","ID_INFORME","ID_PDF_INFORME","LOGO_ID"];
+  const requeridas=["ID_ACCESO","IE","DANE","CODIGO_ACCESO","TOKEN","URL_ACCESO","ID_FORO","ESTADO","TOKEN_SESION","DISPOSITIVO_ID","FECHA_GENERACION","FECHA_PRIMER_ACCESO","ULTIMA_ACTIVIDAD","FECHA_ENVIO","EMAIL_IE","EMAIL_RESPONSABLE","TIPO","S1_ENVIADA","S2_ENVIADA","S3_ENVIADA","ID_INFORME","ID_PDF_INFORME","LOGO_ID","HABILITAR_DESDE"];
   const last=hoja.getLastColumn();
   const existentes=last?hoja.getRange(1,1,1,last).getValues()[0].map(String):[];
   if(!last){hoja.getRange(1,1,1,requeridas.length).setValues([requeridas]);}

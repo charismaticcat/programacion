@@ -152,6 +152,45 @@ CONTENEDOR PRINCIPAL
 
 </section>
 
+<!-- =================== BLOQUEO POR HORARIO =================== -->
+<!-- Se muestra en vez del formulario cuando validarAccesoIE responde
+     con el código BLOQUEADO_POR_HORARIO: el código de acceso es
+     válido, pero todavía no llegó la hora programada de apertura. -->
+<section id="pantallaBloqueoHorarioFEM" class="pantalla">
+
+    <div class="contenedorAccesoFEM">
+
+        <p class="indicadorAccesoFEM">
+            Foro Educativo Institucional — Neiva 2026
+        </p>
+
+        <div class="bloqueoHorarioIcono">🔒</div>
+
+        <h1 class="tituloAccesoPrincipal">
+            El Foro todavía no se ha habilitado
+        </h1>
+
+        <p class="bloqueoHorarioTexto">
+            Su código de acceso es válido. El formulario se habilitará a las
+            <strong id="bloqueoHorarioHora">—</strong>.
+            Por favor vuelva a ingresar a partir de esa hora.
+        </p>
+
+        <button type="button" id="btnReintentarBloqueoHorario" class="botonPrincipalFEM">
+            Reintentar ahora
+        </button>
+
+        <div class="contactoAccesoFEM">
+            <p class="contactoAccesoFEMPregunta">¿Tiene dificultades para ingresar?</p>
+            <p class="contactoAccesoFEMEntidad">Secretaría de Educación de Neiva</p>
+            <p class="contactoAccesoFEMDato">educacion@alcaldianeiva.gov.co</p>
+            <p class="contactoAccesoFEMDato">318 456 1081</p>
+        </div>
+
+    </div>
+
+</section>
+
 <!-- =================== BIENVENIDA =================== -->
 
 <section id="pantallaBienvenida" class="pantalla <?!= tokenAcceso ? '' : 'visible' ?>">

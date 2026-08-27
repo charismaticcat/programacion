@@ -6171,6 +6171,22 @@ function inicializarAccesoFEM(){
 
     campoCodigo.focus();
 
+
+    /*
+     * Botón "Reintentar ahora" de la página de bloqueo por horario:
+     * el código sigue en el campo (la pantalla solo se ocultó, no se
+     * destruyó), así que basta con volver a validar.
+     */
+    const btnReintentarBloqueo =
+        document.getElementById("btnReintentarBloqueoHorario");
+
+    if(btnReintentarBloqueo && !btnReintentarBloqueo.dataset.inicializado){
+        btnReintentarBloqueo.dataset.inicializado = "1";
+        btnReintentarBloqueo.addEventListener("click", function(){
+            validarCodigoAccesoFEM();
+        });
+    }
+
 }
 
 
@@ -6297,6 +6313,26 @@ function validarCodigoAccesoFEM(forzar){
                     !resultado ||
                     resultado.ok !== true
                 ){
+
+                    /*
+                     * Código válido, pero todavía no llegó la hora
+                     * programada de apertura (HABILITAR_DESDE en
+                     * AccesosIE): en vez de un simple mensaje de
+                     * error, se muestra una página de bloqueo
+                     * completa con la hora de habilitación.
+                     */
+                    if(
+                        resultado &&
+                        resultado.codigo === "BLOQUEADO_POR_HORARIO"
+                    ){
+
+                        const horaBloqueo = document.getElementById("bloqueoHorarioHora");
+                        if(horaBloqueo) horaBloqueo.textContent = resultado.horaHabilitacion || "la hora programada";
+
+                        cambiarPantalla("pantallaAccesoFEM", "pantallaBloqueoHorarioFEM", 0);
+                        return;
+
+                    }
 
                     /*
                      * Ya hay una sesión activa para esta IE en otro
