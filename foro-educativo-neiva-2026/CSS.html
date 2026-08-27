@@ -1296,6 +1296,31 @@ SESIÓN 1
 
     margin:0 0 55px;
 
+    /* Ancla el ícono del ojo (ampliar), inyectado por JS. */
+    position:relative;
+
+}
+
+/*
+ * Ícono del ojo (ampliar pregunta a pantalla completa) — mismo
+ * botón e icono que ya existía en la plenaria, ahora reutilizado
+ * también en Sesión 1, 2 y 3 (ver activarOjoPreguntaSesion_ en
+ * App.html). El bloque que entra en pantalla completa es el
+ * contenedor de la pregunta completa (id que empieza con "bloque"),
+ * no solo la tarjeta del encabezado. .tarjetaPregunta ya tiene
+ * padding propio, así que top:0/right:0 del botón (heredado de
+ * .btnAmpliarPregunta) queda bien ubicado sin ajuste adicional.
+ */
+
+[id^="bloque"]:fullscreen{
+    overflow-y:auto;
+    padding:40px 8vw;
+    background:var(--blanco, #fff);
+}
+
+[id^="bloque"]:fullscreen textarea{
+    min-height:60vh;
+    font-size:18px;
 }
 .tarjetaPregunta h3,
 .tarjetaObjetivo h3{

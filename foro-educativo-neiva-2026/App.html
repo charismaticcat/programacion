@@ -2268,6 +2268,46 @@ function activarAccionOpcional_(idBoton, idContenido, idCampo, idSiguienteConten
 }
 
 /*****************************************************
+ * ÍCONO DEL OJO — AMPLIAR PREGUNTA (SESIÓN 1, 2 Y 3)
+ * Mismo botón/ícono y mismo comportamiento que ya existía en la
+ * plenaria (.btnAmpliarPregunta, pantalla completa por pregunta):
+ * se reutiliza aquí en vez de crear un control nuevo. Al hacer clic
+ * se pone en pantalla completa el bloque COMPLETO de la pregunta
+ * (encabezado + panel de apoyo + respuesta), no solo el encabezado.
+ *****************************************************/
+
+function activarOjoPreguntaSesion_(idBloque){
+
+    const bloque = document.getElementById(idBloque);
+    if(!bloque) return;
+
+    const tarjeta = bloque.querySelector(":scope > .tarjetaPregunta");
+    if(!tarjeta || tarjeta.querySelector(".btnAmpliarPregunta")) return;
+
+    const boton = document.createElement("button");
+    boton.type = "button";
+    boton.className = "btnAmpliarPregunta";
+    boton.title = "Ampliar esta pregunta";
+    boton.setAttribute("aria-label", "Ampliar esta pregunta");
+    boton.textContent = "👁️";
+
+    boton.addEventListener("click", async function(){
+        try{
+            if(!document.fullscreenElement){
+                await bloque.requestFullscreen();
+            }else{
+                await document.exitFullscreen();
+            }
+        }catch(error){
+            console.error("No fue posible ampliar la pregunta:", error);
+        }
+    });
+
+    tarjeta.appendChild(boton);
+
+}
+
+/*****************************************************
  * SINCRONIZAR CASILLA "OTRO" CON SU TEXTO
  * (Sesión 2: Preguntas 3 y 5. Sesión 3: Preguntas 3 y 4)
  * Si se deselecciona "Otro", se borra el texto escrito. Si el
@@ -2850,6 +2890,9 @@ function inicializarContadoresSesion1(){
     actualizarContadorPregunta2();
     actualizarEstadoContinuar();
     inicializarColapsoSesion1();
+
+    activarOjoPreguntaSesion_("bloquePregunta1");
+    activarOjoPreguntaSesion_("bloquePregunta2");
 }
 
 /*****************************************************
@@ -4274,6 +4317,8 @@ inicializarColapsoSesion2();
 
 inicializarAcordeonAccionesSesion2();
 
+["bloqueSesion2Pregunta1","bloqueSesion2Pregunta2","bloqueSesion2Pregunta3","bloqueSesion2Pregunta4","bloqueSesion2Pregunta5"].forEach(activarOjoPreguntaSesion_);
+
 actualizarEstadoSesion2();
 
 }
@@ -4918,6 +4963,9 @@ function inicializarSesion3(){
     configurarOpcionesSesion3();
     inicializarColapsoSesion3();
     inicializarAcordeonAccionesSesion3();
+
+    ["bloqueSesion3Pregunta1","bloqueSesion3Pregunta2","bloqueSesion3Pregunta3","bloqueSesion3Pregunta4"].forEach(activarOjoPreguntaSesion_);
+
     actualizarEstadoSesion3();
 }
 
