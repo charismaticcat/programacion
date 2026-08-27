@@ -2555,10 +2555,12 @@ function reconstruirAnalisisFEM(){
   const sh = abrirSpreadsheet_().getSheetByName(HOJA_AVANCES);
   if(!sh || sh.getLastRow() < 2){
     const ss = obtenerSpreadsheetAnalisisFEM_();
-    return { ok:true, mensaje:"AvancesForo no tiene filas todavía. Documento de análisis: " + ss.getUrl(), procesadas:0 };
+    const mensajeVacio = "AvancesForo no tiene filas todavía. Documento de análisis: " + ss.getUrl();
+    Logger.log(mensajeVacio);
+    return { ok:true, mensaje: mensajeVacio, procesadas:0, url: ss.getUrl() };
   }
   const m = mapaHoja_(sh);
-  if(!m.ID_FORO) return { ok:false, mensaje:"AvancesForo no tiene columna ID_FORO." };
+  if(!m.ID_FORO){ Logger.log("AvancesForo no tiene columna ID_FORO."); return { ok:false, mensaje:"AvancesForo no tiene columna ID_FORO." }; }
 
   const ids = sh.getRange(2, m.ID_FORO, sh.getLastRow() - 1, 1).getDisplayValues().map(f => String(f[0] || "").trim()).filter(Boolean);
 
@@ -2617,12 +2619,14 @@ function probarAutoguardadoSinDatos(){
 // en vez de crear una fila duplicada.
 function probarReintentoPorFallaGuardadoLocal(nombreIEPrueba){
   nombreIEPrueba = nombreIEPrueba || "IE PRUEBA 1234";
+  function salir(resultado){ Logger.log(resultado.mensaje); return resultado; }
+
   const hoja = asegurarColumnasAccesosIE_();
   const mapa = mapaHoja_(hoja);
-  if(hoja.getLastRow() < 2) return { ok:false, mensaje:"AccesosIE no tiene filas." };
+  if(hoja.getLastRow() < 2) return salir({ ok:false, mensaje:"AccesosIE no tiene filas." });
   const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues();
   const fila = valores.find(f => String(f[mapa.IE - 1] || "").trim() === nombreIEPrueba);
-  if(!fila) return { ok:false, mensaje:"No existe " + nombreIEPrueba + " en AccesosIE. Ejecute primero crearAccesoPrueba1234() o crearIEsPruebaAdicionales()." };
+  if(!fila) return salir({ ok:false, mensaje:"No existe " + nombreIEPrueba + " en AccesosIE. Ejecute primero crearAccesoPrueba1234() o crearIEsPruebaAdicionales()." });
   const idForo = String(fila[mapa.ID_FORO - 1] || "").trim();
 
   const shAvances = abrirSpreadsheet_().getSheetByName(HOJA_AVANCES);
@@ -2644,12 +2648,14 @@ function probarReintentoPorFallaGuardadoLocal(nombreIEPrueba){
 // respuesta definitiva.
 function probarRespuestaNoEnviada(nombreIEPrueba){
   nombreIEPrueba = nombreIEPrueba || "IE Prueba Rosa";
+  function salir(resultado){ Logger.log(resultado.mensaje); return resultado; }
+
   const hoja = asegurarColumnasAccesosIE_();
   const mapa = mapaHoja_(hoja);
-  if(hoja.getLastRow() < 2) return { ok:false, mensaje:"AccesosIE no tiene filas." };
+  if(hoja.getLastRow() < 2) return salir({ ok:false, mensaje:"AccesosIE no tiene filas." });
   const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues();
   const fila = valores.find(f => String(f[mapa.IE - 1] || "").trim() === nombreIEPrueba);
-  if(!fila) return { ok:false, mensaje:"No existe " + nombreIEPrueba + " en AccesosIE." };
+  if(!fila) return salir({ ok:false, mensaje:"No existe " + nombreIEPrueba + " en AccesosIE." });
   const idForo = String(fila[mapa.ID_FORO - 1] || "").trim();
   const estadoAcceso = String(fila[mapa.ESTADO - 1] || "").trim().toUpperCase();
 
@@ -2675,25 +2681,32 @@ function probarRespuestaNoEnviada(nombreIEPrueba){
  *****************************************************/
 function probarFlujoPlenariaHastaDocumentoAnalisis(){
   const nombreIE = "IE PRUEBA 1234";
+
+  // Toda salida (éxito o falla) pasa por aquí — así una ejecución
+  // desde el editor SIEMPRE deja algo en el registro, en vez de
+  // terminar en silencio ("Se completó la ejecución" sin más detalle)
+  // cuando falla en un paso intermedio.
+  function salir(resultado){ Logger.log(JSON.stringify(resultado)); return resultado; }
+
   const hoja = asegurarColumnasAccesosIE_();
   const mapa = mapaHoja_(hoja);
-  if(hoja.getLastRow() < 2) return { ok:false, mensaje:"AccesosIE no tiene filas." };
+  if(hoja.getLastRow() < 2) return salir({ ok:false, mensaje:"AccesosIE no tiene filas." });
   const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues();
   const fila = valores.find(f => String(f[mapa.IE - 1] || "").trim() === nombreIE);
-  if(!fila) return { ok:false, mensaje:"No existe " + nombreIE + ". Ejecute primero crearAccesoPrueba1234()." };
+  if(!fila) return salir({ ok:false, mensaje:"No existe " + nombreIE + ". Ejecute primero crearAccesoPrueba1234()." });
   const idForo = String(fila[mapa.ID_FORO - 1] || "").trim();
   const dispositivoId = "PRUEBA-ANALISIS-" + idForo.slice(0, 8);
 
   const datosGuardados = obtenerDatosGuardadosPorIdForo_(idForo);
-  if(!datosGuardados) return { ok:false, mensaje:"No hay datos guardados para " + nombreIE + ". Complete o precargue su caracterización primero." };
+  if(!datosGuardados) return salir({ ok:false, mensaje:"No hay datos guardados para " + nombreIE + ". Complete o precargue su caracterización primero (ej. crearIEsPruebaAdicionales(), o llene el formulario a mano)." });
   datosGuardados.idForo = idForo;
 
   const sesion = reclamarSesionCodigo_("", "", dispositivoId, idForo, true);
-  if(!sesion.ok) return { ok:false, mensaje:"No fue posible reclamar sesión: " + sesion.mensaje };
+  if(!sesion.ok) return salir({ ok:false, mensaje:"No fue posible reclamar sesión: " + sesion.mensaje });
 
   const envio = enviarForoDefinitivo(idForo, sesion.tokenSesion, dispositivoId, datosGuardados);
   liberarSesionCodigo_("", "", dispositivoId, sesion.tokenSesion, idForo);
-  if(!envio || (!envio.ok && !envio.yaEnviado)) return { ok:false, mensaje:(envio && envio.mensaje) || "Envío definitivo falló." };
+  if(!envio || (!envio.ok && !envio.yaEnviado)) return salir({ ok:false, mensaje:(envio && envio.mensaje) || "Envío definitivo falló." });
 
   const ss = obtenerSpreadsheetAnalisisFEM_();
   const shTotales = ss.getSheetByName(HOJA_ANALISIS_TOTALES);
@@ -3180,14 +3193,16 @@ function simular50RespuestasFEM(){
  *   bloquearPruebaAnaYNelsonHasta9am()                  (las dos de una vez)
  *****************************************************/
 function programarBloqueoHorarioIE(nombreIE, hora, minuto){
+  function salir(resultado){ Logger.log(resultado.mensaje); return resultado; }
+
   const hoja = asegurarColumnasAccesosIE_();
   const mapa = mapaHoja_(hoja);
-  if(!mapa.HABILITAR_DESDE) return { ok:false, mensaje:"No fue posible crear la columna HABILITAR_DESDE." };
-  if(hoja.getLastRow() < 2) return { ok:false, mensaje:"AccesosIE no tiene filas." };
+  if(!mapa.HABILITAR_DESDE) return salir({ ok:false, mensaje:"No fue posible crear la columna HABILITAR_DESDE." });
+  if(hoja.getLastRow() < 2) return salir({ ok:false, mensaje:"AccesosIE no tiene filas." });
 
   const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues();
   const indice = valores.findIndex(function(f){ return String(f[mapa.IE - 1] || "").trim() === nombreIE; });
-  if(indice === -1) return { ok:false, mensaje:"No existe " + nombreIE + " en AccesosIE." };
+  if(indice === -1) return salir({ ok:false, mensaje:"No existe " + nombreIE + " en AccesosIE." });
 
   const zona = "America/Bogota";
   const ahora = new Date();
@@ -3204,12 +3219,14 @@ function programarBloqueoHorarioIE(nombreIE, hora, minuto){
 }
 
 function quitarBloqueoHorarioIE(nombreIE){
+  function salir(resultado){ Logger.log(resultado.mensaje); return resultado; }
+
   const hoja = asegurarColumnasAccesosIE_();
   const mapa = mapaHoja_(hoja);
-  if(!mapa.HABILITAR_DESDE || hoja.getLastRow() < 2) return { ok:true, mensaje:"Nada que quitar." };
+  if(!mapa.HABILITAR_DESDE || hoja.getLastRow() < 2) return salir({ ok:true, mensaje:"Nada que quitar." });
   const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues();
   const indice = valores.findIndex(function(f){ return String(f[mapa.IE - 1] || "").trim() === nombreIE; });
-  if(indice === -1) return { ok:false, mensaje:"No existe " + nombreIE + " en AccesosIE." };
+  if(indice === -1) return salir({ ok:false, mensaje:"No existe " + nombreIE + " en AccesosIE." });
   hoja.getRange(indice + 2, mapa.HABILITAR_DESDE).setValue("");
   const mensaje = nombreIE + ": bloqueo por horario retirado.";
   Logger.log(mensaje);
@@ -3349,14 +3366,16 @@ function crearTodosLosAccesosDePruebaFEM(){
  * Ejecutar manualmente:  liberarCandadoSesionIE("IE PRUEBA 1234")
  *****************************************************/
 function liberarCandadoSesionIE(nombreIE){
+  function salir(resultado){ Logger.log(resultado.mensaje); return resultado; }
+
   const hoja = asegurarColumnasAccesosIE_();
   const mapa = mapaHoja_(hoja);
-  if(hoja.getLastRow() < 2) return { ok:false, mensaje:"AccesosIE no tiene filas." };
+  if(hoja.getLastRow() < 2) return salir({ ok:false, mensaje:"AccesosIE no tiene filas." });
   const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues();
   const fila = valores.find(function(f){ return String(f[mapa.IE - 1] || "").trim() === nombreIE; });
-  if(!fila) return { ok:false, mensaje:"No existe " + nombreIE + " en AccesosIE." };
+  if(!fila) return salir({ ok:false, mensaje:"No existe " + nombreIE + " en AccesosIE." });
   const idForo = String(fila[mapa.ID_FORO - 1] || "").trim();
-  if(!idForo) return { ok:false, mensaje:nombreIE + " no tiene ID_FORO." };
+  if(!idForo) return salir({ ok:false, mensaje:nombreIE + " no tiene ID_FORO." });
 
   const clave = obtenerClaveSesionCodigo_("", "", idForo);
   const props = PropertiesService.getScriptProperties();
