@@ -3386,3 +3386,123 @@ function liberarCandadoSesionIE(nombreIE){
   Logger.log(mensaje);
   return { ok:true, habiaCandado: !!habia, mensaje: mensaje };
 }
+
+
+/*****************************************************
+ * PRUEBA: HASTA 4 DISPOSITIVOS SIMULTÁNEOS + FUSIÓN DE CAMPOS
+ *
+ * Simula 4 "dispositivos" reclamando sesión con el mismo código a la
+ * vez (el máximo permitido — ver MAX_SESIONES_SIMULTANEAS_IE),
+ * confirma que un 5° es rechazado sin forzar y aceptado forzando
+ * (desalojando al de menor actividad reciente), y comprueba que dos
+ * dispositivos guardando avances con SOLO su propio campo lleno (el
+ * resto vacío, como pasaría con el DOM real de cada navegador) NO se
+ * borran el trabajo entre sí — la fusión de campos en
+ * guardarAvanceForo() debe conservar ambos.
+ *
+ * Dentro de una sola ejecución de Apps Script las llamadas son
+ * secuenciales (no hay paralelismo real de hilos), pero eso es
+ * exactamente lo que importa aquí: valida la LÓGICA de cupos y
+ * fusión, que es la misma que se ejecutaría si las peticiones
+ * llegaran de IPs y dispositivos distintos al mismo tiempo.
+ *
+ * Usa "IE PRUEBA 1234" — no envía ningún correo ni modifica ESTADO.
+ * Libera todas las sesiones de prueba al final, incluso si algo falla
+ * a mitad de camino.
+ *
+ * Ejecutar manualmente:  probarSesionesSimultaneasYFusionDatos()
+ *****************************************************/
+function probarSesionesSimultaneasYFusionDatos(nombreIEPrueba){
+  nombreIEPrueba = nombreIEPrueba || "IE PRUEBA 1234";
+  const resultado = { pasos: {}, errores: [] };
+  const dispositivos = ["DISP-A", "DISP-B", "DISP-C", "DISP-D", "DISP-E"];
+  const tokensPorDispositivo = {};
+  let idForo = "";
+
+  function log(mensaje){ Logger.log(mensaje); }
+
+  try{
+    const hoja = asegurarColumnasAccesosIE_();
+    const mapa = mapaHoja_(hoja);
+    if(hoja.getLastRow() < 2) throw new Error("AccesosIE no tiene filas.");
+    const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues();
+    const fila = valores.find(function(f){ return String(f[mapa.IE - 1] || "").trim() === nombreIEPrueba; });
+    if(!fila) throw new Error("No existe " + nombreIEPrueba + " en AccesosIE.");
+    idForo = String(fila[mapa.ID_FORO - 1] || "").trim();
+    if(!idForo) throw new Error(nombreIEPrueba + " no tiene ID_FORO.");
+
+    // Empezar en limpio: liberar cualquier candado que hubiera quedado.
+    PropertiesService.getScriptProperties().deleteProperty(obtenerClaveSesionCodigo_("", "", idForo));
+
+    // --- 1. Reclamar 4 dispositivos (el máximo) ---
+    for(let i = 0; i < 4; i++){
+      const disp = dispositivos[i];
+      const sesion = reclamarSesionCodigo_("", "", disp, idForo, false);
+      if(!sesion.ok) throw new Error("Dispositivo " + disp + " no pudo conectarse (debería haber cupo): " + sesion.mensaje);
+      tokensPorDispositivo[disp] = sesion.tokenSesion;
+    }
+    resultado.pasos.cuatroDispositivosConectados = true;
+    log("✅ 4 dispositivos conectados simultáneamente sin problema.");
+
+    // --- 2. Un 5° sin forzar debe rechazarse ---
+    const quintoSinForzar = reclamarSesionCodigo_("", "", "DISP-E", idForo, false);
+    if(quintoSinForzar.ok) throw new Error("Un 5° dispositivo pudo conectarse sin forzar — el límite de 4 no se está respetando.");
+    resultado.pasos.quintoRechazadoSinForzar = (quintoSinForzar.codigo === "SESION_YA_ABIERTA");
+    log("✅ 5° dispositivo rechazado correctamente sin forzar: " + quintoSinForzar.mensaje);
+
+    // --- 3. El 5° SÍ debe poder entrar forzando (desaloja al más inactivo: DISP-A, el primero en conectarse) ---
+    const quintoForzando = reclamarSesionCodigo_("", "", "DISP-E", idForo, true);
+    if(!quintoForzando.ok) throw new Error("El 5° dispositivo debería poder conectarse forzando: " + quintoForzando.mensaje);
+    tokensPorDispositivo["DISP-E"] = quintoForzando.tokenSesion;
+    const aTodaviaActivo = sesionActivaPorIdForo_(idForo, "DISP-A", tokensPorDispositivo["DISP-A"]);
+    resultado.pasos.dispositivoDesalojadoCorrectamente = !aTodaviaActivo;
+    log((aTodaviaActivo ? "❌" : "✅") + " DISP-A " + (aTodaviaActivo ? "sigue activo (no debería)" : "quedó desalojado como se esperaba") + " tras forzar el 5° cupo.");
+
+    // --- 4. Fusión de campos: dos "dispositivos" guardan cada uno SOLO su propio campo, el resto vacío ---
+    guardarAvanceForo({
+      idForo: idForo,
+      campos: {
+        respuestaSesion1: { tipo:"text", valor:"PRUEBA FUSIÓN — dispositivo B, Sesión 1 (" + new Date().toISOString() + ")" },
+        respuestaSesion2Pregunta1: { tipo:"text", valor:"" }
+      }
+    });
+    guardarAvanceForo({
+      idForo: idForo,
+      campos: {
+        respuestaSesion1: { tipo:"text", valor:"" },
+        respuestaSesion2Pregunta1: { tipo:"text", valor:"PRUEBA FUSIÓN — dispositivo C, Sesión 2 (" + new Date().toISOString() + ")" }
+      }
+    });
+    const datosFusionados = obtenerDatosGuardadosPorIdForo_(idForo);
+    const s1Conservada = String(datosFusionados?.campos?.respuestaSesion1?.valor || "").indexOf("dispositivo B") !== -1;
+    const s2Conservada = String(datosFusionados?.campos?.respuestaSesion2Pregunta1?.valor || "").indexOf("dispositivo C") !== -1;
+    resultado.pasos.fusionConservaAmbosCampos = s1Conservada && s2Conservada;
+    log((s1Conservada && s2Conservada ? "✅" : "❌") + " Fusión de campos — Sesión 1 (de B) conservada: " + s1Conservada + ", Sesión 2 (de C) conservada: " + s2Conservada + ".");
+
+  }catch(error){
+    resultado.errores.push(error.message);
+    log("❌ ERROR: " + error.message);
+  }finally{
+    // Liberar todos los cupos de prueba, pase lo que pase.
+    if(idForo){
+      Object.keys(tokensPorDispositivo).forEach(function(disp){
+        try{ liberarSesionCodigo_("", "", disp, tokensPorDispositivo[disp], idForo); }catch(e){}
+      });
+      // Por si algún cupo quedó en un estado raro, se limpia del todo.
+      try{ PropertiesService.getScriptProperties().deleteProperty(obtenerClaveSesionCodigo_("", "", idForo)); }catch(e){}
+    }
+  }
+
+  const todoBien = resultado.errores.length === 0 &&
+    resultado.pasos.cuatroDispositivosConectados &&
+    resultado.pasos.quintoRechazadoSinForzar &&
+    resultado.pasos.dispositivoDesalojadoCorrectamente &&
+    resultado.pasos.fusionConservaAmbosCampos;
+
+  Logger.log("========================================");
+  Logger.log("RESULTADO — SESIONES SIMULTÁNEAS Y FUSIÓN DE DATOS: " + (todoBien ? "✅ TODO CORRECTO" : "⚠ REVISAR"));
+  Logger.log(JSON.stringify(resultado, null, 2));
+  Logger.log("========================================");
+
+  return { ok: todoBien, resultado: resultado };
+}

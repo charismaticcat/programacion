@@ -2175,6 +2175,49 @@ function guardarAvanceForo(datos) {
 
 
     /*
+     * FUSIÓN DE CAMPOS — hasta 4 dispositivos pueden estar conectados
+     * a la vez con el mismo código (ver MAX_SESIONES_SIMULTANEAS_IE).
+     * Cada dispositivo guarda TODO su DOM local (construirDatosBorrador
+     * en el cliente barre todos los campos con id, no solo los que esa
+     * persona escribió) — sin esta fusión, el último dispositivo en
+     * guardar sobrescribiría en silencio los campos que otro
+     * dispositivo conectado a la vez ya había guardado y que el
+     * primero nunca llegó a visitar (quedarían vacíos en su DOM).
+     * Por eso el campo entrante solo reemplaza al guardado cuando trae
+     * contenido real, o cuando ese campo todavía no existía.
+     */
+    if (
+      filaExistente !== -1 &&
+      mapaCabeceras["DATOS"]
+    ) {
+      try {
+        const datosExistentesRaw =
+          hoja.getRange(filaExistente, mapaCabeceras["DATOS"]).getValue();
+        if (datosExistentesRaw) {
+          const datosExistentes = JSON.parse(datosExistentesRaw);
+          const camposExistentes = datosExistentes?.campos || {};
+          const camposEntrantes = datos.campos || {};
+          const camposFusionados = Object.assign({}, camposExistentes);
+          Object.keys(camposEntrantes).forEach(function(id) {
+            const entrante = camposEntrantes[id];
+            const tieneContenido = entrante && (
+              entrante.tipo === "checkbox"
+                ? true
+                : String(entrante.valor ?? "").trim() !== ""
+            );
+            if (tieneContenido || !(id in camposFusionados)) {
+              camposFusionados[id] = entrante;
+            }
+          });
+          datos.campos = camposFusionados;
+        }
+      } catch (errorFusion) {
+        Logger.log("No fue posible fusionar campos con la versión ya guardada (se usa la del cliente tal cual): " + errorFusion.message);
+      }
+    }
+
+
+    /*
      * Extraer respuestas estructuradas.
      */
 
@@ -2510,6 +2553,31 @@ function obtenerClaveSesionCodigo_(token, codigo, idForo) {
   return "FEM_SESION_FORO_" + Utilities.base64EncodeWebSafe(claveBase);
 }
 
+/*
+ * Hasta 4 dispositivos pueden conectarse SIMULTÁNEAMENTE con el mismo
+ * código de acceso de una IE, para que varias personas responsables
+ * del diligenciamiento (ver "responsables adicionales" en
+ * Caracterización) puedan trabajar a la vez. El envío definitivo del
+ * foro sigue siendo uno solo (enviarForoDefinitivo ya controla eso
+ * por separado, marcando ESTADO=ENVIADO).
+ */
+const MAX_SESIONES_SIMULTANEAS_IE = 4;
+
+// Lee el valor guardado como un arreglo de cupos activos. Compatible
+// con el formato anterior (un solo objeto, de cuando solo se permitía
+// un dispositivo) para no invalidar sesiones ya abiertas al desplegar
+// este cambio.
+function leerSesionesActivas_(props, clave){
+  const guardado = props.getProperty(clave);
+  if(!guardado) return [];
+  try{
+    const parsed = JSON.parse(guardado);
+    if(Array.isArray(parsed)) return parsed;
+    if(parsed && parsed.deviceId) return [parsed];
+    return [];
+  }catch(e){ return []; }
+}
+
 function reclamarSesionCodigo_(token, codigo, dispositivoId, idForo, forzar) {
   const lock = LockService.getScriptLock();
   try {
@@ -2517,19 +2585,35 @@ function reclamarSesionCodigo_(token, codigo, dispositivoId, idForo, forzar) {
     const props = PropertiesService.getScriptProperties();
     const clave = obtenerClaveSesionCodigo_(token,codigo,idForo);
     const ahora = Date.now();
-    let actual = null;
-    const guardado = props.getProperty(clave);
-    if (guardado) { try { actual=JSON.parse(guardado); } catch(e){ actual=null; } }
-    if (actual && actual.deviceId && actual.deviceId !== dispositivoId && !forzar) {
-      return {
-        ok:false,
-        codigo:"SESION_YA_ABIERTA",
-        mensaje:"Ya hay una sesión activa para esta IE. Si desea continuar en este dispositivo, se cerrará la conexión del otro dispositivo y podrá seguir en este dispositivo. Solo un envío y una conexión es posible por IE."
-      };
+    let sesiones = leerSesionesActivas_(props, clave);
+
+    // Si este dispositivo ya tenía un cupo (recarga de página,
+    // reconexión), se reutiliza en vez de contarlo como uno nuevo.
+    const existente = sesiones.find(s=>s.deviceId===dispositivoId);
+    if(existente){
+      existente.ultimaActividad = ahora;
+      props.setProperty(clave, JSON.stringify(sesiones));
+      return {ok:true, tokenSesion:existente.tokenSesion};
     }
-    const tokenSesion = actual && actual.deviceId===dispositivoId && actual.tokenSesion ? actual.tokenSesion : Utilities.getUuid();
-    props.setProperty(clave,JSON.stringify({deviceId:dispositivoId,tokenSesion:tokenSesion,ultimaActividad:ahora,idForo:idForo}));
-    return {ok:true,tokenSesion:tokenSesion};
+
+    if(sesiones.length >= MAX_SESIONES_SIMULTANEAS_IE){
+      if(!forzar){
+        return {
+          ok:false,
+          codigo:"SESION_YA_ABIERTA",
+          mensaje:"Ya hay "+MAX_SESIONES_SIMULTANEAS_IE+" dispositivos conectados con este código de acceso, el máximo permitido por institución. Si desea continuar en este dispositivo, se cerrará la conexión del dispositivo con menos actividad reciente."
+        };
+      }
+      // No tiene sentido "tomar el lugar de uno en particular" cuando
+      // hay hasta 4 cupos: se libera el de menor actividad reciente.
+      sesiones.sort((a,b)=>(a.ultimaActividad||0)-(b.ultimaActividad||0));
+      sesiones.shift();
+    }
+
+    const tokenSesion = Utilities.getUuid();
+    sesiones.push({deviceId:dispositivoId, tokenSesion:tokenSesion, ultimaActividad:ahora});
+    props.setProperty(clave, JSON.stringify(sesiones));
+    return {ok:true, tokenSesion:tokenSesion};
   } catch(e) { return {ok:false,codigo:"LOCK_SESION_ERROR",mensaje:"No fue posible asegurar la sesión de acceso. Intente nuevamente."}; }
   finally { try{lock.releaseLock();}catch(e){} }
 }
@@ -2543,19 +2627,31 @@ function mantenerSesionCodigo_(token,codigo,dispositivoId,tokenSesion,idForo){
     lock.waitLock(10000);
     const props=PropertiesService.getScriptProperties();
     const clave=obtenerClaveSesionCodigo_(token,codigo,idForo);
-    const guardado=props.getProperty(clave); if(!guardado)return {ok:false,codigo:"SESION_NO_ENCONTRADA"};
-    const actual=JSON.parse(guardado);
-    // Si otro dispositivo ya tomó la sesión (takeover), se lo informamos
-    // al cliente para que deje de intentar seguir trabajando en silencio.
-    if(actual.deviceId!==dispositivoId || actual.tokenSesion!==tokenSesion)return {ok:false,codigo:"SESION_NO_AUTORIZADA",mensaje:"Otro dispositivo tomó el control de esta sesión."};
-    actual.ultimaActividad=Date.now(); props.setProperty(clave,JSON.stringify(actual)); return {ok:true};
+    const sesiones=leerSesionesActivas_(props, clave);
+    const mia=sesiones.find(s=>s.deviceId===dispositivoId && s.tokenSesion===tokenSesion);
+    // Si este dispositivo ya no tiene cupo (otro lo tomó por
+    // inactividad al llenarse los 4), se le informa para que deje de
+    // trabajar en silencio creyendo que sigue conectado.
+    if(!mia) return {ok:false,codigo:"SESION_NO_AUTORIZADA",mensaje:"Este dispositivo ya no tiene un cupo activo en esta sesión."};
+    mia.ultimaActividad=Date.now();
+    props.setProperty(clave, JSON.stringify(sesiones));
+    return {ok:true};
   }catch(e){return {ok:false,codigo:"HEARTBEAT_ERROR"};} finally{try{lock.releaseLock();}catch(e){}}
 }
 
 function liberarSesionCodigo(token,codigo,dispositivoId,tokenSesion,idForo){return liberarSesionCodigo_(token,codigo,dispositivoId,tokenSesion,idForo);}
 function liberarSesionCodigo_(token,codigo,dispositivoId,tokenSesion,idForo){
   const lock=LockService.getScriptLock();
-  try{lock.waitLock(10000);const props=PropertiesService.getScriptProperties();const clave=obtenerClaveSesionCodigo_(token,codigo,idForo);const guardado=props.getProperty(clave);if(!guardado)return {ok:true};const actual=JSON.parse(guardado);if(actual.deviceId===dispositivoId&&actual.tokenSesion===tokenSesion)props.deleteProperty(clave);return {ok:true};}
+  try{
+    lock.waitLock(10000);
+    const props=PropertiesService.getScriptProperties();
+    const clave=obtenerClaveSesionCodigo_(token,codigo,idForo);
+    const sesiones=leerSesionesActivas_(props, clave);
+    const restantes=sesiones.filter(s=>!(s.deviceId===dispositivoId && s.tokenSesion===tokenSesion));
+    if(restantes.length) props.setProperty(clave, JSON.stringify(restantes));
+    else props.deleteProperty(clave);
+    return {ok:true};
+  }
   catch(e){return {ok:false};} finally{try{lock.releaseLock();}catch(e){}}
 }
 

@@ -790,6 +790,31 @@ Seleccione...
 
 </div>
 
+<!-- ROL DENTRO DEL FORO -->
+
+<div class="grupo">
+
+<label>
+
+Rol dentro del Foro *
+
+</label>
+
+<select id="rolForoResponsable">
+
+<option value="">Seleccione...</option>
+<option>👑 Líder – Rectora</option>
+<option>🎓 Dinamizadora Pedagógica – Tutora PTA / PFI 3.0</option>
+<option>👥 Dinamizadora de Mesas de Trabajo</option>
+<option>📝 Relatora</option>
+<option>⏱️ Dinamizadora del Tiempo</option>
+<option>💻 Dinamizadora de la Sistematización</option>
+<option>🙋 Participante</option>
+
+</select>
+
+</div>
+
 <!-- RESPONSABLES ADICIONALES DEL DILIGENCIAMIENTO: varias personas
      del equipo institucional pueden completar/enviar este
      cuestionario usando el MISMO código de acceso de la IE — no se
@@ -797,12 +822,16 @@ Seleccione...
 <div class="grupo grupoResponsablesAdicionales">
 
     <p class="textoAyudaResponsables">
-        💡 Si más de una persona del equipo institucional va a ingresar y diligenciar este cuestionario, agréguela aquí como responsable adicional. Todas ingresan con el <strong>mismo código de acceso</strong> de la institución, sin necesidad de códigos nuevos. Ejemplo: si la IE Limonar designa 3 personas responsables de responder el cuestionario, agregue aquí a la segunda y a la tercera — la primera ya quedó registrada arriba.
+        💡 Si más de una persona del equipo institucional va a ingresar y diligenciar este cuestionario, agréguela aquí como responsable adicional. Todas ingresan con el <strong>mismo código de acceso</strong> de la institución, sin necesidad de códigos nuevos. Ejemplo: si una IE designa 3 personas responsables de responder el cuestionario, agregue aquí a la segunda y a la tercera — la primera ya quedó registrada arriba. Se podrán conectar hasta 4 personas con el mismo código para apoyar en el envío de las respuestas.
     </p>
 
     <div id="listaResponsablesAdicionales"></div>
 
     <button type="button" id="btnAgregarResponsable" class="botonSecundarioFEM">+ Agregar otro responsable</button>
+
+    <div class="avisoResponsablesMayuscula">
+        LOS OTROS RESPONSABLES QUEDARÁN HABILITADOS PARA COMPLEMENTAR EL TRABAJO DEL EQUIPO RESPONSABLE DEL ENVÍO. SE DEBE REALIZAR UN SOLO ENVÍO DEL FORO EDUCATIVO DE LA IE <span id="nombreIEAvisoResponsables">—</span>.
+    </div>
 
 </div>
 

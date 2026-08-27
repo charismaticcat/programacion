@@ -1827,7 +1827,8 @@ function validarCaracterizacion(){
         {id:"institucion", nombre:"Institución Educativa"},
         {id:"nombre", nombre:"Nombre de quien diligencia el instrumento"},
         {id:"correo", nombre:"Correo electrónico personal"},
-        {id:"cargo", nombre:"Cargo"}
+        {id:"cargo", nombre:"Cargo"},
+        {id:"rolForoResponsable", nombre:"Rol dentro del Foro"}
 
     ];
 
@@ -1865,6 +1866,22 @@ function validarCaracterizacion(){
         mensaje.innerHTML =
             "<b>Debe completar los siguientes campos:</b><br><br>• "
             + errores.join("<br>• ");
+
+        /*
+         * No basta con listar arriba cuáles campos faltan: hay que
+         * llevar a la persona hasta ahí. Se lleva al mensaje de error
+         * primero (para que vea la lista completa) y, medio segundo
+         * después, al primer campo marcado en rojo, donde además
+         * queda el foco listo para escribir.
+         */
+        mensaje.scrollIntoView({behavior:"smooth", block:"center"});
+        const primerCampoConError = document.querySelector(".campoError");
+        if(primerCampoConError){
+            setTimeout(function(){
+                primerCampoConError.scrollIntoView({behavior:"smooth", block:"center"});
+                primerCampoConError.focus();
+            }, 500);
+        }
 
         return;
 
@@ -2281,6 +2298,30 @@ function activarAccionOpcional_(idBoton, idContenido, idCampo, idSiguienteConten
 
     if(!boton || !contenido || !campo) return;
 
+    // Botón "X" para quitar esta opción una vez abierta (sin tener
+    // que borrar el texto a mano) — se agrega una sola vez, como
+    // primer elemento del bloque.
+    let btnQuitar = contenido.querySelector(".btnQuitarAccionOpcional");
+    if(!btnQuitar){
+        btnQuitar = document.createElement("button");
+        btnQuitar.type = "button";
+        btnQuitar.className = "btnQuitarAccionOpcional";
+        btnQuitar.setAttribute("aria-label", "Quitar esta opción");
+        btnQuitar.textContent = "✕ Quitar esta opción";
+        contenido.insertBefore(btnQuitar, contenido.firstChild);
+    }
+
+    function ocultar(){
+        contenido.classList.add("accionOpcionalOculta");
+        contenido.classList.remove("minimoPalabrasCumplido");
+        campo.value = "";
+        campo.disabled = true;
+        boton.style.display = "";
+        // Recalcular contador de palabras/estado ya que el campo quedó vacío.
+        campo.dispatchEvent(new Event("input"));
+        guardarBorradorLocal({silencioso:true});
+    }
+
     function revelar(){
         boton.style.display = "none";
         contenido.classList.remove("accionOpcionalOculta");
@@ -2325,6 +2366,8 @@ function activarAccionOpcional_(idBoton, idContenido, idCampo, idSiguienteConten
         revelar();
         campo.focus();
     });
+
+    btnQuitar.addEventListener("click", ocultar);
 
 }
 
@@ -2399,6 +2442,35 @@ function sincronizarOtroCheckbox_(idCheckOtro, idTextoOtro, alCambiar){
         }
     });
 
+}
+
+/*
+ * Complemento de sincronizarOtroCheckbox_: la opción "Otro" también
+ * se puede quitar borrando directamente su línea del textarea
+ * principal ("Otro: ..."), no solo desmarcando la casilla. Al
+ * detectar que esa línea ya no está, se desmarca la casilla y se
+ * limpia el campo de texto de "Otro" para que ambos queden
+ * sincronizados — evita dejar una casilla marcada sin ninguna línea
+ * correspondiente en la respuesta.
+ */
+function sincronizarOtroDesdeTextareaPrincipal_(campoId, otroId, otroTextoId, prefijo){
+    const campo = document.getElementById(campoId);
+    const check = document.getElementById(otroId);
+    const texto = document.getElementById(otroTextoId);
+    if(!campo || !check || !texto) return;
+    if(campo.dataset.sincronizacionOtroPrincipalInicializada) return;
+    campo.dataset.sincronizacionOtroPrincipalInicializada = "1";
+
+    campo.addEventListener("input", function(){
+        if(!check.checked) return;
+        const lineaOtro = (prefijo + texto.value).trim();
+        const sigueEstando = campo.value.split(/\r?\n/).some(function(linea){ return linea.trim() === lineaOtro; });
+        if(!sigueEstando){
+            check.checked = false;
+            texto.value = "";
+            check.dispatchEvent(new Event("change"));
+        }
+    });
 }
 
 /*****************************************************
@@ -3159,7 +3231,8 @@ function inicializarParticipacion(){
  * formulario.
  *****************************************************/
 const CARGOS_RESPONSABLE_ADICIONAL_ = ["Docente","Rector(a)","Coordinador(a)","Tutor(a) PTA/FI 3.0","Orientador(a) Escolar","Padre de familia","Madre de familia","Estudiante","Administrativo(a)","Otro"];
-const MAX_RESPONSABLES_ADICIONALES_ = 4;
+const ROLES_FORO_RESPONSABLE_ = ["👑 Líder – Rectora","🎓 Dinamizadora Pedagógica – Tutora PTA / PFI 3.0","👥 Dinamizadora de Mesas de Trabajo","📝 Relatora","⏱️ Dinamizadora del Tiempo","💻 Dinamizadora de la Sistematización","🙋 Participante"];
+const MAX_RESPONSABLES_ADICIONALES_ = 3;
 
 function contarTarjetasResponsables_(){
     const lista = document.getElementById("listaResponsablesAdicionales");
@@ -3179,18 +3252,22 @@ function crearTarjetaResponsable_(indice){
     if(!lista || document.getElementById("responsable"+indice+"Nombre")) return;
 
     const opciones = CARGOS_RESPONSABLE_ADICIONAL_.map(function(c){ return "<option>"+c+"</option>"; }).join("");
+    const opcionesRol = ROLES_FORO_RESPONSABLE_.map(function(r){ return "<option>"+r+"</option>"; }).join("");
     const tarjeta = document.createElement("div");
     tarjeta.className = "tarjetaResponsableAdicional";
     tarjeta.dataset.indice = String(indice);
+    // Mismos campos que "Información de quien diligencia el
+    // instrumento" (nombre, correo, cargo, rol dentro del Foro) —
+    // ningún dato adicional distinto al del responsable principal.
     tarjeta.innerHTML =
         '<div class="tarjetaResponsableEncabezado">'+
             '<strong>Responsable adicional '+indice+'</strong>'+
             '<button type="button" class="btnQuitarResponsable" aria-label="Quitar este responsable">🗑 Quitar</button>'+
         '</div>'+
-        '<div class="grupo"><label>Nombre completo</label><input type="text" id="responsable'+indice+'Nombre" autocomplete="name"></div>'+
-        '<div class="grupo"><label>Correo electrónico</label><input type="email" id="responsable'+indice+'Correo"></div>'+
+        '<div class="grupo"><label>Nombre de quien diligencia el instrumento</label><input type="text" id="responsable'+indice+'Nombre" autocomplete="name"></div>'+
+        '<div class="grupo"><label>Correo electrónico personal</label><input type="email" id="responsable'+indice+'Correo"></div>'+
         '<div class="grupo"><label>Cargo</label><select id="responsable'+indice+'Cargo"><option value="">Seleccione...</option>'+opciones+'</select></div>'+
-        '<div class="grupo"><label>Teléfono</label><input type="tel" id="responsable'+indice+'Telefono"></div>';
+        '<div class="grupo"><label>Rol dentro del Foro</label><select id="responsable'+indice+'RolForo"><option value="">Seleccione...</option>'+opcionesRol+'</select></div>';
 
     lista.appendChild(tarjeta);
 
@@ -3199,6 +3276,13 @@ function crearTarjetaResponsable_(indice){
         actualizarBotonAgregarResponsable_();
         guardarBorradorLocal({silencioso:true});
     });
+}
+
+function actualizarNombreIEAvisoResponsables_(){
+    const span=document.getElementById("nombreIEAvisoResponsables");
+    if(!span) return;
+    const nombreIE=String(getCampoNombreIE()||"").replace(/^\s*(instituci[oó]n\s+educativa|i\.?\s*e\.?)\s+/i,"").trim();
+    if(nombreIE) span.textContent=nombreIE;
 }
 
 function inicializarResponsablesAdicionales_(){
@@ -3211,6 +3295,13 @@ function inicializarResponsablesAdicionales_(){
         crearTarjetaResponsable_(contarTarjetasResponsables_()+2);
         actualizarBotonAgregarResponsable_();
     });
+
+    // El nombre de la IE puede llegar un poco después (según el flujo
+    // de acceso), así que además de fijarlo una vez ahora, se
+    // actualiza cada vez que el campo "institucion" cambie.
+    actualizarNombreIEAvisoResponsables_();
+    document.getElementById("institucion")?.addEventListener("input", actualizarNombreIEAvisoResponsables_);
+    document.getElementById("institucion")?.addEventListener("change", actualizarNombreIEAvisoResponsables_);
 
     actualizarBotonAgregarResponsable_();
 }
@@ -5264,6 +5355,13 @@ function configurarOpcionesSesion3(){
         actualizarEstadoSesion3();
         guardarBorradorLocal({silencioso:true});
     });
+
+    // La opción "Otro" también se puede quitar borrando su línea
+    // directamente en el textarea principal (no solo desmarcando la
+    // casilla) — al detectarlo, se desmarca la casilla y se limpia su
+    // campo de texto para que ambos queden sincronizados.
+    sincronizarOtroDesdeTextareaPrincipal_('respuestaSesion3Pregunta3', 'equipoSesion3_otro', 'equipoSesion3_otroTexto', 'Otro: ');
+    sincronizarOtroDesdeTextareaPrincipal_('respuestaSesion3Pregunta4', 'mecanismoSesion3_otro', 'mecanismoSesion3_otroTexto', 'Otro: ');
 
     actualizarRespuestaPregunta3Sesion3();
     actualizarRespuestaPregunta4Sesion3();
