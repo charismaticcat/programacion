@@ -156,35 +156,43 @@ CONTENEDOR PRINCIPAL
 
 <section id="pantallaBienvenida" class="pantalla <?!= tokenAcceso ? '' : 'visible' ?>">
 
-    <h1 class="tituloPrincipal">
+    <div class="bienvenidaTarjeta">
 
-        Foro Educativo Institucional
+        <div id="bienvenidaEscenario" class="bienvenidaEscenario">
 
-    </h1>
+            <div id="bienvenidaIntroVisual" class="welcomeIntroVisual" aria-hidden="true">
+                <img
+                    id="bienvenidaIntroImagen"
+                    class="welcomeIntroImagen"
+                    src="<?!= logoFemUrl ?>"
+                    alt="">
+            </div>
 
-    <h2 class="subtitulo">
+            <div id="bienvenidaContenido" class="bienvenidaContenido">
 
-        Neiva 2026
+                <h1 class="tituloPrincipal bienvenidaSaludo">
+                    Estimada comunidad educativa de la IE <strong id="bienvenidaNombreIE"></strong>
+                </h1>
 
-    </h2>
+                <p class="textoCentro bienvenidaTexto">
+                    Bienvenidos al Foro Educativo Institucional de Neiva, 2026.
+                </p>
 
-    <p class="textoCentro">
+                <p class="textoCentro bienvenidaTexto">
+                    Su participación contribuirá al fortalecimiento de las Políticas Públicas Educativas del Municipio de Neiva.
+                </p>
 
-        Bienvenido(a).
+            </div>
 
-    </p>
+        </div>
 
-    <p class="textoCentro">
-
-        Su participación contribuirá al fortalecimiento de las políticas públicas educativas del Municipio de Neiva.
-
-    </p>
+    </div>
 
     <div class="botones">
 
-        <button id="btnComenzar">
+        <button id="btnComenzar" disabled>
 
-            COMENZAR
+            Continuar →
 
         </button>
 

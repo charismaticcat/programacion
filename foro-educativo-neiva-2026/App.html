@@ -14,6 +14,122 @@ let institucionSeleccionada = "";
 let pantallaActual = 1;
 
 const TOTAL_PANTALLAS = 12;
+
+/*****************************************************
+ * INTRODUCCIÓN VISUAL DE BIENVENIDA
+ *
+ * Secuencia única y controlada (una sola función, no varios
+ * setTimeout dispersos): aparece la imagen institucional del FEM dentro de la
+ * propia tarjeta de bienvenida, se mantiene un instante, se
+ * desvanece, y solo entonces aparece el mensaje personalizado y se
+ * habilita "Continuar". Se protege contra ejecutarse más de una vez
+ * por carga de página (varios puntos del flujo pueden terminar
+ * mostrando Bienvenida) y nunca deja la pantalla bloqueada si la
+ * imagen falla o tarda: hay un límite de tiempo de seguridad.
+ *****************************************************/
+
+let bienvenidaIntroInicializada = false;
+
+function capitalizarNombreIEVista_(nombre){
+    return String(nombre || "")
+        .toLowerCase()
+        .replace(/(^|\s)\S/g, function(letra){ return letra.toUpperCase(); });
+}
+
+function initializeWelcomeIntro(){
+
+    if(bienvenidaIntroInicializada) return;
+    bienvenidaIntroInicializada = true;
+
+    try{
+
+        const nombreIE =
+            typeof NOMBRE_IE_ACCESO !== "undefined"
+                ? String(NOMBRE_IE_ACCESO || "").trim()
+                : "";
+
+        const spanNombreIE = document.getElementById("bienvenidaNombreIE");
+        if(spanNombreIE) spanNombreIE.textContent = nombreIE ? capitalizarNombreIEVista_(nombreIE) : "su institución";
+
+        const escenario = document.getElementById("bienvenidaEscenario");
+        const visual = document.getElementById("bienvenidaIntroVisual");
+        const imagen = document.getElementById("bienvenidaIntroImagen");
+        const contenido = document.getElementById("bienvenidaContenido");
+        const boton = document.getElementById("btnComenzar");
+
+        function revelarContenido(){
+            if(contenido) contenido.classList.add("bienvenidaContenidoVisible");
+            if(visual) visual.style.display = "none";
+            if(boton) boton.disabled = false;
+        }
+
+        if(!escenario || !visual || !imagen || !contenido || !boton){
+            // Si falta algún elemento, no se bloquea la pantalla.
+            if(boton) boton.disabled = false;
+            if(contenido) contenido.classList.add("bienvenidaContenidoVisible");
+            return;
+        }
+
+        const prefiereMenosMovimiento =
+            window.matchMedia &&
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        if(prefiereMenosMovimiento || !imagen.getAttribute("src")){
+            revelarContenido();
+            return;
+        }
+
+        // Salvavidas: si la imagen no carga, tarda demasiado, o el
+        // evento animationend no llega a dispararse por cualquier
+        // motivo, igual se revela el contenido dentro del máximo de
+        // 3 segundos prometido.
+        let yaResuelto = false;
+        const salvavidasMs = 2600;
+        const salvavidas = setTimeout(function(){
+            if(yaResuelto) return;
+            yaResuelto = true;
+            revelarContenido();
+        }, salvavidasMs);
+
+        function iniciarSecuenciaVisual(){
+            visual.classList.add("welcomeIntroVisualActivo");
+        }
+
+        visual.addEventListener("animationend", function(){
+            if(yaResuelto) return;
+            yaResuelto = true;
+            clearTimeout(salvavidas);
+            revelarContenido();
+        }, { once:true });
+
+        if(imagen.complete && imagen.naturalWidth > 0){
+            iniciarSecuenciaVisual();
+        }else{
+            imagen.addEventListener("load", iniciarSecuenciaVisual, { once:true });
+            imagen.addEventListener("error", function(){
+                if(yaResuelto) return;
+                yaResuelto = true;
+                clearTimeout(salvavidas);
+                revelarContenido();
+            }, { once:true });
+        }
+
+    }catch(error){
+
+        console.error("No fue posible iniciar la introducción de bienvenida:", error);
+
+        // Ante cualquier error inesperado, nunca se deja la pantalla
+        // bloqueada: se revela todo de inmediato.
+        const contenidoEmergencia = document.getElementById("bienvenidaContenido");
+        const botonEmergencia = document.getElementById("btnComenzar");
+        const visualEmergencia = document.getElementById("bienvenidaIntroVisual");
+        if(contenidoEmergencia) contenidoEmergencia.classList.add("bienvenidaContenidoVisible");
+        if(visualEmergencia) visualEmergencia.style.display = "none";
+        if(botonEmergencia) botonEmergencia.disabled = false;
+
+    }
+
+}
 /*****************************************************
  * GRUPOS DE TRABAJO — CARACTERIZACIÓN
  *****************************************************/
@@ -294,6 +410,24 @@ function iniciarApp(){
 
     try{
         actualizarBarra();
+    }catch(error){
+        console.error(error);
+    }
+
+    /*
+     * Salvavidas: si ninguno de los flujos anteriores (acceso con
+     * token, restauración de borrador) terminó mostrando/ocultando
+     * Bienvenida explícitamente — por ejemplo, modo de desarrollo sin
+     * token y sin ningún avance guardado, donde la pantalla ya nace
+     * visible desde el propio servidor — igual se dispara la
+     * introducción si esa pantalla es la que está a la vista. La
+     * propia función se protege contra ejecutarse más de una vez.
+     */
+    try{
+        const bienvenidaVisible = document.getElementById("pantallaBienvenida");
+        if(bienvenidaVisible && bienvenidaVisible.classList.contains("visible") && typeof initializeWelcomeIntro === "function"){
+            initializeWelcomeIntro();
+        }
     }catch(error){
         console.error(error);
     }
@@ -4653,7 +4787,10 @@ function mostrarPantallaGuardada(paso){
         pantalla.classList.add("visible");
     }
 
-        
+    if(id === "pantallaBienvenida" && typeof initializeWelcomeIntro === "function"){
+        initializeWelcomeIntro();
+    }
+
     if(id === "pantallaResumen"){
         mostrarResumen(false);
     }
@@ -5380,6 +5517,7 @@ try{
 
                                 const bienvenida = document.getElementById("pantallaBienvenida");
                                 if(bienvenida) bienvenida.classList.add("visible");
+                                if(typeof initializeWelcomeIntro === "function") initializeWelcomeIntro();
 
                                 pantallaActual = 1;
 
