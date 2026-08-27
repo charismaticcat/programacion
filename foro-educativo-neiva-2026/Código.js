@@ -95,6 +95,77 @@ const COPIAS_INFORME_FEM = [
 ];
 
 /*
+ * Corrección de correos institucionales de las 37 IE oficiales, por
+ * código DANE (identificador único y exacto — evita cualquier
+ * ambigüedad de coincidencia de nombres con prefijos/mayúsculas
+ * distintas). Se detectó que la columna "E-MAIL INSTITUCIONAL" de la
+ * hoja Oficiales tenía direcciones que no correspondían a estas IE:
+ * los correos SÍ se enviaban (Apps Script no valida la existencia del
+ * buzón al momento de encolarlos — por eso la cuota de envíos bajaba
+ * igual), pero nunca llegaban a destino porque la dirección no era la
+ * real de la institución.
+ *
+ * Esta tabla es la lista verificada y entregada directamente por la
+ * Secretaría de Educación de Neiva. enviarAccesosSoloOficialesFEM() y
+ * repararEmailIEOficialesFEM() la usan como fuente de verdad —tiene
+ * prioridad sobre lo que haya en AccesosIE/Oficiales— y de paso
+ * corrigen la columna EMAIL_IE en la hoja para que quede alineada.
+ *
+ * Si en el futuro cambia algún correo, actualícelo aquí (o, mejor,
+ * corrija la hoja Oficiales y quite la entrada correspondiente de
+ * este mapa para que vuelva a leerse de ahí).
+ */
+const CORRECCION_EMAIL_POR_DANE_ = {
+  "141001001763": "ieagustincodazzi@alcaldianeiva.gov.co",   // AGUSTIN CODAZZI
+  "241001000711": "ieaipecito@alcaldianeiva.gov.co",         // AIPECITO
+  "141001002557": "ieangelmaria@alcaldianeiva.gov.co",       // ANGEL MARIA PAREDES
+  "141001005866": "ieatanasiog@alcaldianeiva.gov.co",        // ATANASIO GIRARDOT
+  "141001004061": "ieceinar@alcaldianeiva.gov.co",           // CEINAR
+  "241001001890": "iechapinero@alcaldianeiva.gov.co",        // CHAPINERO
+  "141001060441": "ieclaretiano@alcaldianeiva.gov.co",       // I.E. CLARETIANO GUSTAVO TORRES PARRA
+  "141001000058": "iedepartamental@alcaldianeiva.gov.co",    // DEPARTAMENTAL TIERRA DE PROMISIÓN
+  "141001004720": "ieeduardosantos@alcaldianeiva.gov.co",    // EDUARDO SANTOS
+  "441001002747": "iecaguan@alcaldianeiva.gov.co",           // EL CAGUAN
+  "141001004452": "ielimonar@alcaldianeiva.gov.co",          // EL LIMONAR
+  "141001005301": "ieenriqueolaya@alcaldianeiva.gov.co",     // ENRIQUE OLAYA HERRERA
+  "141001002247": "ienormalsuperior@alcaldianeiva.gov.co",   // ESCUELA NORMAL SUPERIOR
+  "341001004559": "iegabrielgarcia@alcaldianeiva.gov.co",    // GABRIEL GARCIA MARQUEZ
+  "141001004312": "iehumbertotafur@alcaldianeiva.gov.co",    // HUMBERTO TAFUR CHARRY
+  "141001003341": "ieinem@alcaldianeiva.gov.co",             // INEM JULIAM MOTTA SALAS
+  "141001005181": "iejairomorera@alcaldianeiva.gov.co",      // JAIRO MORERA LIZCANO
+  "241001000486": "ieguacirco@alcaldianeiva.gov.co",         // JAIRO MOSQUERA MORENO
+  "141001004398": "iejoseeustasio@alcaldianeiva.gov.co",     // JOSE EUSTASIO RIVERA
+  "141001001259": "iejuandecabrera@alcaldianeiva.gov.co",    // JUAN DE CABRERA
+  "141001000066": "ieliceosantal@alcaldianeiva.gov.co",      // LICEO DE SANTA LIBRADA
+  "141001003171": "ieluisignacio@alcaldianeiva.gov.co",      // LUIS IGNACIO ANDRADE
+  "441001004839": "iefortalecillas@alcaldianeiva.gov.co",    // MARIA AUXILIADORA FORTALECILLAS
+  "141001001038": "iemariacristina@alcaldianeiva.gov.co",    // MARIA CRISTINA ARANGO DE PASTRANA
+  "141001003481": "iemisaelpastrana@alcaldianeiva.gov.co",   // MISAEL PASTRANA BORRERO
+  "141001000082": "ieoliveriolara@alcaldianeiva.gov.co",     // OLIVERIO LARA BORRERO
+  "141001000040": "iepromocion@alcaldianeiva.gov.co",        // PROMOCION SOCIAL
+  "141001001321": "iericardoborrero@alcaldianeiva.gov.co",   // RICARDO BORRERO ALVAREZ
+  "241001000664": "ierobertoduran@alcaldianeiva.gov.co",     // ROBERTO DURAN ALVIRA
+  "141001060336": "ierodrigolara@alcaldianeiva.gov.co",      // RODRIGO LARA BONILLA
+  "241001000435": "iesanantonio@alcaldianeiva.gov.co",       // SAN ANTONIO DE ANACONIA
+  "441001003433": "iesanluisbeltran@alcaldianeiva.gov.co",   // SAN LUIS BELTRAN
+  "141001001593": "menev.cosma-rec@policia.gov.co",          // SAN MIGUEL ARCANGEL
+  "141001000023": "ienacionalsl@alcaldianeiva.gov.co",       // SANTA LIBRADA
+  "141001000899": "iesantateresa@alcaldianeiva.gov.co",      // SANTA TERESA
+  "141001003855": "ieipc@alcaldianeiva.gov.co",              // INSTITUTO TECNICO IPC ANDRES ROSA
+  "141001000031": "ietecnicos@alcaldianeiva.gov.co"          // TECNICO SUPERIOR
+};
+
+/*
+ * Normaliza un código DANE para comparar (solo dígitos, sin espacios
+ * ni ceros a la izquierda perdidos por Sheets al mostrarlo como
+ * número) antes de buscarlo en CORRECCION_EMAIL_POR_DANE_.
+ */
+function obtenerCorreoCorregidoPorDane_(dane){
+  const clave = String(dane || "").trim();
+  return CORRECCION_EMAIL_POR_DANE_[clave] || "";
+}
+
+/*
  * "El servicio de Hojas de cálculo no ha podido acceder al
  * documento" es un error transitorio conocido del servicio de
  * Google (no de este código): ocurre sobre todo cuando una misma
@@ -4709,17 +4780,22 @@ function generarAccesosIE() {
                     dane;
 
                 /*
-                 * Correo institucional (columna "E-MAIL INSTITUCIONAL"
-                 * de Oficiales): faltaba esta asignación por completo,
-                 * así que cada acceso nuevo quedaba con EMAIL_IE
-                 * vacío — el correo de acceso nunca podía enviarse
-                 * (enviarAccesosTodasIE/enviarAccesosSoloOficialesFEM
-                 * omiten cualquier fila sin EMAIL_IE).
+                 * Correo institucional: faltaba esta asignación por
+                 * completo, así que cada acceso nuevo quedaba con
+                 * EMAIL_IE vacío — el correo de acceso nunca podía
+                 * enviarse (enviarAccesosTodasIE/
+                 * enviarAccesosSoloOficialesFEM omiten cualquier fila
+                 * sin EMAIL_IE). Se prefiere CORRECCION_EMAIL_POR_DANE_
+                 * (la lista verificada por la Secretaría) sobre la
+                 * columna "E-MAIL INSTITUCIONAL" de Oficiales, que
+                 * traía direcciones que no correspondían a la IE real
+                 * para varias instituciones.
                  */
                 if(columna("EMAIL_IE") >= 0){
                     nuevaFila[
                         columna("EMAIL_IE")
                     ] =
+                        obtenerCorreoCorregidoPorDane_(dane) ||
                         String(datosIE.correo || "").trim();
                 }
 

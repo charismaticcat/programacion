@@ -2645,21 +2645,25 @@ function restablecerAccesosOficialesFEM(){
 
 
 /*****************************************************
- * REPARAR EMAIL_IE DE LAS 37 IE OFICIALES SIN TOCAR SUS CÓDIGOS
+ * REPARAR/CORREGIR EMAIL_IE DE LAS 37 IE OFICIALES SIN TOCAR CÓDIGOS
  *
- * Bug encontrado y corregido en generarAccesosIE() (Código.js): al
- * crear un acceso nuevo nunca copiaba el correo institucional desde
- * Oficiales (columna "E-MAIL INSTITUCIONAL") a la columna EMAIL_IE de
- * AccesosIE — por eso enviarAccesosSoloOficialesFEM() (y
- * enviarAccesosTodasIE()) omitían las 37 IE con "sin EMAIL_IE",
- * aunque sus códigos/enlaces sí se hubieran generado bien.
+ * Dos problemas distintos, corregidos en el mismo lugar:
+ *  1) generarAccesosIE() (Código.js) nunca copiaba el correo
+ *     institucional desde Oficiales a la columna EMAIL_IE de
+ *     AccesosIE al crear un acceso nuevo — quedaba vacía.
+ *  2) Incluso cuando SÍ había algo en EMAIL_IE, la columna "E-MAIL
+ *     INSTITUCIONAL" de Oficiales traía direcciones que no
+ *     correspondían a la IE real: los correos se enviaban (Apps
+ *     Script no valida el buzón al encolar el envío, por eso la
+ *     cuota de envíos bajaba igual) pero nunca llegaban a destino.
  *
- * Esta función repara SOLO ese campo en las filas ya existentes de
- * las 37 IE oficiales — no toca CODIGO_ACCESO, TOKEN, URL_ACCESO ni
- * ID_FORO, así que los códigos/enlaces ya generados (y que ya podrían
- * haberse compartido) siguen siendo válidos. Úsese en vez de
- * restablecerAccesosOficialesFEM() cuando el único problema es el
- * correo — evita invalidar códigos innecesariamente.
+ * Esta función usa CORRECCION_EMAIL_POR_DANE_ (Código.js — la lista
+ * de correos verificada por la Secretaría) como fuente de verdad, y
+ * si no hay corrección para una IE, cae de vuelta al correo de
+ * Oficiales. Corrige EMAIL_IE tanto si estaba vacío como si tenía un
+ * valor distinto al correcto — nunca toca CODIGO_ACCESO, TOKEN,
+ * URL_ACCESO ni ID_FORO, así que los códigos/enlaces ya generados (y
+ * que ya podrían haberse compartido) siguen siendo válidos.
  *
  * Ejecutar manualmente:  repararEmailIEOficialesFEM()
  *****************************************************/
@@ -2685,31 +2689,41 @@ function repararEmailIEOficialesFEM(){
     }
     const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues();
 
-    let reparadas = 0, yaTenianCorreo = 0, sinCorreoEnOficiales = 0, noEncontradas = 0;
+    let reparadas = 0, yaEstabanCorrectas = 0, sinCorreoDisponible = 0, noEncontradas = 0;
     const detalle = [];
 
     nombresOficiales.forEach(function(nombreIE){
       const indiceFila = valores.findIndex(function(f){ return normalizarAccesoIE_(String(f[m.IE - 1] || "")) === normalizarAccesoIE_(nombreIE); });
       if(indiceFila === -1){ noEncontradas++; detalle.push(nombreIE + ": ⚠ no existe en AccesosIE (ejecute restablecerAccesosOficialesFEM() primero)."); return; }
 
-      const correoActual = String(valores[indiceFila][m.EMAIL_IE - 1] || "").trim();
-      if(correoActual){ yaTenianCorreo++; return; }
+      const fila = valores[indiceFila];
+      const correoActual = String(fila[m.EMAIL_IE - 1] || "").trim();
+      /*
+       * CORRECCION_EMAIL_POR_DANE_ (Código.js) tiene prioridad,
+       * incluso si ya había ALGO en EMAIL_IE: la hoja Oficiales traía
+       * correos que no correspondían a la IE real, así que "ya tenía
+       * un correo" no significaba "tenía el correo correcto".
+       */
+      const dane = m.DANE ? String(fila[m.DANE - 1] || "").trim() : "";
+      const correoCorregido = dane ? obtenerCorreoCorregidoPorDane_(dane) : "";
+      const correoObjetivo = correoCorregido || String(instituciones[nombreIE]?.correo || "").trim();
 
-      const correoOficial = String(instituciones[nombreIE]?.correo || "").trim();
-      if(!correoOficial){ sinCorreoEnOficiales++; detalle.push(nombreIE + ": ⚠ tampoco tiene E-MAIL INSTITUCIONAL en Oficiales."); return; }
+      if(!correoObjetivo){ sinCorreoDisponible++; detalle.push(nombreIE + ": ⚠ no hay correo verificado ni en Oficiales para esta IE."); return; }
 
-      hoja.getRange(indiceFila + 2, m.EMAIL_IE).setValue(correoOficial);
+      if(correoActual === correoObjetivo){ yaEstabanCorrectas++; return; }
+
+      hoja.getRange(indiceFila + 2, m.EMAIL_IE).setValue(correoObjetivo);
       reparadas++;
-      detalle.push(nombreIE + ": ✅ EMAIL_IE = " + correoOficial);
+      detalle.push(nombreIE + ": ✅ EMAIL_IE " + (correoActual ? "corregido de \"" + correoActual + "\" a" : "completado con") + " \"" + correoObjetivo + "\"" + (correoCorregido ? " (fuente: lista verificada)" : " (fuente: Oficiales)") + ".");
     });
 
     Logger.log("========================================");
     Logger.log("REPARACIÓN DE EMAIL_IE — 37 IE OFICIALES");
     detalle.forEach(function(d){ Logger.log(d); });
-    Logger.log("Reparadas: " + reparadas + " | Ya tenían correo: " + yaTenianCorreo + " | Sin correo en Oficiales: " + sinCorreoEnOficiales + " | No encontradas en AccesosIE: " + noEncontradas);
+    Logger.log("Reparadas/corregidas: " + reparadas + " | Ya estaban correctas: " + yaEstabanCorrectas + " | Sin correo disponible: " + sinCorreoDisponible + " | No encontradas en AccesosIE: " + noEncontradas);
     Logger.log("========================================");
 
-    return { ok:true, reparadas: reparadas, yaTenianCorreo: yaTenianCorreo, sinCorreoEnOficiales: sinCorreoEnOficiales, noEncontradas: noEncontradas };
+    return { ok:true, reparadas: reparadas, yaEstabanCorrectas: yaEstabanCorrectas, sinCorreoDisponible: sinCorreoDisponible, noEncontradas: noEncontradas };
   }catch(error){
     resultado.errores.push(error.message);
     Logger.log("❌ ERROR: " + error.message);
@@ -2915,15 +2929,28 @@ function enviarAccesosSoloOficialesFEM(){
   }
   const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues();
 
+  /*
+   * El correo verificado en CORRECCION_EMAIL_POR_DANE_ (Código.js)
+   * tiene prioridad sobre lo que haya en la columna EMAIL_IE: se
+   * detectó que esa columna traía direcciones que no correspondían a
+   * la IE real, así que los correos se enviaban (Apps Script no
+   * valida el buzón al encolar el envío) pero nunca llegaban.
+   */
+  function correoRealDeFila_(fila){
+    const dane = mapa.DANE ? String(fila[mapa.DANE - 1] || "").trim() : "";
+    const corregido = dane ? obtenerCorreoCorregidoPorDane_(dane) : "";
+    return corregido || String(fila[mapa.EMAIL_IE - 1] || "").trim();
+  }
+
   // Filas que realmente se van a enviar (oficial + DISPONIBLE + con
-  // EMAIL_IE), calculadas de antemano para poder elegir una al azar y
-  // marcarla con copia oculta a modo de verificación de que el envío
-  // masivo sí está saliendo de verdad.
+  // correo, ya sea corregido o el de la hoja), calculadas de antemano
+  // para poder elegir una al azar y marcarla con copia oculta a modo
+  // de verificación de que el envío masivo sí está saliendo de verdad.
   const filasAEnviar = valores.filter(function(fila){
     const nombreIE = String(fila[mapa.IE - 1] || "").trim();
     if(!nombreIE || !clavesOficiales[normalizarAccesoIE_(nombreIE)]) return false;
     if(String(fila[mapa.ESTADO - 1] || "").trim().toUpperCase() !== "DISPONIBLE") return false;
-    if(!String(fila[mapa.EMAIL_IE - 1] || "").trim()) return false;
+    if(!correoRealDeFila_(fila)) return false;
     return true;
   });
 
@@ -2933,10 +2960,10 @@ function enviarAccesosSoloOficialesFEM(){
     : null;
   const ieConCopiaOculta = filaConCopiaOculta ? String(filaConCopiaOculta[mapa.IE - 1] || "").trim() : "";
 
-  let enviados = 0, omitidos = 0;
+  let enviados = 0, omitidos = 0, corregidos = 0;
   const errores = [];
 
-  valores.forEach(function(fila){
+  valores.forEach(function(fila, indice){
     const nombreIE = String(fila[mapa.IE - 1] || "").trim();
     // No es una de las 37 oficiales (incluye a todas las de prueba): se ignora.
     if(!nombreIE || !clavesOficiales[normalizarAccesoIE_(nombreIE)]) return;
@@ -2944,8 +2971,16 @@ function enviarAccesosSoloOficialesFEM(){
     const estado = String(fila[mapa.ESTADO - 1] || "").trim().toUpperCase();
     if(estado !== "DISPONIBLE"){ omitidos++; return; }
 
-    const correoIE = String(fila[mapa.EMAIL_IE - 1] || "").trim();
+    const correoIE = correoRealDeFila_(fila);
     if(!correoIE){ omitidos++; return; }
+
+    // Deja la hoja corregida para la próxima vez, si el correo real
+    // no coincidía con el que ya estaba guardado en EMAIL_IE.
+    const correoGuardado = String(fila[mapa.EMAIL_IE - 1] || "").trim();
+    if(correoGuardado !== correoIE){
+      hoja.getRange(indice + 2, mapa.EMAIL_IE).setValue(correoIE);
+      corregidos++;
+    }
 
     try{
       const codigo = String(fila[mapa.CODIGO_ACCESO - 1] || "").trim();
@@ -2969,12 +3004,12 @@ function enviarAccesosSoloOficialesFEM(){
 
   Logger.log("========================================");
   Logger.log("ENVÍO DE ACCESOS A LAS 37 IE OFICIALES (sin IE de prueba)");
-  Logger.log("Enviados: " + enviados + " | Omitidos (sin ESTADO=DISPONIBLE o sin EMAIL_IE): " + omitidos + " | Errores: " + errores.length);
+  Logger.log("Enviados: " + enviados + " | Omitidos (sin ESTADO=DISPONIBLE o sin correo): " + omitidos + " | Corregidos en la hoja (EMAIL_IE no coincidía con el correo verificado): " + corregidos + " | Errores: " + errores.length);
   if(ieConCopiaOculta) Logger.log("Verificación: se envió copia oculta (BCC) a " + CORREO_VERIFICACION + " del correo real de la IE elegida al azar: " + ieConCopiaOculta + ".");
   if(errores.length) Logger.log(JSON.stringify(errores, null, 2));
   Logger.log("========================================");
 
-  return { ok: errores.length === 0, enviados: enviados, omitidos: omitidos, errores: errores, ieConCopiaOculta: ieConCopiaOculta };
+  return { ok: errores.length === 0, enviados: enviados, omitidos: omitidos, corregidos: corregidos, errores: errores, ieConCopiaOculta: ieConCopiaOculta };
 }
 
 
