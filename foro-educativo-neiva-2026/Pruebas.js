@@ -2915,6 +2915,24 @@ function enviarAccesosSoloOficialesFEM(){
   }
   const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues();
 
+  // Filas que realmente se van a enviar (oficial + DISPONIBLE + con
+  // EMAIL_IE), calculadas de antemano para poder elegir una al azar y
+  // marcarla con copia oculta a modo de verificación de que el envío
+  // masivo sí está saliendo de verdad.
+  const filasAEnviar = valores.filter(function(fila){
+    const nombreIE = String(fila[mapa.IE - 1] || "").trim();
+    if(!nombreIE || !clavesOficiales[normalizarAccesoIE_(nombreIE)]) return false;
+    if(String(fila[mapa.ESTADO - 1] || "").trim().toUpperCase() !== "DISPONIBLE") return false;
+    if(!String(fila[mapa.EMAIL_IE - 1] || "").trim()) return false;
+    return true;
+  });
+
+  const CORREO_VERIFICACION = "jhonefrainsanchez@gmail.com";
+  const filaConCopiaOculta = filasAEnviar.length
+    ? filasAEnviar[Math.floor(Math.random() * filasAEnviar.length)]
+    : null;
+  const ieConCopiaOculta = filaConCopiaOculta ? String(filaConCopiaOculta[mapa.IE - 1] || "").trim() : "";
+
   let enviados = 0, omitidos = 0;
   const errores = [];
 
@@ -2940,6 +2958,7 @@ function enviarAccesosSoloOficialesFEM(){
       const opciones = { htmlBody: correoArmado.cuerpoHTML, name: "Secretaría de Educación de Neiva", replyTo: REMITENTE_FEM };
       if(cuenta !== REMITENTE_FEM) opciones.from = REMITENTE_FEM;
       if(correoResponsable && correoResponsable !== correoIE) opciones.cc = correoResponsable;
+      if(fila === filaConCopiaOculta) opciones.bcc = CORREO_VERIFICACION;
 
       GmailApp.sendEmail(correoIE, correoArmado.asunto, correoArmado.cuerpoTexto, opciones);
       enviados++;
@@ -2951,10 +2970,11 @@ function enviarAccesosSoloOficialesFEM(){
   Logger.log("========================================");
   Logger.log("ENVÍO DE ACCESOS A LAS 37 IE OFICIALES (sin IE de prueba)");
   Logger.log("Enviados: " + enviados + " | Omitidos (sin ESTADO=DISPONIBLE o sin EMAIL_IE): " + omitidos + " | Errores: " + errores.length);
+  if(ieConCopiaOculta) Logger.log("Verificación: se envió copia oculta (BCC) a " + CORREO_VERIFICACION + " del correo real de la IE elegida al azar: " + ieConCopiaOculta + ".");
   if(errores.length) Logger.log(JSON.stringify(errores, null, 2));
   Logger.log("========================================");
 
-  return { ok: errores.length === 0, enviados: enviados, omitidos: omitidos, errores: errores };
+  return { ok: errores.length === 0, enviados: enviados, omitidos: omitidos, errores: errores, ieConCopiaOculta: ieConCopiaOculta };
 }
 
 
