@@ -1974,7 +1974,7 @@ const TEXTO_MUESTRA_RESPUESTA_LARGA_PRUEBA =
 const TEXTO_MUESTRA_ACCION_PRUEBA =
   "Acción de muestra para validar el formulario, sus límites de palabras y la generación del informe.";
 
-function crearIEsPruebaAdicionales_(){
+function crearIEsPruebaAdicionales(){
 
   const hoja = asegurarColumnasAccesosIE_();
   const mapa = mapaHoja_(hoja);
@@ -2038,7 +2038,7 @@ function crearIEsPruebaAdicionales_(){
     /*
      * Precargar caracterización y respuestas de muestra en
      * AvancesForo, para que el informe se pueda generar de una vez
-     * (ver enviarTresCorreosIEsPruebaAdicionales_).
+     * (ver enviarTresCorreosIEsPruebaAdicionales).
      */
     const campos = {};
     function campoTexto(id, valor){ campos[id] = { tipo:"text", valor: valor }; }
@@ -2088,7 +2088,7 @@ function crearIEsPruebaAdicionales_(){
 /*****************************************************
  * ENVIAR LOS 3 CORREOS A LAS IE DE PRUEBA ADICIONALES
  *
- * Ejecutar SOLO después de crearIEsPruebaAdicionales_(). Para cada
+ * Ejecutar SOLO después de crearIEsPruebaAdicionales(). Para cada
  * IE de la lista IES_PRUEBA_ADICIONALES, en orden:
  *
  *   1. Correo de acceso (código + enlace) — mismo diseño que
@@ -2189,7 +2189,7 @@ function enviarAccesoIndividualIEPrueba_(nombreIE){
 
 }
 
-function enviarTresCorreosIEsPruebaAdicionales_(){
+function enviarTresCorreosIEsPruebaAdicionales(){
 
   const hoja = asegurarColumnasAccesosIE_();
   const mapa = mapaHoja_(hoja);
@@ -2205,7 +2205,7 @@ function enviarTresCorreosIEsPruebaAdicionales_(){
       const ultimaFila = hoja.getLastRow();
       const valores = hoja.getRange(2, 1, ultimaFila - 1, hoja.getLastColumn()).getDisplayValues();
       const fila = valores.find(function(f){ return String(f[mapa.IE-1]||"").trim() === nombreIE; });
-      if(!fila) throw new Error("No existe en AccesosIE. Ejecute primero crearIEsPruebaAdicionales_().");
+      if(!fila) throw new Error("No existe en AccesosIE. Ejecute primero crearIEsPruebaAdicionales().");
 
       const idForo = String(fila[mapa.ID_FORO-1]||"").trim();
       const dispositivoId = "PRUEBA-DISPOSITIVO-" + idForo.slice(0, 8);
@@ -2219,7 +2219,7 @@ function enviarTresCorreosIEsPruebaAdicionales_(){
       if(!sesion.ok) throw new Error("No fue posible reclamar la sesión de prueba: " + sesion.mensaje);
 
       const datosGuardados = obtenerDatosGuardadosPorIdForo_(idForo);
-      if(!datosGuardados) throw new Error("No hay datos guardados para " + nombreIE + ". Ejecute primero crearIEsPruebaAdicionales_().");
+      if(!datosGuardados) throw new Error("No hay datos guardados para " + nombreIE + ". Ejecute primero crearIEsPruebaAdicionales().");
       datosGuardados.idForo = idForo;
 
       const envio = enviarForoDefinitivo(idForo, sesion.tokenSesion, dispositivoId, datosGuardados);
