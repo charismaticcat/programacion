@@ -3576,9 +3576,37 @@ Su ancho ya queda acotado por .cajaTexto > * (--reading-width).
     border-radius:var(--radio);
     padding:18px 20px;
     margin-bottom:14px;
+    border:2px solid transparent;
+    transition:border-color .2s ease, background-color .2s ease;
 }
+.valoracionPregunta.respondida{border-color:var(--verde-neiva);background:#EAF6EF;}
 .valoracionPregunta p{color:var(--gris-texto);font-size:15px;line-height:1.5;margin-bottom:12px;}
 .valoracionCorazones{display:flex;justify-content:center;gap:8px;}
+.valoracionMejora{
+    margin-top:14px;
+    padding-top:14px;
+    border-top:1px dashed var(--gris-borde);
+}
+.valoracionMejora label{display:block;font-weight:600;color:var(--rojo-neiva);margin-bottom:8px;font-size:14px;}
+.valoracionMejora textarea{
+    width:100%;
+    min-height:60px;
+    padding:10px;
+    font-size:14px;
+    font-family:inherit;
+    border:1px solid var(--gris-borde);
+    border-radius:10px;
+    resize:vertical;
+}
+.valoracionResultado{
+    background:#EAF6EF;
+    border:2px solid var(--verde-neiva);
+    border-radius:var(--radio);
+    padding:14px 20px;
+    margin-bottom:14px;
+    text-align:center;
+}
+.valoracionNota{color:var(--verde-neiva);font-weight:700;font-size:18px;margin:0;}
 .corazonValoracion{
     background:transparent;
     border:none;

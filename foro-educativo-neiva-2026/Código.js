@@ -6321,9 +6321,14 @@ function asegurarHojaValoracionFEM_(){
   const ss=abrirSpreadsheet_();
   let hoja=ss.getSheetByName(HOJA_VALORACION_FEM);
   if(!hoja) hoja=ss.insertSheet(HOJA_VALORACION_FEM);
-  const requeridas=["ID_FORO","IE","FECHA","P1_DIALOGO_REFLEXION","P2_PARTICIPACION","P3_IDEAS_PROPUESTAS","P4_SATISFACCION_INSTRUMENTO","P5_SUGERENCIAS"];
+  const requeridas=["ID_FORO","IE","FECHA","P1_DIALOGO_REFLEXION","P2_PARTICIPACION","P3_IDEAS_PROPUESTAS","P4_SATISFACCION_INSTRUMENTO","NOTA_PROMEDIO","P1_MEJORA","P2_MEJORA","P3_MEJORA","P4_MEJORA","P5_SUGERENCIAS"];
   const last=hoja.getLastColumn();
+  const existentes=last?hoja.getRange(1,1,1,last).getValues()[0].map(String):[];
   if(!last){ hoja.getRange(1,1,1,requeridas.length).setValues([requeridas]); }
+  else{
+    const faltantes=requeridas.filter(h=>existentes.indexOf(h)===-1);
+    if(faltantes.length) hoja.getRange(1,last+1,1,faltantes.length).setValues([faltantes]);
+  }
   return hoja;
 }
 
@@ -6376,6 +6381,8 @@ function guardarValoracionFEM(idForo, respuestas){
       }
     }
 
+    const notaPromedio=(puntajes[0]+puntajes[1]+puntajes[2]+puntajes[3])/4;
+
     const fila=new Array(hoja.getLastColumn()).fill("");
     const valores={
       ID_FORO:String(idForo),
@@ -6385,6 +6392,11 @@ function guardarValoracionFEM(idForo, respuestas){
       P2_PARTICIPACION:puntajes[1],
       P3_IDEAS_PROPUESTAS:puntajes[2],
       P4_SATISFACCION_INSTRUMENTO:puntajes[3],
+      NOTA_PROMEDIO:Number(notaPromedio.toFixed(2)),
+      P1_MEJORA:String(respuestas.mejoraP1||"").trim(),
+      P2_MEJORA:String(respuestas.mejoraP2||"").trim(),
+      P3_MEJORA:String(respuestas.mejoraP3||"").trim(),
+      P4_MEJORA:String(respuestas.mejoraP4||"").trim(),
       P5_SUGERENCIAS:String(respuestas.p5||"").trim()
     };
     Object.keys(valores).forEach(k=>{ if(m[k]) fila[m[k]-1]=valores[k]; });

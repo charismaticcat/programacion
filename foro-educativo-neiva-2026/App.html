@@ -6735,9 +6735,48 @@ function inicializarValoracionFEM_(){
 
     const puntajes={p1:0,p2:0,p3:0,p4:0};
 
+    /*
+     * Una vez respondidas las 4 preguntas de corazones, se calcula la
+     * nota promedio (1 a 5) y, según el rango, se muestra un mensaje
+     * con emoji y se revela la pregunta abierta final con un texto
+     * distinto — esta pregunta permanece oculta hasta ese momento.
+     */
+    function actualizarResultadoValoracionFEM_(){
+        const bloqueAbierto=document.getElementById("valoracionAbiertaBloque");
+        const bloqueResultado=document.getElementById("valoracionResultado");
+        const notaTexto=document.getElementById("valoracionNotaTexto");
+        const labelAbierto=document.getElementById("valoracionP5Label");
+
+        if(!puntajes.p1||!puntajes.p2||!puntajes.p3||!puntajes.p4){
+            if(bloqueAbierto) bloqueAbierto.style.display="none";
+            if(bloqueResultado) bloqueResultado.style.display="none";
+            return;
+        }
+
+        const nota=(puntajes.p1+puntajes.p2+puntajes.p3+puntajes.p4)/4;
+        const ie=String(getCampoNombreIE()||"").replace(/^\s*(instituci[oó]n\s+educativa|i\.?\s*e\.?)\s+/i,"").trim()||"nuestra institución";
+        let emoji, pregunta;
+        if(nota<3){
+            emoji="😭";
+            pregunta="😭 ¡Debemos hacerlo mejor! ¿Qué sugerencias, recomendaciones o propuestas tienen para fortalecer la organización y desarrollo del Foro Educativo Institucional 2027?";
+        }else if(nota<=4){
+            emoji="😬";
+            pregunta="😬 ¡Pasamos raspados! ¿Quieren decirnos qué funcionó bien para la IE "+ie+" y qué pudo haber sido mejor para fortalecer la organización y desarrollo del Foro Educativo Institucional 2027?";
+        }else{
+            emoji="🎉";
+            pregunta="🎉 ¡Bravo, gracias por el reconocimiento! ¿Quieren decirnos qué hicimos bien para la IE "+ie+" para merecer el reconocimiento de ustedes? Y de paso también pueden decirnos cómo mejorar para fortalecer la organización y desarrollo del Foro Educativo Institucional 2027.";
+        }
+
+        if(notaTexto) notaTexto.textContent=emoji+" Nuestra nota fue de: "+nota.toFixed(1)+" / 5.0 "+emoji;
+        if(bloqueResultado) bloqueResultado.style.display="block";
+        if(labelAbierto) labelAbierto.textContent=pregunta;
+        if(bloqueAbierto) bloqueAbierto.style.display="block";
+    }
+
     contenedor.querySelectorAll(".valoracionPregunta[data-pregunta]").forEach(function(bloque){
         const pregunta=bloque.dataset.pregunta;
         const corazones=Array.prototype.slice.call(bloque.querySelectorAll(".corazonValoracion"));
+        const bloqueMejora=contenedor.querySelector('.valoracionMejora[data-mejora-de="'+pregunta+'"]');
 
         corazones.forEach(function(btn){
             btn.addEventListener("click",function(){
@@ -6748,6 +6787,9 @@ function inicializarValoracionFEM_(){
                     b.textContent=v<=valor?"❤️":"🤍";
                     b.classList.toggle("seleccionado",v===valor);
                 });
+                bloque.classList.add("respondida");
+                if(bloqueMejora) bloqueMejora.style.display=(valor<=2)?"block":"none";
+                actualizarResultadoValoracionFEM_();
             });
         });
     });
@@ -6780,7 +6822,11 @@ function inicializarValoracionFEM_(){
 
         const respuestas={
             p1:puntajes.p1, p2:puntajes.p2, p3:puntajes.p3, p4:puntajes.p4,
-            p5:document.getElementById("valoracionP5")?.value||""
+            p5:document.getElementById("valoracionP5")?.value||"",
+            mejoraP1:document.getElementById("valoracionMejoraP1")?.value||"",
+            mejoraP2:document.getElementById("valoracionMejoraP2")?.value||"",
+            mejoraP3:document.getElementById("valoracionMejoraP3")?.value||"",
+            mejoraP4:document.getElementById("valoracionMejoraP4")?.value||""
         };
 
         google.script.run
