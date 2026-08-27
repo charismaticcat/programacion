@@ -3291,3 +3291,39 @@ function diagnosticarAccesoPruebaFEM(nombreIE){
   Logger.log(resumen.join("\n"));
   return { ok:true, existe:true, resumen: resumen, bloqueadaPorHorario: bloqueadaPorHorario };
 }
+
+
+/*****************************************************
+ * CREAR TODOS LOS LINKS DE PRUEBA DE UNA SOLA VEZ
+ *
+ * Ejecuta, en orden, crearAccesoPrueba1234() y
+ * crearIEsPruebaAdicionales() (ambas se saltan solas la IE que ya
+ * exista, nunca duplican), y al final imprime en el log la lista
+ * completa de las 10 IE de prueba con su código y su enlace —
+ * pensada para usarse justo después de un reset, cuando hace falta
+ * volver a tener todos los accesos de prueba listos para copiar.
+ *
+ * Ejecutar manualmente:  crearTodosLosAccesosDePruebaFEM()
+ *****************************************************/
+function crearTodosLosAccesosDePruebaFEM(){
+  crearAccesoPrueba1234();
+  crearIEsPruebaAdicionales();
+
+  const hoja = asegurarColumnasAccesosIE_();
+  const mapa = mapaHoja_(hoja);
+  const valores = hoja.getLastRow() >= 2 ? hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues() : [];
+
+  const nombresPrueba = ["IE PRUEBA 1234"].concat(IES_PRUEBA_ADICIONALES.map(function(x){ return x.ie; }));
+  const lista = nombresPrueba.map(function(nombreIE){
+    const fila = valores.find(function(f){ return String(f[mapa.IE - 1] || "").trim() === nombreIE; });
+    if(!fila) return nombreIE + ": ⚠ no se pudo crear/encontrar.";
+    return nombreIE + " -> código: " + String(fila[mapa.CODIGO_ACCESO - 1] || "") + " | " + String(fila[mapa.URL_ACCESO - 1] || "");
+  });
+
+  Logger.log("========================================");
+  Logger.log("LINKS DE LAS 10 IE DE PRUEBA");
+  Logger.log(lista.join("\n"));
+  Logger.log("========================================");
+
+  return { ok:true, lista: lista };
+}
