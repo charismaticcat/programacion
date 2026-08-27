@@ -5921,16 +5921,31 @@ function generarInformeFEM(idForo,datosCliente){
     const VERDE=COLOR_VERDE_DOC, GRIS_TEXTO=COLOR_GRIS_TEXTO_DOC, GRIS_FONDO=COLOR_GRIS_FONDO_DOC, GRIS_BORDE=COLOR_GRIS_BORDE_DOC;
     const AZUL_CLARO=COLOR_AZUL_CLARO_DOC, AMARILLO=COLOR_AMARILLO_DOC, NEGRO=COLOR_NEGRO_DOC;
 
-    const body=doc.getBody(); body.clear(); body.setPageWidth(612).setPageHeight(792).setMarginTop(50).setMarginBottom(50).setMarginLeft(48).setMarginRight(48);
+    const body=doc.getBody(); body.clear(); body.setPageWidth(612).setPageHeight(792).setMarginTop(28).setMarginBottom(28).setMarginLeft(36).setMarginRight(36);
     /*
-     * Encabezado con el logo de la Alcaldía/SEM a la derecha (se
-     * repite en cada página del documento). El logo de la IE ya NO
-     * va aquí — a este tamaño de encabezado se veía diminuto — sino
-     * grande y centrado en la portada del informe (ver más abajo).
+     * Encabezado con el logo de la Alcaldía/SEM a la derecha y el
+     * logo de la IE (pequeño) a la izquierda. Documentos/Apps Script
+     * no permite un encabezado "distinto en la primera página" —
+     * este encabezado se repite igual en TODAS las páginas,
+     * incluida la primera. En la portada eso no estorba porque el
+     * logo de la IE ya aparece ahí grande y centrado por separado.
      */
     const h=doc.getHeader()||doc.addHeader(); h.clear();
     const logoIdIE=obtenerLogoIdPorNombreIE_(datos.institucion||"");
-    const pLogoAlcaldia=h.appendParagraph(""); pLogoAlcaldia.setAlignment(DocumentApp.HorizontalAlignment.RIGHT);
+    // Tabla sin bordes (2 columnas) en vez de tabulaciones, para que
+    // el logo de la IE quede fijo a la izquierda y el de la
+    // Alcaldía/SEM a la derecha, sin depender de dónde caigan los
+    // tabuladores por defecto.
+    const tablaEncabezado=h.appendTable([["",""]]);
+    tablaEncabezado.setBorderWidth(0);
+    const celdaLogoIE=tablaEncabezado.getCell(0,0);
+    celdaLogoIE.setWidth(300);
+    if(logoIdIE){
+      try{ celdaLogoIE.getChild(0).asParagraph().appendInlineImage(DriveApp.getFileById(logoIdIE).getBlob()).setWidth(36).setHeight(36); }catch(e){}
+    }
+    const celdaLogoAlcaldia=tablaEncabezado.getCell(0,1);
+    const pLogoAlcaldia=celdaLogoAlcaldia.getChild(0).asParagraph();
+    pLogoAlcaldia.setAlignment(DocumentApp.HorizontalAlignment.RIGHT);
     try{ pLogoAlcaldia.appendInlineImage(DriveApp.getFileById(LOGO_ENCABEZADO_ID).getBlob()).setWidth(90).setHeight(50); }catch(e){};
     const footer=doc.getFooter()||doc.addFooter(); footer.clear(); const fp=footer.appendParagraph(""); fp.setAlignment(DocumentApp.HorizontalAlignment.CENTER); try{fp.appendInlineImage(DriveApp.getFileById(LOGO_PIE_ID).getBlob()).setWidth(80).setHeight(40);}catch(e){};
     const fpTexto=footer.appendParagraph("Generado por SEM el "+Utilities.formatDate(new Date(),Session.getScriptTimeZone(),"dd/MM/yyyy 'a las' HH:mm")+". Enviado por "+(datos.campos?.nombre?.valor||"")+" — "+(datos.campos?.correo?.valor||"")+" — "+(datos.campos?.cargo?.valor||"")+" de la "+(datos.institucion||""));
@@ -5945,18 +5960,26 @@ function generarInformeFEM(idForo,datosCliente){
     if(logoIdIE){
       try{
         const pLogoIE=body.appendParagraph("");
+        pLogoIE.setSpacingBefore(0).setSpacingAfter(4);
         pLogoIE.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
         pLogoIE.appendInlineImage(DriveApp.getFileById(logoIdIE).getBlob()).setWidth(100).setHeight(100);
       }catch(e){}
     }
 
+    // Título subido (spacingBefore en 0) y 2pt más pequeño que el
+    // tamaño por defecto del estilo "Título" de Documentos (26pt),
+    // para que la Caracterización quepa completa en una sola página.
     const title=body.appendParagraph("INFORME EJECUTIVO DE "+String(datos.institucion||"").toUpperCase()+" FEM 2026");
-    title.setHeading(DocumentApp.ParagraphHeading.TITLE); title.setAlignment(DocumentApp.HorizontalAlignment.CENTER); title.editAsText().setForegroundColor(VERDE);
+    title.setHeading(DocumentApp.ParagraphHeading.TITLE); title.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    title.setSpacingBefore(0).setSpacingAfter(6);
+    title.editAsText().setForegroundColor(VERDE).setFontSize(24);
 
     const subt=body.appendParagraph("FEM 2026 “Escuela Viva: Voces que construyen territorio”.");
-    subt.setHeading(DocumentApp.ParagraphHeading.HEADING2); subt.setAlignment(DocumentApp.HorizontalAlignment.CENTER); subt.editAsText().setForegroundColor(GRIS_TEXTO).setItalic(true);
+    subt.setHeading(DocumentApp.ParagraphHeading.HEADING2); subt.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    subt.setSpacingBefore(2).setSpacingAfter(2); subt.editAsText().setForegroundColor(GRIS_TEXTO).setItalic(true);
 
     const sub2=body.appendParagraph("Foro Educativo Institucional — Neiva 2026");
+    sub2.setSpacingBefore(0).setSpacingAfter(4);
     sub2.setAlignment(DocumentApp.HorizontalAlignment.CENTER); sub2.editAsText().setForegroundColor(GRIS_TEXTO);
 
     body.appendHorizontalRule();
@@ -5964,8 +5987,25 @@ function generarInformeFEM(idForo,datosCliente){
     function encabezadoSeccion_(texto){
       const p=body.appendParagraph(texto);
       p.setHeading(DocumentApp.ParagraphHeading.HEADING1);
+      p.setSpacingBefore(6).setSpacingAfter(4);
       p.editAsText().setForegroundColor(VERDE).setBold(true);
       return p;
+    }
+
+    /*
+     * Recorta el padding por defecto de las celdas de una tabla
+     * (Documentos usa ~5pt por lado) para que las tablas de
+     * Caracterización y Participación ocupen menos alto y quepan
+     * cada una en una sola página.
+     */
+    function reducirPaddingTabla_(tabla, valor){
+      for(let f=0; f<tabla.getNumRows(); f++){
+        const fila=tabla.getRow(f);
+        for(let col=0; col<fila.getNumCells(); col++){
+          const celda=fila.getCell(col);
+          celda.setPaddingTop(valor).setPaddingBottom(valor).setPaddingLeft(valor).setPaddingRight(valor);
+        }
+      }
     }
 
     /*
@@ -6014,7 +6054,7 @@ function generarInformeFEM(idForo,datosCliente){
      */
     function tablaCaracterizacion_(filas){
       const t=body.appendTable();
-      t.setBorderColor("#FFFFFF"); t.setBorderWidth(6);
+      t.setBorderColor("#FFFFFF"); t.setBorderWidth(4);
       filas.forEach(function(x){
         const r=t.appendTableRow();
         const acento=r.appendTableCell("");
@@ -6023,11 +6063,14 @@ function generarInformeFEM(idForo,datosCliente){
         const contenido=r.appendTableCell("");
         contenido.setBackgroundColor(AZUL_CLARO);
         const pTitulo=contenido.getChild(0).asParagraph();
+        pTitulo.setSpacingBefore(0).setSpacingAfter(0);
         pTitulo.setText(String(x[0]||""));
-        pTitulo.editAsText().setBold(true).setForegroundColor(VERDE).setFontSize(10);
+        pTitulo.editAsText().setBold(true).setForegroundColor(VERDE).setFontSize(9);
         const pValor=contenido.appendParagraph(String(x[1]||"—"));
-        pValor.editAsText().setForegroundColor(NEGRO).setFontSize(10);
+        pValor.setSpacingBefore(0).setSpacingAfter(0);
+        pValor.editAsText().setForegroundColor(NEGRO).setFontSize(9);
       });
+      reducirPaddingTabla_(t, 3);
       return t;
     }
 
@@ -6065,16 +6108,28 @@ function generarInformeFEM(idForo,datosCliente){
         const n=valores[i];
         const pct=n/total;
         const r=t.appendTableRow();
-        const cEtq=r.appendTableCell(etiquetas[d]);
+
+        // Cargo, con la cantidad de participantes debajo (no al
+        // frente del porcentaje, como antes).
+        const cEtq=r.appendTableCell("");
         cEtq.setWidth(150);
-        cEtq.editAsText().setForegroundColor(GRIS_TEXTO).setFontSize(9);
+        const pEtq=cEtq.getChild(0).asParagraph();
+        pEtq.setSpacingBefore(0).setSpacingAfter(0);
+        pEtq.setText(etiquetas[d]);
+        pEtq.editAsText().setForegroundColor(GRIS_TEXTO).setFontSize(8).setBold(true);
+        const pCantidad=cEtq.appendParagraph(n+" participante"+(n===1?"":"s"));
+        pCantidad.setSpacingBefore(0).setSpacingAfter(0);
+        pCantidad.editAsText().setForegroundColor(GRIS_TEXTO).setFontSize(7);
+
         const cBarra=r.appendTableCell("");
-        cBarra.setWidth(200);
+        cBarra.setWidth(190);
         try{ insertarBarraParticipacion_(cBarra, pct); }catch(errorBarra){}
-        const cValor=r.appendTableCell(n+" ("+(pct*100).toFixed(1)+"%)");
-        cValor.setWidth(70);
-        cValor.editAsText().setForegroundColor(GRIS_TEXTO).setFontSize(9);
+
+        const cValor=r.appendTableCell((pct*100).toFixed(1)+"%");
+        cValor.setWidth(50);
+        cValor.editAsText().setForegroundColor(GRIS_TEXTO).setFontSize(8);
       });
+      reducirPaddingTabla_(t, 2);
       return t;
     }
 
@@ -6092,7 +6147,8 @@ function generarInformeFEM(idForo,datosCliente){
     encabezadoSeccion_("Participación");
     const totalParticipantesInforme=totalParticipantesServer_(datos);
     const pPart=body.appendParagraph("Participantes: "+totalParticipantesInforme);
-    pPart.setHeading(DocumentApp.ParagraphHeading.HEADING2); pPart.editAsText().setForegroundColor(VERDE).setBold(true);
+    pPart.setHeading(DocumentApp.ParagraphHeading.HEADING2); pPart.setSpacingBefore(2).setSpacingAfter(4);
+    pPart.editAsText().setForegroundColor(VERDE).setBold(true);
     tablaParticipacionDoc_(datos);
 
     // Mismo párrafo introductorio que se muestra en la portada de la
