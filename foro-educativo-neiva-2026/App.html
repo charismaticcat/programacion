@@ -2104,6 +2104,25 @@ function actualizarMarcaMinimoCumplido_(campo, palabras, minimo, idBloquePregunt
 }
 
 /*****************************************************
+ * ESTADO DE LA TARJETA — PREGUNTAS DE SELECCIÓN
+ * (Sesión 2, Preguntas 3 y 5; Sesión 3, Preguntas 3 y 4)
+ * Estas preguntas no se miden por palabras sino por si hay al
+ * menos una opción marcada: verde + ✓ cuando es válida (alguna
+ * opción, o "Otro" con su texto), roja mientras no se cumpla.
+ *****************************************************/
+
+function marcarTarjetaSeleccionValida_(idBloque, valida){
+
+    const bloque = document.getElementById(idBloque);
+    const tarjeta = bloque && bloque.querySelector(":scope > .tarjetaPregunta");
+    if(!tarjeta) return;
+
+    tarjeta.classList.toggle("minimoPalabrasCumplido", valida);
+    tarjeta.classList.toggle("preguntaFueraDeRango", !valida);
+
+}
+
+/*****************************************************
  * ESTADO DE LA TARJETA "PREGUNTA 2" (ACCIONES) —
  * SESIÓN 2 Y 3
  * A diferencia de las preguntas de una sola respuesta, esta
@@ -4103,6 +4122,8 @@ function actualizarEstadoSesion2(){
     const p3 =
         validarPregunta3Sesion2();
 
+    marcarTarjetaSeleccionValida_("bloqueSesion2Pregunta3", p3);
+
 
     /* =================================================
        PREGUNTA 4
@@ -4156,6 +4177,8 @@ function actualizarEstadoSesion2(){
     /* Validar P5 */
     const p5 =
         validarPregunta5Sesion2();
+
+    marcarTarjetaSeleccionValida_("bloqueSesion2Pregunta5", p5);
 
 
     /* =================================================
@@ -4696,6 +4719,8 @@ function actualizarEstadoSesion3(){
 
     const p3 = validarPregunta3Sesion3();
 
+    marcarTarjetaSeleccionValida_("bloqueSesion3Pregunta3", p3);
+
     const puedeP4 = accionesCompletas && p3;
 
     habilitarBloqueSesion3(
@@ -4709,6 +4734,8 @@ function actualizarEstadoSesion3(){
     );
 
     const p4 = validarPregunta4Sesion3();
+
+    marcarTarjetaSeleccionValida_("bloqueSesion3Pregunta4", p4);
 
     /*
      * P3 y P4 se validan por selección, no por número
@@ -4937,25 +4964,23 @@ function habilitarControlesSesion3Seleccion(idBloque,habilitado){
     const bloque=document.getElementById(idBloque);
     if(!bloque) return;
     bloque.querySelectorAll('input[type="checkbox"]').forEach(function(c){ c.disabled=!habilitado; });
-    const otros=bloque.querySelectorAll('input[type="text"]');
-    otros.forEach(function(c){
-        const id=c.id;
-        const check=id==='equipoSesion3_otroTexto'
-            ? document.getElementById('equipoSesion3_otro')
-            : document.getElementById('mecanismoSesion3_otro');
-        c.disabled=!habilitado || !(check && check.checked);
-    });
+    // La visibilidad del texto "Otro" (mostrar/ocultar su recuadro)
+    // ya la controla actualizarInterfazOpcionesSesion3(); aquí solo
+    // se respeta el bloqueo general de la pregunta.
+    bloque.querySelectorAll('input[type="text"]').forEach(function(c){ c.disabled=!habilitado; });
     const textarea=bloque.querySelector('textarea');
     if(textarea) textarea.disabled=!habilitado;
 }
 
 function actualizarInterfazOpcionesSesion3(){
     const o3=document.getElementById('equipoSesion3_otro');
-    const t3=document.getElementById('equipoSesion3_otroTexto');
+    const c3=document.getElementById('contenedorEquipoSesion3Otro');
     const o4=document.getElementById('mecanismoSesion3_otro');
-    const t4=document.getElementById('mecanismoSesion3_otroTexto');
-    if(t3) t3.disabled=!(o3 && o3.checked);
-    if(t4) t4.disabled=!(o4 && o4.checked);
+    const c4=document.getElementById('contenedorMecanismoSesion3Otro');
+    // Mismo patrón que Sesión 2: el recuadro de "Otro" está oculto
+    // (no solo deshabilitado) hasta que se selecciona esa opción.
+    if(c3) c3.style.display=(o3 && o3.checked)?'block':'none';
+    if(c4) c4.style.display=(o4 && o4.checked)?'block':'none';
 }
 
 function actualizarRespuestaPregunta3Sesion3(){
