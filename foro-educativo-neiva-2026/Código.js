@@ -6402,6 +6402,8 @@ function guardarValoracionFEM(idForo, respuestas){
     Object.keys(valores).forEach(k=>{ if(m[k]) fila[m[k]-1]=valores[k]; });
     hoja.appendRow(fila);
 
+    try{ actualizarAnalisisFEMIndividual_(idForo); }catch(errorAnalisis){ Logger.log("Análisis FEM (guardarValoracionFEM): "+errorAnalisis.message); }
+
     return {ok:true};
 
   }catch(error){
@@ -6614,6 +6616,7 @@ function enviarForoDefinitivo(idForo,tokenSesion,dispositivoId,datos){
     const shIE=abrirSpreadsheet_().getSheetByName(nombreHojaIE_(datos.institucion)); if(shIE&&shIE.getLastRow()>=2){const mi=obtenerMapaCabeceras_(shIE);const rr=buscarFilaPorIdForo_(shIE,idForo,mi);if(rr>0&&mi.ESTADO)shIE.getRange(rr,mi.ESTADO).setValue("ENVIADO");}
     actualizarGraficosParticipacion_();
     const am=raw.mapa; if(am.ESTADO)raw.hoja.getRange(raw.fila,am.ESTADO).setValue("ENVIADO"); if(am.FECHA_ENVIO)raw.hoja.getRange(raw.fila,am.FECHA_ENVIO).setValue(now);
+    try{ actualizarAnalisisFEMIndividual_(idForo); }catch(errorAnalisis){ Logger.log("Análisis FEM (enviarForoDefinitivo): "+errorAnalisis.message); }
     return {ok:true,fecha:now.toISOString(),idForo:idForo};
   }finally{try{lock.releaseLock();}catch(e){}}
 }
@@ -6640,4 +6643,264 @@ function actualizarGraficoHojaIE_(datos){
     sh.getRange(1,start,vals.length,2).setValues(vals);
     const chart=sh.newChart().setChartType(Charts.ChartType.PIE).addRange(sh.getRange(1,start,vals.length,2)).setOption("title","Participación — "+(datos.institucion||"IE")).setPosition(1,start+3,0,0).build(); sh.insertChart(chart);
   }catch(e){Logger.log("No fue posible crear gráfico IE: "+e.message);}
+}
+
+/*****************************************************
+ * DOCUMENTO DE ANÁLISIS FEM — separado del origen
+ *
+ * Hoja de cálculo aparte (NO el mismo SPREADSHEET_ID) dedicada a
+ * procesar y consultar las respuestas y datos de todas las IE por
+ * separado: "Respuestas Totales" (una fila por IE con todo su
+ * envío), "Gráficos" (consolidados de participación y valoración) y,
+ * de ahí en adelante, una hoja por IE en orden alfabético.
+ *
+ * Se crea la primera vez que hace falta y su ID queda guardado en
+ * ScriptProperties (CLAVE_PROP_SPREADSHEET_ANALISIS) — así queda
+ * "vinculado" al proyecto sin depender de un ID fijo escrito en el
+ * código, que todavía no se puede conocer de antemano.
+ *
+ * Se actualiza sola (una IE a la vez, rápido) cada vez que una IE
+ * envía definitivamente el foro o guarda su valoración — ver las
+ * llamadas a actualizarAnalisisFEMIndividual_() dentro de
+ * enviarForoDefinitivo() y guardarValoracionFEM(). Los gráficos y el
+ * orden alfabético de las hojas NO se recalculan en cada envío (para
+ * no alargar cada envío individual): se refrescan con
+ * reconstruirAnalisisFEM() (Pruebas.js), pensada para ejecutarse
+ * manualmente cuando se quiera.
+ *****************************************************/
+const CLAVE_PROP_SPREADSHEET_ANALISIS = "SPREADSHEET_ANALISIS_ID";
+const HOJA_ANALISIS_TOTALES = "Respuestas Totales";
+const HOJA_ANALISIS_GRAFICOS = "Gráficos";
+
+function obtenerSpreadsheetAnalisisFEM_(){
+  const props=PropertiesService.getScriptProperties();
+  const idGuardado=props.getProperty(CLAVE_PROP_SPREADSHEET_ANALISIS);
+  if(idGuardado){
+    try{ return SpreadsheetApp.openById(idGuardado); }
+    catch(e){ Logger.log("El documento de análisis guardado ("+idGuardado+") ya no es accesible, se creará uno nuevo: "+e.message); }
+  }
+  const ss=SpreadsheetApp.create("Análisis FEM 2026 — Foro Educativo Institucional Neiva");
+  try{
+    const archivo=DriveApp.getFileById(ss.getId());
+    DriveApp.getFolderById(DRIVE_CARPETA_FEM_ID).addFile(archivo);
+    DriveApp.getRootFolder().removeFile(archivo);
+  }catch(e){ Logger.log("No fue posible mover el documento de análisis a la carpeta del FEM: "+e.message); }
+  try{ ss.getSheets()[0].setName(HOJA_ANALISIS_TOTALES); }catch(e){}
+  props.setProperty(CLAVE_PROP_SPREADSHEET_ANALISIS, ss.getId());
+  return ss;
+}
+
+const ROLES_PARTICIPACION_ANALISIS_=["Rector","Coordinador","Docentes","TutorPTA","Orientador","Estudiantes","Padres","Administrativos","Egresados","Sector","Otros"];
+const COLUMNAS_PARTICIPACION_ANALISIS_=["PART_RECTOR","PART_COORDINADOR","PART_DOCENTES","PART_TUTOR_PTA","PART_ORIENTADOR","PART_ESTUDIANTES","PART_PADRES","PART_ADMINISTRATIVOS","PART_EGRESADOS","PART_SECTOR","PART_OTROS"];
+const ETIQUETAS_PARTICIPACION_ANALISIS_=["Rector(a)","Coordinador(a)","Docentes","Tutor PTA PFI/3.0","Orientador(a)","Estudiantes","Padres/madres/acudientes","Personal administrativo","Egresados","Sector productivo","Otros"];
+
+function obtenerCabecerasAnalisisTotales_(){
+  return obtenerCabecerasAvancesForo().filter(h=>h!=="DATOS").concat(COLUMNAS_PARTICIPACION_ANALISIS_).concat([
+    "TOTAL_PARTICIPANTES","TOTAL_ASISTENTES_QR",
+    "VAL_NOTA_PROMEDIO","VAL_P1","VAL_P2","VAL_P3","VAL_P4",
+    "VAL_P1_MEJORA","VAL_P2_MEJORA","VAL_P3_MEJORA","VAL_P4_MEJORA","VAL_P5_SUGERENCIAS"
+  ]);
+}
+
+function asegurarHojaAnalisisTotales_(ss){
+  let sh=ss.getSheetByName(HOJA_ANALISIS_TOTALES);
+  if(!sh) sh=ss.insertSheet(HOJA_ANALISIS_TOTALES);
+  const headers=obtenerCabecerasAnalisisTotales_();
+  const last=sh.getLastColumn();
+  if(!last){ sh.getRange(1,1,1,headers.length).setValues([headers]); sh.setFrozenRows(1); }
+  else{
+    const ex=sh.getRange(1,1,1,last).getValues()[0].map(String);
+    const faltantes=headers.filter(h=>ex.indexOf(h)===-1);
+    if(faltantes.length) sh.getRange(1,last+1,1,faltantes.length).setValues([faltantes]);
+  }
+  return sh;
+}
+
+function obtenerValoracionPorIdForo_(idForo){
+  const sh=abrirSpreadsheet_().getSheetByName(HOJA_VALORACION_FEM);
+  if(!sh||sh.getLastRow()<2) return null;
+  const m=mapaHoja_(sh);
+  if(!m.ID_FORO) return null;
+  const filas=sh.getRange(2,1,sh.getLastRow()-1,sh.getLastColumn()).getDisplayValues();
+  for(let i=0;i<filas.length;i++){
+    if(String(filas[i][m.ID_FORO-1]||"").trim()===String(idForo||"").trim()){
+      const val=(col)=>m[col]?filas[i][m[col]-1]:"";
+      return {
+        nota:val("NOTA_PROMEDIO"), p1:val("P1_DIALOGO_REFLEXION"), p2:val("P2_PARTICIPACION"),
+        p3:val("P3_IDEAS_PROPUESTAS"), p4:val("P4_SATISFACCION_INSTRUMENTO"),
+        p1Mejora:val("P1_MEJORA"), p2Mejora:val("P2_MEJORA"), p3Mejora:val("P3_MEJORA"), p4Mejora:val("P4_MEJORA"),
+        p5:val("P5_SUGERENCIAS")
+      };
+    }
+  }
+  return null;
+}
+
+/*
+ * Actualiza (o crea), en el documento de análisis, la fila de UNA
+ * sola IE en "Respuestas Totales" y su propia hoja de detalle — se
+ * llama automáticamente al enviar el foro definitivo y al guardar la
+ * valoración. Nunca debe poder romper esos flujos: quien la llama la
+ * envuelve en try/catch, y aquí cada bloque también se protege por
+ * separado para que una falla parcial no impida el resto.
+ *
+ * NO recalcula los gráficos ni el orden alfabético de las hojas (eso
+ * alargaría cada envío individual) — para eso está
+ * reconstruirAnalisisFEM() en Pruebas.js.
+ */
+function actualizarAnalisisFEMIndividual_(idForo){
+  idForo=String(idForo||"").trim();
+  if(!idForo) return;
+
+  const shOrigen=abrirSpreadsheet_().getSheetByName(HOJA_AVANCES);
+  if(!shOrigen||shOrigen.getLastRow()<2) return;
+  const mOrigen=mapaHoja_(shOrigen);
+  const filaOrigen=buscarFilaPorIdForo_(shOrigen,idForo,mOrigen);
+  if(filaOrigen<0) return;
+  const valoresOrigen=shOrigen.getRange(filaOrigen,1,1,shOrigen.getLastColumn()).getDisplayValues()[0];
+  const filaDatos={};
+  Object.keys(mOrigen).forEach(k=>{ filaDatos[k]=valoresOrigen[mOrigen[k]-1]; });
+  const institucion=String(filaDatos.INSTITUCION||"").trim();
+  if(!institucion) return;
+
+  const datosGuardados=obtenerDatosGuardadosPorIdForo_(idForo);
+  const campos=(datosGuardados&&datosGuardados.campos)||{};
+  const conteoParticipacion=ROLES_PARTICIPACION_ANALISIS_.map(id=>Number(campos["participantes"+id]?.valor||0));
+  const totalParticipantes=conteoParticipacion.reduce((a,b)=>a+b,0);
+  const totalAsistentesQR=obtenerAsistentesQR_(idForo).length;
+  const valoracion=obtenerValoracionPorIdForo_(idForo);
+
+  const ss=obtenerSpreadsheetAnalisisFEM_();
+
+  // --- 1. Fila consolidada en "Respuestas Totales" ---
+  try{
+    const shTotales=asegurarHojaAnalisisTotales_(ss);
+    const mTotales=mapaHoja_(shTotales);
+    const fila={};
+    Object.keys(mOrigen).forEach(k=>{ if(k!=="DATOS") fila[k]=filaDatos[k]; });
+    COLUMNAS_PARTICIPACION_ANALISIS_.forEach((col,i)=>{ fila[col]=conteoParticipacion[i]; });
+    fila.TOTAL_PARTICIPANTES=totalParticipantes;
+    fila.TOTAL_ASISTENTES_QR=totalAsistentesQR;
+    if(valoracion){
+      fila.VAL_NOTA_PROMEDIO=valoracion.nota; fila.VAL_P1=valoracion.p1; fila.VAL_P2=valoracion.p2;
+      fila.VAL_P3=valoracion.p3; fila.VAL_P4=valoracion.p4;
+      fila.VAL_P1_MEJORA=valoracion.p1Mejora; fila.VAL_P2_MEJORA=valoracion.p2Mejora;
+      fila.VAL_P3_MEJORA=valoracion.p3Mejora; fila.VAL_P4_MEJORA=valoracion.p4Mejora;
+      fila.VAL_P5_SUGERENCIAS=valoracion.p5;
+    }
+    const out=new Array(shTotales.getLastColumn()).fill("");
+    Object.keys(fila).forEach(k=>{ if(mTotales[k]) out[mTotales[k]-1]=fila[k]; });
+    let encontrada=-1;
+    if(shTotales.getLastRow()>=2 && mTotales.ID_FORO){
+      const ids=shTotales.getRange(2,mTotales.ID_FORO,shTotales.getLastRow()-1,1).getDisplayValues();
+      for(let i=0;i<ids.length;i++) if(String(ids[i][0]||"").trim()===idForo){ encontrada=i+2; break; }
+    }
+    if(encontrada>0) shTotales.getRange(encontrada,1,1,out.length).setValues([out]);
+    else shTotales.appendRow(out);
+  }catch(errorTotales){ Logger.log("Análisis FEM — Respuestas Totales: "+errorTotales.message); }
+
+  // --- 2. Hoja propia de la IE (detalle completo) ---
+  try{
+    const nombreHoja=nombreHojaIE_(institucion);
+    let shIE=ss.getSheetByName(nombreHoja);
+    const esHojaNueva=!shIE;
+    const headersIE=obtenerCabecerasAvancesForo();
+    if(!shIE){ shIE=ss.insertSheet(nombreHoja); shIE.getRange(1,1,1,headersIE.length).setValues([headersIE]); shIE.setFrozenRows(1); }
+    if(shIE.getLastColumn()<headersIE.length) shIE.getRange(1,1,1,headersIE.length).setValues([headersIE]);
+    const mIE=mapaHoja_(shIE);
+    const outIE=new Array(shIE.getLastColumn()).fill("");
+    Object.keys(mOrigen).forEach(k=>{ if(mIE[k]) outIE[mIE[k]-1]=filaDatos[k]; });
+    let filaIE=-1;
+    if(shIE.getLastRow()>=2 && mIE.ID_FORO){
+      const ids=shIE.getRange(2,mIE.ID_FORO,shIE.getLastRow()-1,1).getDisplayValues();
+      for(let i=0;i<ids.length;i++) if(String(ids[i][0]||"").trim()===idForo){ filaIE=i+2; break; }
+    }
+    if(filaIE>0) shIE.getRange(filaIE,1,1,outIE.length).setValues([outIE]);
+    else shIE.appendRow(outIE);
+
+    // Bloques de detalle debajo de la tabla de caracterización: se
+    // reescriben siempre a partir de la misma fila, para no ir
+    // acumulando copias en cada actualización.
+    const inicioDetalle=Math.max(shIE.getLastRow(),2)+3;
+    if(shIE.getMaxRows()>=inicioDetalle) shIE.getRange(inicioDetalle,1,shIE.getMaxRows()-inicioDetalle+1,Math.max(shIE.getMaxColumns(),14)).clearContent();
+
+    shIE.getRange(inicioDetalle,1).setValue("PARTICIPACIÓN — "+institucion);
+    const filasParticipacion=ETIQUETAS_PARTICIPACION_ANALISIS_.map((etiqueta,i)=>[etiqueta,conteoParticipacion[i]]);
+    shIE.getRange(inicioDetalle+1,1,filasParticipacion.length,2).setValues(filasParticipacion);
+    shIE.getRange(inicioDetalle+1+filasParticipacion.length,1,1,2).setValues([["TOTAL",totalParticipantes]]);
+
+    const asistentes=obtenerAsistentesQR_(idForo);
+    const inicioAsistencia=inicioDetalle+filasParticipacion.length+4;
+    shIE.getRange(inicioAsistencia,1).setValue("ASISTENCIA QR — "+institucion+" ("+asistentes.length+")");
+    if(asistentes.length){
+      const cabecerasAsistencia=["Nombre","Sexo","Edad","Tipo de asistencia","Cargo","Rol en el Foro","Jornada","Sede","Documento","Correo","Teléfono","Fecha","Hora"];
+      shIE.getRange(inicioAsistencia+1,1,1,cabecerasAsistencia.length).setValues([cabecerasAsistencia]);
+      const filasAsistencia=asistentes.map(a=>[a.nombre,a.sexo,a.edad,a.tipoAsistencia,a.cargo,a.rolForo,a.jornada,a.sede,a.documento,a.correo,a.telefono,a.fecha,a.hora]);
+      shIE.getRange(inicioAsistencia+2,1,filasAsistencia.length,cabecerasAsistencia.length).setValues(filasAsistencia);
+    }
+
+    if(valoracion){
+      const inicioValoracion=inicioAsistencia+asistentes.length+4;
+      shIE.getRange(inicioValoracion,1).setValue("VALORACIÓN — "+institucion);
+      shIE.getRange(inicioValoracion+1,1,6,2).setValues([
+        ["Nota promedio",valoracion.nota],
+        ["P1 diálogo y reflexión",valoracion.p1],
+        ["P2 participación",valoracion.p2],
+        ["P3 ideas y propuestas",valoracion.p3],
+        ["P4 satisfacción del instrumento",valoracion.p4],
+        ["P5 sugerencias",valoracion.p5]
+      ]);
+    }
+
+    // Reordenar alfabéticamente solo cuando aparece una IE nueva —
+    // en las actualizaciones normales (misma IE) el orden ya es
+    // correcto y no hace falta recorrer todas las hojas.
+    if(esHojaNueva) reordenarHojasAnalisisFEM_(ss);
+  }catch(errorIE){ Logger.log("Análisis FEM — hoja de "+institucion+": "+errorIE.message); }
+}
+
+function reordenarHojasAnalisisFEM_(ss){
+  const fijas=[HOJA_ANALISIS_TOTALES,HOJA_ANALISIS_GRAFICOS];
+  const hojas=ss.getSheets();
+  const deIE=hojas.filter(h=>fijas.indexOf(h.getName())===-1);
+  deIE.sort((a,b)=>a.getName().localeCompare(b.getName(),"es"));
+  let posicion=1;
+  fijas.forEach(nombre=>{ const h=ss.getSheetByName(nombre); if(h){ ss.setActiveSheet(h); ss.moveActiveSheet(posicion); posicion++; } });
+  deIE.forEach(h=>{ ss.setActiveSheet(h); ss.moveActiveSheet(posicion); posicion++; });
+}
+
+/*
+ * Reconstruye "Gráficos" en el documento de análisis a partir de
+ * "Respuestas Totales": participación consolidada por estamento (de
+ * todas las IE) y nota promedio de valoración por IE. Se llama desde
+ * reconstruirAnalisisFEM() (Pruebas.js), no en cada envío individual.
+ */
+function actualizarGraficosAnalisisFEM_(ss){
+  let sh=ss.getSheetByName(HOJA_ANALISIS_GRAFICOS);
+  if(!sh) sh=ss.insertSheet(HOJA_ANALISIS_GRAFICOS);
+  sh.getCharts().forEach(c=>sh.removeChart(c));
+  sh.clear();
+
+  const shTotales=ss.getSheetByName(HOJA_ANALISIS_TOTALES);
+  if(!shTotales||shTotales.getLastRow()<2){ sh.getRange(1,1).setValue("Todavía no hay respuestas registradas."); return; }
+  const m=mapaHoja_(shTotales);
+  const filas=shTotales.getRange(2,1,shTotales.getLastRow()-1,shTotales.getLastColumn()).getValues();
+
+  const totalesRoles=COLUMNAS_PARTICIPACION_ANALISIS_.map(col=>{ if(!m[col]) return 0; return filas.reduce((s,f)=>s+Number(f[m[col]-1]||0),0); });
+  sh.getRange(1,1,1,2).setValues([["Estamento","Participantes"]]);
+  sh.getRange(2,1,ETIQUETAS_PARTICIPACION_ANALISIS_.length,2).setValues(ETIQUETAS_PARTICIPACION_ANALISIS_.map((e,i)=>[e,totalesRoles[i]]));
+  const rangoParticipacion=sh.getRange(1,1,ETIQUETAS_PARTICIPACION_ANALISIS_.length+1,2);
+  sh.insertChart(sh.newChart().setChartType(Charts.ChartType.PIE).addRange(rangoParticipacion).setOption("title","Participación consolidada por estamento — todas las IE").setPosition(1,4,0,0).build());
+  sh.insertChart(sh.newChart().setChartType(Charts.ChartType.COLUMN).addRange(rangoParticipacion).setOption("title","Total de participantes por estamento — todas las IE").setPosition(20,4,0,0).build());
+
+  if(m.INSTITUCION && m.VAL_NOTA_PROMEDIO){
+    const inicioVal=ETIQUETAS_PARTICIPACION_ANALISIS_.length+4;
+    const datosValoracion=filas.map(f=>[String(f[m.INSTITUCION-1]||""),Number(f[m.VAL_NOTA_PROMEDIO-1]||0)]).filter(f=>f[1]>0);
+    if(datosValoracion.length){
+      sh.getRange(inicioVal,1,1,2).setValues([["Institución","Nota promedio"]]);
+      sh.getRange(inicioVal+1,1,datosValoracion.length,2).setValues(datosValoracion);
+      const rangoValoracion=sh.getRange(inicioVal,1,datosValoracion.length+1,2);
+      sh.insertChart(sh.newChart().setChartType(Charts.ChartType.COLUMN).addRange(rangoValoracion).setOption("title","Nota promedio de valoración por IE").setOption("vAxis.viewWindow.max",5).setPosition(inicioVal+datosValoracion.length+3,1,0,0).build());
+    }
+  }
 }

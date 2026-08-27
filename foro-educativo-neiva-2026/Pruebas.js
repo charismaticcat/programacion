@@ -2430,3 +2430,729 @@ function hacerPublicosLogosGlobales(){
   return { ok:true, resumen: resumen };
 
 }
+
+
+/*****************************************************
+ * RESET TOTAL DE PRODUCCIÓN — FEM 2026
+ *
+ * Borra TODAS las respuestas y todo registro de todas las IE en el
+ * spreadsheet de origen (SPREADSHEET_ID):
+ *
+ *   - Deja únicamente las hojas elementales: Oficiales, AvancesForo,
+ *     Participacion, AsistenciaQR y AccesosIE. Cualquier otra pestaña
+ *     (Valoración FEMI2026, hojas propias por IE, etc.) se elimina
+ *     por completo.
+ *   - Vacía todas las filas de datos (deja solo la cabecera) de
+ *     AvancesForo, Participacion, AsistenciaQR y AccesosIE — incluye
+ *     los códigos/tokens/enlaces de acceso de TODAS las IE, oficiales
+ *     y de prueba. Oficiales NO se toca: es el catálogo oficial de
+ *     instituciones, no una respuesta.
+ *   - En Drive, envía a la papelera todas las carpetas por IE dentro
+ *     de DRIVE_CARPETA_FEM_ID (fotos, informes Doc y PDF de todas las
+ *     instituciones).
+ *   - Libera cualquier candado de sesión activa en ScriptProperties.
+ *
+ * Nada de esto es destrucción permanente inmediata: las hojas
+ * eliminadas quedan en el historial de versiones del archivo, y los
+ * archivos de Drive quedan en la papelera 30 días.
+ *
+ * Después de ejecutar esto hay que volver a generar los accesos
+ * (generarAccesosIE() para las IE oficiales; crearAccesoPrueba1234()
+ * y crearIEsPruebaAdicionales() para las 10 de prueba) antes de poder
+ * usar el formulario de nuevo.
+ *
+ * NO borra el documento de análisis (Análisis FEM 2026): es el
+ * histórico separado, pensado para sobrevivir a un reset del origen.
+ *
+ * Ejecutar manualmente desde el editor de Apps Script.
+ *****************************************************/
+function resetTotalProduccionFEM(){
+
+  const HOJAS_ELEMENTALES = [HOJA_OFICIALES, HOJA_AVANCES, HOJA_PARTICIPACION, HOJA_ASISTENCIA_QR, HOJA_ACCESOS];
+  const resumen = [];
+  const ss = abrirSpreadsheet_();
+
+  let eliminadas = 0;
+  ss.getSheets().forEach(function(hoja){
+    const nombre = hoja.getName();
+    if(HOJAS_ELEMENTALES.indexOf(nombre) === -1){
+      ss.deleteSheet(hoja);
+      eliminadas++;
+      resumen.push("Hoja eliminada: " + nombre);
+    }
+  });
+  resumen.push("Total de hojas adicionales eliminadas: " + eliminadas);
+
+  [HOJA_AVANCES, HOJA_PARTICIPACION, HOJA_ASISTENCIA_QR, HOJA_ACCESOS].forEach(function(nombreHoja){
+    const hoja = ss.getSheetByName(nombreHoja);
+    if(!hoja){ resumen.push(nombreHoja + ": no existe."); return; }
+    const ultima = hoja.getLastRow();
+    const borradas = Math.max(ultima - 1, 0);
+    if(ultima >= 2) hoja.deleteRows(2, ultima - 1);
+    resumen.push(nombreHoja + ": vaciada (" + borradas + " fila(s) borrada(s)), cabecera intacta.");
+  });
+  resumen.push(HOJA_OFICIALES + ": NO se tocó (catálogo oficial de instituciones, no es una respuesta).");
+
+  let carpetasBorradas = 0, archivosBorrados = 0;
+  try{
+    const raiz = DriveApp.getFolderById(DRIVE_CARPETA_FEM_ID);
+    const carpetas = raiz.getFolders();
+    while(carpetas.hasNext()){
+      const carpeta = carpetas.next();
+      let archivosEnCarpeta = 0;
+      const archivos = carpeta.getFiles();
+      while(archivos.hasNext()){ archivos.next(); archivosEnCarpeta++; }
+      carpeta.setTrashed(true);
+      carpetasBorradas++;
+      archivosBorrados += archivosEnCarpeta;
+    }
+    let sueltos = 0;
+    const archivosSueltos = raiz.getFiles();
+    while(archivosSueltos.hasNext()){ archivosSueltos.next().setTrashed(true); sueltos++; }
+    resumen.push("Drive: " + carpetasBorradas + " carpeta(s) de IE enviadas a la papelera (" + archivosBorrados + " archivo(s): fotos, informes Doc y PDF).");
+    if(sueltos) resumen.push("Drive: " + sueltos + " archivo(s) suelto(s) en la carpeta raíz también enviados a la papelera.");
+  }catch(error){
+    resumen.push("Drive: " + error.message);
+  }
+
+  try{
+    const props = PropertiesService.getScriptProperties();
+    const todas = props.getProperties();
+    let liberados = 0;
+    Object.keys(todas).forEach(function(clave){
+      if(clave.indexOf("FEM_SESION_FORO_") === 0){ props.deleteProperty(clave); liberados++; }
+    });
+    resumen.push("Candados de sesión activa liberados: " + liberados + ".");
+  }catch(error){
+    resumen.push("Candados de sesión: " + error.message);
+  }
+
+  resumen.push("");
+  resumen.push("⚠ Esto NO borra el documento de análisis (Análisis FEM 2026) ni el localStorage de los navegadores que ya usaron el formulario.");
+  resumen.push("⚠ Los códigos de acceso de TODAS las IE (oficiales y de prueba) quedaron vacíos: hay que volver a generarlos.");
+
+  Logger.log(resumen.join("\n"));
+  return { ok:true, resumen: resumen };
+
+}
+
+
+/*****************************************************
+ * CONSTRUIR / RECONSTRUIR EL DOCUMENTO DE ANÁLISIS — FEM 2026
+ *
+ * Crea (si no existe) el documento de análisis separado y reconstruye
+ * "Respuestas Totales", "Gráficos" y una hoja por cada IE que ya
+ * tenga respuestas en AvancesForo — en orden alfabético. Es la misma
+ * lógica que se dispara sola con cada envío definitivo o valoración
+ * (actualizarAnalisisFEMIndividual_), pero recorriendo TODAS las IE
+ * de una sola vez: útil después de un reset, o para confirmar que el
+ * documento quedó al día y refrescar los gráficos.
+ *
+ * Ejecutar manualmente:  reconstruirAnalisisFEM()
+ *****************************************************/
+function reconstruirAnalisisFEM(){
+  const sh = abrirSpreadsheet_().getSheetByName(HOJA_AVANCES);
+  if(!sh || sh.getLastRow() < 2){
+    const ss = obtenerSpreadsheetAnalisisFEM_();
+    return { ok:true, mensaje:"AvancesForo no tiene filas todavía. Documento de análisis: " + ss.getUrl(), procesadas:0 };
+  }
+  const m = mapaHoja_(sh);
+  if(!m.ID_FORO) return { ok:false, mensaje:"AvancesForo no tiene columna ID_FORO." };
+
+  const ids = sh.getRange(2, m.ID_FORO, sh.getLastRow() - 1, 1).getDisplayValues().map(f => String(f[0] || "").trim()).filter(Boolean);
+
+  let procesadas = 0;
+  ids.forEach(function(idForo){
+    try{ actualizarAnalisisFEMIndividual_(idForo); procesadas++; }
+    catch(error){ Logger.log("Reconstruir análisis — " + idForo + ": " + error.message); }
+  });
+
+  const ss = obtenerSpreadsheetAnalisisFEM_();
+  try{ actualizarGraficosAnalisisFEM_(ss); }catch(error){ Logger.log("Reconstruir análisis — gráficos: " + error.message); }
+  try{ reordenarHojasAnalisisFEM_(ss); }catch(error){ Logger.log("Reconstruir análisis — orden de hojas: " + error.message); }
+
+  const mensaje = "Documento de análisis reconstruido: " + procesadas + " de " + ids.length + " IE procesadas. URL: " + ss.getUrl();
+  Logger.log(mensaje);
+  return { ok:true, procesadas: procesadas, total: ids.length, url: ss.getUrl() };
+}
+
+
+/*****************************************************
+ * PRUEBAS DE RETORNO DE DATOS — errores de autoguardado,
+ * guardado local y respuestas no enviadas
+ *
+ * Ejecutar cada una manualmente desde el editor de Apps Script.
+ *****************************************************/
+
+// El caso real más común de "autoguardado que falla en plenaria":
+// el ID_FORO ya no existe en AccesosIE (token vencido, o el
+// navegador guardó un ID_FORO viejo de otra prueba). Debe responder
+// con un mensaje claro, no lanzar un error sin explicación.
+function probarAutoguardadoConIdForoInvalido(){
+  const resultado = guardarAvanceForo({ idForo: "ID-INEXISTENTE-" + Utilities.getUuid(), campos: { respuestaSesion1: { tipo:"text", valor:"prueba" } } });
+  const ok = !resultado.ok && /no est[aá] autorizado/i.test(resultado.mensaje || "");
+  Logger.log("Autoguardado con ID_FORO inválido -> " + (ok ? "✅ CORRECTO" : "⚠ INESPERADO") + ": " + JSON.stringify(resultado));
+  return { ok: ok, resultado: resultado };
+}
+
+// Si el navegador llega a llamar al autoguardado sin datos (por
+// ejemplo, un JSON corrupto reconstruido desde localStorage), debe
+// rechazarse con un mensaje, no reventar el servidor.
+function probarAutoguardadoSinDatos(){
+  let resultado;
+  try{ resultado = guardarAvanceForo(null); }
+  catch(error){ resultado = { ok:false, mensaje:error.message }; }
+  const ok = !resultado.ok;
+  Logger.log("Autoguardado sin datos -> " + (ok ? "✅ CORRECTO (rechazado)" : "⚠ INESPERADO") + ": " + JSON.stringify(resultado));
+  return { ok: ok, resultado: resultado };
+}
+
+// El guardado en localStorage del navegador vive en cada equipo y no
+// se puede probar desde el servidor. Lo que sí se puede probar desde
+// aquí es el escenario que esa falla produce en la práctica: el
+// formulario, al no saber si el primer intento quedó guardado,
+// reintenta guardarAvanceForo() dos veces seguidas con el mismo
+// ID_FORO. Verifica que la segunda llamada ACTUALICE la misma fila
+// en vez de crear una fila duplicada.
+function probarReintentoPorFallaGuardadoLocal(nombreIEPrueba){
+  nombreIEPrueba = nombreIEPrueba || "IE PRUEBA 1234";
+  const hoja = asegurarColumnasAccesosIE_();
+  const mapa = mapaHoja_(hoja);
+  if(hoja.getLastRow() < 2) return { ok:false, mensaje:"AccesosIE no tiene filas." };
+  const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues();
+  const fila = valores.find(f => String(f[mapa.IE - 1] || "").trim() === nombreIEPrueba);
+  if(!fila) return { ok:false, mensaje:"No existe " + nombreIEPrueba + " en AccesosIE. Ejecute primero crearAccesoPrueba1234() o crearIEsPruebaAdicionales()." };
+  const idForo = String(fila[mapa.ID_FORO - 1] || "").trim();
+
+  const shAvances = abrirSpreadsheet_().getSheetByName(HOJA_AVANCES);
+  const filasAntes = shAvances ? shAvances.getLastRow() : 0;
+
+  const datos = { idForo: idForo, campos: { respuestaSesion1: { tipo:"text", valor:"Primer intento — " + new Date().toISOString() } } };
+  guardarAvanceForo(datos);
+  datos.campos.respuestaSesion1.valor = "Reintento tras falla de guardado local — " + new Date().toISOString();
+  guardarAvanceForo(datos);
+
+  const filasDespues = shAvances.getLastRow();
+  const ok = filasDespues <= Math.max(filasAntes, 2);
+  Logger.log("Reintento por falla de guardado local -> filas antes: " + filasAntes + ", después: " + filasDespues + " -> " + (ok ? "✅ no se duplicó" : "⚠ POSIBLE DUPLICADO"));
+  return { ok: ok, filasAntes: filasAntes, filasDespues: filasDespues };
+}
+
+// Una IE que llena sesiones pero nunca presiona "Enviar" al final NO
+// debe quedar marcada como ENVIADO en AccesosIE ni contarse como
+// respuesta definitiva.
+function probarRespuestaNoEnviada(nombreIEPrueba){
+  nombreIEPrueba = nombreIEPrueba || "IE Prueba Rosa";
+  const hoja = asegurarColumnasAccesosIE_();
+  const mapa = mapaHoja_(hoja);
+  if(hoja.getLastRow() < 2) return { ok:false, mensaje:"AccesosIE no tiene filas." };
+  const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues();
+  const fila = valores.find(f => String(f[mapa.IE - 1] || "").trim() === nombreIEPrueba);
+  if(!fila) return { ok:false, mensaje:"No existe " + nombreIEPrueba + " en AccesosIE." };
+  const idForo = String(fila[mapa.ID_FORO - 1] || "").trim();
+  const estadoAcceso = String(fila[mapa.ESTADO - 1] || "").trim().toUpperCase();
+
+  const estadoSesiones = obtenerEstadoSesiones_(idForo);
+  const ok = estadoAcceso !== "ENVIADO";
+  Logger.log(nombreIEPrueba + " (sin envío definitivo) -> ESTADO en AccesosIE: " + estadoAcceso + ", sesiones enviadas: " + JSON.stringify(estadoSesiones) + " -> " + (ok ? "✅ CORRECTO (no cuenta como enviada)" : "⚠ INESPERADO, ya estaba ENVIADO"));
+  return { ok: ok, estadoAcceso: estadoAcceso, estadoSesiones: estadoSesiones };
+}
+
+
+/*****************************************************
+ * PRUEBA: PLENARIA -> ENVÍO DEFINITIVO -> DOCUMENTO DE ANÁLISIS
+ *
+ * Verifica de punta a punta que, una vez una IE de prueba envía sus
+ * respuestas como definitivas (como ocurre en plenaria), esas
+ * respuestas quedan reflejadas automáticamente en el documento de
+ * análisis separado: su fila en "Respuestas Totales" y su propia
+ * hoja de detalle.
+ *
+ * Usa "IE PRUEBA 1234" — no envía ningún correo real adicional.
+ *
+ * Ejecutar manualmente:  probarFlujoPlenariaHastaDocumentoAnalisis()
+ *****************************************************/
+function probarFlujoPlenariaHastaDocumentoAnalisis(){
+  const nombreIE = "IE PRUEBA 1234";
+  const hoja = asegurarColumnasAccesosIE_();
+  const mapa = mapaHoja_(hoja);
+  if(hoja.getLastRow() < 2) return { ok:false, mensaje:"AccesosIE no tiene filas." };
+  const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues();
+  const fila = valores.find(f => String(f[mapa.IE - 1] || "").trim() === nombreIE);
+  if(!fila) return { ok:false, mensaje:"No existe " + nombreIE + ". Ejecute primero crearAccesoPrueba1234()." };
+  const idForo = String(fila[mapa.ID_FORO - 1] || "").trim();
+  const dispositivoId = "PRUEBA-ANALISIS-" + idForo.slice(0, 8);
+
+  const datosGuardados = obtenerDatosGuardadosPorIdForo_(idForo);
+  if(!datosGuardados) return { ok:false, mensaje:"No hay datos guardados para " + nombreIE + ". Complete o precargue su caracterización primero." };
+  datosGuardados.idForo = idForo;
+
+  const sesion = reclamarSesionCodigo_("", "", dispositivoId, idForo, true);
+  if(!sesion.ok) return { ok:false, mensaje:"No fue posible reclamar sesión: " + sesion.mensaje };
+
+  const envio = enviarForoDefinitivo(idForo, sesion.tokenSesion, dispositivoId, datosGuardados);
+  liberarSesionCodigo_("", "", dispositivoId, sesion.tokenSesion, idForo);
+  if(!envio || (!envio.ok && !envio.yaEnviado)) return { ok:false, mensaje:(envio && envio.mensaje) || "Envío definitivo falló." };
+
+  const ss = obtenerSpreadsheetAnalisisFEM_();
+  const shTotales = ss.getSheetByName(HOJA_ANALISIS_TOTALES);
+  const mTotales = shTotales ? mapaHoja_(shTotales) : {};
+  let encontradaEnTotales = false;
+  if(shTotales && shTotales.getLastRow() >= 2 && mTotales.ID_FORO){
+    const ids = shTotales.getRange(2, mTotales.ID_FORO, shTotales.getLastRow() - 1, 1).getDisplayValues();
+    encontradaEnTotales = ids.some(r => String(r[0] || "").trim() === idForo);
+  }
+  const shIE = ss.getSheetByName(nombreHojaIE_(nombreIE));
+  const encontradaHojaIE = !!(shIE && shIE.getLastRow() >= 2);
+
+  const ok = encontradaEnTotales && encontradaHojaIE;
+  const resumen = "Envío definitivo: ok. En '" + HOJA_ANALISIS_TOTALES + "': " + (encontradaEnTotales ? "sí" : "NO") + ". En hoja propia de la IE: " + (encontradaHojaIE ? "sí" : "NO") + " -> " + (ok ? "✅ CORRECTO" : "⚠ FALLÓ LA SINCRONIZACIÓN");
+  Logger.log(resumen);
+  return { ok: ok, resumen: resumen, idForo: idForo, urlDocumentoAnalisis: ss.getUrl() };
+}
+
+
+/*****************************************************
+ * GENERADORES DE DATOS AL AZAR — usados por
+ * probarEnvioCompletoAleatorio() y simular50RespuestasFEM()
+ *****************************************************/
+function generarCamposAleatoriosFEM_(){
+  const frasesLargas = [
+    "El Foro permitió identificar avances importantes en el trabajo colaborativo entre docentes y directivos, con propuestas concretas para el siguiente año lectivo.",
+    "Se evidenció una participación activa de estudiantes y familias, aunque persisten retos en la articulación entre sedes y jornadas.",
+    "Las mesas de trabajo generaron acuerdos sobre estrategias pedagógicas y de convivencia que se plasmarán en el plan de mejoramiento institucional.",
+    "La comunidad educativa valoró positivamente el espacio de reflexión, señalando la necesidad de darle continuidad durante el año.",
+    "Se identificaron fortalezas en el uso de recursos tecnológicos y oportunidades de mejora en la atención a la diversidad de los estudiantes."
+  ];
+  const frase = function(){ return frasesLargas[Math.floor(Math.random() * frasesLargas.length)] + " (dato de prueba generado automáticamente, " + new Date().toISOString() + ")"; };
+  const campos = {};
+  const t = function(id, valor){ campos[id] = { tipo:"text", valor: valor }; };
+  ["direccion", "zona", "comuna", "grupo"].forEach(function(id){ t(id, "Dato de prueba " + id + " " + Math.floor(Math.random() * 1000)); });
+  t("rector", "Rector(a) de prueba " + Math.floor(Math.random() * 1000));
+  ["respuestaSesion1", "respuestaSesion1Pregunta2", "respuestaSesion2Pregunta1", "respuestaSesion2Pregunta3", "respuestaSesion2Pregunta4", "respuestaSesion2Pregunta5", "respuestaSesion3Pregunta1", "respuestaSesion3Pregunta3", "respuestaSesion3Pregunta4"]
+    .forEach(function(id){ t(id, frase()); });
+  [1, 2, 3, 4, 5].forEach(function(n){ t("respuestaSesion2Pregunta2Accion" + n, "Acción de prueba " + n + ": " + frase()); t("respuestaSesion3Pregunta2Accion" + n, "Acción de prueba " + n + ": " + frase()); });
+  ["Rector", "Coordinador", "Docentes", "TutorPTA", "Orientador", "Estudiantes", "Padres", "Administrativos", "Egresados", "Sector", "Otros"]
+    .forEach(function(id){ t("participantes" + id, String(Math.floor(Math.random() * 20))); });
+  return campos;
+}
+
+function generarAsistenteAleatorioQR_(){
+  const nombres = ["Ana", "Carlos", "María", "Luis", "Sofía", "Andrés", "Valentina", "Jorge", "Camila", "Diego"];
+  const apellidos = ["Pérez", "Gómez", "Rodríguez", "Martínez", "López", "García", "Torres", "Ramírez", "Vargas", "Castro"];
+  const cargo = CARGOS_ASISTENCIA_QR[Math.floor(Math.random() * CARGOS_ASISTENCIA_QR.length)];
+  const requiereCondicion = CARGOS_SIN_CONDICION_QR.indexOf(cargo) === -1;
+  const fortalezas = [];
+  while(fortalezas.length < 1 + Math.floor(Math.random() * 3)){
+    const f = FORTALEZAS_ASISTENCIA_QR[Math.floor(Math.random() * FORTALEZAS_ASISTENCIA_QR.length)];
+    if(fortalezas.indexOf(f) === -1) fortalezas.push(f);
+  }
+  const dificultades = [];
+  while(dificultades.length < 1 + Math.floor(Math.random() * 3)){
+    const d = DIFICULTADES_ASISTENCIA_QR[Math.floor(Math.random() * DIFICULTADES_ASISTENCIA_QR.length)];
+    if(dificultades.indexOf(d) === -1) dificultades.push(d);
+  }
+  const documento = String(1000000000 + Math.floor(Math.random() * 899999999));
+  return {
+    nombre: nombres[Math.floor(Math.random() * nombres.length)] + " " + apellidos[Math.floor(Math.random() * apellidos.length)],
+    sexo: SEXOS_ASISTENCIA_QR[Math.floor(Math.random() * SEXOS_ASISTENCIA_QR.length)],
+    edad: String(15 + Math.floor(Math.random() * 50)),
+    tipoAsistencia: "Presencial",
+    cargo: cargo,
+    rolForo: ROLES_FORO_QR[Math.floor(Math.random() * ROLES_FORO_QR.length)],
+    jornada: requiereCondicion ? JORNADAS_ASISTENCIA_QR[Math.floor(Math.random() * JORNADAS_ASISTENCIA_QR.length)] : "",
+    sede: requiereCondicion ? "Sede de prueba " + (1 + Math.floor(Math.random() * 3)) : "",
+    fortalezas: fortalezas,
+    fortalezaOtro: "",
+    dificultades: dificultades,
+    dificultadOtro: "",
+    documento: documento,
+    correo: "asistente.prueba" + documento + "@ejemplo.com",
+    telefono: String(3000000000 + Math.floor(Math.random() * 99999999))
+  };
+}
+
+function generarValoracionAleatoriaFEM_(){
+  const p = function(){ return 1 + Math.floor(Math.random() * 5); };
+  const p1 = p(), p2 = p(), p3 = p(), p4 = p();
+  const mejora = function(n){ return n <= 2 ? "Sugerencia de mejora de prueba generada automáticamente." : ""; };
+  return {
+    p1: p1, p2: p2, p3: p3, p4: p4,
+    mejoraP1: mejora(p1), mejoraP2: mejora(p2), mejoraP3: mejora(p3), mejoraP4: mejora(p4),
+    p5: "Sugerencia final de prueba generada automáticamente para fortalecer el FEM 2027."
+  };
+}
+
+
+/*****************************************************
+ * PRUEBA DE ENVÍO COMPLETO CON DATOS AL AZAR
+ *
+ * Simula, de principio a fin, una sola IE de prueba completando el
+ * Foro: caracterización y 3 sesiones (texto y números al azar),
+ * varias firmas de asistencia por QR (datos al azar), envío
+ * definitivo, generación y envío del informe, y valoración final
+ * (corazones y comentarios al azar) — sin necesidad de abrir el
+ * formulario en el navegador. Usa una IE de prueba ya existente (por
+ * defecto "IE PRUEBA 1234"), así que no envía correos a nadie fuera
+ * de las 10 IE de prueba ya configuradas.
+ *
+ * Ejecutar manualmente:  probarEnvioCompletoAleatorio("IE PRUEBA 1234")
+ *****************************************************/
+function probarEnvioCompletoAleatorio(nombreIE){
+  nombreIE = nombreIE || "IE PRUEBA 1234";
+  const resultado = { ie: nombreIE, pasos: {}, errores: [] };
+
+  try{
+    const hoja = asegurarColumnasAccesosIE_();
+    const mapa = mapaHoja_(hoja);
+    if(hoja.getLastRow() < 2) throw new Error("AccesosIE no tiene filas.");
+    const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues();
+    const fila = valores.find(f => String(f[mapa.IE - 1] || "").trim() === nombreIE);
+    if(!fila) throw new Error("No existe " + nombreIE + " en AccesosIE.");
+    const idForo = String(fila[mapa.ID_FORO - 1] || "").trim();
+    const dispositivoId = "PRUEBA-ALEATORIA-" + idForo.slice(0, 8);
+
+    const datos = { idForo: idForo, campos: generarCamposAleatoriosFEM_() };
+    guardarAvanceForo(datos);
+    resultado.pasos.caracterizacionYSesiones = true;
+
+    const cantidadAsistentes = 3 + Math.floor(Math.random() * 4);
+    let asistentesFirmados = 0;
+    for(let i = 0; i < cantidadAsistentes; i++){
+      const asistente = generarAsistenteAleatorioQR_();
+      const registro = registrarAsistenciaQR(idForo, asistente.nombre, asistente.sexo, asistente.edad, asistente.tipoAsistencia, asistente.cargo, asistente.rolForo, asistente.jornada, asistente.sede, asistente.fortalezas, asistente.fortalezaOtro, asistente.dificultades, asistente.dificultadOtro, asistente.documento, asistente.correo, asistente.telefono, true, dispositivoId + "-QR-" + i);
+      if(registro.ok) asistentesFirmados++;
+    }
+    resultado.pasos.asistenciaQR = asistentesFirmados + " de " + cantidadAsistentes;
+
+    const sesion = reclamarSesionCodigo_("", "", dispositivoId, idForo, true);
+    if(!sesion.ok) throw new Error("No fue posible reclamar la sesión: " + sesion.mensaje);
+    const datosGuardados = obtenerDatosGuardadosPorIdForo_(idForo);
+    datosGuardados.idForo = idForo;
+    const envio = enviarForoDefinitivo(idForo, sesion.tokenSesion, dispositivoId, datosGuardados);
+    if(!envio || (!envio.ok && !envio.yaEnviado)){ liberarSesionCodigo_("", "", dispositivoId, sesion.tokenSesion, idForo); throw new Error((envio && envio.mensaje) || "Envío definitivo falló."); }
+    resultado.pasos.envioDefinitivo = true;
+
+    const informe = generarInformeFEM(idForo, datosGuardados);
+    if(!informe || !informe.ok) throw new Error((informe && informe.mensaje) || "No fue posible generar el informe.");
+    resultado.pasos.informe = true;
+    enviarInformeFEM(idForo, datosGuardados, informe.pdfId);
+    resultado.pasos.correoInforme = true;
+
+    const valoracionAleatoria = generarValoracionAleatoriaFEM_();
+    const valoracion = guardarValoracionFEM(idForo, valoracionAleatoria);
+    if(!valoracion || !valoracion.ok) throw new Error((valoracion && valoracion.mensaje) || "No fue posible guardar la valoración.");
+    resultado.pasos.valoracion = valoracionAleatoria;
+    enviarComprobanteParticipacionFEM(idForo, datosGuardados);
+    resultado.pasos.correoComprobante = true;
+
+    liberarSesionCodigo_("", "", dispositivoId, sesion.tokenSesion, idForo);
+
+    const ss = obtenerSpreadsheetAnalisisFEM_();
+    const shIE = ss.getSheetByName(nombreHojaIE_(nombreIE));
+    resultado.pasos.reflejadoEnAnalisis = !!(shIE && shIE.getLastRow() >= 2);
+    resultado.urlDocumentoAnalisis = ss.getUrl();
+
+  }catch(error){
+    resultado.errores.push(error.message);
+  }
+
+  Logger.log("RESULTADO PRUEBA ALEATORIA — " + nombreIE + ":\n" + JSON.stringify(resultado, null, 2));
+  return resultado;
+}
+
+
+/*****************************************************
+ * VERIFICAR PERMISOS Y CUOTA DE ENVÍO DE CORREO — FEM 2026
+ *
+ * Confirma que la cuenta que ejecuta el script puede enviar como
+ * REMITENTE_FEM (calidadeducacion@alcaldianeiva.gov.co) y cuántos
+ * correos quedan disponibles hoy en la cuota diaria — importante
+ * antes de cualquier envío masivo (accesos, avisos, informes).
+ *
+ * Ejecutar manualmente desde el editor de Apps Script y revisar el
+ * log.
+ *****************************************************/
+function verificarPermisosEnvioCorreoFEM(){
+  const cuenta = Session.getEffectiveUser().getEmail();
+  const aliases = GmailApp.getAliases().map(function(a){ return a.toLowerCase(); });
+  const puedeEnviarComoFEM = cuenta.toLowerCase() === REMITENTE_FEM || aliases.indexOf(REMITENTE_FEM) !== -1;
+  const cuotaRestante = MailApp.getRemainingDailyQuota();
+
+  const resumen = [
+    "Cuenta que ejecuta el script: " + cuenta,
+    "Aliases de envío disponibles: " + (aliases.join(", ") || "(ninguno)"),
+    "¿Puede enviar como " + REMITENTE_FEM + "?: " + (puedeEnviarComoFEM ? "SÍ" : "NO — configure el alias en Gmail antes de enviar."),
+    "Cuota de correos restante hoy: " + cuotaRestante
+  ];
+  Logger.log(resumen.join("\n"));
+  return { ok:true, cuenta: cuenta, aliases: aliases, puedeEnviarComoFEM: puedeEnviarComoFEM, cuotaRestante: cuotaRestante, resumen: resumen };
+}
+
+
+/*****************************************************
+ * PROGRAMAR AVISO AL EQUIPO DE CALIDAD EDUCATIVA — 6:30 A.M.
+ *
+ * Crea un disparador de una sola vez para las 6:30 a.m. (hora de
+ * Bogotá) de hoy, o de mañana si ya pasaron las 6:30 a.m., que
+ * ejecuta enviarAvisoEquipoCalidadFEM_(): envía, a cada una de las 10
+ * IE de prueba (correos del equipo de calidad educativa), un correo
+ * con el mismo diseño de código + enlace ya usado en
+ * enviarAccesoIndividualIEPrueba_(), agregando arriba un aviso breve
+ * explicando que el correo llegó programado a las 6:30 a.m. desde la
+ * aplicación FEM 2026 y pidiendo verificar cómo se comporta la página
+ * y reportar cualquier novedad durante el día.
+ *
+ * El disparador se autodestruye la primera vez que se ejecuta.
+ *
+ * Ejecutar manualmente:  programarAvisoEquipoCalidadFEM()
+ *****************************************************/
+function programarAvisoEquipoCalidadFEM(){
+  ScriptApp.getProjectTriggers().forEach(function(t){
+    if(t.getHandlerFunction() === "enviarAvisoEquipoCalidadFEM_") ScriptApp.deleteTrigger(t);
+  });
+
+  const zona = "America/Bogota";
+  const ahora = new Date();
+  let fechaEnvio = new Date(Utilities.formatDate(ahora, zona, "yyyy-MM-dd") + "T06:30:00");
+  const horaActual = Number(Utilities.formatDate(ahora, zona, "HH"));
+  const minutoActual = Number(Utilities.formatDate(ahora, zona, "mm"));
+  if(horaActual > 6 || (horaActual === 6 && minutoActual >= 30)){
+    fechaEnvio = new Date(fechaEnvio.getTime() + 24 * 60 * 60 * 1000);
+  }
+
+  ScriptApp.newTrigger("enviarAvisoEquipoCalidadFEM_").timeBased().at(fechaEnvio).create();
+
+  const mensaje = "Aviso programado para las 6:30 a.m. (hora de Bogotá) del " + Utilities.formatDate(fechaEnvio, zona, "dd/MM/yyyy") + ".";
+  Logger.log(mensaje);
+  return { ok:true, fechaEnvio: fechaEnvio.toISOString(), mensaje: mensaje };
+}
+
+function enviarAvisoEquipoCalidadFEM_(){
+  ScriptApp.getProjectTriggers().forEach(function(t){
+    if(t.getHandlerFunction() === "enviarAvisoEquipoCalidadFEM_") ScriptApp.deleteTrigger(t);
+  });
+
+  const cuenta = Session.getEffectiveUser().getEmail().toLowerCase();
+  const aliases = GmailApp.getAliases().map(function(a){ return a.toLowerCase(); });
+  if(cuenta !== REMITENTE_FEM && aliases.indexOf(REMITENTE_FEM) === -1){
+    Logger.log("No se pudo enviar el aviso: la cuenta no puede enviar como " + REMITENTE_FEM + ".");
+    return;
+  }
+
+  const hoja = asegurarColumnasAccesosIE_();
+  const mapa = mapaHoja_(hoja);
+  if(hoja.getLastRow() < 2){ Logger.log("AccesosIE no tiene filas."); return; }
+  const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues();
+
+  const nombresDestino = ["IE PRUEBA 1234"].concat(IES_PRUEBA_ADICIONALES.map(function(x){ return x.ie; }));
+  const resultados = [];
+
+  nombresDestino.forEach(function(nombreIE){
+    try{
+      const fila = valores.find(f => String(f[mapa.IE - 1] || "").trim() === nombreIE);
+      if(!fila) throw new Error("No existe en AccesosIE.");
+      const correoIE = String(fila[mapa.EMAIL_IE - 1] || "").trim();
+      const codigo = String(fila[mapa.CODIGO_ACCESO - 1] || "").trim();
+      const url = String(fila[mapa.URL_ACCESO - 1] || "").trim();
+      if(!correoIE) throw new Error("Sin EMAIL_IE.");
+
+      const ieSinPrefijo = nombreIESinPrefijoInstitucional_(nombreIE);
+      const asunto = "🧪 Aviso de prueba programada 6:30 a.m. — Foro Educativo Institucional FEM 2026";
+      const textoEnlace = "Ingreso de prueba al Foro Educativo Institucional";
+
+      const cuerpoTexto =
+        "Secretaría de Educación de Neiva\n\n" +
+        "Este correo fue programado para llegar hoy a las 6:30 a.m. desde la aplicación FEM 2026.\n\n" +
+        "Por favor verifiquen cómo se comporta la página con el código y el enlace de abajo, y reporten cualquier novedad durante el día.\n\n" +
+        "Institución de prueba: " + ieSinPrefijo + "\n\n" +
+        "Código de acceso: " + codigo + "\n\n" +
+        textoEnlace + ":\n" + url + "\n\n" +
+        "Secretaría de Educación de Neiva\n" +
+        "Foro Educativo Institucional – Neiva 2026\n" +
+        "“Escuela Viva: Voces que construyen territorio”";
+
+      const cuerpoHTML =
+        "<div style=\"background:#F7F8FA;padding:28px 12px;font-family:Arial,Helvetica,sans-serif;\">" +
+        "<div style=\"max-width:520px;margin:0 auto;background:#FFFFFF;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.10);\">" +
+        "<div style=\"background:#0B6A44;padding:26px 28px;text-align:center;\">" +
+        "<div style=\"color:#FFFFFF;font-size:20px;font-weight:700;\">Foro Educativo Institucional</div>" +
+        "<div style=\"color:#CFE8DC;font-size:14px;margin-top:2px;\">Neiva 2026 — Prueba</div>" +
+        "</div>" +
+        "<div style=\"padding:28px 28px 8px;\">" +
+        "<div style=\"background:#FFF8E1;border-left:6px solid #F4B400;border-radius:10px;padding:16px 20px;margin:0 0 22px;\">" +
+        "<p style=\"font-size:14px;color:#7A5B00;margin:0;\"><strong>🧪 Aviso de prueba:</strong> este correo fue programado para llegar hoy a las 6:30 a.m. desde la aplicación FEM 2026. Por favor verifiquen cómo se comporta la página con el código y el enlace de abajo, y reporten cualquier novedad durante el día.</p>" +
+        "</div>" +
+        "<p style=\"font-size:15px;color:#4A4A4A;line-height:1.6;margin:0 0 22px;\">Institución de prueba: <strong>" + ieSinPrefijo + "</strong></p>" +
+        "<div style=\"background:#F7F8FA;border-left:6px solid #F4B400;border-radius:10px;padding:16px 20px;margin:0 0 24px;text-align:center;\">" +
+        "<div style=\"font-size:12px;font-weight:700;color:#0B6A44;text-transform:uppercase;letter-spacing:.5px;\">Código de acceso</div>" +
+        "<div style=\"font-size:30px;font-weight:700;letter-spacing:6px;color:#0B6A44;margin-top:4px;\">" + codigo + "</div>" +
+        "</div>" +
+        "<div style=\"text-align:center;margin:0 0 24px;\">" +
+        "<a href=\"" + url + "\" target=\"_blank\" style=\"display:inline-block;background:#0B6A44;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:15px;padding:14px 26px;border-radius:10px;\">" + textoEnlace + "</a>" +
+        "</div>" +
+        "</div>" +
+        "<div style=\"background:#F7F8FA;padding:18px 28px;text-align:center;border-top:1px solid #E5E7EA;\">" +
+        "<p style=\"font-size:13px;color:#0B6A44;font-weight:700;margin:0;\">Secretaría de Educación de Neiva</p>" +
+        "<p style=\"font-size:12px;color:#888888;margin:4px 0 0;font-style:italic;\">“Escuela Viva: Voces que construyen territorio”</p>" +
+        "</div>" +
+        "</div>" +
+        "</div>";
+
+      const opciones = { htmlBody: cuerpoHTML, name: "Secretaría de Educación de Neiva", replyTo: REMITENTE_FEM };
+      if(cuenta !== REMITENTE_FEM) opciones.from = REMITENTE_FEM;
+
+      GmailApp.sendEmail(correoIE, asunto, cuerpoTexto, opciones);
+      resultados.push(nombreIE + ": ✅ enviado a " + correoIE);
+    }catch(error){
+      resultados.push(nombreIE + ": ⚠ " + error.message);
+    }
+  });
+
+  Logger.log("AVISO 6:30 A.M. — RESULTADO:\n" + resultados.join("\n"));
+}
+
+
+/*****************************************************
+ * DEBUG COMPLETO — FEM 2026
+ *
+ * Corre en cadena varias pruebas ya existentes más las nuevas de este
+ * archivo y arma un solo reporte pasa/falla en el log. Pensado para
+ * ejecutarse manualmente después de un reset o antes de un evento
+ * real, sin tener que ejecutar función por función.
+ *
+ * Ejecutar manualmente:  ejecutarDebugCompletoFEM()
+ *****************************************************/
+function ejecutarDebugCompletoFEM(){
+  const reporte = [];
+  function correr(nombre, fn){
+    try{
+      const r = fn();
+      const ok = !r || r.ok === true || r.ok === undefined;
+      reporte.push((ok ? "✅ " : "⚠ ") + nombre + (r && r.mensaje ? " — " + r.mensaje : ""));
+    }catch(error){
+      reporte.push("❌ " + nombre + " — ERROR: " + error.message);
+    }
+  }
+
+  correr("Catálogo de instituciones (probarCatalogoIE)", probarCatalogoIE);
+  correr("Permisos y cuota de correo (verificarPermisosEnvioCorreoFEM)", verificarPermisosEnvioCorreoFEM);
+  correr("Validación de código correcto (probarValidacion1234)", probarValidacion1234);
+  correr("Validación de código incorrecto (probarCodigoIncorrecto1234)", probarCodigoIncorrecto1234);
+  correr("Guardar avance de foro (probarGuardarAvanceForo)", probarGuardarAvanceForo);
+  correr("Autoguardado con ID_FORO inválido", probarAutoguardadoConIdForoInvalido);
+  correr("Autoguardado sin datos", probarAutoguardadoSinDatos);
+  correr("Reintento por falla de guardado local", function(){ return probarReintentoPorFallaGuardadoLocal("IE PRUEBA 1234"); });
+  correr("Flujo plenaria -> documento de análisis", probarFlujoPlenariaHastaDocumentoAnalisis);
+
+  Logger.log("========================================");
+  Logger.log("DEBUG COMPLETO FEM 2026");
+  Logger.log(reporte.join("\n"));
+  Logger.log("========================================");
+  return { ok:true, reporte: reporte };
+}
+
+
+/*****************************************************
+ * SIMULAR 50 RESPUESTAS COMPLETAS — FEM 2026
+ *
+ * Crea 50 IE de prueba ("IE Simulación 01".."50", TIPO=PRUEBA, con
+ * correo en el dominio reservado .invalid — nunca entregable, para no
+ * arriesgar ningún envío real) y para cada una: guarda caracterización
+ * y 3 sesiones con texto y números al azar, registra entre 3 y 8
+ * firmas de asistencia QR al azar, hace el envío definitivo y guarda
+ * una valoración al azar — todo reflejado automáticamente en el
+ * documento de análisis.
+ *
+ * A propósito NO genera el informe (Doc + PDF) ni envía ningún correo
+ * para las 50: generar 50 informes reales superaría los 6 minutos que
+ * permite una ejecución manual desde el editor, y emitiría 50 correos
+ * innecesarios. Para ver un informe real completo, usar
+ * probarEnvioCompletoAleatorio() sobre una sola IE de prueba de
+ * verdad.
+ *
+ * Devuelve (y deja en el log) el resultado de cada una de las 50 IE.
+ *
+ * Ejecutar manualmente:  simular50RespuestasFEM()
+ *****************************************************/
+function simular50RespuestasFEM(){
+  const TOTAL = 50;
+  const resultados = [];
+
+  for(let i = 1; i <= TOTAL; i++){
+    const numero = String(i).padStart(2, "0");
+    const nombreIE = "IE Simulación " + numero;
+    const fila = { ie: nombreIE, ok:false, asistentes:0, valoracionNota:0, errores:[] };
+
+    try{
+      const hoja = asegurarColumnasAccesosIE_();
+      const mapa = mapaHoja_(hoja);
+      const valoresActuales = hoja.getLastRow() >= 2 ? hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues() : [];
+      const filaExistente = valoresActuales.find(f => String(f[mapa.IE - 1] || "").trim() === nombreIE);
+      let idForo;
+      if(filaExistente){
+        idForo = String(filaExistente[mapa.ID_FORO - 1] || "").trim();
+      }else{
+        idForo = Utilities.getUuid();
+        const nuevaFila = new Array(hoja.getLastColumn()).fill("");
+        const set = function(col, valor){ if(mapa[col]) nuevaFila[mapa[col] - 1] = valor; };
+        set("ID_ACCESO", Utilities.getUuid());
+        set("IE", nombreIE);
+        set("DANE", "SIMULACION-" + numero);
+        set("CODIGO_ACCESO", generarCodigoAcceso_());
+        set("TOKEN", Utilities.getUuid().replace(/-/g, ""));
+        set("URL_ACCESO", URL_WEBAPP_PRODUCCION + "?t=SIMULACION" + numero);
+        set("ID_FORO", idForo);
+        set("ESTADO", "DISPONIBLE");
+        set("EMAIL_IE", "simulacion" + numero + "@fem2026.invalid");
+        set("EMAIL_RESPONSABLE", "simulacion" + numero + "@fem2026.invalid");
+        set("TIPO", "PRUEBA");
+        set("FECHA_GENERACION", new Date());
+        hoja.appendRow(nuevaFila);
+      }
+
+      guardarAvanceForo({ idForo: idForo, campos: generarCamposAleatoriosFEM_() });
+
+      const dispositivoId = "SIMULACION-" + numero;
+      const cantidadAsistentes = 3 + Math.floor(Math.random() * 6);
+      let asistentesFirmados = 0;
+      for(let a = 0; a < cantidadAsistentes; a++){
+        const asistente = generarAsistenteAleatorioQR_();
+        const registro = registrarAsistenciaQR(idForo, asistente.nombre, asistente.sexo, asistente.edad, asistente.tipoAsistencia, asistente.cargo, asistente.rolForo, asistente.jornada, asistente.sede, asistente.fortalezas, asistente.fortalezaOtro, asistente.dificultades, asistente.dificultadOtro, asistente.documento, asistente.correo, asistente.telefono, true, dispositivoId + "-QR-" + a);
+        if(registro.ok) asistentesFirmados++;
+      }
+      fila.asistentes = asistentesFirmados;
+
+      const sesion = reclamarSesionCodigo_("", "", dispositivoId, idForo, true);
+      if(!sesion.ok) throw new Error("Sesión: " + sesion.mensaje);
+      const datosGuardados = obtenerDatosGuardadosPorIdForo_(idForo);
+      datosGuardados.idForo = idForo; datosGuardados.institucion = nombreIE;
+      const envio = enviarForoDefinitivo(idForo, sesion.tokenSesion, dispositivoId, datosGuardados);
+      liberarSesionCodigo_("", "", dispositivoId, sesion.tokenSesion, idForo);
+      if(!envio || (!envio.ok && !envio.yaEnviado)) throw new Error((envio && envio.mensaje) || "Envío definitivo falló.");
+
+      const valoracionAleatoria = generarValoracionAleatoriaFEM_();
+      const valoracion = guardarValoracionFEM(idForo, valoracionAleatoria);
+      if(!valoracion || !valoracion.ok) throw new Error((valoracion && valoracion.mensaje) || "Valoración falló.");
+      fila.valoracionNota = ((valoracionAleatoria.p1 + valoracionAleatoria.p2 + valoracionAleatoria.p3 + valoracionAleatoria.p4) / 4).toFixed(1);
+
+      fila.ok = true;
+
+    }catch(error){
+      fila.errores.push(error.message);
+    }
+
+    resultados.push(fila);
+  }
+
+  const exitosas = resultados.filter(function(r){ return r.ok; }).length;
+  Logger.log("========================================");
+  Logger.log("SIMULACIÓN DE 50 RESPUESTAS — RESUMEN");
+  Logger.log("Exitosas: " + exitosas + " de " + TOTAL);
+  resultados.forEach(function(r){
+    Logger.log(r.ie + " -> " + (r.ok ? ("✅ asistentes:" + r.asistentes + " nota:" + r.valoracionNota) : ("❌ " + r.errores.join(" | "))));
+  });
+  Logger.log("========================================");
+
+  return { ok:true, exitosas: exitosas, total: TOTAL, resultados: resultados };
+}
