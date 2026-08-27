@@ -838,6 +838,82 @@ if(
 
 
 /*****************************************************
+ * SEDES DE UNA IE (para la pregunta de asistencia por QR)
+ *
+ * En la hoja "Oficiales", cada IE central está en MAYÚSCULAS
+ * y sus sedes aparecen en las filas siguientes con escritura
+ * normal, hasta la fila de la siguiente IE central. Se usa
+ * exactamente el mismo criterio mayúsculas/minúsculas que
+ * obtenerInstitucionesJSON() para decidir qué fila es una IE
+ * central y cuál es una sede, para no divergir de esa lista.
+ *****************************************************/
+
+function obtenerSedesDeIE_(nombreIE){
+
+    try{
+
+        const ss = abrirSpreadsheet_();
+        const hoja = ss.getSheetByName("Oficiales");
+        if(!hoja) return ["Central/Administrativa"];
+
+        const FILA_ENCABEZADOS = 5;
+        const ultimaFila = hoja.getLastRow();
+        const ultimaColumna = hoja.getLastColumn();
+        if(ultimaFila <= FILA_ENCABEZADOS) return ["Central/Administrativa"];
+
+        const cabeceras = hoja
+            .getRange(FILA_ENCABEZADOS, 1, 1, ultimaColumna)
+            .getDisplayValues()[0]
+            .map(function(v){ return String(v || "").trim().toUpperCase(); });
+
+        const colIE = cabeceras.indexOf("INSTITUCIÓN/SEDE");
+        if(colIE === -1) return ["Central/Administrativa"];
+
+        const datos = hoja
+            .getRange(FILA_ENCABEZADOS + 1, 1, ultimaFila - FILA_ENCABEZADOS, ultimaColumna)
+            .getDisplayValues();
+
+        const objetivo = String(nombreIE || "").trim().toUpperCase();
+        const sedes = ["Central/Administrativa"];
+        let dentroDeLaIE = false;
+
+        datos.forEach(function(fila){
+
+            const nombre = String(fila[colIE] || "").trim();
+            if(!nombre) return;
+
+            const nombreMayusculas = nombre.toUpperCase();
+            const nombreMinusculas = nombre.toLowerCase();
+
+            // Misma prueba que obtenerInstitucionesJSON(): si NO es
+            // completamente mayúscula, o si es completamente
+            // minúscula, es una sede (no una IE central).
+            const esSede = (nombre !== nombreMayusculas) || (nombre === nombreMinusculas);
+
+            if(!esSede){
+                dentroDeLaIE = (nombreMayusculas === objetivo);
+                return;
+            }
+
+            if(dentroDeLaIE){
+                sedes.push(nombre);
+            }
+
+        });
+
+        return sedes;
+
+    }catch(error){
+
+        Logger.log("obtenerSedesDeIE_: " + error.message);
+        return ["Central/Administrativa"];
+
+    }
+
+}
+
+
+/*****************************************************
  * DIAGNÓSTICO DE LA HOJA OFICIALES
  *****************************************************/
 
@@ -4830,11 +4906,78 @@ const CARGOS_ASISTENCIA_QR=["Rector(a)","Coordinador(a)","Docente","Tutor(a) PTA
 const TIPOS_ASISTENCIA_QR=["Presencial","No asistió: con permiso institucional o incapacidad médica.","No asistió: con permiso de comisión o con acto administrativo."];
 const ROLES_FORO_QR=["👑 Líder – Rector(a)","🎓 Dinamizador Pedagógico – Tutor(a) PTA / PFI 3.0","👥 Dinamizador(a) de Mesas de Trabajo","📝 Relator(a)","⏱️ Dinamizador(a) del Tiempo","💻 Dinamizador(a) de la Sistematización","🙋 Participante"];
 
+// Sexo (para el conteo demográfico del informe: niños/niñas,
+// jóvenes hombres/mujeres, adultos hombres/mujeres).
+const SEXOS_ASISTENCIA_QR=["Masculino","Femenino","Prefiero no decirlo"];
+
+// Cargos que NO responden la pregunta de condición (jornada/sede):
+// según lo pedido, aplica a todos MENOS estos cuatro.
+const CARGOS_SIN_CONDICION_QR=["Padre/madre/acudiente","Personal administrativo","Egresado(a)","Sector productivo"];
+
+const JORNADAS_ASISTENCIA_QR=["Mañana","Tarde","Única"];
+
+// Selección múltiple (máx. 3) de fortalezas y dificultades del Foro,
+// para el informe institucional. "Otro" despliega un texto libre.
+const FORTALEZAS_ASISTENCIA_QR=["Docentes con experiencias exitosas que pueden ser compartidas","Participación activa de los estudiantes","Participación comprometida de las familias","Liderazgo pedagógico de los directivos","Trabajo colaborativo entre docentes","Proyectos institucionales con resultados demostrables","Estrategias que han mejorado los aprendizajes","Experiencias exitosas de inclusión","Buenas prácticas de convivencia","Capacidad institucional para innovar","Uso pertinente de recursos tecnológicos","Aprovechamiento de recursos disponibles en el territorio","Articulación con otras instituciones o entidades","Reconocimiento de las necesidades del contexto","Capacidad de adaptación ante dificultades","Existencia de espacios de participación democrática","Experiencias que pueden ser escaladas o replicadas","Identidad y sentido de pertenencia institucional","Compromiso de la comunidad educativa","Capacidades y talentos de los estudiantes","Redes de apoyo existentes","Experiencias que generan impacto más allá del aula"];
+
+const DIFICULTADES_ASISTENCIA_QR=["Bajo logro de aprendizajes fundamentales.","Brechas de aprendizaje entre estudiantes, grados o sedes.","Estudiantes en riesgo académico sin atención oportuna.","Prácticas pedagógicas con bajo impacto.","Evaluación centrada en calificar y no en mejorar.","Desarticulación entre PEI, currículo y práctica de aula.","Falta de atención a diferentes ritmos y necesidades de aprendizaje.","Exclusión, discriminación o barreras para la inclusión.","Problemas recurrentes de convivencia y acoso escolar.","Baja participación de estudiantes y familias.","Necesidades de formación y acompañamiento docente.","Escaso trabajo colaborativo entre docentes.","Uso insuficiente de recursos y tecnologías.","Infraestructura o dotación que limita el aprendizaje.","Proyectos institucionales sin resultados demostrables.","Buenas experiencias que no se replican institucionalmente.","Decisiones pedagógicas sin suficiente evidencia.","Desconexión entre educación y contexto territorial.","Acciones que deben mantenerse, modificarse o eliminarse.","Prioridades que requieren intervención inmediata.","Responsables y recursos necesarios para actuar.","Compromisos verificables y con resultados esperados."];
+
+// Texto legal completo del consentimiento informado que se muestra
+// en un desplegable (con icono de ojo) antes de firmar asistencia.
+// "{{IE}}" se reemplaza por el nombre de la institución al generar
+// la página (ver paginaAsistenciaQR_).
+const TEXTO_CONSENTIMIENTO_ASISTENCIA_QR=
+"CONSENTIMIENTO INFORMADO PARA EL TRATAMIENTO DE DATOS PERSONALES\n\n"+
+"En el marco del Foro Educativo Institucional de Neiva 2026 — FEM 2026, la Secretaría de Educación de Neiva (SEM Neiva) y la Institución Educativa {{IE}}, en el ámbito de sus respectivas competencias y de conformidad con la normativa colombiana aplicable sobre protección de datos personales, podrán realizar el tratamiento de los datos personales suministrados mediante este formulario de asistencia.\n\n"+
+"Los datos serán tratados exclusivamente para las finalidades informadas en este formulario y de acuerdo con los principios, derechos y condiciones establecidos en la normativa vigente sobre protección de datos personales.\n\n"+
+"¿PARA QUÉ SE UTILIZARÁN MIS DATOS?\n\n"+
+"Los datos personales registrados mediante este formulario podrán ser utilizados para:\n\n"+
+"• Registrar y verificar la asistencia al Foro Educativo Institucional de Neiva 2026.\n"+
+"• Elaborar estadísticas generales relacionadas con la participación en el Foro Educativo Municipal — FEM 2026.\n"+
+"• Incorporar la información correspondiente en el listado de asistencia que será entregado a la Secretaría de Educación de Neiva (SEM Neiva), para las finalidades institucionales relacionadas con el evento.\n"+
+"• Apoyar la elaboración del informe ejecutivo del Foro Educativo Institucional, que será remitido a la Institución Educativa {{IE}}.\n"+
+"• Generar información institucional, estadística y de seguimiento relacionada con el desarrollo y participación en el Foro, dentro de las finalidades propias del evento y de acuerdo con la normativa aplicable.\n\n"+
+"Los datos no serán utilizados para fines comerciales, publicitarios o ajenos a las finalidades aquí informadas.\n\n"+
+"¿QUIÉNES PODRÁN TRATAR LA INFORMACIÓN?\n\n"+
+"La información podrá ser tratada por la Secretaría de Educación de Neiva (SEM Neiva) y por la Institución Educativa {{IE}}, de acuerdo con sus respectivas responsabilidades, competencias y finalidades institucionales.\n\n"+
+"El tratamiento y circulación de los datos estarán sujetos a las condiciones y restricciones establecidas por la normativa colombiana de protección de datos personales.\n\n"+
+"PARTICIPANTES MENORES DE EDAD\n\n"+
+"En el caso de niños, niñas y adolescentes, sus datos personales gozan de especial protección de acuerdo con la legislación colombiana.\n\n"+
+"El tratamiento de sus datos deberá realizarse respetando sus derechos fundamentales, su interés superior y las condiciones establecidas por la normativa vigente.\n\n"+
+"Cuando la autorización para el tratamiento sea requerida, esta deberá ser otorgada por quien tenga la representación legal o facultad para autorizarla, de conformidad con la normativa aplicable.\n\n"+
+"La información de niños, niñas y adolescentes no será utilizada para finalidades distintas de las informadas en este consentimiento.\n\n"+
+"PARTICIPANTES EN GENERAL\n\n"+
+"Los participantes mayores de edad podrán autorizar, cuando corresponda, el tratamiento de sus datos personales para las finalidades expresamente informadas en este formulario.\n\n"+
+"La autorización se limita a las finalidades descritas anteriormente y no implica autorización para usos diferentes o incompatibles con dichas finalidades.\n\n"+
+"SERVIDORES Y FUNCIONARIOS PÚBLICOS\n\n"+
+"Para los servidores y funcionarios públicos que participen en el Foro, la información de asistencia podrá ser tratada en el marco de las actividades institucionales, administrativas, estadísticas y de seguimiento relacionadas con el evento.\n\n"+
+"Cuando el tratamiento de datos requiera autorización del titular, esta se solicitará mediante la presente manifestación.\n\n"+
+"El tratamiento que se realice en cumplimiento de funciones legales o competencias de las entidades públicas estará sujeto a la base jurídica correspondiente y a las disposiciones de protección de datos personales aplicables.\n\n"+
+"DERECHOS DEL TITULAR DE LOS DATOS\n\n"+
+"De acuerdo con la normativa colombiana aplicable, el titular de los datos personales podrá, cuando sea legalmente procedente:\n\n"+
+"• Conocer los datos personales que sean objeto de tratamiento.\n"+
+"• Solicitar la actualización o rectificación de información cuando sea inexacta, incompleta o desactualizada.\n"+
+"• Solicitar información sobre el uso y tratamiento de sus datos personales.\n"+
+"• Solicitar prueba de la autorización otorgada, cuando esta sea requerida.\n"+
+"• Revocar la autorización otorgada, cuando legalmente sea procedente.\n"+
+"• Solicitar la supresión de sus datos personales cuando sea legalmente procedente.\n"+
+"• Presentar consultas, solicitudes o reclamos relacionados con el tratamiento de sus datos personales a través de los canales institucionales correspondientes.\n\n"+
+"El ejercicio de estos derechos estará sujeto a las condiciones, excepciones y obligaciones de conservación previstas en la normativa vigente.\n\n"+
+"SEGURIDAD Y CONFIDENCIALIDAD\n\n"+
+"La información será tratada aplicando las medidas de seguridad y confidencialidad correspondientes, de acuerdo con las obligaciones establecidas en la normativa colombiana de protección de datos personales.\n\n"+
+"La información no será comercializada ni utilizada para fines diferentes de aquellos informados en este consentimiento, salvo que exista una obligación legal, una competencia institucional o una base jurídica que permita dicho tratamiento.\n\n"+
+"AUTORIZACIÓN\n\n"+
+"Al seleccionar la opción \"He leído y acepto el tratamiento de mis datos personales\" manifiesto que he sido informado(a) sobre las finalidades para las cuales podrán ser tratados los datos personales suministrados mediante este formulario y, cuando la autorización sea legalmente requerida, autorizo su tratamiento para las finalidades descritas anteriormente, de conformidad con la normativa colombiana vigente.\n\n"+
+"En el caso de niños, niñas y adolescentes, esta autorización deberá entenderse de acuerdo con las reglas especiales aplicables a su tratamiento de datos personales y, cuando corresponda, deberá ser otorgada por su padre, madre, representante legal o quien se encuentre facultado para ello.\n\n"+
+"FINALIDAD ESPECÍFICA DE LOS INFORMES\n\n"+
+"La información de asistencia podrá contribuir a las estadísticas del FEM 2026, formar parte del listado de asistencia que será entregado a la Secretaría de Educación de Neiva (SEM Neiva) y ser utilizada, dentro de las finalidades informadas, para la elaboración del informe ejecutivo que será enviado a la Institución Educativa {{IE}}.\n\n"+
+"La inclusión de información en estos instrumentos se realizará de acuerdo con las finalidades del evento y las disposiciones aplicables sobre protección de datos personales.";
+
 function asegurarHojaAsistenciaQR_(){
   const ss=abrirSpreadsheet_();
   let hoja=ss.getSheetByName(HOJA_ASISTENCIA_QR);
   if(!hoja) hoja=ss.insertSheet(HOJA_ASISTENCIA_QR);
-  const requeridas=["ID_FORO","IE","NOMBRE_COMPLETO","TIPO_ASISTENCIA","CARGO","ROL_FORO","NUMERO_DOCUMENTO","CORREO","TELEFONO","FECHA","HORA","DISPOSITIVO_ID"];
+  const requeridas=["ID_FORO","IE","NOMBRE_COMPLETO","SEXO","EDAD","TIPO_ASISTENCIA","CARGO","ROL_FORO","JORNADA","SEDE","FORTALEZAS","FORTALEZA_OTRO","DIFICULTADES","DIFICULTAD_OTRO","NUMERO_DOCUMENTO","CORREO","TELEFONO","CONSENTIMIENTO","FECHA","HORA","DISPOSITIVO_ID"];
   const last=hoja.getLastColumn();
   const existentes=last?hoja.getRange(1,1,1,last).getValues()[0].map(String):[];
   if(!last){ hoja.getRange(1,1,1,requeridas.length).setValues([requeridas]); }
@@ -4867,25 +5010,50 @@ function formatearFechaHoraFirma_(fecha){
   return "Firmado a las "+horas12+":"+minutos+" "+sufijo+" el día "+dia+" del mes de "+(meses[mesIndex]||"")+" del año "+anio+".";
 }
 
-function registrarAsistenciaQR(idForo, nombre, tipoAsistencia, cargo, rolForo, documento, correo, telefono, dispositivoId){
+function registrarAsistenciaQR(idForo, nombre, sexo, edad, tipoAsistencia, cargo, rolForo, jornada, sede, fortalezas, fortalezaOtro, dificultades, dificultadOtro, documento, correo, telefono, consentimiento, dispositivoId){
   const lock=LockService.getScriptLock();
   try{
     lock.waitLock(10000);
 
     idForo=String(idForo||"").trim();
     nombre=String(nombre||"").trim();
+    sexo=String(sexo||"").trim();
+    edad=String(edad||"").trim();
     tipoAsistencia=String(tipoAsistencia||"").trim();
     cargo=String(cargo||"").trim();
     rolForo=String(rolForo||"").trim();
+    jornada=String(jornada||"").trim();
+    sede=String(sede||"").trim();
+    fortalezas=Array.isArray(fortalezas)?fortalezas.filter(Boolean).map(String):[];
+    fortalezaOtro=String(fortalezaOtro||"").trim();
+    dificultades=Array.isArray(dificultades)?dificultades.filter(Boolean).map(String):[];
+    dificultadOtro=String(dificultadOtro||"").trim();
     documento=String(documento||"").trim();
     correo=String(correo||"").trim();
     telefono=String(telefono||"").trim();
     dispositivoId=String(dispositivoId||"").trim();
 
     if(!idForo) return {ok:false, mensaje:"Enlace de asistencia inválido."};
-    if(!nombre || !tipoAsistencia || !cargo || !rolForo || !documento || !correo) return {ok:false, mensaje:"Complete nombre, tipo de asistencia, cargo, rol en el Foro, número de documento y correo electrónico."};
+    if(!nombre || !sexo || !edad || !tipoAsistencia || !cargo || !rolForo || !documento || !correo) return {ok:false, mensaje:"Complete nombre, sexo, edad, tipo de asistencia, cargo, rol en el Foro, número de documento y correo electrónico."};
+    if(!consentimiento) return {ok:false, mensaje:"Debe aceptar el tratamiento de sus datos personales para continuar."};
+    if(SEXOS_ASISTENCIA_QR.indexOf(sexo)===-1) return {ok:false, mensaje:"Seleccione una opción de sexo válida."};
+    if(!/^[0-9]{1,3}$/.test(edad)) return {ok:false, mensaje:"Seleccione una edad válida."};
     if(TIPOS_ASISTENCIA_QR.indexOf(tipoAsistencia)===-1) return {ok:false, mensaje:"Seleccione un tipo de asistencia válido."};
     if(ROLES_FORO_QR.indexOf(rolForo)===-1) return {ok:false, mensaje:"Seleccione un rol válido en el Foro Educativo Institucional."};
+
+    // La pregunta de condición (jornada/sede) solo aplica a quienes
+    // NO estén en CARGOS_SIN_CONDICION_QR.
+    const requiereCondicion=CARGOS_SIN_CONDICION_QR.indexOf(cargo)===-1;
+    if(requiereCondicion){
+      if(!jornada || JORNADAS_ASISTENCIA_QR.indexOf(jornada)===-1) return {ok:false, mensaje:"Seleccione la jornada a la que pertenece."};
+      if(!sede) return {ok:false, mensaje:"Seleccione la sede a la que pertenece."};
+    }
+
+    if(fortalezas.length>3) return {ok:false, mensaje:"Seleccione máximo 3 fortalezas."};
+    if(dificultades.length>3) return {ok:false, mensaje:"Seleccione máximo 3 dificultades u oportunidades de mejora."};
+    if(fortalezas.indexOf("Otro")!==-1 && !fortalezaOtro) return {ok:false, mensaje:"Especifique la fortaleza que seleccionó como \"Otro\"."};
+    if(dificultades.indexOf("Otro")!==-1 && !dificultadOtro) return {ok:false, mensaje:"Especifique la dificultad que seleccionó como \"Otro\"."};
+
     // Validaciones de formato: el documento solo acepta dígitos, y el
     // correo debe tener una forma mínimamente válida (no solo estar
     // presente). El teléfono es opcional, pero si se escribe algo
@@ -4930,7 +5098,11 @@ function registrarAsistenciaQR(idForo, nombre, tipoAsistencia, cargo, rolForo, d
     const ahora=new Date();
     const zona=Session.getScriptTimeZone();
     const fila=new Array(hoja.getLastColumn()).fill("");
-    const valores={ID_FORO:idForo, IE:acceso.ie, NOMBRE_COMPLETO:nombre, TIPO_ASISTENCIA:tipoAsistencia, CARGO:cargo, ROL_FORO:rolForo, NUMERO_DOCUMENTO:documento, CORREO:correo, TELEFONO:telefono, DISPOSITIVO_ID:dispositivoId,
+    const valores={ID_FORO:idForo, IE:acceso.ie, NOMBRE_COMPLETO:nombre, SEXO:sexo, EDAD:edad, TIPO_ASISTENCIA:tipoAsistencia, CARGO:cargo, ROL_FORO:rolForo,
+      JORNADA:requiereCondicion?jornada:"", SEDE:requiereCondicion?sede:"",
+      FORTALEZAS:fortalezas.join(" | "), FORTALEZA_OTRO:fortalezaOtro,
+      DIFICULTADES:dificultades.join(" | "), DIFICULTAD_OTRO:dificultadOtro,
+      NUMERO_DOCUMENTO:documento, CORREO:correo, TELEFONO:telefono, CONSENTIMIENTO:"Sí", DISPOSITIVO_ID:dispositivoId,
       FECHA:Utilities.formatDate(ahora,zona,"dd/MM/yyyy"), HORA:Utilities.formatDate(ahora,zona,"HH:mm:ss")};
     Object.keys(valores).forEach(k=>{ if(m[k]) fila[m[k]-1]=valores[k]; });
     hoja.appendRow(fila);
@@ -5057,6 +5229,7 @@ function paginaAsistenciaQR_(idForo){
   const ie=acceso?acceso.ie:"";
   const ieTitulo=capitalizarNombreIE_(ie);
   const logoUrlIE=urlPublicaLogoDrive_(obtenerLogoIdPorNombreIE_(ie));
+  const sedesIE=obtenerSedesDeIE_(ie);
 
   /*
    * El registro de asistencia por QR queda disponible de forma
@@ -5066,17 +5239,36 @@ function paginaAsistenciaQR_(idForo){
    * por si llegan más asistentes.
    */
 
-  const opcionesCargo=CARGOS_ASISTENCIA_QR.map(function(c){
-    return '<option value="'+c.replace(/"/g,"&quot;")+'">'+c+'</option>';
-  }).join("");
+  const escAttr_=function(t){ return String(t||"").replace(/"/g,"&quot;"); };
+  const escHtml_=function(t){ return String(t||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); };
 
-  const opcionesTipoAsistencia=TIPOS_ASISTENCIA_QR.map(function(t){
-    return '<option value="'+t.replace(/"/g,"&quot;")+'">'+t+'</option>';
-  }).join("");
+  const opcionesDe_=function(lista){
+    return lista.map(function(v){ return '<option value="'+escAttr_(v)+'">'+escHtml_(v)+'</option>'; }).join("");
+  };
 
-  const opcionesRolForo=ROLES_FORO_QR.map(function(r){
-    return '<option value="'+r.replace(/"/g,"&quot;")+'">'+r+'</option>';
-  }).join("");
+  const opcionesCargo=opcionesDe_(CARGOS_ASISTENCIA_QR);
+  const opcionesTipoAsistencia=opcionesDe_(TIPOS_ASISTENCIA_QR);
+  const opcionesRolForo=opcionesDe_(ROLES_FORO_QR);
+  const opcionesSexo=opcionesDe_(SEXOS_ASISTENCIA_QR);
+  const opcionesJornada=opcionesDe_(JORNADAS_ASISTENCIA_QR);
+  const opcionesSede=opcionesDe_(sedesIE);
+
+  let opcionesEdad="";
+  for(let e=0;e<=99;e++){ opcionesEdad+='<option value="'+e+'">'+e+'</option>'; }
+
+  const checklistDe_=function(lista, clase){
+    return lista.map(function(v,i){
+      return '<label class="opcionChecklist"><input type="checkbox" class="'+clase+'" value="'+escAttr_(v)+'"> '+escHtml_(v)+'</label>';
+    }).join("")+
+    '<label class="opcionChecklist"><input type="checkbox" class="'+clase+'" value="Otro" data-otro="1"> Otro</label>';
+  };
+
+  const checklistFortalezas=checklistDe_(FORTALEZAS_ASISTENCIA_QR,"checkFortaleza");
+  const checklistDificultades=checklistDe_(DIFICULTADES_ASISTENCIA_QR,"checkDificultad");
+
+  const cargosSinCondicionJSON=JSON.stringify(CARGOS_SIN_CONDICION_QR);
+
+  const textoConsentimiento=TEXTO_CONSENTIMIENTO_ASISTENCIA_QR.split("{{IE}}").join(ieTitulo);
 
   const tituloPagina="Firmar asistencia al Foro Educativo Institucional "+ieTitulo;
 
@@ -5101,22 +5293,54 @@ function paginaAsistenciaQR_(idForo){
     '.mensajeErrorCorreo{display:none;margin-top:6px;}'+
     '.mensajeErrorCorreo b{background:#FFF3CD;color:#C62828;font-weight:600;padding:3px 8px;border-radius:6px;display:inline-block;}'+
     '.mensajeErrorCorreo i{font-style:normal;font-size:11px;color:#555;margin-left:6px;}'+
+    '.consentimientoBox{background:#F7FAF7;border:1px solid #DCE7DD;border-left:4px solid #F4B400;border-radius:10px;padding:14px;margin-top:10px;}'+
+    '.botonOjoConsentimiento{width:auto;margin:0;padding:8px 14px;font-size:14px;background:#fff;color:#0B6A44;border:1px solid #0B6A44;border-radius:8px;cursor:pointer;}'+
+    '.textoConsentimientoQR{display:none;white-space:pre-wrap;font-size:13px;line-height:1.55;max-height:280px;overflow-y:auto;background:#fff;border:1px solid #DADCE0;border-radius:8px;padding:12px;margin-top:10px;}'+
+    '.labelCheckConsentimiento{display:flex;align-items:flex-start;gap:8px;font-weight:600;color:#333;margin-top:12px;font-size:14px;}'+
+    '.labelCheckConsentimiento input{width:auto;margin-top:3px;}'+
+    '.condicionOculta{display:none;}'+
+    '.checklistBox{border:1px solid #DADCE0;border-radius:8px;padding:10px 12px;background:#fff;}'+
+    '.opcionChecklist{display:flex;align-items:flex-start;gap:8px;font-weight:400;color:#4A4A4A;margin:0;padding:6px 0;font-size:14px;}'+
+    '.opcionChecklist input{width:auto;margin-top:3px;}'+
+    '.avisoMaximo{font-size:12px;color:#0B6A44;font-weight:600;margin-top:14px;margin-bottom:4px;}'+
+    '.otroTextoOculto{display:none;}'+
     '</style></head><body>'+
     '<div class="tarjeta">'+
     (logoUrlIE?'<img src="'+logoUrlIE+'" alt="Logo de la institución educativa" class="logoAsistenciaIE">':'')+
     '<h1>'+tituloPagina.replace(/</g,"&lt;")+'</h1>'+
     '<p>Foro Educativo Institucional — Neiva 2026</p>'+
     '<div id="formulario">'+
+
+    '<div class="consentimientoBox">'+
+    '<button type="button" id="btnVerConsentimiento" class="botonOjoConsentimiento">👁️ Ver el texto completo del consentimiento</button>'+
+    '<div id="textoConsentimientoQR" class="textoConsentimientoQR">'+escHtml_(textoConsentimiento)+'</div>'+
+    '<label class="labelCheckConsentimiento"><input type="checkbox" id="aceptoConsentimiento"> He leído y acepto el tratamiento de mis datos personales.</label>'+
+    '</div>'+
+
     '<label>Institución Educativa</label>'+
     '<input id="ie" value="'+String(ie).replace(/"/g,"&quot;")+'" readonly>'+
     '<label>Nombre completo</label>'+
     '<input id="nombre" autocomplete="name">'+
-    '<label>Su asistencia fue</label>'+
-    '<select id="tipoAsistencia"><option value="">Seleccione…</option>'+opcionesTipoAsistencia+'</select>'+
-    '<label>Cargo</label>'+
+    '<label>Sexo</label>'+
+    '<select id="sexo"><option value="">Seleccione…</option>'+opcionesSexo+'</select>'+
+    '<label>Edad</label>'+
+    '<select id="edad"><option value="">Seleccione…</option>'+opcionesEdad+'</select>'+
+    '<label>Cargo en la Institución Educativa</label>'+
     '<select id="cargo"><option value="">Seleccione…</option>'+opcionesCargo+'</select>'+
+
+    '<div id="bloqueCondicion" class="condicionOculta">'+
+    '<label>Jornada a la que pertenece</label>'+
+    '<select id="jornada"><option value="">Seleccione…</option>'+opcionesJornada+'</select>'+
+    '<label>Sede a la que pertenece</label>'+
+    '<select id="sede"><option value="">Seleccione…</option>'+opcionesSede+'</select>'+
+    '</div>'+
+
     '<label>Rol que desempeñó en el Foro Educativo Institucional '+ieTitulo.replace(/</g,"&lt;")+'</label>'+
     '<select id="rolForo"><option value="">Seleccione…</option>'+opcionesRolForo+'</select>'+
+
+    '<label>Su asistencia fue</label>'+
+    '<select id="tipoAsistencia"><option value="">Seleccione…</option>'+opcionesTipoAsistencia+'</select>'+
+
     '<label>Número de documento</label>'+
     '<input id="documento" inputmode="numeric" autocomplete="off">'+
     '<label>Correo electrónico</label>'+
@@ -5124,12 +5348,67 @@ function paginaAsistenciaQR_(idForo){
     '<div class="mensajeErrorCorreo" id="mensajeErrorCorreo"><b>Ingrese un correo electrónico válido</b><i>(ej: nombre@dominio.com — sin espacios al inicio, al final o en medio)</i></div>'+
     '<label>Teléfono (opcional)</label>'+
     '<input id="telefono" type="tel" autocomplete="tel">'+
-    '<button id="btnFirmar" type="button">Firmar asistencia</button>'+
+
+    '<label>En mi papel en este Foro Educativo, ¿qué fortalezas identifiqué en nuestra IE '+ieTitulo.replace(/</g,"&lt;")+'? Seleccione máximo 3.</label>'+
+    '<div class="checklistBox" id="listaFortalezas">'+checklistFortalezas+'</div>'+
+    '<input type="text" id="fortalezaOtroTexto" class="otroTextoOculto" placeholder="Especifique la fortaleza...">'+
+
+    '<label>¿Qué aspectos pueden ser oportunidad de mejora institucional? Seleccione máximo 3.</label>'+
+    '<div class="checklistBox" id="listaDificultades">'+checklistDificultades+'</div>'+
+    '<input type="text" id="dificultadOtroTexto" class="otroTextoOculto" placeholder="Especifique la dificultad...">'+
+
+    '<button id="btnFirmar" type="button" disabled>Firmar asistencia</button>'+
     '</div>'+
     '<div id="estado"></div>'+
     '<div id="textoFirma"></div>'+
     '</div>'+
     '<script>'+
+    'var CARGOS_SIN_CONDICION='+cargosSinCondicionJSON+';'+
+    'document.getElementById("btnVerConsentimiento").addEventListener("click",function(){'+
+    'var d=document.getElementById("textoConsentimientoQR");'+
+    'var visible=d.style.display==="block";'+
+    'd.style.display=visible?"none":"block";'+
+    'this.textContent=visible?"👁️ Ver el texto completo del consentimiento":"🙈 Ocultar el texto del consentimiento";'+
+    '});'+
+    'function actualizarBotonFirmar(){'+
+    'var acepto=document.getElementById("aceptoConsentimiento").checked;'+
+    'document.getElementById("btnFirmar").disabled=!acepto;'+
+    '}'+
+    'document.getElementById("aceptoConsentimiento").addEventListener("change",actualizarBotonFirmar);'+
+    'document.getElementById("cargo").addEventListener("change",function(){'+
+    'var requiere=CARGOS_SIN_CONDICION.indexOf(this.value)===-1 && this.value!=="";'+
+    'document.getElementById("bloqueCondicion").classList.toggle("condicionOculta",!requiere);'+
+    '});'+
+    'function activarChecklistMaximo3(claseCheck,idOtroTexto){'+
+    'var checks=document.querySelectorAll("."+claseCheck);'+
+    'checks.forEach(function(c){'+
+    'c.addEventListener("change",function(){'+
+    'var marcados=Array.prototype.slice.call(document.querySelectorAll("."+claseCheck+":checked"));'+
+    'if(marcados.length>3){ this.checked=false; return; }'+
+    'var otro=document.querySelector("."+claseCheck+"[data-otro=\\"1\\"]");'+
+    'var campoOtro=document.getElementById(idOtroTexto);'+
+    'if(otro&&campoOtro){'+
+    'if(otro.checked){ campoOtro.classList.remove("otroTextoOculto"); }'+
+    'else{ campoOtro.classList.add("otroTextoOculto"); campoOtro.value=""; }'+
+    '}'+
+    '});'+
+    '});'+
+    'var campoOtroInicial=document.getElementById(idOtroTexto);'+
+    'if(campoOtroInicial){'+
+    'campoOtroInicial.addEventListener("input",function(){'+
+    'if(!this.value.trim()){'+
+    'var otro=document.querySelector("."+claseCheck+"[data-otro=\\"1\\"]");'+
+    'if(otro) otro.checked=false;'+
+    'this.classList.add("otroTextoOculto");'+
+    '}'+
+    '});'+
+    '}'+
+    '}'+
+    'activarChecklistMaximo3("checkFortaleza","fortalezaOtroTexto");'+
+    'activarChecklistMaximo3("checkDificultad","dificultadOtroTexto");'+
+    'function valoresMarcados(clase){'+
+    'return Array.prototype.slice.call(document.querySelectorAll("."+clase+":checked")).map(function(c){return c.value;});'+
+    '}'+
     /*
      * Un dispositivo solo puede firmar una vez por Foro. Esta página
      * la sirve Apps Script desde un subdominio de
@@ -5183,18 +5462,44 @@ function paginaAsistenciaQR_(idForo){
     'if(v===""||correoEsValido(v)){campo.classList.remove("correoInvalido");msg.style.display="none";return v!=="";}'+
     'campo.classList.add("correoInvalido");msg.style.display="block";return false;'+
     '}'+
-    'document.getElementById("correo").addEventListener("input",validarCorreoUI);'+
+    /*
+     * Autocompletado de dominio: @g -> @gmail.com, @h -> @hotmail.com,
+     * y "usuario@dominio." -> "usuario@dominio.com". Siempre queda
+     * como texto normal del campo, así que se puede seguir editando
+     * o borrando sin ninguna restricción.
+     */
+    'document.getElementById("correo").addEventListener("input",function(){'+
+    'var v=this.value;'+
+    'if(/@g$/i.test(v)){ this.value=v+"mail.com"; }'+
+    'else if(/@h$/i.test(v)){ this.value=v+"otmail.com"; }'+
+    'else if(/@[^@\\s.]+\\.$/.test(v)){ this.value=v+"com"; }'+
+    'validarCorreoUI();'+
+    '});'+
     'document.getElementById("correo").addEventListener("blur",validarCorreoUI);'+
     'document.getElementById("btnFirmar").addEventListener("click",function(){'+
     'var btn=this; var estado=document.getElementById("estado");'+
     'var nombre=document.getElementById("nombre").value.trim();'+
+    'var sexo=document.getElementById("sexo").value.trim();'+
+    'var edad=document.getElementById("edad").value.trim();'+
     'var tipoAsistencia=document.getElementById("tipoAsistencia").value.trim();'+
     'var cargo=document.getElementById("cargo").value.trim();'+
     'var rolForo=document.getElementById("rolForo").value.trim();'+
+    'var requiereCondicion=CARGOS_SIN_CONDICION.indexOf(cargo)===-1;'+
+    'var jornada=requiereCondicion?document.getElementById("jornada").value.trim():"";'+
+    'var sede=requiereCondicion?document.getElementById("sede").value.trim():"";'+
     'var documento=document.getElementById("documento").value.trim();'+
     'var correo=document.getElementById("correo").value.trim();'+
     'var telefono=document.getElementById("telefono").value.trim();'+
-    'if(!nombre||!tipoAsistencia||!cargo||!rolForo||!documento||!correo){estado.textContent="Complete nombre, tipo de asistencia, cargo, rol en el Foro, número de documento y correo electrónico.";return;}'+
+    'var acepto=document.getElementById("aceptoConsentimiento").checked;'+
+    'var fortalezas=valoresMarcados("checkFortaleza");'+
+    'var fortalezaOtro=document.getElementById("fortalezaOtroTexto").value.trim();'+
+    'var dificultades=valoresMarcados("checkDificultad");'+
+    'var dificultadOtro=document.getElementById("dificultadOtroTexto").value.trim();'+
+    'if(!acepto){estado.textContent="Debe aceptar el tratamiento de sus datos personales para continuar.";return;}'+
+    'if(!nombre||!sexo||!edad||!tipoAsistencia||!cargo||!rolForo||!documento||!correo){estado.textContent="Complete nombre, sexo, edad, tipo de asistencia, cargo, rol en el Foro, número de documento y correo electrónico.";return;}'+
+    'if(requiereCondicion&&(!jornada||!sede)){estado.textContent="Seleccione la jornada y la sede a la que pertenece.";return;}'+
+    'if(fortalezas.length>3){estado.textContent="Seleccione máximo 3 fortalezas.";return;}'+
+    'if(dificultades.length>3){estado.textContent="Seleccione máximo 3 aspectos de mejora.";return;}'+
     'if(!correoEsValido(correo)){validarCorreoUI();estado.textContent="Revise el correo electrónico: no es válido.";return;}'+
     'btn.disabled=true; btn.textContent="Firmando…";'+
     'google.script.run.withSuccessHandler(function(res){'+
@@ -5202,7 +5507,7 @@ function paginaAsistenciaQR_(idForo){
     'else if(res&&res.yaFirmoDispositivo){ marcarFirmadoLocal(res.textoFirma); mostrarYaFirmado(res.textoFirma); }'+
     'else{ btn.disabled=false; btn.textContent="Firmar asistencia"; estado.textContent=(res&&res.mensaje)||"No fue posible registrar la asistencia."; }'+
     '}).withFailureHandler(function(err){ btn.disabled=false; btn.textContent="Firmar asistencia"; estado.textContent="No fue posible registrar la asistencia: "+(err.message||err); })'+
-    '.registrarAsistenciaQR('+JSON.stringify(idForo)+',nombre,tipoAsistencia,cargo,rolForo,documento,correo,telefono,dispositivoIdAsistencia);'+
+    '.registrarAsistenciaQR('+JSON.stringify(idForo)+',nombre,sexo,edad,tipoAsistencia,cargo,rolForo,jornada,sede,fortalezas,fortalezaOtro,dificultades,dificultadOtro,documento,correo,telefono,acepto,dispositivoIdAsistencia);'+
     '});'+
     '</script>'+
     '</body></html>';
@@ -5506,7 +5811,7 @@ function totalParticipantesServer_(datos){const c=datos.campos||{};return ["Rect
 
 
 function enviarInformeFEM(idForo,datos,pdfId){
-  const acceso=obtenerAccesoPorIdForoRaw_(idForo); if(!acceso)throw new Error("ID_FORO no autorizado."); const c=datos.campos||{}; const ie=datos.institucion||acceso.ie; const ieSinPrefijo=nombreIESinPrefijoInstitucional_(ie); const logoIEUrlCorreo=urlPublicaLogoDrive_(obtenerLogoIdPorNombreIE_(ie)); const logoIEHtmlCorreo=logoIEUrlCorreo?("<div style=\"text-align:center;margin:0 0 18px;\"><img src=\""+logoIEUrlCorreo+"\" alt=\"Logo de la institución educativa\" style=\"max-width:56px;max-height:56px;border-radius:8px;\"></div>"):""; const destinatario=String(c.correoIE?.valor||acceso.email||"").trim(); const responsable=String(c.correo?.valor||"").trim(); if(!destinatario)throw new Error("La institución no tiene correo institucional registrado."); const aliases=GmailApp.getAliases().map(x=>x.toLowerCase()); const cuenta=Session.getEffectiveUser().getEmail().toLowerCase(); if(cuenta!==REMITENTE_FEM&&aliases.indexOf(REMITENTE_FEM)===-1)throw new Error("La cuenta de Apps Script no puede enviar como "+REMITENTE_FEM+". Configure esa cuenta o un alias."); const file=DriveApp.getFileById(pdfId); hacerPublicoSiEsPosible_(file); const linkDescarga=file.getUrl(); const subject="Reporte de Informe IE "+ie; const body="Apreciados(as) integrantes de la comunidad educativa de la Institución Educativa "+ieSinPrefijo+":\n\nReciban un cordial saludo de la Secretaría de Educación de Neiva.\n\nAgradecemos a la Institución Educativa por su participación y por el tiempo dedicado al desarrollo del Foro Educativo Institucional – Neiva 2026, así como por los aportes, reflexiones y propuestas construidas colectivamente durante la jornada.\n\nAdjuntamos el Informe Ejecutivo del Foro Educativo Institucional – Neiva 2026, que reúne la caracterización institucional, la participación registrada y las respuestas definitivas construidas durante las tres sesiones de trabajo.\n\nTambién puede descargarlo desde este enlace:\n"+linkDescarga+"\n\nAgradecemos especialmente la disposición de la comunidad educativa para participar en este ejercicio de diálogo, reflexión y construcción colectiva orientado al fortalecimiento de la educación en nuestro municipio.\n\nSecretaría de Educación de Neiva\nForo Educativo Institucional – Neiva 2026\n\“Escuela Viva: Voces que construyen territorio\”"; const to=destinatario; const cc=[responsable].concat(COPIAS_INFORME_FEM).filter(Boolean).join(","); GmailApp.sendEmail(to,subject,body,{htmlBody:logoIEHtmlCorreo+"<p>Apreciados(as) integrantes de la comunidad educativa de la Institución Educativa <strong>"+ieSinPrefijo+"</strong>:</p><p>Reciban un cordial saludo de la Secretaría de Educación de Neiva.</p><p>Agradecemos a la Institución Educativa por su participación y por el tiempo dedicado al desarrollo del <strong>Foro Educativo Institucional – Neiva 2026</strong>, así como por los aportes, reflexiones y propuestas construidas colectivamente durante la jornada.</p><p>Adjuntamos el <strong>Informe Ejecutivo del Foro Educativo Institucional – Neiva 2026</strong>, que reúne la caracterización institucional, la participación registrada y las respuestas definitivas construidas durante las tres sesiones de trabajo.</p><p>📄 <a href=\""+linkDescarga+"\">Descargar el informe aquí</a></p><p>Agradecemos especialmente la disposición de la comunidad educativa para participar en este ejercicio de diálogo, reflexión y construcción colectiva orientado al fortalecimiento de la educación en nuestro municipio.</p><p><strong>Secretaría de Educación de Neiva</strong><br>Foro Educativo Institucional – Neiva 2026<br>“Escuela Viva: Voces que construyen territorio”</p>",cc:cc,from:REMITENTE_FEM,name:"Secretaría de Educación de Neiva",attachments:[file.getBlob()]});
+  const acceso=obtenerAccesoPorIdForoRaw_(idForo); if(!acceso)throw new Error("ID_FORO no autorizado."); const c=datos.campos||{}; const ie=datos.institucion||acceso.ie; const ieSinPrefijo=nombreIESinPrefijoInstitucional_(ie); const logoIEUrlCorreo=urlPublicaLogoDrive_(obtenerLogoIdPorNombreIE_(ie)); const logoIEHtmlCorreo=logoIEUrlCorreo?("<div style=\"text-align:center;margin:0 0 18px;\"><img src=\""+logoIEUrlCorreo+"\" alt=\"Logo de la institución educativa\" style=\"max-width:56px;max-height:56px;border-radius:8px;\"></div>"):""; const destinatario=String(c.correoIE?.valor||acceso.email||"").trim(); const responsable=String(c.correo?.valor||"").trim(); if(!destinatario)throw new Error("La institución no tiene correo institucional registrado."); const aliases=GmailApp.getAliases().map(x=>x.toLowerCase()); const cuenta=Session.getEffectiveUser().getEmail().toLowerCase(); if(cuenta!==REMITENTE_FEM&&aliases.indexOf(REMITENTE_FEM)===-1)throw new Error("La cuenta de Apps Script no puede enviar como "+REMITENTE_FEM+". Configure esa cuenta o un alias."); const file=DriveApp.getFileById(pdfId); hacerPublicoSiEsPosible_(file); const linkDescarga=file.getUrl(); const subject="Reporte de Informe IE "+ie; const body="Apreciados(as) integrantes de la comunidad educativa de la Institución Educativa "+ieSinPrefijo+":\n\nReciban un cordial saludo de la Secretaría de Educación de Neiva.\n\nAgradecemos a la Institución Educativa por su participación y por el tiempo dedicado al desarrollo del Foro Educativo Institucional – Neiva 2026, así como por los aportes, reflexiones y propuestas construidas colectivamente durante la jornada.\n\nAdjuntamos el Informe Ejecutivo del Foro Educativo Institucional – Neiva 2026, que reúne la caracterización institucional, la participación registrada y las respuestas definitivas construidas durante las tres sesiones de trabajo.\n\nTambién puede descargarlo desde este enlace:\n"+linkDescarga+"\n\nAgradecemos especialmente la disposición de la comunidad educativa para participar en este ejercicio de diálogo, reflexión y construcción colectiva orientado al fortalecimiento de la educación en nuestro municipio.\n\nSecretaría de Educación de Neiva\nForo Educativo Institucional – Neiva 2026\n\“Escuela Viva: Voces que construyen territorio\”"; const to=destinatario; const cc=COPIAS_INFORME_FEM.filter(Boolean).join(","); GmailApp.sendEmail(to,subject,body,{htmlBody:logoIEHtmlCorreo+"<p>Apreciados(as) integrantes de la comunidad educativa de la Institución Educativa <strong>"+ieSinPrefijo+"</strong>:</p><p>Reciban un cordial saludo de la Secretaría de Educación de Neiva.</p><p>Agradecemos a la Institución Educativa por su participación y por el tiempo dedicado al desarrollo del <strong>Foro Educativo Institucional – Neiva 2026</strong>, así como por los aportes, reflexiones y propuestas construidas colectivamente durante la jornada.</p><p>Adjuntamos el <strong>Informe Ejecutivo del Foro Educativo Institucional – Neiva 2026</strong>, que reúne la caracterización institucional, la participación registrada y las respuestas definitivas construidas durante las tres sesiones de trabajo.</p><p><a href=\""+linkDescarga+"\">Descargar el informe aquí</a></p><p>Agradecemos especialmente la disposición de la comunidad educativa para participar en este ejercicio de diálogo, reflexión y construcción colectiva orientado al fortalecimiento de la educación en nuestro municipio.</p><p><strong>Secretaría de Educación de Neiva</strong><br>Foro Educativo Institucional – Neiva 2026<br>“Escuela Viva: Voces que construyen territorio”</p>",cc:cc,from:REMITENTE_FEM,name:"Secretaría de Educación de Neiva",attachments:[file.getBlob()]});
 
   /*
    * Correo personalizado y directo a quien diligenció el
@@ -5522,7 +5827,7 @@ function enviarInformeFEM(idForo,datos,pdfId){
     const cuerpoResponsable=saludoResponsable+"\n\nReciba un cordial saludo de la Secretaría de Educación de Neiva.\n\nLe agradecemos personalmente por haber diligenciado el Foro Educativo Institucional – Neiva 2026 en representación de la Institución Educativa "+ieSinPrefijo+".\n\nAdjuntamos el Informe Ejecutivo ya generado. También puede descargarlo desde este enlace:\n"+linkDescarga+"\n\nSecretaría de Educación de Neiva\nForo Educativo Institucional – Neiva 2026\n\“Escuela Viva: Voces que construyen territorio\”";
     try{
       GmailApp.sendEmail(responsable,asuntoResponsable,cuerpoResponsable,{
-        htmlBody:logoIEHtmlCorreo+"<p>"+saludoResponsable+"</p><p>Reciba un cordial saludo de la Secretaría de Educación de Neiva.</p><p>Le agradecemos personalmente por haber diligenciado el <strong>Foro Educativo Institucional – Neiva 2026</strong> en representación de la Institución Educativa <strong>"+ieSinPrefijo+"</strong>.</p><p>Adjuntamos el Informe Ejecutivo ya generado. También puede descargarlo desde aquí:</p><p>📄 <a href=\""+linkDescarga+"\">Descargar el informe</a></p><p><strong>Secretaría de Educación de Neiva</strong><br>Foro Educativo Institucional – Neiva 2026<br>“Escuela Viva: Voces que construyen territorio”</p>",
+        htmlBody:logoIEHtmlCorreo+"<p>"+saludoResponsable+"</p><p>Reciba un cordial saludo de la Secretaría de Educación de Neiva.</p><p>Le agradecemos personalmente por haber diligenciado el <strong>Foro Educativo Institucional – Neiva 2026</strong> en representación de la Institución Educativa <strong>"+ieSinPrefijo+"</strong>.</p><p>Adjuntamos el Informe Ejecutivo ya generado. También puede descargarlo desde aquí:</p><p><a href=\""+linkDescarga+"\">Descargar el informe</a></p><p><strong>Secretaría de Educación de Neiva</strong><br>Foro Educativo Institucional – Neiva 2026<br>“Escuela Viva: Voces que construyen territorio”</p>",
         from:REMITENTE_FEM,
         name:"Secretaría de Educación de Neiva",
         attachments:[file.getBlob()]
