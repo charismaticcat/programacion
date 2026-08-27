@@ -3222,3 +3222,72 @@ function bloquearPruebaAnaYNelsonHasta9am(){
   Logger.log([resultadoAna.mensaje, resultadoNelson.mensaje].join("\n"));
   return { ok:true, ana: resultadoAna, nelson: resultadoNelson };
 }
+
+
+/*****************************************************
+ * LINK DEL DOCUMENTO DE ANÁLISIS
+ *
+ * Devuelve (y deja en el log) la URL del documento de análisis
+ * separado (Análisis FEM 2026). Si todavía no existe (nadie lo ha
+ * necesitado antes), lo crea vacío en ese mismo momento — no hace
+ * falta esperar a una reconstrucción completa solo para obtener el
+ * link.
+ *
+ * Ejecutar manualmente:  obtenerLinkDocumentoAnalisisFEM()
+ *****************************************************/
+function obtenerLinkDocumentoAnalisisFEM(){
+  const ss = obtenerSpreadsheetAnalisisFEM_();
+  Logger.log(ss.getUrl());
+  return { ok:true, url: ss.getUrl() };
+}
+
+
+/*****************************************************
+ * DIAGNOSTICAR UN CÓDIGO/IE DE PRUEBA
+ *
+ * Muestra, tal como está HOY en AccesosIE, el estado completo de la
+ * fila de una IE (por defecto "IE PRUEBA 1234"): si existe o no, su
+ * CODIGO_ACCESO, TOKEN, URL_ACCESO, ESTADO, TIPO y HABILITAR_DESDE.
+ * Pensado para responder rápido a "no me sirve el código de prueba"
+ * sin adivinar — dice exactamente qué hay (o no hay) en la hoja.
+ *
+ * Ejecutar manualmente:  diagnosticarAccesoPruebaFEM("IE PRUEBA 1234")
+ *****************************************************/
+function diagnosticarAccesoPruebaFEM(nombreIE){
+  nombreIE = nombreIE || "IE PRUEBA 1234";
+  const hoja = abrirSpreadsheet_().getSheetByName(HOJA_ACCESOS);
+  if(!hoja) { Logger.log("No existe la hoja " + HOJA_ACCESOS + "."); return { ok:false, mensaje:"No existe " + HOJA_ACCESOS + "." }; }
+  const mapa = mapaHoja_(hoja);
+  if(hoja.getLastRow() < 2){
+    const mensaje = HOJA_ACCESOS + " no tiene filas — probablemente por un reset. Hay que volver a ejecutar crearAccesoPrueba1234() / crearIEsPruebaAdicionales() / generarAccesosIE().";
+    Logger.log(mensaje);
+    return { ok:false, existe:false, mensaje: mensaje };
+  }
+
+  const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues();
+  const indice = valores.findIndex(function(f){ return String(f[mapa.IE - 1] || "").trim() === nombreIE; });
+
+  if(indice === -1){
+    const mensaje = "No existe la fila \"" + nombreIE + "\" en " + HOJA_ACCESOS + " — probablemente por un reset. Hay que volver a crearla (crearAccesoPrueba1234() para IE PRUEBA 1234, o crearIEsPruebaAdicionales() para las otras 9).";
+    Logger.log(mensaje);
+    return { ok:false, existe:false, mensaje: mensaje };
+  }
+
+  const fila = valores[indice];
+  const val = function(col){ return mapa[col] ? String(fila[mapa[col]-1] || "") : "(sin columna)"; };
+  const habilitarDesdeCelda = mapa.HABILITAR_DESDE ? hoja.getRange(indice + 2, mapa.HABILITAR_DESDE).getValue() : "";
+  const bloqueadaPorHorario = habilitarDesdeCelda instanceof Date && !isNaN(habilitarDesdeCelda.getTime()) && new Date() < habilitarDesdeCelda;
+
+  const resumen = [
+    "IE: " + val("IE"),
+    "CODIGO_ACCESO: " + val("CODIGO_ACCESO"),
+    "TOKEN: " + val("TOKEN"),
+    "URL_ACCESO: " + val("URL_ACCESO"),
+    "ID_FORO: " + val("ID_FORO"),
+    "ESTADO: " + val("ESTADO"),
+    "TIPO: " + val("TIPO"),
+    "HABILITAR_DESDE: " + (habilitarDesdeCelda ? Utilities.formatDate(habilitarDesdeCelda, "America/Bogota", "dd/MM/yyyy HH:mm") : "(vacío)") + (bloqueadaPorHorario ? " — TODAVÍA BLOQUEADA por horario" : "")
+  ];
+  Logger.log(resumen.join("\n"));
+  return { ok:true, existe:true, resumen: resumen, bloqueadaPorHorario: bloqueadaPorHorario };
+}
