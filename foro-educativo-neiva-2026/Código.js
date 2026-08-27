@@ -1179,6 +1179,10 @@ function obtenerCabecerasAvancesForo() {
     "S3_P3",
     "S3_P4",
 
+    // Sesión 4: opcional, línea temática adicional propia de la IE.
+    "S4_P1",
+    "S4_P2",
+
     "S1_ENVIADA",
     "S2_ENVIADA",
     "S3_ENVIADA",
@@ -1549,7 +1553,13 @@ function extraerRespuestasSesiones_(datos) {
     S3_P3:
       obtenerCampoFormulario_(campos, "respuestaSesion3Pregunta3"),
     S3_P4:
-      obtenerCampoFormulario_(campos, "respuestaSesion3Pregunta4")
+      obtenerCampoFormulario_(campos, "respuestaSesion3Pregunta4"),
+
+    // Sesión 4: opcional, línea temática adicional propia de la IE.
+    S4_P1:
+      obtenerCampoFormulario_(campos, "respuestaSesion4Pregunta1"),
+    S4_P2:
+      obtenerCampoFormulario_(campos, "respuestaSesion4Pregunta2")
 
   };
 
@@ -6304,6 +6314,16 @@ function generarInformeFEM(idForo,datosCliente){
         ["Mecanismos de seguimiento (para todos): ¿Qué mecanismos de seguimiento se están implementando para garantizar las acciones encaminadas a promover gobiernos educativos democráticos?",c.respuestaSesion3Pregunta4?.valor||""]
       ]}
     ];
+
+    // Sesión 4 es opcional: solo se incluye en el informe si la
+    // institución eligió crear su propia línea temática adicional.
+    if(c.respuestaSesion4Pregunta1?.valor){
+      grupos.push({n:"Sesión 4 (línea temática adicional propia de la IE)",items:[
+        ["Descripción de la línea temática propuesta o ya desarrollada por la institución",c.respuestaSesion4Pregunta1?.valor||""],
+        ["Hallazgos, desarrollos o acciones ya adelantadas en esta línea (opcional)",c.respuestaSesion4Pregunta2?.valor||"—"]
+      ]});
+    }
+
     grupos.forEach((g,gi)=>{
       encabezadoSeccion_(g.n);
       tablaClaveValor_(g.items);

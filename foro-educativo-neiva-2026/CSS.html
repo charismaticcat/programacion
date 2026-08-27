@@ -2964,7 +2964,8 @@ Su ancho ya queda acotado por .cajaTexto > * (--reading-width).
  *****************************************************/
 
 #pantallaSesion2.modoLecturaSesion2,
-#pantallaSesion3.modoLecturaSesion3{
+#pantallaSesion3.modoLecturaSesion3,
+#pantallaSesion4.modoLecturaSesion3{
 
     position: fixed;
     inset: 0;
@@ -2984,29 +2985,38 @@ Su ancho ya queda acotado por .cajaTexto > * (--reading-width).
    pregunta o la acción todavía estaba bloqueada/colapsada. */
 #pantallaSesion2.modoLecturaSesion2 .bloquePreguntaBloqueada,
 #pantallaSesion3.modoLecturaSesion3 .bloquePreguntaBloqueada,
+#pantallaSesion4.modoLecturaSesion3 .bloquePreguntaBloqueada,
 #pantallaSesion2.modoLecturaSesion2 .accionColapsada,
-#pantallaSesion3.modoLecturaSesion3 .accionColapsada{
+#pantallaSesion3.modoLecturaSesion3 .accionColapsada,
+#pantallaSesion4.modoLecturaSesion3 .accionColapsada{
     display: block !important;
 }
 
 #pantallaSesion2.modoLecturaSesion2 [data-oculto-por-colapso],
 #pantallaSesion3.modoLecturaSesion3 [data-oculto-por-colapso],
+#pantallaSesion4.modoLecturaSesion3 [data-oculto-por-colapso],
 #pantallaSesion2.modoLecturaSesion2 [data-oculto-por-colapso-accion],
-#pantallaSesion3.modoLecturaSesion3 [data-oculto-por-colapso-accion]{
+#pantallaSesion3.modoLecturaSesion3 [data-oculto-por-colapso-accion],
+#pantallaSesion4.modoLecturaSesion3 [data-oculto-por-colapso-accion]{
     display: block !important;
 }
 
 /* Ocultar controles de edición/orientación: solo interesa el texto. */
 #pantallaSesion2.modoLecturaSesion2 .panelGuia,
 #pantallaSesion3.modoLecturaSesion3 .panelGuia,
+#pantallaSesion4.modoLecturaSesion3 .panelGuia,
 #pantallaSesion2.modoLecturaSesion2 .contadorPalabras,
 #pantallaSesion3.modoLecturaSesion3 .contadorPalabras,
+#pantallaSesion4.modoLecturaSesion3 .contadorPalabras,
 #pantallaSesion2.modoLecturaSesion2 .barraPalabras,
 #pantallaSesion3.modoLecturaSesion3 .barraPalabras,
+#pantallaSesion4.modoLecturaSesion3 .barraPalabras,
 #pantallaSesion2.modoLecturaSesion2 .mensajeContador,
 #pantallaSesion3.modoLecturaSesion3 .mensajeContador,
+#pantallaSesion4.modoLecturaSesion3 .mensajeContador,
 #pantallaSesion2.modoLecturaSesion2 .botones,
 #pantallaSesion3.modoLecturaSesion3 .botones,
+#pantallaSesion4.modoLecturaSesion3 .botones,
 #pantallaSesion2.modoLecturaSesion2 .encabezadoAccionSesion2,
 #pantallaSesion3.modoLecturaSesion3 .encabezadoAccionSesion3,
 #pantallaSesion2.modoLecturaSesion2 .botonAccionOpcional,
@@ -3015,7 +3025,8 @@ Su ancho ya queda acotado por .cajaTexto > * (--reading-width).
 }
 
 #pantallaSesion2.modoLecturaSesion2 .barraHerramientas,
-#pantallaSesion3.modoLecturaSesion3 .barraHerramientas{
+#pantallaSesion3.modoLecturaSesion3 .barraHerramientas,
+#pantallaSesion4.modoLecturaSesion3 .barraHerramientas{
     display: flex;
     justify-content: flex-end;
     background: transparent;
@@ -3026,17 +3037,21 @@ Su ancho ya queda acotado por .cajaTexto > * (--reading-width).
 #pantallaSesion2.modoLecturaSesion2 #btnGuardarSesion2,
 #pantallaSesion2.modoLecturaSesion2 #btnPantallaCompletaSesion2,
 #pantallaSesion3.modoLecturaSesion3 #btnGuardarSesion3,
-#pantallaSesion3.modoLecturaSesion3 #btnPantallaCompletaSesion3{
+#pantallaSesion3.modoLecturaSesion3 #btnPantallaCompletaSesion3,
+#pantallaSesion4.modoLecturaSesion3 #btnGuardarSesion4,
+#pantallaSesion4.modoLecturaSesion3 #btnPantallaCompletaSesion4{
     display: none;
 }
 
 #pantallaSesion2.modoLecturaSesion2 #btnModoLecturaSesion2,
-#pantallaSesion3.modoLecturaSesion3 #btnModoLecturaSesion3{
+#pantallaSesion3.modoLecturaSesion3 #btnModoLecturaSesion3,
+#pantallaSesion4.modoLecturaSesion3 #btnModoLecturaSesion4{
     display: inline-block;
 }
 
 #pantallaSesion2.modoLecturaSesion2 .contenedorTrabajoSesion,
-#pantallaSesion3.modoLecturaSesion3 .contenedorTrabajoSesion{
+#pantallaSesion3.modoLecturaSesion3 .contenedorTrabajoSesion,
+#pantallaSesion4.modoLecturaSesion3 .contenedorTrabajoSesion{
     display: block;
     width: 100%;
     max-width: 900px;
@@ -3044,7 +3059,8 @@ Su ancho ya queda acotado por .cajaTexto > * (--reading-width).
 }
 
 #pantallaSesion2.modoLecturaSesion2 .panelRespuesta,
-#pantallaSesion3.modoLecturaSesion3 .panelRespuesta{
+#pantallaSesion3.modoLecturaSesion3 .panelRespuesta,
+#pantallaSesion4.modoLecturaSesion3 .panelRespuesta{
     width: 100%;
     padding: 0;
     border: none;
@@ -3053,7 +3069,8 @@ Su ancho ya queda acotado por .cajaTexto > * (--reading-width).
 }
 
 #pantallaSesion2.modoLecturaSesion2 textarea,
-#pantallaSesion3.modoLecturaSesion3 textarea{
+#pantallaSesion3.modoLecturaSesion3 textarea,
+#pantallaSesion4.modoLecturaSesion3 textarea{
     width: 100%;
     box-sizing: border-box;
     padding: 16px 0;
@@ -3068,14 +3085,16 @@ Su ancho ya queda acotado por .cajaTexto > * (--reading-width).
 }
 
 #pantallaSesion2.modoLecturaSesion2 textarea:focus,
-#pantallaSesion3.modoLecturaSesion3 textarea:focus{
+#pantallaSesion3.modoLecturaSesion3 textarea:focus,
+#pantallaSesion4.modoLecturaSesion3 textarea:focus{
     border: none;
     outline: none;
     box-shadow: none;
 }
 
 #pantallaSesion2.modoLecturaSesion2:fullscreen,
-#pantallaSesion3.modoLecturaSesion3:fullscreen{
+#pantallaSesion3.modoLecturaSesion3:fullscreen,
+#pantallaSesion4.modoLecturaSesion3:fullscreen{
     overflow-y: auto !important;
     overflow-x: hidden !important;
     width: 100vw;
