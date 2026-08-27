@@ -1155,6 +1155,58 @@ pasar de la imagen al texto no mueva ni redimensione la tarjeta.
 SESIÓN 1
 ===================================================== */
 
+/*
+ * Apertura de Sesión 1: "Primera Sesión" y su subtítulo son EL MISMO
+ * título/subtítulo que luego queda en el flujo normal (nunca se
+ * duplican, ver sección 22 del encargo) — durante la apertura, JS
+ * les agrega clases en el propio #pantallaSesion1 que los saca en
+ * overlay a pantalla completa, centrados, uno a la vez; al terminar,
+ * esas clases se quitan y vuelven a su posición normal en el
+ * documento sin ningún cambio de contenido.
+ */
+.sesion1TituloBloque{
+    text-align:center;
+}
+
+#pantallaSesion1.sesion1EnApertura #sesion1Contenido{
+    display:none;
+}
+
+#pantallaSesion1.sesion1EnApertura #sesion1TituloBloque{
+    position:fixed;
+    inset:0;
+    z-index:80;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    background:var(--color-background);
+    padding:var(--space-6);
+}
+
+#pantallaSesion1.sesion1EnApertura #sesion1AperturaTitulo,
+#pantallaSesion1.sesion1EnApertura #sesion1AperturaSubtitulo{
+    opacity:0;
+    transition:opacity 450ms ease-out;
+    max-width:min(90vw, 640px);
+}
+
+#pantallaSesion1.sesion1EnApertura.sesion1FaseTitulo #sesion1AperturaTitulo{
+    opacity:1;
+}
+
+#pantallaSesion1.sesion1EnApertura.sesion1FaseSubtitulo #sesion1AperturaSubtitulo{
+    opacity:1;
+}
+
+@media (prefers-reduced-motion: reduce){
+    #pantallaSesion1.sesion1EnApertura #sesion1AperturaTitulo,
+    #pantallaSesion1.sesion1EnApertura #sesion1AperturaSubtitulo{
+        transition:none;
+    }
+}
+
 .panelSesion{
 
     display:grid;
@@ -1396,9 +1448,18 @@ SESIÓN 1
 
 .panelGuia{
 
-    background:#f7faf7;
+    /*
+     * De-saturado a propósito (antes tenía fondo/borde verdes que
+     * competían visualmente con las tarjetas de pregunta): ahora es
+     * un panel neutro con un acento amarillo a la izquierda, que lo
+     * identifica como "guía/orientación" sin sumar más verde a la
+     * pantalla.
+     */
+    background:var(--color-surface, #fff);
 
-    border:1px solid #dce7dd;
+    border:1px solid var(--color-border, #e2e2e2);
+
+    border-left:4px solid var(--amarillo-neiva);
 
     border-radius:var(--radius-md);
 
@@ -1420,7 +1481,7 @@ SESIÓN 1
 
 .panelGuia h3{
 
-    color:var(--verde);
+    color:var(--color-text, #222);
 
     margin-bottom:18px;
 
@@ -2676,12 +2737,75 @@ Su ancho ya queda acotado por .cajaTexto > * (--reading-width).
 .botonSecundarioFEM{background:#eef1ef;color:var(--gris-texto);}
 .modalCerrar{position:absolute;top:12px;right:12px;width:42px;height:42px;padding:0;border-radius:50%;font-size:28px;line-height:42px;}
 /* =====================================================
-   COLAPSADO — SESIÓN 2
+   PREGUNTAS BLOQUEADAS / HABILITADAS — SESIONES 1, 2 Y 3
+
+   Antes solo Sesión 2 tenía tratamiento visual (y era apenas una
+   opacidad reducida: la pregunta "bloqueada" seguía completamente
+   visible y ocupando su espacio). Ahora es una sola regla global:
+   bloqueada = oculta por completo, sin dejar espacio en blanco;
+   habilitada = aparece con una revelación breve.
    ===================================================== */
-#pantallaSesion2 .preguntaColapsadaSesion2{margin-bottom:14px;}
-#pantallaSesion2 .preguntaColapsadaSesion2 > .tarjetaPregunta{margin-bottom:0;cursor:pointer;}
-#pantallaSesion2 .preguntaCompletadaSesion2 > .tarjetaPregunta h3::after{content:"  ✓";color:var(--verde-neiva);}
-#pantallaSesion2 .bloquePreguntaBloqueada{opacity:.62;}
+.bloquePreguntaBloqueada{
+    display:none;
+}
+
+.bloquePreguntaHabilitada{
+    display:block;
+    animation:revelarPreguntaBloque 260ms ease-out;
+}
+
+@keyframes revelarPreguntaBloque{
+    from{ opacity:0; transform:translateY(8px); }
+    to{ opacity:1; transform:translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .bloquePreguntaHabilitada{ animation:none; }
+}
+
+/* =====================================================
+   COLAPSADO — PREGUNTAS DE SESIÓN 1, 2 Y 3
+
+   Mismo lenguaje visual para las tres sesiones: el encabezado de una
+   pregunta colapsada se ve clicable y compacto; una pregunta ya
+   completada muestra ✓ junto a su título. Colapsar es solo un
+   estado de presentación — nunca borra ni invalida respuestas.
+   ===================================================== */
+.preguntaColapsadaSesion1,
+.preguntaColapsadaSesion2,
+.preguntaColapsadaSesion3{
+    margin-bottom:14px;
+}
+
+.preguntaColapsadaSesion1 > .tarjetaPregunta,
+.preguntaColapsadaSesion2 > .tarjetaPregunta,
+.preguntaColapsadaSesion3 > .tarjetaPregunta{
+    margin-bottom:0;
+    cursor:pointer;
+}
+
+.preguntaColapsadaSesion1 > .tarjetaPregunta h3::before,
+.preguntaColapsadaSesion2 > .tarjetaPregunta h3::before,
+.preguntaColapsadaSesion3 > .tarjetaPregunta h3::before{
+    content:"+ ";
+    color:var(--color-primary);
+    font-weight:700;
+}
+
+.preguntaCompletadaSesion1 > .tarjetaPregunta h3::after,
+.preguntaCompletadaSesion2 > .tarjetaPregunta h3::after,
+.preguntaCompletadaSesion3 > .tarjetaPregunta h3::after{
+    content:"  ✓";
+    color:var(--verde-neiva);
+}
+
+#pantallaSesion1 .tarjetaPregunta:focus-visible,
+#pantallaSesion2 .tarjetaPregunta:focus-visible,
+#pantallaSesion3 .tarjetaPregunta:focus-visible{
+    outline:none;
+    box-shadow:0 0 0 3px rgba(11,106,68,.28);
+    border-radius:var(--radius-sm);
+}
 
 /* =====================================================
    PLENARIA — REVISIÓN Y ENVÍO DEFINITIVO

@@ -130,6 +130,80 @@ function initializeWelcomeIntro(){
     }
 
 }
+
+/*****************************************************
+ * APERTURA DE SESIÓN 1
+ *
+ * "Primera Sesión" y su subtítulo NO se duplican: son el mismo
+ * título/subtítulo que ya vive en el flujo normal de la pantalla.
+ * Durante la apertura se les agregan clases a #pantallaSesion1 que
+ * los sacan a un overlay centrado de pantalla completa, uno a la
+ * vez (CSS puro); al terminar, esas clases se quitan y vuelven
+ * exactamente a su posición normal, sin duplicar contenido.
+ *
+ * Se protege contra ejecutarse más de una vez por carga de página
+ * (puede dispararse tanto al navegar normalmente a Sesión 1 como al
+ * restaurar una sesión guardada que ya estaba ahí).
+ *****************************************************/
+
+let sesion1AperturaInicializada = false;
+
+function iniciarAperturaSesion1(){
+
+    if(sesion1AperturaInicializada) return;
+    sesion1AperturaInicializada = true;
+
+    try{
+
+        const pantalla = document.getElementById("pantallaSesion1");
+        const tituloApertura = document.getElementById("sesion1AperturaTitulo");
+        const subtituloApertura = document.getElementById("sesion1AperturaSubtitulo");
+        const contenido = document.getElementById("sesion1Contenido");
+
+        if(!pantalla || !tituloApertura || !subtituloApertura || !contenido) return;
+
+        function terminarAperturaSesion1(){
+            pantalla.classList.remove("sesion1EnApertura", "sesion1FaseTitulo", "sesion1FaseSubtitulo");
+        }
+
+        const prefiereMenosMovimiento =
+            window.matchMedia &&
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        if(prefiereMenosMovimiento){
+            // El contenido ya está visible por defecto (solo se oculta
+            // cuando se agrega sesion1EnApertura): no hace falta nada.
+            return;
+        }
+
+        pantalla.classList.add("sesion1EnApertura", "sesion1FaseTitulo");
+
+        setTimeout(function(){
+            try{
+                pantalla.classList.remove("sesion1FaseTitulo");
+                pantalla.classList.add("sesion1FaseSubtitulo");
+
+                setTimeout(function(){
+                    try{ terminarAperturaSesion1(); }
+                    catch(error){ terminarAperturaSesion1(); }
+                }, 3000);
+
+            }catch(error){ terminarAperturaSesion1(); }
+        }, 1900);
+
+    }catch(error){
+
+        console.error("No fue posible iniciar la apertura de Sesión 1:", error);
+
+        const pantallaEmergencia = document.getElementById("pantallaSesion1");
+        if(pantallaEmergencia){
+            pantallaEmergencia.classList.remove("sesion1EnApertura", "sesion1FaseTitulo", "sesion1FaseSubtitulo");
+        }
+
+    }
+
+}
+
 /*****************************************************
  * GRUPOS DE TRABAJO — CARACTERIZACIÓN
  *****************************************************/
@@ -1107,6 +1181,10 @@ function cambiarPantalla(actual,nueva,paso){
     actualizarBarra();
 
     guardarBorradorLocal({silencioso:true});
+
+    if(nueva === "pantallaSesion1" && typeof iniciarAperturaSesion1 === "function") {
+        iniciarAperturaSesion1();
+    }
 
     if(nueva === "pantallaSesion3") {
         setTimeout(mostrarRecordatorioSesion3, 120);
@@ -2179,14 +2257,16 @@ function actualizarEstadoPregunta2(){
 
 
     /*
-     * Pregunta 2 solamente aparece
-     * cuando la Pregunta 1 alcanza
-     * el mínimo requerido.
+     * Pregunta 2 aparece en cuanto la Pregunta 1 alcanza el mínimo
+     * requerido — la VISIBILIDAD no depende del máximo. Si luego se
+     * supera el máximo, la Pregunta 2 sigue visible: lo único que
+     * pasa es que la Pregunta 1 deja de ser válida (eso lo controla
+     * aparte actualizarEstadoContinuar, que sí exige min Y max). No
+     * confundir "se puede ver" con "es válida".
      */
 
     if(
-        palabras >= MINIMO_PALABRAS_SESION &&
-        palabras <= MAXIMO_PALABRAS_SESION
+        palabras >= MINIMO_PALABRAS_SESION
     ){
 
         bloque.classList.remove(
@@ -2299,6 +2379,115 @@ function inicializarContadoresSesion1(){
     actualizarContadorPregunta1();
     actualizarContadorPregunta2();
     actualizarEstadoContinuar();
+    inicializarColapsoSesion1();
+}
+
+/*****************************************************
+ * COLAPSADO — SESIÓN 1
+ *
+ * Mismo patrón que el ya existente para Sesión 2/3
+ * (cerrarPreguntaSesion2/abrirPreguntaSesion2): al hacer clic en el
+ * encabezado de una pregunta, o al enfocar el área de respuesta de
+ * la Pregunta 2, la otra pregunta se colapsa (solo se ve su
+ * encabezado) sin perder ningún dato — es un estado de presentación,
+ * nunca borra ni invalida nada.
+ *****************************************************/
+
+const IDS_PREGUNTAS_S1 = ["bloquePregunta1", "bloquePregunta2"];
+
+function cerrarPreguntaSesion1(idBloque){
+
+    const bloque = document.getElementById(idBloque);
+    if(!bloque) return;
+
+    const encabezado = bloque.querySelector(":scope > .tarjetaPregunta");
+    if(!encabezado) return;
+
+    Array.from(bloque.children).forEach(function(hijo){
+        if(hijo !== encabezado){
+            hijo.dataset.ocultoPorColapso = "1";
+            hijo.style.display = "none";
+        }
+    });
+
+    bloque.classList.add("preguntaColapsadaSesion1");
+    encabezado.setAttribute("aria-expanded", "false");
+
+}
+
+function abrirPreguntaSesion1(idBloque){
+
+    const bloqueObjetivo = document.getElementById(idBloque);
+    if(!bloqueObjetivo) return;
+
+    // No se puede abrir una pregunta todavía bloqueada (Pregunta 2
+    // antes de que la 1 llegue al mínimo de palabras).
+    if(bloqueObjetivo.classList.contains("bloquePreguntaBloqueada")) return;
+
+    IDS_PREGUNTAS_S1.forEach(function(id){
+        if(id !== idBloque) cerrarPreguntaSesion1(id);
+    });
+
+    Array.from(bloqueObjetivo.children).forEach(function(hijo){
+        if(hijo.dataset.ocultoPorColapso === "1"){
+            hijo.style.display = "";
+            delete hijo.dataset.ocultoPorColapso;
+        }
+    });
+
+    bloqueObjetivo.classList.remove("preguntaColapsadaSesion1");
+
+    const encabezadoObjetivo = bloqueObjetivo.querySelector(":scope > .tarjetaPregunta");
+    if(encabezadoObjetivo) encabezadoObjetivo.setAttribute("aria-expanded", "true");
+
+    bloqueObjetivo.scrollIntoView({ behavior:"smooth", block:"start" });
+
+}
+
+function inicializarColapsoSesion1(){
+
+    IDS_PREGUNTAS_S1.forEach(function(idBloque){
+
+        const bloque = document.getElementById(idBloque);
+        if(!bloque) return;
+
+        const encabezado = bloque.querySelector(":scope > .tarjetaPregunta");
+        if(!encabezado || encabezado.dataset.colapsoInicializado) return;
+
+        encabezado.setAttribute("role", "button");
+        encabezado.setAttribute("tabindex", "0");
+        encabezado.setAttribute("aria-expanded", "true");
+        encabezado.setAttribute("aria-controls", idBloque);
+
+        encabezado.addEventListener("click", function(){
+            if(bloque.classList.contains("preguntaColapsadaSesion1")){
+                abrirPreguntaSesion1(idBloque);
+            }
+        });
+
+        encabezado.addEventListener("keydown", function(evento){
+            if(evento.key === "Enter" || evento.key === " "){
+                evento.preventDefault();
+                if(bloque.classList.contains("preguntaColapsadaSesion1")){
+                    abrirPreguntaSesion1(idBloque);
+                }
+            }
+        });
+
+        encabezado.dataset.colapsoInicializado = "1";
+
+    });
+
+    // Enfocar el área de respuesta de la Pregunta 2 colapsa la
+    // Pregunta 1 — no hace falta hacer clic primero en su encabezado.
+    const pregunta2 = document.getElementById("respuestaSesion1Pregunta2");
+    if(pregunta2 && !pregunta2.dataset.colapsoFocoInicializado){
+        pregunta2.addEventListener("focus", function(){
+            abrirPreguntaSesion1("bloquePregunta2");
+        });
+        pregunta2.dataset.colapsoFocoInicializado = "1";
+    }
+
 }
 
 /*****************************************************
@@ -4789,6 +4978,10 @@ function mostrarPantallaGuardada(paso){
 
     if(id === "pantallaBienvenida" && typeof initializeWelcomeIntro === "function"){
         initializeWelcomeIntro();
+    }
+
+    if(id === "pantallaSesion1" && typeof iniciarAperturaSesion1 === "function"){
+        iniciarAperturaSesion1();
     }
 
     if(id === "pantallaResumen"){
