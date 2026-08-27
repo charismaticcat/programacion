@@ -360,6 +360,51 @@ check.addEventListener("change",function(){
 
 });
 
+/*
+ * Ícono del ojo: amplía el DOCUMENTO de consentimiento a pantalla
+ * completa para leerlo más cómodo — igual concepto que en la
+ * plenaria, pero de solo lectura (el consentimiento nunca fue
+ * editable). Se pone en pantalla completa el mismo contenedor que ya
+ * incluye #textoConsentimiento, #acepto y #btnContinuar (no un
+ * clon): así no hay un segundo estado de consentimiento que
+ * sincronizar, el scroll y el "check"/"continuar" son exactamente
+ * los mismos elementos y listeners de siempre, en pantalla completa
+ * o no.
+ */
+const wrapConsentimiento =
+    document.getElementById("consentimientoDocumentoWrap");
+
+const btnAmpliarConsentimiento =
+    document.getElementById("btnAmpliarConsentimiento");
+
+const btnCerrarConsentimientoCompleto =
+    document.getElementById("btnCerrarConsentimientoCompleto");
+
+if(wrapConsentimiento && btnAmpliarConsentimiento){
+
+    btnAmpliarConsentimiento.addEventListener("click", async function(){
+        try{
+            if(!document.fullscreenElement){
+                await wrapConsentimiento.requestFullscreen();
+            }else{
+                await document.exitFullscreen();
+            }
+        }catch(error){
+            console.error("No fue posible mostrar el consentimiento en pantalla completa:", error);
+        }
+    });
+
+}
+
+if(btnCerrarConsentimientoCompleto){
+
+    btnCerrarConsentimientoCompleto.addEventListener("click", async function(){
+        try{ if(document.fullscreenElement) await document.exitFullscreen(); }
+        catch(error){ console.error(error); }
+    });
+
+}
+
 
     document.getElementById("btnContinuar")
         .addEventListener("click",function(){

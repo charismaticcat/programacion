@@ -313,15 +313,35 @@ CONTENEDOR PRINCIPAL
 
 <!-- =================== CONSENTIMIENTO =================== -->
 
-<section id="pantallaConsentimiento" class="pantalla">
+<section id="pantallaConsentimiento" class="pantalla pantallaConsentimiento">
 
     <h2 class="tituloPrincipal">
         Consentimiento informado
     </h2>
 
+    <div id="consentimientoDocumentoWrap" class="consentimientoDocumentoWrap">
+
+    <button
+        type="button"
+        id="btnAmpliarConsentimiento"
+        class="btnAmpliarConsentimiento"
+        title="Ver el consentimiento en pantalla completa"
+        aria-label="Ver el consentimiento en pantalla completa">
+        👁️
+    </button>
+
+    <button
+        type="button"
+        id="btnCerrarConsentimientoCompleto"
+        class="btnCerrarConsentimientoCompleto"
+        title="Cerrar pantalla completa"
+        aria-label="Cerrar pantalla completa">
+        ✕ Cerrar
+    </button>
+
     <div class="cajaTexto" id="textoConsentimiento">
 
-        <h2 style="color:#0b6a44;text-align:center;margin-bottom:25px;">
+        <h2>
             CONSENTIMIENTO INFORMADO PARA LA PARTICIPACIÓN Y EL TRATAMIENTO DE LA INFORMACIÓN
         </h2>
 
@@ -379,9 +399,9 @@ CONTENEDOR PRINCIPAL
 
         </div>
 
-        <hr style="margin:35px 0;">
+        <hr>
 
-        <h2 style="color:#0b6a44;">
+        <h2>
             Información complementaria
         </h2>
 
@@ -389,7 +409,7 @@ CONTENEDOR PRINCIPAL
             Al finalizar el diligenciamiento de este instrumento, agradecemos su valiosa colaboración cargando los siguientes archivos. Estos aportes contribuirán a fortalecer la sistematización, la memoria institucional y la consolidación de los resultados del <b>Foro Educativo Institucional – Neiva 2026</b>.
         </p>
 
-        <h3 style="color:#0b6a44;">📱 Asistencia por código QR</h3>
+        <h3>📱 Asistencia por código QR</h3>
 
         <p>
             Con el propósito de consolidar las <b>estadísticas de participación</b> y apoyar los procesos de análisis, sistematización y elaboración de los informes generales del Foro Educativo, la asistencia de la jornada <b>ya no se carga en PDF</b>: cada asistente la firma escaneando con su celular un código QR, completando institución, nombre completo, cargo, número de documento, correo y teléfono.
@@ -399,7 +419,7 @@ CONTENEDOR PRINCIPAL
             La información será utilizada exclusivamente con fines estadísticos e institucionales para la consolidación de los resultados del Foro Educativo.
         </p>
 
-        <h3 style="color:#0b6a44;">📷 Fotografía de la plenaria final</h3>
+        <h3>📷 Fotografía de la plenaria final</h3>
 
         <p>
             Con el fin de construir la memoria visual del <b>Foro Educativo Institucional – Neiva 2026</b>, agradecemos cargar <b>una fotografía correspondiente a la sesión de plenaria final</b>, en <b>formato horizontal</b> y en <b>calidad HD (alta resolución)</b>.
@@ -469,6 +489,9 @@ CONTENEDOR PRINCIPAL
         </button>
 
     </div>
+
+    </div>
+    <!-- fin #consentimientoDocumentoWrap -->
 
 </section>
 
