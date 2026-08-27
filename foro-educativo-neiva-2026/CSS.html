@@ -2769,6 +2769,138 @@ Su ancho ya queda acotado por .cajaTexto > * (--reading-width).
     box-sizing: border-box;
 
 }
+
+/*****************************************************
+ * MODO LECTURA — SESIÓN 2 Y 3
+ * El botón ya existía y cambiaba de texto, pero no tenía ningún
+ * estilo detrás: no pasaba nada visualmente al hacer clic. Mismo
+ * tratamiento que en Sesión 1 (pantalla completa de lectura, texto
+ * grande, sin controles de edición) pero con selectores genéricos
+ * por clase/tipo — Sesión 2 y 3 tienen muchas más preguntas y
+ * campos que Sesión 1, así que no tiene sentido listarlos uno por
+ * uno.
+ *****************************************************/
+
+#pantallaSesion2.modoLecturaSesion2,
+#pantallaSesion3.modoLecturaSesion3{
+
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: #ffffff;
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
+    margin: 0;
+    padding: 40px 7vw;
+    overflow-y: auto;
+    box-sizing: border-box;
+
+}
+
+/* Mostrar todo el contenido para revisión, sin importar si la
+   pregunta o la acción todavía estaba bloqueada/colapsada. */
+#pantallaSesion2.modoLecturaSesion2 .bloquePreguntaBloqueada,
+#pantallaSesion3.modoLecturaSesion3 .bloquePreguntaBloqueada,
+#pantallaSesion2.modoLecturaSesion2 .accionColapsada,
+#pantallaSesion3.modoLecturaSesion3 .accionColapsada{
+    display: block !important;
+}
+
+#pantallaSesion2.modoLecturaSesion2 [data-oculto-por-colapso],
+#pantallaSesion3.modoLecturaSesion3 [data-oculto-por-colapso],
+#pantallaSesion2.modoLecturaSesion2 [data-oculto-por-colapso-accion],
+#pantallaSesion3.modoLecturaSesion3 [data-oculto-por-colapso-accion]{
+    display: block !important;
+}
+
+/* Ocultar controles de edición/orientación: solo interesa el texto. */
+#pantallaSesion2.modoLecturaSesion2 .panelGuia,
+#pantallaSesion3.modoLecturaSesion3 .panelGuia,
+#pantallaSesion2.modoLecturaSesion2 .contadorPalabras,
+#pantallaSesion3.modoLecturaSesion3 .contadorPalabras,
+#pantallaSesion2.modoLecturaSesion2 .barraPalabras,
+#pantallaSesion3.modoLecturaSesion3 .barraPalabras,
+#pantallaSesion2.modoLecturaSesion2 .mensajeContador,
+#pantallaSesion3.modoLecturaSesion3 .mensajeContador,
+#pantallaSesion2.modoLecturaSesion2 .botones,
+#pantallaSesion3.modoLecturaSesion3 .botones,
+#pantallaSesion2.modoLecturaSesion2 .encabezadoAccionSesion2,
+#pantallaSesion3.modoLecturaSesion3 .encabezadoAccionSesion3,
+#pantallaSesion2.modoLecturaSesion2 .botonAccionOpcional,
+#pantallaSesion3.modoLecturaSesion3 .botonAccionOpcional{
+    display: none;
+}
+
+#pantallaSesion2.modoLecturaSesion2 .barraHerramientas,
+#pantallaSesion3.modoLecturaSesion3 .barraHerramientas{
+    display: flex;
+    justify-content: flex-end;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+#pantallaSesion2.modoLecturaSesion2 #btnGuardarSesion2,
+#pantallaSesion2.modoLecturaSesion2 #btnPantallaCompletaSesion2,
+#pantallaSesion3.modoLecturaSesion3 #btnGuardarSesion3,
+#pantallaSesion3.modoLecturaSesion3 #btnPantallaCompletaSesion3{
+    display: none;
+}
+
+#pantallaSesion2.modoLecturaSesion2 #btnModoLecturaSesion2,
+#pantallaSesion3.modoLecturaSesion3 #btnModoLecturaSesion3{
+    display: inline-block;
+}
+
+#pantallaSesion2.modoLecturaSesion2 .contenedorTrabajoSesion,
+#pantallaSesion3.modoLecturaSesion3 .contenedorTrabajoSesion{
+    display: block;
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto 40px;
+}
+
+#pantallaSesion2.modoLecturaSesion2 .panelRespuesta,
+#pantallaSesion3.modoLecturaSesion3 .panelRespuesta{
+    width: 100%;
+    padding: 0;
+    border: none;
+    box-shadow: none;
+    background: transparent;
+}
+
+#pantallaSesion2.modoLecturaSesion2 textarea,
+#pantallaSesion3.modoLecturaSesion3 textarea{
+    width: 100%;
+    box-sizing: border-box;
+    padding: 16px 0;
+    border: none;
+    outline: none;
+    resize: none;
+    background: transparent;
+    color: #222;
+    font-size: 20px;
+    line-height: 1.8;
+    box-shadow: none;
+}
+
+#pantallaSesion2.modoLecturaSesion2 textarea:focus,
+#pantallaSesion3.modoLecturaSesion3 textarea:focus{
+    border: none;
+    outline: none;
+    box-shadow: none;
+}
+
+#pantallaSesion2.modoLecturaSesion2:fullscreen,
+#pantallaSesion3.modoLecturaSesion3:fullscreen{
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    width: 100vw;
+    height: 100vh;
+    box-sizing: border-box;
+}
+
 /*****************************************************
  * TRANSICIONES DE LAS MICRO PANTALLAS DEL RECORRIDO
  *****************************************************/
