@@ -2901,26 +2901,20 @@ function validarAccesoIE(token, codigo, dispositivoId, forzar) {
     } else {
 
       /*
-       * La prueba debe conservar
-       * explícitamente su identidad.
+       * TIPO = PRUEBA: fila de prueba controlada a mano en
+       * AccesosIE (no está en Oficiales). Antes esto solo aceptaba
+       * una única IE de prueba hardcodeada ("IE PRUEBA 1234", DANE
+       * "111", código "1234", ID_FORO "PRUEBA-1234"), así que
+       * cualquier otra fila marcada TIPO = PRUEBA quedaba rechazada
+       * con "El registro de prueba no tiene la configuración
+       * esperada." — impedía tener más de una IE de prueba a la
+       * vez. Ya no hace falta esa restricción: el TOKEN y el
+       * CODIGO_ACCESO/CODIGO_CONTINGENCIA_x ya se validaron arriba
+       * contra esta misma fila, así que cualquier fila marcada
+       * TIPO = PRUEBA es igual de confiable que una IE encontrada en
+       * Oficiales — es el mismo control (solo alguien con acceso a
+       * la hoja puede crearla), solo que en otra hoja.
        */
-
-      if (
-  ie !== "IE PRUEBA 1234" ||
-  dane !== "111" ||
-  codigo !== "1234" ||
-  idForo !== "PRUEBA-1234"
-) {
-
-        return {
-          ok: false,
-          codigo: "PRUEBA_INVALIDA",
-          mensaje:
-            "El registro de prueba no tiene la configuración esperada."
-        };
-
-      }
-
       datosIE = {
         dane: dane,
         rector: "",
