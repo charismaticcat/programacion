@@ -6653,6 +6653,11 @@ function inicializarPlenaria(){
          * porque exige ese ESTADO.
          */
         sig.disabled=true; sig.textContent="Preparando informe…";
+        mostrarOverlayProgreso_(
+            "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3dHo3dDl6OW5vbHR0djAweGcxMjg1NGV3YWx5Z3MzcnU3b2JqNnplMCZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/iqHiDg6dymfsQnaIng/giphy.gif",
+            "Preparando informe…",
+            {duracionMs:6000}
+        );
         try{
             const datos=obtenerDatosFormularioActual_();
             const r=await new Promise((resolve,reject)=>{
@@ -6660,13 +6665,31 @@ function inicializarPlenaria(){
                     .enviarForoDefinitivo(datos.idForo, window.DATOS_ACCESO_FEM?.tokenSesion||"", window.DATOS_ACCESO_FEM?.dispositivoId||obtenerDispositivoIdFEM(), datos);
             });
             if(!r || !r.ok) throw new Error(r?.mensaje||"No fue posible finalizar el envío.");
-            cambiarPantalla("pantallaPlenaria","pantallaFinalFEM",11);
+            ocultarOverlayProgreso_();
+            mostrarModalContinuarInforme_();
         }catch(error){
+            ocultarOverlayProgreso_(true);
             alert(error.message||error);
         }finally{
             sig.disabled=false; sig.textContent="Continuar →";
         }
     });
+
+    /*
+     * Modal intermedio tras enviar TODAS las respuestas
+     * definitivamente: confirma que se puede seguir a la pantalla
+     * final (descarga del informe, envío por correo, valoración) y
+     * su botón "Continuar" hace exactamente lo mismo que el botón
+     * "Continuar" que ya llevaba directo a esa pantalla.
+     */
+    const btnContinuarModalInforme=document.getElementById("btnContinuarDesdeModalInforme");
+    if(btnContinuarModalInforme && !btnContinuarModalInforme.dataset.inicializado){
+        btnContinuarModalInforme.addEventListener("click",function(){
+            document.getElementById("modalContinuarInformeFEM")?.classList.remove("visible");
+            cambiarPantalla("pantallaPlenaria","pantallaFinalFEM",11);
+        });
+        btnContinuarModalInforme.dataset.inicializado="1";
+    }
 
     const gen=document.getElementById("btnGenerarInformeFinal");
     if(gen) gen.addEventListener("click",generarInformeFinalUI);
@@ -6894,11 +6917,77 @@ function leerArchivoDataURL(file){
 }
 function esperar_(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
+/*****************************************************
+ * INDICADOR DE PROGRESO CON GIF
+ * Usado en: subir evidencias (flotante, no bloquea — no debe tapar
+ * el QR de asistencia), enviar respuestas de una sesión en la
+ * plenaria, "Preparando informe" (enviarForoDefinitivo) y
+ * "Generando informe" (generarInformeFEM). google.script.run no
+ * entrega progreso real de la operación, así que la barra avanza de
+ * forma simulada (roja → amarilla → verde, reutilizando
+ * calcularColorBarraProgreso_) hasta el 90% mientras se espera la
+ * respuesta del servidor, y salta a 100% verde al terminar.
+ *****************************************************/
+
+let overlayProgresoActivo_ = null;
+
+function mostrarOverlayProgreso_(gifUrl, texto, opciones){
+    ocultarOverlayProgreso_(true);
+
+    opciones = opciones || {};
+
+    const overlay = document.createElement("div");
+    overlay.className = "overlayProgresoFEM" + (opciones.flotante ? " overlayProgresoFlotante" : "");
+    overlay.innerHTML =
+        '<div class="overlayProgresoTarjeta">' +
+            (gifUrl ? '<img src="' + gifUrl + '" alt="" class="overlayProgresoGif">' : '') +
+            (texto ? '<p class="overlayProgresoTexto">' + texto + '</p>' : '') +
+            '<div class="overlayProgresoBarraFondo"><div class="overlayProgresoBarraRelleno"></div></div>' +
+        '</div>';
+    document.body.appendChild(overlay);
+
+    const relleno = overlay.querySelector(".overlayProgresoBarraRelleno");
+    const inicio = Date.now();
+    const duracion = opciones.duracionMs || 6000;
+
+    const intervalo = setInterval(function(){
+        const transcurrido = Date.now() - inicio;
+        const pct = Math.min(90, (transcurrido / duracion) * 90);
+        relleno.style.width = pct + "%";
+        relleno.style.backgroundColor = calcularColorBarraProgreso_(pct, 45, 90);
+    }, 150);
+
+    overlayProgresoActivo_ = { overlay: overlay, intervalo: intervalo, relleno: relleno };
+}
+
+function mostrarModalContinuarInforme_(){
+    document.getElementById("modalContinuarInformeFEM")?.classList.add("visible");
+}
+
+function ocultarOverlayProgreso_(sinCompletar){
+    if(!overlayProgresoActivo_) return;
+    clearInterval(overlayProgresoActivo_.intervalo);
+    const overlay = overlayProgresoActivo_.overlay;
+    if(!sinCompletar){
+        overlayProgresoActivo_.relleno.style.width = "100%";
+        overlayProgresoActivo_.relleno.style.backgroundColor = "rgb(0,200,83)";
+        setTimeout(function(){ overlay.remove(); }, 350);
+    }else{
+        overlay.remove();
+    }
+    overlayProgresoActivo_ = null;
+}
+
 async function subirEvidenciasFEM(){
     const foto=document.getElementById("archivoFoto")?.files?.[0];
     const btn=document.getElementById("btnSubirEvidencias");
     if(!foto){actualizarEstadoEvidencias();return;}
     btn.disabled=true; btn.textContent="Registrando…";
+    mostrarOverlayProgreso_(
+        "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3Z200YzZoNnpwajM5b3N5dWlob3IwZHdkeDc3bnlwMnlkbWl5OGRqciZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/cV4LUYbSFpDrIdOmIh/giphy.gif",
+        "Subiendo fotografía…",
+        {flotante:true, duracionMs:5000}
+    );
     try{
         const datos=obtenerDatosFormularioActual_();
         if(!datos || !String(datos.idForo||"").trim()){
@@ -6963,8 +7052,10 @@ async function subirEvidenciasFEM(){
         mostrarMensajeEvidencias("✓ Fotografía registrada. La asistencia se sigue firmando por QR — puede continuar a la plenaria mientras tanto.");
         document.getElementById("btnContinuarDesdeEvidencias").disabled=false;
         btn.textContent="✓ Evidencias registradas";
+        ocultarOverlayProgreso_();
     }catch(e){
         console.error(e); mostrarMensajeEvidencias("⚠ "+(e.message||e)); btn.disabled=false; btn.textContent="⬆️ Registrar evidencias";
+        ocultarOverlayProgreso_(true);
     }
 }
 
@@ -7212,7 +7303,21 @@ function insertarBotonesEnvioSesion(){
             );
             if(!confirmado) return;
             b.disabled=true; b.textContent="Enviando…";
-            try{ const r=await enviarSesionPlenaria(ses); if(!r?.ok) throw new Error(r?.mensaje||"No fue posible enviar la sesión."); window._FEM_SESIONES_ENVIADAS=window._FEM_SESIONES_ENVIADAS||{}; window._FEM_SESIONES_ENVIADAS[ses]=true; renderizarPlenaria({irASesion:ses+1}); mostrarEstadoGuardado(`✅ Respuestas de Sesión ${ses} enviadas definitivamente.`); }catch(e){ b.disabled=false; b.textContent=`📤 Enviar respuestas de Sesión ${ses}`; alert(e.message||e); }
+            mostrarOverlayProgreso_(
+                "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3azZjM2xiazltNWVhNmcwMXVtaDF2eGZoMG1vZ2g1cTV4bTJsYTE5dyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/UX0cPFtehDrVtvuwit/giphy.gif",
+                `Enviando respuestas de Sesión ${ses}…`,
+                {duracionMs:4000}
+            );
+            try{
+                const r=await enviarSesionPlenaria(ses); if(!r?.ok) throw new Error(r?.mensaje||"No fue posible enviar la sesión.");
+                window._FEM_SESIONES_ENVIADAS=window._FEM_SESIONES_ENVIADAS||{}; window._FEM_SESIONES_ENVIADAS[ses]=true;
+                ocultarOverlayProgreso_();
+                renderizarPlenaria({irASesion:ses+1});
+                mostrarEstadoGuardado(`✅ Respuestas de Sesión ${ses} enviadas definitivamente.`);
+            }catch(e){
+                ocultarOverlayProgreso_(true);
+                b.disabled=false; b.textContent=`📤 Enviar respuestas de Sesión ${ses}`; alert(e.message||e);
+            }
         });
     });
 }
@@ -7223,6 +7328,15 @@ renderizarPlenaria = function(opciones){ _renderizarPlenariaOriginal(opciones); 
 
 async function generarInformeFinalUI(){
     const btn=document.getElementById("btnGenerarInformeFinal"); if(btn) {btn.disabled=true;btn.textContent="Generando…";}
+    // Bloqueante (no "flotante"): deshabilita el resto de la pantalla
+    // hasta que el informe termine de generarse, ya que esta llamada
+    // crea el documento completo (caracterización, sesiones,
+    // gráficos) y puede tardar varios segundos.
+    mostrarOverlayProgreso_(
+        "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExdmZiMnlxYWQxbDMxMjZzOXl1cTY3bnJzbXgzM3ZkdmpydHlzODlrbiZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/BWJd36DXWBwJW5odCx/giphy.gif",
+        "Generando informe…",
+        {duracionMs:10000}
+    );
     try{
         const datos=obtenerDatosFormularioActual_();
         const r=await new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).generarInformeFEM(datos.idForo,datos));
@@ -7233,7 +7347,11 @@ async function generarInformeFinalUI(){
         const f=document.getElementById("tituloInformeFinal"); if(f) f.textContent=getCampoNombreIE();
         mostrarEstadoInformeFinal("✓ Informe generado y guardado en Drive.");
         if(btn) btn.textContent="✓ Informe generado";
-    }catch(err){if(btn){btn.disabled=false;btn.textContent="📄 Generar informe";}mostrarEstadoInformeFinal("⚠ "+(err.message||err));}
+        ocultarOverlayProgreso_();
+    }catch(err){
+        if(btn){btn.disabled=false;btn.textContent="📄 Generar informe";}mostrarEstadoInformeFinal("⚠ "+(err.message||err));
+        ocultarOverlayProgreso_(true);
+    }
 }
 function mostrarEstadoInformeFinal(msg){const e=document.getElementById("estadoInformeFinal");if(e)e.textContent=msg;}
 function descargarInformeFinalUI(){ if(!informeFinalData?.pdfUrl)return; window.open(informeFinalData.pdfUrl,"_blank"); informeFinalData.descargado=true; document.getElementById("btnFinalizarFEM").disabled=!informeFinalData.enviado; }
