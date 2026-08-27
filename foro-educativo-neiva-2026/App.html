@@ -328,6 +328,8 @@ window.onload = iniciarApp;
 
 function iniciarApp(){
 
+    inicializarBarraVolverEdicionGlobal_();
+
     /*
      * =================================================
      * 1. DETERMINAR EL MODO DE ACCESO
@@ -3435,6 +3437,69 @@ function activarPantallaCompleta(){
 
 function activarModoLectura(){
     activarHerramientasSesion1();
+}
+
+/*****************************************************
+ * BARRA GLOBAL "VOLVER A MODO EDICIÓN"
+ *
+ * Un único botón grande y fijo arriba de toda la página que se
+ * desliza hacia abajo apenas CUALQUIER pestaña entra en pantalla
+ * completa o en modo lectura, y vuelve a subir al salir de ambos.
+ * No hace falta modificar cada botón que activa pantalla
+ * completa/modo lectura: se detecta automáticamente con el evento
+ * nativo "fullscreenchange" (cubre TODO fullscreen — el de la
+ * página completa, el del QR, el de las firmas en vivo) y con un
+ * MutationObserver sobre la clase de cada pantalla (cubre TODO modo
+ * lectura — Sesión 1, 2, 3 y Plenaria).
+ *****************************************************/
+function actualizarBarraVolverEdicionGlobal_(){
+    const barra=document.getElementById("barraVolverEdicionGlobal");
+    if(!barra) return;
+    const enFullscreen=!!(document.fullscreenElement||document.webkitFullscreenElement);
+    const enModoLectura=!!document.querySelector(
+        ".modoLectura, .modoLecturaSesion2, .modoLecturaSesion3, .modoLecturaPlenaria"
+    );
+    barra.classList.toggle("visible", enFullscreen||enModoLectura);
+}
+
+function inicializarBarraVolverEdicionGlobal_(){
+    document.addEventListener("fullscreenchange", actualizarBarraVolverEdicionGlobal_);
+    document.addEventListener("webkitfullscreenchange", actualizarBarraVolverEdicionGlobal_);
+
+    const observador=new MutationObserver(actualizarBarraVolverEdicionGlobal_);
+    document.querySelectorAll(".pantalla").forEach(function(p){
+        observador.observe(p, {attributes:true, attributeFilter:["class"]});
+    });
+
+    const btn=document.getElementById("btnVolverEdicionGlobal");
+    if(btn && !btn.dataset.inicializado){
+        btn.dataset.inicializado="1";
+        btn.addEventListener("click", function(){
+            // 1) Salir de pantalla completa, sea cual sea el elemento
+            //    que esté en fullscreen (toda la página, el QR, el
+            //    modal de firmas en vivo).
+            if(document.fullscreenElement && document.exitFullscreen){
+                document.exitFullscreen().catch(function(){});
+            }
+            // 2) Apagar cualquier modo lectura activo, reusando los
+            //    botones que ya lo hacen (evita duplicar su lógica).
+            if(document.getElementById("pantallaSesion1")?.classList.contains("modoLectura")){
+                document.getElementById("btnModoLectura")?.click();
+            }
+            if(document.getElementById("pantallaSesion2")?.classList.contains("modoLecturaSesion2")){
+                document.getElementById("btnModoLecturaSesion2")?.click();
+            }
+            if(document.getElementById("pantallaSesion3")?.classList.contains("modoLecturaSesion3")){
+                document.getElementById("btnModoLecturaSesion3")?.click();
+            }
+            if(document.getElementById("pantallaPlenaria")?.classList.contains("modoLecturaPlenaria")){
+                alternarModoLecturaPlenaria();
+            }
+            setTimeout(actualizarBarraVolverEdicionGlobal_, 400);
+        });
+    }
+
+    actualizarBarraVolverEdicionGlobal_();
 }
 
 /*****************************************************
@@ -7216,13 +7281,26 @@ function inicializarPlenaria(){
     const cont=document.getElementById("btnContinuarDesdeEvidencias");
     if(cont) cont.addEventListener("click",function(){
         const datos=obtenerDatosFormularioActual_();
+        cont.disabled=true;
+        mostrarOverlayProgreso_(
+            "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3dHo3dDl6OW5vbHR0djAweGcxMjg1NGV3YWx5Z3MzcnU3b2JqNnplMCZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/iqHiDg6dymfsQnaIng/giphy.gif",
+            "Preparando plenaria…",
+            {duracionMs:5000}
+        );
         google.script.run.withSuccessHandler(function(res){
+            cont.disabled=false;
             if(res && res.ok){
+                ocultarOverlayProgreso_();
                 cambiarPantalla("pantallaEvidencias","pantallaPlenaria",10);
             }else{
+                ocultarOverlayProgreso_(true);
                 mostrarMensajeEvidencias(res && res.mensaje ? res.mensaje : "No fue posible preparar la plenaria.");
             }
-        }).withFailureHandler(function(err){ mostrarMensajeEvidencias("No fue posible preparar la plenaria: "+(err.message||err)); }).guardarAvanceForo(datos);
+        }).withFailureHandler(function(err){
+            cont.disabled=false;
+            ocultarOverlayProgreso_(true);
+            mostrarMensajeEvidencias("No fue posible preparar la plenaria: "+(err.message||err));
+        }).guardarAvanceForo(datos);
     });
 
     const guardar=document.getElementById("btnGuardarPlenaria");
@@ -7575,8 +7653,20 @@ function actualizarQRAsistencia_(){
  * Evidencias como en la pantalla de generar informe (hasta ahí deben
  * seguir visibles, según lo pedido). Solo tienen sentido con el
  * método QR: con PDF no hay firmas individuales que contar.
+ *
+ * Bug corregido: antes esto se consultaba UNA sola vez (al entrar a
+ * la pantalla), así que si alguien firmaba por QR mientras la
+ * persona que diligencia el formulario seguía en Evidencias, el
+ * conteo se quedaba "congelado" en 0 para siempre en esa pantalla.
+ * Ahora, mientras Evidencias o la pantalla final estén visibles, se
+ * vuelve a consultar solo cada 10s (generacionPollingContadoresQR_
+ * evita que se acumulen varias cadenas de refresco en paralelo si
+ * esta función se llama desde más de un punto a la vez).
  */
-function actualizarContadoresAsistenciaQR_(idForo, nombreIE){
+let generacionPollingContadoresQR_=0;
+function actualizarContadoresAsistenciaQR_(idForo, nombreIE, esAutoRefresco){
+    if(!esAutoRefresco) generacionPollingContadoresQR_++;
+    const miGeneracion=generacionPollingContadoresQR_;
     const metodo=document.getElementById("metodoAsistencia")?.value||"";
     const totalCaracterizacion=getTotalParticipantes()||0;
     const textoCaracterizacion=totalCaracterizacion===1
@@ -7613,13 +7703,25 @@ function actualizarContadoresAsistenciaQR_(idForo, nombreIE){
             ["conteoAsistentesQR","conteoAsistentesQRFinal"].forEach(function(id){
                 const el=document.getElementById(id); if(el) el.textContent=texto;
             });
+            programarSiguienteActualizacionContadoresQR_(idForo, nombreIE, miGeneracion);
         })
         .withFailureHandler(function(){
             ["conteoAsistentesQR","conteoAsistentesQRFinal"].forEach(function(id){
                 const el=document.getElementById(id); if(el) el.textContent="No fue posible consultar las firmas.";
             });
+            programarSiguienteActualizacionContadoresQR_(idForo, nombreIE, miGeneracion);
         })
         .contarAsistentesQR(idForo);
+}
+
+function programarSiguienteActualizacionContadoresQR_(idForo, nombreIE, generacion){
+    // Una llamada más nueva (por ejemplo, al cambiar de pantalla) tomó
+    // el control: esta cadena de refresco se detiene sola.
+    if(generacion!==generacionPollingContadoresQR_) return;
+    const evidenciasVisible=document.getElementById("pantallaEvidencias")?.classList.contains("visible");
+    const finalVisible=document.getElementById("pantallaFinalFEM")?.classList.contains("visible");
+    if(!evidenciasVisible && !finalVisible) return;
+    setTimeout(function(){ actualizarContadoresAsistenciaQR_(idForo, nombreIE, true); }, 10000);
 }
 
 /*****************************************************
@@ -7797,8 +7899,24 @@ function refrescarFirmasEnVivo_(){
  * sin ningún indicio visual, y daba la impresión de haberse
  * perdido u obligaba a creer que había que subirla de nuevo.
  */
+/*
+ * foto.getUrl() (guardado en evidenciaFotoUrl) es el enlace normal de
+ * "ver en Drive" — una página HTML, no una imagen — así que NUNCA
+ * sirve como src de un <img>: el navegador simplemente no la muestra
+ * (bug reportado: "no muestra imagen cargada"). Para previsualizar se
+ * necesita el formato de imagen directa de Google (mismo patrón que
+ * ya se usa para los logos de las IE, ver urlPublicaLogoDrive_ en
+ * Código.js), construido aquí a partir del ID del archivo.
+ */
+function construirUrlImagenEmbebible_(fileId, ancho){
+    fileId=String(fileId||"").trim();
+    if(!fileId) return "";
+    return "https://lh3.googleusercontent.com/d/"+fileId+"=w"+(ancho||1200);
+}
+
 function actualizarPreviaFotoEvidencia_(){
-    const url=document.getElementById("evidenciaFotoUrl")?.value||"";
+    const fotoId=document.getElementById("evidenciaFotoId")?.value||"";
+    const url=construirUrlImagenEmbebible_(fotoId) || document.getElementById("evidenciaFotoUrl")?.value||"";
     const img=document.getElementById("previaFotoEvidencia");
     const texto=document.getElementById("textoFotoRegistrada");
     const pie=document.getElementById("pieFotoEvidencia");
@@ -8168,19 +8286,24 @@ function renderizarPlenaria(opciones){
         }
     }
     {
+        const fotoIdPlenaria=getCampoValor("evidenciaFotoId");
         const fotoUrlPlenaria=getCampoValor("evidenciaFotoUrl");
+        const fotoSrcPlenaria=construirUrlImagenEmbebible_(fotoIdPlenaria) || fotoUrlPlenaria;
         const fechaTextoPlenaria=getCampoValor("evidenciaFotoFecha");
         const fechaPlenaria=fechaTextoPlenaria?new Date(fechaTextoPlenaria):new Date();
         const piePlenaria=fotoUrlPlenaria?construirPieFotoEvidenciaCliente_(fechaPlenaria):"";
         const nombreIEPlenaria=getCampoNombreIE();
         /*
-         * La foto se muestra embebida (no como enlace a Drive). Si
-         * no llega a cargar por latencia de Internet, onerror oculta
-         * la imagen y el pie, y muestra en su lugar el enlace de
+         * La foto se muestra embebida (no como enlace a Drive) usando
+         * la URL de imagen directa (construirUrlImagenEmbebible_) — la
+         * URL de "ver en Drive" (fotoUrlPlenaria) NO sirve como src de
+         * <img>, solo como enlace de respaldo. Si de todos modos no
+         * llega a cargar por latencia de Internet, onerror oculta la
+         * imagen y el pie, y muestra en su lugar ese enlace de
          * respaldo para abrirla en una pestaña aparte.
          */
-        const bloqueFoto=fotoUrlPlenaria?`<div class="fotoEvidenciaPlenaria">
-<img src="${escapeAttr(fotoUrlPlenaria)}" alt="Fotografía del Foro" class="imagenEvidenciaPlenaria" onerror="this.style.display='none';this.nextElementSibling.style.display='block';var p=this.parentElement.querySelector('.pieFotoEvidenciaPlenaria');if(p)p.style.display='none';">
+        const bloqueFoto=fotoSrcPlenaria?`<div class="fotoEvidenciaPlenaria">
+<img src="${escapeAttr(fotoSrcPlenaria)}" alt="Fotografía del Foro" class="imagenEvidenciaPlenaria" onerror="this.style.display='none';this.nextElementSibling.style.display='block';var p=this.parentElement.querySelector('.pieFotoEvidenciaPlenaria');if(p)p.style.display='none';">
 <p class="enlaceFotoFallback" style="display:none;">📷 <a href="${escapeAttr(fotoUrlPlenaria)}" target="_blank">Ver fotografía del Foro de la IE ${escapeHtml(nombreIEPlenaria)}</a></p>
 <p class="pieFotoEvidenciaPlenaria">${escapeHtml(piePlenaria)}</p>
 </div>`:"";

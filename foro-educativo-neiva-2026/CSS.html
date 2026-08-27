@@ -2862,6 +2862,47 @@ Su ancho ya queda acotado por .cajaTexto > * (--reading-width).
     }
 }
 /* =====================================================
+   BARRA GLOBAL "VOLVER A MODO EDICIÓN"
+   Un único botón grande, fijo arriba de toda la página (por encima
+   del encabezado), que se desliza hacia abajo apenas se activa
+   pantalla completa o modo lectura en CUALQUIER pestaña (Sesión 1,
+   2, 3, Plenaria, QR, firmas en vivo), y de nuevo hacia arriba al
+   salir de ambos. Ver actualizarBarraVolverEdicionGlobal_ en App.html.
+   ===================================================== */
+.barraVolverEdicionGlobal{
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    z-index:10000;
+    display:flex;
+    justify-content:center;
+    padding:14px 16px;
+    background:var(--verde-neiva,#0B6A44);
+    box-shadow:0 4px 16px rgba(0,0,0,.25);
+    transform:translateY(-110%);
+    transition:transform .35s ease;
+    pointer-events:none;
+}
+.barraVolverEdicionGlobal.visible{
+    transform:translateY(0);
+    pointer-events:auto;
+}
+.btnVolverEdicionGlobal{
+    width:auto;
+    max-width:520px;
+    padding:16px 32px;
+    font-size:17px;
+    font-weight:700;
+    background:#fff;
+    color:var(--verde-neiva,#0B6A44);
+    border:none;
+    border-radius:12px;
+    box-shadow:0 4px 10px rgba(0,0,0,.15);
+}
+.btnVolverEdicionGlobal:hover{ background:#F0F7F3; }
+
+/* =====================================================
    MODO LECTURA
    ===================================================== */
 

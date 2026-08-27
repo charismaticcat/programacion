@@ -5266,9 +5266,15 @@ function registrarAsistenciaQR(idForo, nombre, sexo, edad, tipoAsistencia, cargo
       return formatearFechaHoraFirma_(new Date(Number(partes[2]),Number(partes[1])-1,Number(partes[0]),...horaTexto.split(":").map(Number)));
     };
 
-    // Evitar duplicados: misma persona (documento) o mismo dispositivo
-    // firmando dos veces para este mismo foro. Solo una firma por
-    // dispositivo, sin importar qué datos escriba la segunda vez.
+    // Evitar duplicados: la MISMA PERSONA (mismo documento) firmando
+    // dos veces para este mismo foro no crea una segunda fila — se le
+    // devuelve su firma ya registrada. Ya NO se limita a una sola
+    // firma por dispositivo: es habitual que varias personas firmen
+    // desde el mismo equipo/celular compartido (un tablet institucional,
+    // un solo teléfono que se pasa de mano en mano), así que un mismo
+    // dispositivo puede registrar tantas firmas de personas distintas
+    // como haga falta. dispositivoId se sigue guardando en la fila
+    // solo con fines de auditoría/analítica, sin bloquear nada.
     const ultimaFila=hoja.getLastRow();
     if(ultimaFila>=2){
       const filas=hoja.getRange(2,1,ultimaFila-1,hoja.getLastColumn()).getValues();
@@ -5277,9 +5283,6 @@ function registrarAsistenciaQR(idForo, nombre, sexo, edad, tipoAsistencia, cargo
         if(!mismoForo) continue;
         if(String(filas[i][m.NUMERO_DOCUMENTO-1]||"").trim()===documento){
           return {ok:true, yaRegistrado:true, textoFirma:textoFirmaDesdeFila_(filas[i])};
-        }
-        if(dispositivoId && m.DISPOSITIVO_ID && String(filas[i][m.DISPOSITIVO_ID-1]||"").trim()===dispositivoId){
-          return {ok:false, yaFirmoDispositivo:true, mensaje:"Este dispositivo ya registró una firma de asistencia para este Foro. Solo se permite una firma por dispositivo.", textoFirma:textoFirmaDesdeFila_(filas[i])};
         }
       }
     }
@@ -5851,6 +5854,11 @@ function paginaAsistenciaQR_(idForo){
     '</div>'+
     '<div id="estado"></div>'+
     '<div id="textoFirma"></div>'+
+    // Varias personas pueden firmar seguidas desde el mismo
+    // dispositivo (un tablet o celular compartido): este botón, oculto
+    // hasta la primera firma, limpia el formulario para la siguiente
+    // persona sin tener que volver a escanear el QR.
+    '<button id="btnFirmarOtra" type="button" style="display:none;background:#fff;color:#0B6A44;border:1px solid #0B6A44;">➕ Firmar otra asistencia</button>'+
     '</div>'+
     '<script>'+
     'var CARGOS_SIN_CONDICION='+cargosSinCondicionJSON+';'+
@@ -5929,20 +5937,14 @@ function paginaAsistenciaQR_(idForo){
     'return Array.prototype.slice.call(document.querySelectorAll("."+clase+":checked")).map(function(c){return c.value;});'+
     '}'+
     /*
-     * Un dispositivo solo puede firmar una vez por Foro. Esta página
-     * la sirve Apps Script desde un subdominio de
-     * script.googleusercontent.com que puede cambiar entre una
-     * visita y otra (por ejemplo, al volver a escanear el QR), así
-     * que localStorage NO es confiable como único mecanismo — puede
-     * quedar "vacío" en cada visita aunque sea el mismo teléfono. Por
-     * eso el identificador de dispositivo se calcula a partir de
-     * características bastante estables del navegador/equipo
-     * (user agent, idioma, resolución de pantalla, zona horaria,
-     * etc.), no de un valor aleatorio guardado: así, aunque cambie el
-     * origen, dos visitas desde el mismo equipo calculan el MISMO
-     * identificador y el servidor puede bloquear el segundo intento.
-     * localStorage se sigue usando solo como atajo de UI (si
-     * persiste, evita ni siquiera mostrar el formulario de nuevo).
+     * dispositivoIdAsistencia se sigue calculando y enviando al
+     * servidor, pero solo con fines de auditoría/analítica: YA NO
+     * bloquea firmas repetidas desde el mismo equipo. Es habitual que
+     * varias personas firmen seguidas desde un mismo dispositivo
+     * compartido (un tablet institucional, un solo celular que se
+     * pasa de mano en mano), así que el formulario se puede volver a
+     * diligenciar tantas veces como haga falta en la misma visita —
+     * ver el botón "➕ Firmar otra asistencia" en mostrarYaFirmado().
      */
     'function calcularHuellaDispositivo(){'+
     'try{'+
@@ -5952,31 +5954,40 @@ function paginaAsistenciaQR_(idForo){
     'return "fp-"+Math.abs(hash).toString(36);'+
     '}catch(e){ return "fp-desconocida"; }'+
     '}'+
-    'function claveYaFirmado(){ return "FEM_ASISTENCIA_FIRMADA_"+'+JSON.stringify(String(idForo))+'; }'+
-    /*
-     * Se guarda el nombre junto con el texto de la firma (antes solo
-     * se guardaba el texto) para poder mostrar el mensaje
-     * personalizado también si la persona vuelve a esta página más
-     * tarde (recarga, o el navegador la reabre) y no solo justo
-     * después de firmar.
-     */
-    'function marcarFirmadoLocal(nombrePersona,textoFirma){ try{ localStorage.setItem(claveYaFirmado(), JSON.stringify({nombre:nombrePersona||"",texto:textoFirma||""})); }catch(e){} }'+
     'function mostrarYaFirmado(nombrePersona,textoFirma){'+
     'document.getElementById("formulario").style.display="none";'+
     'var saludo=nombrePersona?(nombrePersona+", su asistencia está firmada!"):"Su asistencia está firmada.";'+
-    'document.getElementById("estado").textContent="✓ "+saludo+" Ya puede cerrar esta página y continuar en la plenaria.";'+
+    'document.getElementById("estado").textContent="✓ "+saludo+" Ya puede cerrar esta página y continuar en la plenaria, o firmar la asistencia de otra persona desde este mismo dispositivo.";'+
     'document.getElementById("textoFirma").textContent=textoFirma||"";'+
+    'document.getElementById("btnFirmarOtra").style.display="block";'+
+    'window.scrollTo(0,0);'+
     '}'+
+    /*
+     * Deja el formulario listo para la siguiente persona: se limpian
+     * todos los campos y checkboxes, se vuelve a mostrar el
+     * formulario y se oculta este mismo botón hasta la próxima firma.
+     */
+    'function limpiarFormularioFirma(){'+
+    '["nombre","documento","correo","telefono","sexo","edad","cargo","jornada","sede","rolForo","tipoAsistencia"].forEach(function(id){'+
+    'var c=document.getElementById(id); if(!c) return; c.value=""; c.classList.remove("campoCompletado");'+
+    '});'+
+    'document.querySelectorAll(".checkFortaleza,.checkDificultad").forEach(function(c){ c.checked=false; });'+
+    '["fortalezaOtroTexto","dificultadOtroTexto"].forEach(function(id){ var c=document.getElementById(id); if(!c) return; c.value=""; c.classList.add("otroTextoOculto"); });'+
+    'document.getElementById("aceptoConsentimiento").checked=false;'+
+    'document.getElementById("bloqueCondicion").classList.add("condicionOculta");'+
+    'document.getElementById("rolEnLabelFortalezas").textContent="(seleccione su rol arriba)";'+
+    'document.getElementById("correo").classList.remove("correoInvalido");'+
+    'document.getElementById("mensajeErrorCorreo").style.display="none";'+
+    'document.getElementById("btnFirmar").disabled=true;'+
+    'document.getElementById("btnFirmar").textContent="Firmar asistencia";'+
+    'document.getElementById("btnFirmarOtra").style.display="none";'+
+    'document.getElementById("estado").textContent="";'+
+    'document.getElementById("textoFirma").textContent="";'+
+    'document.getElementById("formulario").style.display="";'+
+    'window.scrollTo(0,0);'+
+    '}'+
+    'document.getElementById("btnFirmarOtra").addEventListener("click",limpiarFormularioFirma);'+
     'var dispositivoIdAsistencia=calcularHuellaDispositivo();'+
-    '(function(){'+
-    'try{'+
-    'var previo=localStorage.getItem(claveYaFirmado());'+
-    'if(!previo) return;'+
-    'var datos;'+
-    'try{ datos=JSON.parse(previo); }catch(e2){ datos={nombre:"",texto:(previo==="1"?"":previo)}; }'+
-    'mostrarYaFirmado(datos.nombre,datos.texto);'+
-    '}catch(e){}'+
-    '})();'+
     /*
      * Validación de correo en vivo: mensaje en rojo sobre fondo
      * amarillo (mismo lenguaje visual que los demás errores del
@@ -6043,8 +6054,7 @@ function paginaAsistenciaQR_(idForo){
     'if(!correoEsValido(correo)){validarCorreoUI();estado.textContent="Revise el correo electrónico: no es válido.";return;}'+
     'btn.disabled=true; btn.textContent="Firmando…";'+
     'google.script.run.withSuccessHandler(function(res){'+
-    'if(res&&res.ok){ marcarFirmadoLocal(nombre,res.textoFirma); mostrarYaFirmado(nombre,res.textoFirma); }'+
-    'else if(res&&res.yaFirmoDispositivo){ marcarFirmadoLocal(nombre,res.textoFirma); mostrarYaFirmado(nombre,res.textoFirma); }'+
+    'if(res&&res.ok){ mostrarYaFirmado(nombre,res.textoFirma); }'+
     'else{ btn.disabled=false; btn.textContent="Firmar asistencia"; estado.textContent=(res&&res.mensaje)||"No fue posible registrar la asistencia."; }'+
     '}).withFailureHandler(function(err){ btn.disabled=false; btn.textContent="Firmar asistencia"; estado.textContent="No fue posible registrar la asistencia: "+(err.message||err); })'+
     '.registrarAsistenciaQR('+JSON.stringify(idForo)+',nombre,sexo,edad,tipoAsistencia,cargo,rolForo,jornada,sede,fortalezas,fortalezaOtro,dificultades,dificultadOtro,documento,correo,telefono,acepto,dispositivoIdAsistencia);'+
