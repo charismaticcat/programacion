@@ -3805,6 +3805,106 @@ Su ancho ya queda acotado por .cajaTexto > * (--reading-width).
     line-height:1.5;
 }
 
+/* Aviso grande de los dos métodos de asistencia (QR o PDF). */
+.avisoMetodoAsistencia{
+    background:#FFF8E1;
+    border-left:8px solid var(--amarillo-neiva);
+    border-radius:var(--radio);
+    padding:18px 22px;
+    margin:18px 0;
+}
+.avisoMetodoAsistenciaTitulo{
+    color:#7A5B00;
+    font-size:16px;
+    font-weight:700;
+    line-height:1.5;
+    margin:0 0 10px;
+}
+.avisoMetodoAsistenciaPequeno{
+    color:var(--gris-texto);
+    font-size:13px;
+    line-height:1.6;
+    margin:0;
+}
+
+/* Selector de método: dos tarjetas grandes, un clic activa una. */
+.selectorMetodoAsistencia{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:18px;
+    margin:18px 0;
+}
+.tarjetaMetodoAsistencia{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+    background:var(--blanco);
+    border:2px solid var(--gris-borde);
+    border-radius:var(--radio);
+    box-shadow:var(--sombra);
+    padding:26px 20px;
+    min-height:auto;
+    cursor:pointer;
+    transition:border-color .15s ease, transform .15s ease;
+    color:var(--gris-texto);
+}
+.tarjetaMetodoAsistencia:hover{border-color:var(--verde-neiva);transform:translateY(-2px);}
+.tarjetaMetodoIcono{font-size:36px;}
+.tarjetaMetodoTitulo{font-weight:700;color:var(--verde-neiva);font-size:16px;}
+.tarjetaMetodoDesc{font-size:13px;color:var(--gris-texto);}
+
+#btnCambiarMetodoAsistencia{width:auto;padding:10px 20px;margin:6px 0 0;}
+
+.accionesQR{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;}
+.accionesQR .botonSecundarioFEM{margin-top:6px;}
+.linkAsistenciaTexto{
+    font-size:13px;
+    color:var(--gris-texto);
+    word-break:break-all;
+    margin:10px 0;
+}
+.linkAsistenciaTexto a{color:var(--verde-neiva);}
+
+/* Modal de firmas en vivo. */
+.modalFirmasEnVivoContenido{width:min(560px,100%);}
+.btnFirmasEnVivoPantallaCompleta{
+    position:absolute;
+    top:20px;
+    right:58px;
+    width:auto;
+    padding:8px 14px;
+    font-size:12.5px;
+}
+.resumenFirmasEnVivo{color:var(--gris-texto);font-size:14px;margin:0 0 16px;}
+.listaFirmasEnVivo{max-height:50vh;overflow-y:auto;}
+.filaFirmaEnVivo{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:space-between;
+    gap:8px;
+    padding:10px 0;
+    border-bottom:1px solid var(--gris-borde);
+    font-size:14px;
+}
+.filaFirmaEnVivoNombre{font-weight:600;color:var(--gris-texto);}
+.filaFirmaEnVivoDetalle{color:var(--gris-texto);font-size:13px;}
+.filaFirmaEnVivoHora{color:var(--verde-neiva);font-size:12.5px;font-weight:600;}
+:fullscreen .modalFirmasEnVivoContenido,
+.modalFirmasEnVivoContenido:fullscreen{
+    width:100vw;
+    height:100vh;
+    max-height:100vh;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    background:var(--blanco);
+}
+:fullscreen .listaFirmasEnVivo,
+.modalFirmasEnVivoContenido:fullscreen .listaFirmasEnVivo{
+    max-height:70vh;
+}
+
 /* Botón "Anterior" desde el informe final, hacia Evidencias. */
 .finalNavegacion{margin-bottom:18px;text-align:center;}
 .finalNavegacion .botonSecundarioFEM{width:auto;padding:12px 24px;font-size:14px;}

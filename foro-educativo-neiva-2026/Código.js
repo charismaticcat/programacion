@@ -5243,6 +5243,24 @@ function contarAsistentesQR(idForo){
 }
 
 /*
+ * Lista en vivo de quiénes ya firmaron asistencia por QR — usada por
+ * la pantalla "Firmas de asistencia en vivo" (Evidencias y la
+ * pantalla de generar informe). Devuelve solo lo necesario para
+ * mostrar en pantalla, no el registro completo (documento, correo,
+ * teléfono quedan fuera de esta vista pública en tiempo real).
+ */
+function obtenerListaAsistentesQR(idForo){
+  try{
+    const asistentes=obtenerAsistentesQR_(idForo).map(function(a){
+      return { nombre:a.nombre, cargo:a.cargo, rolForo:a.rolForo, hora:a.hora };
+    });
+    return { ok:true, asistentes:asistentes };
+  }catch(error){
+    return { ok:false, mensaje:error.message };
+  }
+}
+
+/*
  * Agrega al informe ejecutivo, después de la fotografía, el
  * listado de quienes firmaron asistencia por código QR — ya no se
  * genera como un PDF aparte, va incluido al final del informe.
@@ -5934,10 +5952,28 @@ function subirEvidenciasFEM(idForo,fotoData,fotoName,fotoMime,datos){
   const fotoNombre="Foro 2026 ("+(datos.institucion||acceso.ie)+")."+(fotoMime==="image/png"?"png":"jpg");
   const foto=folder.createFile(Utilities.newBlob(fb,fotoMime,fotoNombre));
   foto.setDescription("Participantes del FEM 2026 | I.E. "+(datos.institucion||acceso.ie)+" | Grupo: "+(datos.campos?.grupo?.valor||"")+" | Fecha y hora de submisión: "+new Date()); hacerPublicoSiEsPosible_(foto);
-  // La asistencia ya NO produce un archivo aparte: se sigue firmando
-  // por QR durante toda la jornada y se incluye al final del informe
-  // ejecutivo (ver agregarListadoAsistenciaAlInforme_ en generarInformeFEM).
   return {ok:true,foto:{id:foto.getId(),url:foto.getUrl()},folderId:folder.getId()};
+}
+
+/*
+ * Sube la asistencia como PDF escaneado — método alternativo al
+ * código QR. Se guarda en la misma carpeta de la IE que la fotografía
+ * y el informe. Quien llama debe además guardar, entre los campos
+ * del formulario, metodoAsistencia="PDF" y numeroAsistentesPDF, y
+ * estos mismos (asistenciaPdfUrl/asistenciaPdfId) — generarInformeFEM
+ * los lee de ahí para decidir si incluye el listado/análisis QR o el
+ * aviso + enlace de PDF.
+ */
+function subirAsistenciaPDF(idForo,pdfData,pdfName,datos){
+  const acceso=obtenerAccesoPorIdForo_(idForo); if(!acceso)throw new Error("ID_FORO no autorizado.");
+  const folder=crearCarpetaIE_(datos.institucion||acceso.ie);
+  const decode=(data)=>{const s=String(data||"");const comma=s.indexOf(",");return Utilities.base64Decode(comma>=0?s.substring(comma+1):s);};
+  const pb=decode(pdfData);
+  if(pb.length>15*1024*1024) throw new Error("El PDF de asistencia debe pesar máximo 15 MB.");
+  const nombreArchivo="Asistencia Foro Educativo - "+(datos.institucion||acceso.ie)+" FEM 2026.pdf";
+  const pdf=folder.createFile(Utilities.newBlob(pb,"application/pdf",nombreArchivo));
+  hacerPublicoSiEsPosible_(pdf);
+  return {ok:true, pdf:{id:pdf.getId(), url:pdf.getUrl()}};
 }
 
 
@@ -6214,8 +6250,28 @@ function generarInformeFEM(idForo,datosCliente){
 
     body.appendPageBreak();
 
-    try{ agregarPerfilYPercepcionAlInforme_(body, idForo, datos, {VERDE,GRIS_TEXTO,GRIS_FONDO,GRIS_BORDE,AZUL_CLARO,AMARILLO,NEGRO}); }
-    catch(errorPerfil){ Logger.log("No fue posible agregar el perfil de participantes/percepción: "+errorPerfil.message); }
+    /*
+     * El apartado demográfico y de percepción (fortalezas/dificultades)
+     * solo se puede construir a partir de las firmas de asistencia por
+     * QR (sexo, edad, jornada, sede, fortalezas, dificultades) — un
+     * PDF escaneado no trae esos datos estructurados. Si la IE eligió
+     * subir la asistencia en PDF, se avisa expresamente que este
+     * apartado no se genera, en vez de mostrarlo vacío o a medias.
+     */
+    const metodoAsistenciaInforme=String(datos.campos?.metodoAsistencia?.valor||"QR");
+    if(metodoAsistenciaInforme==="PDF"){
+      const tituloSinAnalisis=body.appendParagraph("Perfil de los participantes y percepción del Foro");
+      tituloSinAnalisis.setHeading(DocumentApp.ParagraphHeading.HEADING1);
+      tituloSinAnalisis.editAsText().setForegroundColor(VERDE).setBold(true);
+      const numeroAsistentesPdf=String(datos.campos?.numeroAsistentesPDF?.valor||"0");
+      const notaSinAnalisis=body.appendParagraph(
+        "La institución educativa registró la asistencia mediante un PDF escaneado ("+numeroAsistentesPdf+" asistente(s) reportado(s)), en vez de firmas por código QR. Por esa razón, este informe no incluye el análisis demográfico ni el de fortalezas y oportunidades de mejora percibidas por la comunidad educativa, que solo puede construirse a partir de los datos estructurados que registra cada persona al firmar por QR."
+      );
+      notaSinAnalisis.editAsText().setForegroundColor(GRIS_TEXTO);
+    }else{
+      try{ agregarPerfilYPercepcionAlInforme_(body, idForo, datos, {VERDE,GRIS_TEXTO,GRIS_FONDO,GRIS_BORDE,AZUL_CLARO,AMARILLO,NEGRO}); }
+      catch(errorPerfil){ Logger.log("No fue posible agregar el perfil de participantes/percepción: "+errorPerfil.message); }
+    }
 
     /*
      * Cada fila de "Acciones" queda dividida en una fila propia por
@@ -6297,7 +6353,17 @@ function generarInformeFEM(idForo,datosCliente){
       rangoEnlace.setForegroundColor(VERDE);
     }
 
-    agregarListadoAsistenciaAlInforme_(body, idForo, datos);
+    if(String(datos.campos?.metodoAsistencia?.valor||"QR")==="PDF"){
+      if(datos.campos?.asistenciaPdfUrl?.valor){
+        const pDescargaAsistencia=body.appendParagraph("Descarga de la asistencia (PDF escaneado): ");
+        pDescargaAsistencia.editAsText().setForegroundColor(GRIS_TEXTO);
+        const rangoEnlaceAsistencia=pDescargaAsistencia.appendText(String(datos.campos.asistenciaPdfUrl.valor));
+        rangoEnlaceAsistencia.setLinkUrl(String(datos.campos.asistenciaPdfUrl.valor));
+        rangoEnlaceAsistencia.setForegroundColor(VERDE);
+      }
+    }else{
+      agregarListadoAsistenciaAlInforme_(body, idForo, datos);
+    }
 
     doc.saveAndClose();
     const pdfBlob=DriveApp.getFileById(doc.getId()).getAs(MimeType.PDF).setName(nombreArchivo+".pdf");

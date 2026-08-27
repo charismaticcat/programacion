@@ -1196,6 +1196,15 @@ function cambiarPantalla(actual,nueva,paso){
         actualizarPreviaFotoEvidencia_();
     }
 
+    if(nueva === "pantallaFinalFEM") {
+        // Los contadores de participación/firmas deben seguir
+        // visibles hasta esta pantalla de generar informe.
+        setTimeout(function(){
+            let idForo=""; try{ idForo=obtenerIdForo(); }catch(e){}
+            actualizarContadoresAsistenciaQR_(idForo);
+        }, 50);
+    }
+
     if(nueva === "pantallaPlenaria") {
         setTimeout(renderizarPlenaria, 80);
     }
@@ -5634,6 +5643,8 @@ function aplicarDatosDeBorrador_(datos, mostrarPantalla, mensajeEstado){
         contEvidenciasBtn.disabled = false;
     }
     actualizarPreviaFotoEvidencia_();
+    if(typeof aplicarEstadoMetodoAsistencia_==="function") aplicarEstadoMetodoAsistencia_();
+    if(typeof actualizarEstadoEvidencias==="function") actualizarEstadoEvidencias();
 
     // Recalcular datos derivados.
     if(typeof actualizarTotalParticipantes === "function"){
@@ -6766,6 +6777,15 @@ function inicializarPlenaria(){
         }catch(error){ console.error("No fue posible mostrar el QR en pantalla completa:",error); }
     });
 
+    inicializarSelectorMetodoAsistencia_();
+    inicializarDescargaQR_();
+    inicializarFirmasEnVivo_();
+
+    const pdfAsistencia=document.getElementById("archivoAsistenciaPDF");
+    if(pdfAsistencia) pdfAsistencia.addEventListener("change",actualizarEstadoEvidencias);
+    const numeroAsistentesPdf=document.getElementById("numeroAsistentesPDF");
+    if(numeroAsistentesPdf) numeroAsistentesPdf.addEventListener("input",actualizarEstadoEvidencias);
+
     const subir=document.getElementById("btnSubirEvidencias");
     if(subir) subir.addEventListener("click",subirEvidenciasFEM);
     if(document.getElementById("evidenciaFotoUrl")?.value){
@@ -7098,6 +7118,13 @@ function mostrarPantallaDespedidaFEM_(){
  * en Código.js).
  */
 function actualizarQRAsistencia_(){
+    aplicarEstadoMetodoAsistencia_();
+
+    const nombreIE=String(getCampoNombreIE()||"").replace(/^\s*(instituci[oó]n\s+educativa|i\.?\s*e\.?)\s+/i,"").trim();
+    ["nombreIEAvisoAsistencia1","nombreIEAvisoAsistencia2"].forEach(function(id){
+        const el=document.getElementById(id); if(el) el.textContent=nombreIE||"—";
+    });
+
     const img=document.getElementById("qrAsistencia");
     if(!img) return;
 
@@ -7114,31 +7141,233 @@ function actualizarQRAsistencia_(){
     // sirve códigos QR — se reemplaza por api.qrserver.com, que sigue
     // funcionando y no requiere clave de API.
     img.src="https://api.qrserver.com/v1/create-qr-code/?size=260x260&data="+encodeURIComponent(urlAsistencia);
+    img.dataset.urlAsistencia=urlAsistencia;
 
-    const conteo=document.getElementById("conteoAsistentesQR");
-    const conteoCaracterizacion=document.getElementById("conteoCaracterizacionQR");
-    if(conteoCaracterizacion){
-        const totalCaracterizacion=getTotalParticipantes()||0;
-        conteoCaracterizacion.textContent=totalCaracterizacion===1
-            ? "1 participante reportado en este foro."
-            : totalCaracterizacion+" participantes reportados en este foro.";
+    const linkTexto=document.getElementById("linkAsistenciaQR");
+    if(linkTexto){ linkTexto.href=urlAsistencia; linkTexto.textContent=urlAsistencia; }
+
+    actualizarContadoresAsistenciaQR_(idForo, nombreIE);
+}
+
+/*
+ * Contadores de participación/asistencia — se muestran tanto en
+ * Evidencias como en la pantalla de generar informe (hasta ahí deben
+ * seguir visibles, según lo pedido). Solo tienen sentido con el
+ * método QR: con PDF no hay firmas individuales que contar.
+ */
+function actualizarContadoresAsistenciaQR_(idForo, nombreIE){
+    const metodo=document.getElementById("metodoAsistencia")?.value||"";
+    const totalCaracterizacion=getTotalParticipantes()||0;
+    const textoCaracterizacion=totalCaracterizacion===1
+        ? "1 participante reportado en este foro."
+        : totalCaracterizacion+" participantes reportados en este foro.";
+
+    ["conteoCaracterizacionQR","conteoCaracterizacionQRFinal"].forEach(function(id){
+        const el=document.getElementById(id); if(el) el.textContent=textoCaracterizacion;
+    });
+
+    const btnFirmasFinal=document.getElementById("btnVerFirmasEnVivoFinal");
+    const conteosFinal=[document.getElementById("conteoCaracterizacionQRFinal"),document.getElementById("conteoAsistentesQRFinal")];
+    if(metodo!=="QR"){
+        // Sin firmas por QR que contar (se eligió PDF): se ocultan los
+        // contadores/botón de firmas en vivo de la pantalla final, en
+        // vez de mostrarlos vacíos o engañosos.
+        if(btnFirmasFinal) btnFirmasFinal.style.display="none";
+        conteosFinal.forEach(function(el){ if(el) el.style.display="none"; });
+        return;
     }
-    if(conteo){
-        conteo.textContent="Consultando firmas…";
-        google.script.run
-            .withSuccessHandler(function(res){
-                if(!conteo) return;
-                if(!res || !res.ok){
-                    conteo.textContent="No fue posible consultar las firmas.";
-                    return;
-                }
-                conteo.textContent=(res.total===1 ? "1 persona ya firmó asistencia." : res.total+" personas ya firmaron asistencia.");
-            })
-            .withFailureHandler(function(){
-                if(conteo) conteo.textContent="No fue posible consultar las firmas.";
-            })
-            .contarAsistentesQR(idForo);
+    if(btnFirmasFinal) btnFirmasFinal.style.display="";
+    conteosFinal.forEach(function(el){ if(el) el.style.display=""; });
+
+    ["conteoAsistentesQR","conteoAsistentesQRFinal"].forEach(function(id){
+        const el=document.getElementById(id);
+        if(el) el.textContent="Consultando firmas…";
+    });
+
+    google.script.run
+        .withSuccessHandler(function(res){
+            const texto=(!res || !res.ok)
+                ? "No fue posible consultar las firmas."
+                : (res.total===1 ? "1 persona ya firmó asistencia." : res.total+" personas ya firmaron asistencia.");
+            ["conteoAsistentesQR","conteoAsistentesQRFinal"].forEach(function(id){
+                const el=document.getElementById(id); if(el) el.textContent=texto;
+            });
+        })
+        .withFailureHandler(function(){
+            ["conteoAsistentesQR","conteoAsistentesQRFinal"].forEach(function(id){
+                const el=document.getElementById(id); if(el) el.textContent="No fue posible consultar las firmas.";
+            });
+        })
+        .contarAsistentesQR(idForo);
+}
+
+/*****************************************************
+ * SELECTOR DE MÉTODO DE ASISTENCIA (QR vs. PDF)
+ *
+ * Un solo clic activa el método elegido; "Cambiar método" funciona
+ * como un botón atrás, sin perder lo ya escrito en ninguno de los
+ * dos si la persona cambia de opinión.
+ *****************************************************/
+function aplicarEstadoMetodoAsistencia_(){
+    const metodo=document.getElementById("metodoAsistencia")?.value||"";
+    const selector=document.getElementById("selectorMetodoAsistencia");
+    const btnCambiar=document.getElementById("btnCambiarMetodoAsistencia");
+    const avisoQR=document.getElementById("avisoAsistenciaQR");
+    const tarjetaQR=document.getElementById("tarjetaMetodoQR");
+    const tarjetaPDF=document.getElementById("tarjetaMetodoPDF");
+
+    const eligioAlgo=metodo==="QR"||metodo==="PDF";
+    if(selector) selector.style.display=eligioAlgo?"none":"";
+    if(btnCambiar) btnCambiar.style.display=eligioAlgo?"":"none";
+    if(avisoQR) avisoQR.style.display=metodo==="QR"?"":"none";
+    if(tarjetaQR) tarjetaQR.style.display=metodo==="QR"?"":"none";
+    if(tarjetaPDF) tarjetaPDF.style.display=metodo==="PDF"?"":"none";
+}
+
+function elegirMetodoAsistencia_(metodo){
+    const campo=document.getElementById("metodoAsistencia");
+    if(campo){ campo.value=metodo; campo.dispatchEvent(new Event("change")); }
+    aplicarEstadoMetodoAsistencia_();
+    actualizarContadoresAsistenciaQR_((function(){ try{ return obtenerIdForo(); }catch(e){ return ""; } })());
+    actualizarEstadoEvidencias();
+    guardarBorradorLocal({silencioso:true});
+}
+
+function inicializarSelectorMetodoAsistencia_(){
+    const btnQR=document.getElementById("btnElegirMetodoQR");
+    const btnPDF=document.getElementById("btnElegirMetodoPDF");
+    const btnCambiar=document.getElementById("btnCambiarMetodoAsistencia");
+    if(btnQR && !btnQR.dataset.inicializado){ btnQR.dataset.inicializado="1"; btnQR.addEventListener("click",function(){ elegirMetodoAsistencia_("QR"); }); }
+    if(btnPDF && !btnPDF.dataset.inicializado){ btnPDF.dataset.inicializado="1"; btnPDF.addEventListener("click",function(){ elegirMetodoAsistencia_("PDF"); }); }
+    if(btnCambiar && !btnCambiar.dataset.inicializado){
+        btnCambiar.dataset.inicializado="1";
+        btnCambiar.addEventListener("click",function(){
+            const campo=document.getElementById("metodoAsistencia");
+            if(campo){ campo.value=""; campo.dispatchEvent(new Event("change")); }
+            aplicarEstadoMetodoAsistencia_();
+            actualizarEstadoEvidencias();
+            guardarBorradorLocal({silencioso:true});
+        });
     }
+    aplicarEstadoMetodoAsistencia_();
+}
+
+/*****************************************************
+ * DESCARGAR EL CÓDIGO QR
+ *
+ * Como la imagen viene de api.qrserver.com (otro origen), se trae con
+ * fetch() y se descarga como blob con el nombre pedido — un <a
+ * download> directo sobre una URL externa no descarga, solo la abre.
+ * Si el proveedor llegara a bloquear el fetch (CORS), se cae de
+ * vuelta a abrir la imagen en una pestaña nueva para guardarla a mano.
+ *****************************************************/
+function inicializarDescargaQR_(){
+    const btn=document.getElementById("btnDescargarQR");
+    if(!btn || btn.dataset.inicializado==="1") return;
+    btn.dataset.inicializado="1";
+
+    btn.addEventListener("click", async function(){
+        const img=document.getElementById("qrAsistencia");
+        if(!img || !img.src) return;
+        const nombreIE=String(getCampoNombreIE()||"").replace(/^\s*(instituci[oó]n\s+educativa|i\.?\s*e\.?)\s+/i,"").trim();
+        const urlAsistencia=img.dataset.urlAsistencia||"";
+        const nombreArchivo=("Asistencia de Foro Educativo IE "+nombreIE+" Link "+urlAsistencia)
+            .replace(/[\\/:*?"<>|]/g,"-")
+            .slice(0,180) + ".png";
+
+        try{
+            const respuesta=await fetch(img.src);
+            const blob=await respuesta.blob();
+            const url=URL.createObjectURL(blob);
+            const enlace=document.createElement("a");
+            enlace.href=url; enlace.download=nombreArchivo;
+            document.body.appendChild(enlace); enlace.click(); enlace.remove();
+            setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+        }catch(error){
+            console.error("No fue posible descargar el QR, se abre en una pestaña nueva:",error);
+            window.open(img.src,"_blank");
+        }
+    });
+}
+
+/*****************************************************
+ * FIRMAS DE ASISTENCIA EN VIVO
+ *
+ * Modal reutilizable desde Evidencias y desde la pantalla de generar
+ * informe (btnVerFirmasEnVivoEvidencias / btnVerFirmasEnVivoFinal):
+ * lista, en tiempo real, quiénes ya firmaron por QR. Se refresca cada
+ * 8 segundos mientras el modal está abierto y se detiene al cerrarlo.
+ *****************************************************/
+let intervaloFirmasEnVivo_=null;
+
+function inicializarFirmasEnVivo_(){
+    ["btnVerFirmasEnVivoEvidencias","btnVerFirmasEnVivoFinal"].forEach(function(id){
+        const btn=document.getElementById(id);
+        if(btn && !btn.dataset.inicializado){ btn.dataset.inicializado="1"; btn.addEventListener("click",abrirFirmasEnVivo_); }
+    });
+    const cerrar=document.getElementById("btnCerrarFirmasEnVivo");
+    if(cerrar && !cerrar.dataset.inicializado){ cerrar.dataset.inicializado="1"; cerrar.addEventListener("click",cerrarFirmasEnVivo_); }
+
+    const pantallaCompleta=document.getElementById("btnFirmasEnVivoPantallaCompleta");
+    if(pantallaCompleta && !pantallaCompleta.dataset.inicializado){
+        pantallaCompleta.dataset.inicializado="1";
+        pantallaCompleta.addEventListener("click",async function(){
+            const contenido=document.getElementById("modalFirmasEnVivoContenido");
+            if(!contenido) return;
+            try{
+                if(!document.fullscreenElement) await contenido.requestFullscreen();
+                else await document.exitFullscreen();
+            }catch(error){ console.error("No fue posible mostrar las firmas en pantalla completa:",error); }
+        });
+    }
+}
+
+function abrirFirmasEnVivo_(){
+    const modal=document.getElementById("modalFirmasEnVivo");
+    if(!modal) return;
+    modal.classList.add("visible");
+    modal.setAttribute("aria-hidden","false");
+    refrescarFirmasEnVivo_();
+    if(intervaloFirmasEnVivo_) clearInterval(intervaloFirmasEnVivo_);
+    intervaloFirmasEnVivo_=setInterval(refrescarFirmasEnVivo_, 8000);
+}
+
+function cerrarFirmasEnVivo_(){
+    const modal=document.getElementById("modalFirmasEnVivo");
+    if(modal){ modal.classList.remove("visible"); modal.setAttribute("aria-hidden","true"); }
+    if(intervaloFirmasEnVivo_){ clearInterval(intervaloFirmasEnVivo_); intervaloFirmasEnVivo_=null; }
+}
+
+function refrescarFirmasEnVivo_(){
+    let idForo="";
+    try{ idForo=obtenerIdForo(); }catch(error){ idForo=String(localStorage.getItem(obtenerClaveIdForo())||"").trim(); }
+    const resumen=document.getElementById("resumenFirmasEnVivo");
+    const lista=document.getElementById("listaFirmasEnVivo");
+    if(!idForo){ if(resumen) resumen.textContent="No fue posible identificar el registro."; return; }
+
+    google.script.run
+        .withSuccessHandler(function(res){
+            if(!res || !res.ok){
+                if(resumen) resumen.textContent="No fue posible consultar las firmas.";
+                return;
+            }
+            if(resumen) resumen.textContent=(res.asistentes.length===1?"1 persona ha firmado":res.asistentes.length+" personas han firmado")+" — se actualiza automáticamente cada 8 segundos.";
+            if(lista){
+                lista.innerHTML = res.asistentes.length
+                    ? res.asistentes.map(function(a){
+                        return '<div class="filaFirmaEnVivo">'+
+                            '<span class="filaFirmaEnVivoNombre">'+escapeHtml(a.nombre)+'</span>'+
+                            '<span class="filaFirmaEnVivoDetalle">'+escapeHtml(a.cargo||"")+(a.rolForo?" · "+escapeHtml(a.rolForo):"")+'</span>'+
+                            '<span class="filaFirmaEnVivoHora">'+escapeHtml(a.hora||"")+'</span>'+
+                        '</div>';
+                    }).join("")
+                    : '<p class="despedidaFEMCierre">Todavía nadie ha firmado.</p>';
+            }
+        })
+        .withFailureHandler(function(){
+            if(resumen) resumen.textContent="No fue posible consultar las firmas.";
+        })
+        .obtenerListaAsistentesQR(idForo);
 }
 
 /*
@@ -7174,7 +7403,36 @@ function actualizarEstadoEvidencias(){
     const subir=document.getElementById("btnSubirEvidencias");
     const okFoto=foto && ["image/jpeg","image/png"].includes(foto.type) && foto.size<=10*1024*1024;
     pintarEstadoArchivo("estadoFoto",foto,okFoto,"Imagen válida.","Seleccione JPG/PNG de máximo 10 MB.");
-    if(subir) subir.disabled=!okFoto;
+
+    /*
+     * Además de la foto, hay que haber elegido un método de
+     * asistencia — y si es PDF, tener el archivo y el número de
+     * asistentes. El método QR no exige ningún archivo aquí: la
+     * asistencia se firma aparte, por celular.
+     */
+    const metodo=document.getElementById("metodoAsistencia")?.value||"";
+    let okAsistencia=metodo==="QR";
+    if(metodo==="PDF"){
+        const pdf=document.getElementById("archivoAsistenciaPDF")?.files?.[0];
+        const numero=Number(document.getElementById("numeroAsistentesPDF")?.value||0);
+        const yaSubido=!!document.getElementById("asistenciaPdfUrl")?.value;
+        const okPdfArchivo=(pdf && pdf.type==="application/pdf" && pdf.size<=15*1024*1024) || (!pdf && yaSubido);
+        okAsistencia=okPdfArchivo && numero>0;
+        const estadoPdfEl=document.getElementById("estadoAsistenciaPDF");
+        if(estadoPdfEl){
+            if(pdf){
+                pintarEstadoArchivo("estadoAsistenciaPDF", pdf, pdf.type==="application/pdf"&&pdf.size<=15*1024*1024, "PDF válido.", "Seleccione un archivo PDF de máximo 15 MB.");
+            }else if(yaSubido){
+                estadoPdfEl.textContent="✓ Ya hay un PDF de asistencia registrado. Si sube uno nuevo, lo reemplazará.";
+                estadoPdfEl.className="estadoArchivo ok";
+            }else{
+                estadoPdfEl.textContent="";
+                estadoPdfEl.className="estadoArchivo";
+            }
+        }
+    }
+
+    if(subir) subir.disabled=!(okFoto && okAsistencia);
 
     /*
      * Vista previa inmediata (antes de subir): se muestra debajo del
@@ -7276,7 +7534,8 @@ function ocultarOverlayProgreso_(sinCompletar){
 async function subirEvidenciasFEM(){
     const foto=document.getElementById("archivoFoto")?.files?.[0];
     const btn=document.getElementById("btnSubirEvidencias");
-    if(!foto){actualizarEstadoEvidencias();return;}
+    const metodoAsistenciaElegido=document.getElementById("metodoAsistencia")?.value||"";
+    if(!foto || !metodoAsistenciaElegido){actualizarEstadoEvidencias();return;}
     btn.disabled=true; btn.textContent="Registrando…";
     mostrarOverlayProgreso_(
         "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3Z200YzZoNnpwajM5b3N5dWlob3IwZHdkeDc3bnlwMnlkbWl5OGRqciZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/cV4LUYbSFpDrIdOmIh/giphy.gif",
@@ -7342,10 +7601,33 @@ async function subirEvidenciasFEM(){
         document.getElementById("evidenciaFotoId").value=resultado.foto.id;
         if(document.getElementById("evidenciaFotoFecha")) document.getElementById("evidenciaFotoFecha").value=new Date().toISOString();
         actualizarPreviaFotoEvidencia_();
-        const campos=["evidenciaFotoUrl","evidenciaFotoId","evidenciaFotoFecha"];
+
+        /*
+         * Si el método elegido fue PDF, subirlo también (la foto ya
+         * quedó registrada arriba, independientemente del método de
+         * asistencia).
+         */
+        let mensajeFinal="✓ Fotografía registrada. La asistencia se sigue firmando por QR — puede continuar a la plenaria mientras tanto.";
+        if(metodoAsistenciaElegido==="PDF"){
+            const archivoPdf=document.getElementById("archivoAsistenciaPDF")?.files?.[0];
+            if(archivoPdf){
+                btn.textContent="Subiendo PDF de asistencia…";
+                const pdfData=await leerArchivoDataURL(archivoPdf);
+                const resultadoPdf=await new Promise((resolve,reject)=>{
+                    google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)
+                        .subirAsistenciaPDF(datos.idForo, pdfData, archivoPdf.name, datos);
+                });
+                if(!resultadoPdf || !resultadoPdf.ok) throw new Error(resultadoPdf?.mensaje||"No fue posible subir el PDF de asistencia.");
+                document.getElementById("asistenciaPdfUrl").value=resultadoPdf.pdf.url;
+                document.getElementById("asistenciaPdfId").value=resultadoPdf.pdf.id;
+            }
+            mensajeFinal="✓ Fotografía y PDF de asistencia registrados. Puede continuar a la plenaria.";
+        }
+
+        const campos=["evidenciaFotoUrl","evidenciaFotoId","evidenciaFotoFecha","metodoAsistencia","asistenciaPdfUrl","asistenciaPdfId","numeroAsistentesPDF"];
         campos.forEach(id=>document.getElementById(id)?.dispatchEvent(new Event("change")));
         guardarBorradorLocal({silencioso:true});
-        mostrarMensajeEvidencias("✓ Fotografía registrada. La asistencia se sigue firmando por QR — puede continuar a la plenaria mientras tanto.");
+        mostrarMensajeEvidencias(mensajeFinal);
         document.getElementById("btnContinuarDesdeEvidencias").disabled=false;
         btn.textContent="✓ Evidencias registradas";
         ocultarOverlayProgreso_();

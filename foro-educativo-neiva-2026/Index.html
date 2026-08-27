@@ -2249,22 +2249,63 @@ Aspectos para orientar la discusión
         <h3>¿Qué haremos?</h3>
         <p>Registraremos las evidencias del desarrollo del Foro antes de iniciar la plenaria. En esta etapa podremos revisar todas las respuestas, añadir o quitar información y dejar listos los soportes documentales del informe institucional.</p>
         <h3 style="margin-top:18px;">¿Qué debemos registrar?</h3>
-        <p>Una fotografía horizontal HD con la mayor cantidad posible de participantes trabajando, y la asistencia de la jornada: cada participante la firma escaneando con su celular el código QR de abajo, en un solo momento de la sesión, completando institución, nombre, cargo, número de documento, correo y teléfono.</p>
+        <p>Una fotografía horizontal HD con la mayor cantidad posible de participantes trabajando, y la asistencia de la jornada, por uno de los dos métodos que se explican abajo.</p>
         <p style="margin-top:12px;">La fotografía debe pesar máximo <strong>10 MB</strong> y ser JPG o PNG.</p>
     </div>
 
-    <div class="avisoAsistenciaQR">
+    <!-- AVISO GRANDE: los dos métodos de asistencia -->
+    <div class="avisoMetodoAsistencia">
+        <p class="avisoMetodoAsistenciaTitulo">
+            📢 Puede enviar las asistencias del Foro Educativo IE <strong id="nombreIEAvisoAsistencia1">—</strong> usando uno de los dos métodos: por un <strong>código QR o link de asistencia</strong> (link debajo del QR), o <strong>subiendo las asistencias escaneadas</strong>. Ambas hasta el <strong>4 de septiembre</strong>.
+        </p>
+        <p class="avisoMetodoAsistenciaPequeno">
+            Al subir la asistencia en PDF debe escribirse el número de asistentes, pero <strong>no se generará el análisis demográfico</strong> de los participantes de la IE <strong id="nombreIEAvisoAsistencia2">—</strong> en el informe final. Si el envío se hace por código QR, se generará automáticamente un apartado demográfico de todos los participantes y otro sobre las fortalezas y oportunidades de mejora percibidas por la comunidad educativa participante.
+        </p>
+    </div>
+
+    <!-- SELECTOR DE MÉTODO: un solo clic activa uno u otro -->
+    <div id="selectorMetodoAsistencia" class="selectorMetodoAsistencia">
+        <button type="button" id="btnElegirMetodoQR" class="tarjetaMetodoAsistencia">
+            <span class="tarjetaMetodoIcono">📱</span>
+            <span class="tarjetaMetodoTitulo">Código QR / link</span>
+            <span class="tarjetaMetodoDesc">Cada asistente firma desde su propio celular.</span>
+        </button>
+        <button type="button" id="btnElegirMetodoPDF" class="tarjetaMetodoAsistencia">
+            <span class="tarjetaMetodoIcono">📄</span>
+            <span class="tarjetaMetodoTitulo">Subir PDF escaneado</span>
+            <span class="tarjetaMetodoDesc">Suba el listado de asistencia ya firmado en papel.</span>
+        </button>
+    </div>
+    <button type="button" id="btnCambiarMetodoAsistencia" class="botonSecundarioFEM" style="display:none;">← Cambiar método de asistencia</button>
+
+    <div class="avisoAsistenciaQR" id="avisoAsistenciaQR" style="display:none;">
         ℹ️ Mientras se va completando la asistencia por código QR, ya puede continuar con la revisión de las respuestas, la sesión de plenaria y el envío del formulario — no es necesario esperar a que todos hayan firmado.
     </div>
 
     <div class="evidenciasGrid">
-        <div class="evidenciaCard">
+        <div class="evidenciaCard" id="tarjetaMetodoQR" style="display:none;">
             <h3>📱 Firma de asistencia por QR</h3>
             <p class="textoAyudaQR">Cada asistente escanea este código con su celular (se abre en una pestaña aparte) y completa: Nombre completo, sexo, edad, cargo en la IE, rol dentro del Foro, número de documento, correo electrónico y teléfono.</p>
             <img id="qrAsistencia" alt="Código QR para firmar asistencia" class="imagenQrAsistencia">
-            <button type="button" id="btnQrPantallaCompleta" class="botonSecundarioFEM">⛶ Ver QR en pantalla completa</button>
+            <div class="accionesQR">
+                <button type="button" id="btnQrPantallaCompleta" class="botonSecundarioFEM">⛶ Pantalla completa</button>
+                <button type="button" id="btnDescargarQR" class="botonSecundarioFEM">⬇️ Descargar QR</button>
+            </div>
+            <p class="linkAsistenciaTexto">Link de asistencia: <a id="linkAsistenciaQR" href="#" target="_blank" rel="noopener"></a></p>
             <div id="conteoCaracterizacionQR" class="estadoArchivo">Cargando…</div>
             <div id="conteoAsistentesQR" class="estadoArchivo">Cargando…</div>
+            <button type="button" id="btnVerFirmasEnVivoEvidencias" class="botonSecundarioFEM">👁 Ver quiénes han firmado (en vivo)</button>
+        </div>
+        <div class="evidenciaCard" id="tarjetaMetodoPDF" style="display:none;">
+            <h3>📄 Asistencia escaneada en PDF</h3>
+            <p class="textoAyudaQR">Suba, en un solo archivo PDF, el listado de asistencia firmado en papel durante la jornada.</p>
+            <input type="file" id="archivoAsistenciaPDF" accept="application/pdf">
+            <div id="estadoAsistenciaPDF" class="estadoArchivo"></div>
+            <div class="grupo">
+                <label for="numeroAsistentesPDF">Número de asistentes registrados en el PDF *</label>
+                <input type="number" id="numeroAsistentesPDF" min="1" inputmode="numeric">
+            </div>
+            <p class="avisoMetodoAsistenciaPequeno" style="margin:0;">No se generará el análisis demográfico ni de percepción en el informe final con este método.</p>
         </div>
         <div class="evidenciaCard">
             <h3>📷 Fotografía horizontal HD</h3>
@@ -2279,6 +2320,9 @@ Aspectos para orientar la discusión
     <input type="hidden" id="evidenciaFotoUrl">
     <input type="hidden" id="evidenciaFotoId">
     <input type="hidden" id="evidenciaFotoFecha">
+    <input type="hidden" id="metodoAsistencia">
+    <input type="hidden" id="asistenciaPdfUrl">
+    <input type="hidden" id="asistenciaPdfId">
 
     <div class="botones">
         <button type="button" id="btnVolverSesion3DesdeEvidencias">← Anterior</button>
@@ -2318,6 +2362,9 @@ Aspectos para orientar la discusión
         <h2 class="tituloPrincipal">Informe ejecutivo del FEM 2026</h2>
         <h3 id="tituloInformeFinal"></h3>
         <p>La plenaria ha terminado. El informe ejecutivo reúne la caracterización institucional, la participación y las respuestas definitivas de las tres sesiones.</p>
+        <div id="conteoCaracterizacionQRFinal" class="estadoArchivo"></div>
+        <div id="conteoAsistentesQRFinal" class="estadoArchivo"></div>
+        <button type="button" id="btnVerFirmasEnVivoFinal" class="botonSecundarioFEM">👁 Ver quiénes han firmado (en vivo)</button>
         <div class="finalNavegacion">
             <button type="button" id="btnVolverEvidenciasDesdeFinal" class="botonSecundarioFEM">← Anterior (ver fotografía y QR de asistencia)</button>
         </div>
@@ -2469,6 +2516,17 @@ Aspectos para orientar la discusión
         </ul>
         <p>Se solicitarán al finalizar la sesión, antes de iniciar la plenaria.</p>
                <button type="button" id="btnAceptarRecordatorioSesion3">Entendido, comenzar</button>
+    </div>
+</div>
+
+<!-- MODAL: FIRMAS DE ASISTENCIA EN VIVO -->
+<div id="modalFirmasEnVivo" class="modalFEM" aria-hidden="true">
+    <div class="modalFEMContenido modalFirmasEnVivoContenido" id="modalFirmasEnVivoContenido">
+        <button type="button" id="btnCerrarFirmasEnVivo" class="modalCerrar">×</button>
+        <button type="button" id="btnFirmasEnVivoPantallaCompleta" class="botonSecundarioFEM btnFirmasEnVivoPantallaCompleta" title="Ver en pantalla completa">👁 Pantalla completa</button>
+        <h2>👁 Firmas de asistencia en vivo</h2>
+        <p id="resumenFirmasEnVivo" class="resumenFirmasEnVivo">Cargando…</p>
+        <div id="listaFirmasEnVivo" class="listaFirmasEnVivo"></div>
     </div>
 </div>
 
