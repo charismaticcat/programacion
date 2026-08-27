@@ -1179,9 +1179,12 @@ function obtenerCabecerasAvancesForo() {
     "S3_P3",
     "S3_P4",
 
-    // Sesión 4: opcional, línea temática adicional propia de la IE.
-    "S4_P1",
-    "S4_P2",
+    // Sesión 4 / "Sesión Propia": opcional, línea temática adicional
+    // propia de la IE. SESION_PROPIA_LINEAS_JSON guarda el arreglo
+    // completo de líneas temáticas con sus preguntas y respuestas.
+    "SESION_PROPIA_TITULO",
+    "SESION_PROPIA_OBJETIVO",
+    "SESION_PROPIA_LINEAS_JSON",
 
     "S1_ENVIADA",
     "S2_ENVIADA",
@@ -1555,11 +1558,14 @@ function extraerRespuestasSesiones_(datos) {
     S3_P4:
       obtenerCampoFormulario_(campos, "respuestaSesion3Pregunta4"),
 
-    // Sesión 4: opcional, línea temática adicional propia de la IE.
-    S4_P1:
-      obtenerCampoFormulario_(campos, "respuestaSesion4Pregunta1"),
-    S4_P2:
-      obtenerCampoFormulario_(campos, "respuestaSesion4Pregunta2")
+    // Sesión 4 / "Sesión Propia": opcional, línea temática adicional
+    // propia de la IE.
+    SESION_PROPIA_TITULO:
+      obtenerCampoFormulario_(campos, "tituloSesionPropia"),
+    SESION_PROPIA_OBJETIVO:
+      obtenerCampoFormulario_(campos, "objetivoSesionPropia"),
+    SESION_PROPIA_LINEAS_JSON:
+      obtenerCampoFormulario_(campos, "sesionPropiaLineasJSON")
 
   };
 
@@ -4994,7 +5000,7 @@ const DIFICULTADES_ASISTENCIA_QR=["Bajo logro de aprendizajes fundamentales.","B
 const TEXTO_CONSENTIMIENTO_ASISTENCIA_QR=
 "CONSENTIMIENTO INFORMADO PARA EL TRATAMIENTO DE DATOS PERSONALES\n\n"+
 "AVISO INSTITUCIONAL\n\n"+
-"Este aplicativo tiene carácter institucional y oficial: es una iniciativa del equipo de Calidad Educativa de la Secretaría de Educación de Neiva (SEM Neiva), de diseño propio y exclusivo para la SEM Neiva, desarrollado por un integrante del equipo de Calidad Educativa sin ningún costo para la entidad — no hace parte de ningún contrato con prestadores de servicio externos. La Secretaría de Educación de Neiva se reserva el derecho de reclamación de los derechos de autor de este aplicativo web. Toda la lógica del código base no podrá ser replicada ni modificada bajo ninguna circunstancia.\n\n"+
+"Este aplicativo tiene carácter institucional y oficial: es una iniciativa del equipo de Calidad Educativa de la Secretaría de Educación de Neiva (SEM Neiva), de diseño propio y exclusivo para la SEM Neiva, desarrollado por el equipo de Calidad Educativa de la SEM Neiva sin ningún costo para la entidad — no hace parte de ningún contrato con prestadores de servicio externos. La Secretaría de Educación de Neiva se reserva el derecho de reclamación de los derechos de autor de este aplicativo web. Toda la lógica del código base no podrá ser replicada ni modificada bajo ninguna circunstancia.\n\n"+
 "En el marco del Foro Educativo Institucional de Neiva 2026 — FEM 2026, la Secretaría de Educación de Neiva (SEM Neiva) y la Institución Educativa {{IE}}, en el ámbito de sus respectivas competencias y de conformidad con la normativa colombiana aplicable sobre protección de datos personales, podrán realizar el tratamiento de los datos personales suministrados mediante este formulario de asistencia.\n\n"+
 "Los datos serán tratados exclusivamente para las finalidades informadas en este formulario y de acuerdo con los principios, derechos y condiciones establecidos en la normativa vigente sobre protección de datos personales.\n\n"+
 "¿PARA QUÉ SE UTILIZARÁN MIS DATOS?\n\n"+
@@ -5989,6 +5995,93 @@ function subirAsistenciaPDF(idForo,pdfData,pdfName,datos){
 
 function construirParrafoSesion_(titulo,contenido){return titulo+"\n\n"+String(contenido||"");}
 
+/*
+ * Lee la Sesión Propia (Sesión 4) desde datos.campos: título,
+ * objetivo, y el JSON de líneas temáticas (cada una con sus
+ * preguntas/respuestas). Nunca lanza error — un JSON inválido o
+ * ausente se trata como "sin líneas".
+ */
+function obtenerSesionPropia_(datos){
+  const campos=datos?.campos||{};
+  const titulo=String(campos.tituloSesionPropia?.valor||"").trim();
+  const objetivo=String(campos.objetivoSesionPropia?.valor||"").trim();
+  let lineas=[];
+  try{
+    const parsed=JSON.parse(campos.sesionPropiaLineasJSON?.valor||"[]");
+    if(Array.isArray(parsed)) lineas=parsed;
+  }catch(e){ lineas=[]; }
+  // Solo cuentan las líneas con título o al menos una pregunta con texto.
+  lineas=lineas.filter(function(l){
+    return String(l?.titulo||"").trim() || (Array.isArray(l?.preguntas) && l.preguntas.some(function(p){ return String(p?.texto||"").trim(); }));
+  });
+  const tieneContenido=!!(titulo || objetivo || lineas.length);
+  return {titulo:titulo, objetivo:objetivo, lineas:lineas, tieneContenido:tieneContenido};
+}
+
+/*
+ * Agrega al informe ejecutivo la "Sesión Propia creada por la IE
+ * ___" (Sesión 4, opcional) — solo si hay contenido real. Incluye el
+ * escudo de la IE junto al título (tabla sin bordes, mismo recurso
+ * usado en el encabezado del documento), el subtítulo explicando que
+ * es autónoma y no entra en las conclusiones del foro comunitario, y
+ * el título/objetivo/líneas temáticas/preguntas tal como los creó la
+ * institución.
+ */
+function agregarSesionPropiaAlInforme_(body, datos, ieSinPrefijo, estilos){
+  const sesionPropia=obtenerSesionPropia_(datos);
+  if(!sesionPropia.tieneContenido) return;
+
+  const VERDE=estilos.VERDE, GRIS_TEXTO=estilos.GRIS_TEXTO;
+
+  body.appendPageBreak();
+
+  const logoIdIE=obtenerLogoIdPorNombreIE_(datos.institucion||"");
+  const tablaTitulo=body.appendTable([["",""]]);
+  tablaTitulo.setBorderWidth(0);
+  const celdaTexto=tablaTitulo.getCell(0,0);
+  const pTitulo=celdaTexto.getChild(0).asParagraph();
+  pTitulo.setText("Sesión Propia creada por la IE "+ieSinPrefijo);
+  pTitulo.setHeading(DocumentApp.ParagraphHeading.HEADING1);
+  pTitulo.editAsText().setForegroundColor(VERDE).setBold(true);
+  const celdaEscudo=tablaTitulo.getCell(0,1);
+  celdaEscudo.setWidth(50);
+  if(logoIdIE){
+    try{ celdaEscudo.getChild(0).asParagraph().setAlignment(DocumentApp.HorizontalAlignment.RIGHT).appendInlineImage(DriveApp.getFileById(logoIdIE).getBlob()).setWidth(40).setHeight(40); }catch(e){}
+  }
+
+  const subtitulo=body.appendParagraph(
+    "Las respuestas de esta sesión corresponden a las necesidades y realidades de la IE "+ieSinPrefijo+
+    (sesionPropia.objetivo ? " y se hicieron con el objetivo de "+sesionPropia.objetivo : "")+
+    ", de manera autónoma. Esta sesión es un complemento institucional y no se incluye en las conclusiones finales del foro comunitario."
+  );
+  subtitulo.editAsText().setForegroundColor(GRIS_TEXTO).setItalic(true);
+
+  if(sesionPropia.titulo){
+    const pTituloSesion=body.appendParagraph(sesionPropia.titulo);
+    pTituloSesion.editAsText().setBold(true).setFontSize(14).setForegroundColor(GRIS_TEXTO);
+  }
+  if(sesionPropia.objetivo){
+    const pObjetivoLabel=body.appendParagraph("Objetivo de la sesión");
+    pObjetivoLabel.editAsText().setBold(true).setForegroundColor(VERDE);
+    const pObjetivo=body.appendParagraph(sesionPropia.objetivo);
+    pObjetivo.editAsText().setForegroundColor(GRIS_TEXTO);
+  }
+
+  sesionPropia.lineas.forEach(function(linea, li){
+    const pLinea=body.appendParagraph("Línea temática "+(li+1)+(linea.titulo?": "+linea.titulo:""));
+    pLinea.setHeading(DocumentApp.ParagraphHeading.HEADING2);
+    pLinea.editAsText().setForegroundColor(VERDE).setBold(true);
+
+    (linea.preguntas||[]).forEach(function(pregunta, pi){
+      if(!String(pregunta?.texto||"").trim()) return;
+      const pPregunta=body.appendParagraph("Pregunta "+(pi+1)+": "+pregunta.texto);
+      pPregunta.editAsText().setBold(true).setForegroundColor(GRIS_TEXTO);
+      const pRespuesta=body.appendParagraph("Respuesta: "+(pregunta.respuesta||"—"));
+      pRespuesta.editAsText().setForegroundColor(GRIS_TEXTO);
+    });
+  });
+}
+
 
 function generarInformeFEM(idForo,datosCliente){
   const lock=LockService.getScriptLock(); lock.waitLock(30000);
@@ -6315,20 +6408,14 @@ function generarInformeFEM(idForo,datosCliente){
       ]}
     ];
 
-    // Sesión 4 es opcional: solo se incluye en el informe si la
-    // institución eligió crear su propia línea temática adicional.
-    if(c.respuestaSesion4Pregunta1?.valor){
-      grupos.push({n:"Sesión 4 (línea temática adicional propia de la IE)",items:[
-        ["Descripción de la línea temática propuesta o ya desarrollada por la institución",c.respuestaSesion4Pregunta1?.valor||""],
-        ["Hallazgos, desarrollos o acciones ya adelantadas en esta línea (opcional)",c.respuestaSesion4Pregunta2?.valor||"—"]
-      ]});
-    }
-
     grupos.forEach((g,gi)=>{
       encabezadoSeccion_(g.n);
       tablaClaveValor_(g.items);
       if(gi<grupos.length-1)body.appendPageBreak();
     });
+
+    try{ agregarSesionPropiaAlInforme_(body, datos, nombreIESinPrefijoInstitucional_(datos.institucion||""), {VERDE,GRIS_TEXTO}); }
+    catch(errorSesionPropia){ Logger.log("No fue posible agregar la Sesión Propia al informe: "+errorSesionPropia.message); }
 
     /*
      * Sin salto de página forzado: si queda espacio en la última
@@ -6336,7 +6423,10 @@ function generarInformeFEM(idForo,datosCliente){
      * mismo en vez de empezar siempre una hoja nueva.
      */
     encabezadoSeccion_("Evidencias de la jornada");
-    const pEv=body.appendParagraph("La asistencia se firmó por código QR durante la jornada; el listado completo se incluye a continuación.");
+    const textoEvidenciasAsistencia=metodoAsistenciaInforme==="PDF"
+      ? "La asistencia se registró mediante un PDF escaneado, incluido más adelante."
+      : "La asistencia se firmó de manera digital (código QR/link) durante la jornada; el listado completo se incluye a continuación.";
+    const pEv=body.appendParagraph(textoEvidenciasAsistencia);
     pEv.editAsText().setForegroundColor(GRIS_TEXTO);
 
     /*
@@ -6357,7 +6447,7 @@ function generarInformeFEM(idForo,datosCliente){
           const factor=anchoMax/anchoOriginal;
           imagenInsertada.setWidth(anchoMax).setHeight(Math.round(altoOriginal*factor));
         }
-        const pieFoto=body.appendParagraph(construirPieFotoEvidencia_(nombreIESinPrefijoInstitucional_(ieTitulo), fotoFile.getDateCreated()));
+        const pieFoto=body.appendParagraph(construirPieFotoEvidencia_(nombreIESinPrefijoInstitucional_(datos.institucion||""), fotoFile.getDateCreated()));
         pieFoto.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
         pieFoto.editAsText().setForegroundColor(GRIS_TEXTO).setItalic(true).setFontSize(10);
       }catch(errorFoto){

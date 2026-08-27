@@ -993,6 +993,14 @@ button:disabled{
     margin-bottom:var(--space-5);
 }
 
+.logoIEAcceso{
+    display:block;
+    width:72px;
+    height:72px;
+    object-fit:contain;
+    margin:0 auto var(--space-4);
+}
+
 .tituloAccesoFEM{
 
     font-size:14px;
@@ -1855,6 +1863,126 @@ SESIÓN 1
     border-color:var(--color-primary);
     background:rgba(11,106,68,.05);
 
+}
+
+/* =====================================================
+   TRANSICIÓN ENTRE SESIONES — escudo de la IE
+   ===================================================== */
+.transicionEscudoIE{
+    position:fixed;
+    inset:0;
+    z-index:9500;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(255,255,255,.94);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .5s ease;
+}
+.transicionEscudoIE.visible{ opacity:1; }
+.transicionEscudoImg{
+    width:180px;
+    height:180px;
+    object-fit:contain;
+    filter:drop-shadow(0 10px 24px rgba(0,0,0,.18));
+}
+
+/* =====================================================
+   SESIÓN 4 — PREGUNTA PREVIA Y "SESIÓN PROPIA"
+   ===================================================== */
+.tarjetaPreguntaSesion4{ text-align:center; }
+.escudoPreguntaSesion4{
+    width:96px;
+    height:96px;
+    object-fit:contain;
+    margin:0 auto 16px;
+    display:block;
+}
+.preguntaSesion4Texto{ font-weight:700; color:var(--color-primary); font-size:16px; }
+
+.bloqueSesionPropia{
+    background:var(--gris-fondo,#F7F8FA);
+    border:1px solid var(--color-border);
+    border-radius:var(--radio,12px);
+    padding:20px 22px;
+    margin:18px 0;
+}
+.labelSesionPropia{
+    display:block;
+    font-weight:700;
+    color:var(--verde-neiva,var(--color-primary));
+    margin-bottom:8px;
+    font-size:14px;
+}
+.bloqueSesionPropia input[type="text"],
+.bloqueSesionPropia textarea{
+    width:100%;
+    box-sizing:border-box;
+    padding:12px 14px;
+    font-size:15px;
+    font-family:inherit;
+    border:1px solid var(--gris-borde,#DADCE0);
+    border-radius:10px;
+    resize:vertical;
+}
+.ayudaSesionPropia{
+    font-size:13px;
+    color:var(--gris-texto,#4A4A4A);
+    line-height:1.6;
+    margin:10px 0 0;
+}
+.campoConError{ border-color:#C62828 !important; }
+#errorObjetivoSesionPropia{ color:#C62828; font-weight:600; margin-top:8px; }
+
+.tituloLineasTematicas{ color:var(--verde-neiva,var(--color-primary)); font-size:17px; margin-bottom:10px; }
+
+.tarjetaLineaTematicaPropia{
+    background:#fff;
+    border:1px solid var(--gris-borde,#DADCE0);
+    border-radius:12px;
+    padding:18px 20px;
+    margin-bottom:16px;
+}
+.encabezadoLineaTematicaPropia .inputTituloLinea{
+    font-weight:700;
+}
+.listaPreguntasLinea{ margin-top:14px; }
+
+.bloquePreguntaPropia{
+    background:var(--gris-fondo,#F7F8FA);
+    border-left:4px solid var(--gris-borde,#DADCE0);
+    border-radius:8px;
+    padding:14px 16px;
+    margin-bottom:14px;
+    transition:border-color .2s ease, background-color .2s ease;
+}
+.bloquePreguntaPropia.terminada{
+    border-left-color:var(--verde-neiva,#0B6A44);
+    background:#EAF6EF;
+}
+.bloquePreguntaPropia textarea:disabled{
+    background:transparent;
+    color:var(--gris-texto,#4A4A4A);
+    opacity:1;
+    -webkit-text-fill-color:var(--gris-texto,#4A4A4A);
+}
+
+.btnAgregarRespuestaPregunta,
+.btnRespuestaTerminada,
+.btnAgregarPreguntaLinea{
+    width:auto;
+    padding:9px 16px;
+    font-size:13.5px;
+    margin-top:8px;
+}
+.btnRespuestaTerminada{ background:var(--verde-neiva,var(--color-primary)); }
+.okRespuestaTerminada{
+    display:inline-block;
+    margin-top:8px;
+    color:var(--verde-neiva,#0B6A44);
+    font-weight:700;
+    font-size:14px;
 }
 
 .accionOpcionalOculta{
@@ -3657,6 +3785,11 @@ Su ancho ya queda acotado por .cajaTexto > * (--reading-width).
 
 .plenariaPagina.evidenciaInforme p{margin:10px 0;font-size:16px;}
 .plenariaPagina.evidenciaInforme a{color:var(--verde-neiva);font-weight:600;}
+
+.sesionPropiaPlenariaPagina{border-left-color:var(--amarillo-neiva,#F4B400);}
+.sesionPropiaSubtituloPlenaria{font-style:italic;color:var(--gris-texto,#4A4A4A);font-size:14px;}
+.sesionPropiaPreguntaPlenaria{font-weight:600;margin-bottom:2px;}
+.sesionPropiaRespuestaPlenaria{margin-top:0;margin-bottom:14px;color:var(--gris-texto,#4A4A4A);}
 
 .plenariaFooter{
     display:flex;

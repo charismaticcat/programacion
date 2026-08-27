@@ -89,6 +89,14 @@ CONTENEDOR PRINCIPAL
             Acceso al Foro Educativo Institucional
         </h1>
 
+        <img
+            id="logoIEAcceso"
+            class="logoIEAcceso"
+            src=""
+            alt="Logo de la institución educativa"
+            style="display:none;"
+        >
+
         <div
             id="tituloAccesoIE"
             class="tituloAccesoFEM"
@@ -337,7 +345,7 @@ CONTENEDOR PRINCIPAL
             <li>Información necesaria para el desarrollo del Foro.</li>
             <li>Número de participantes por estamento.</li>
             <li>Fotografía horizontal HD del trabajo de la comunidad educativa.</li>
-            <li>Un celular por asistente para firmar la asistencia escaneando un código QR.</li>
+            <li>Para la asistencia: un celular por asistente (firma digital escaneando un código QR) o el listado de asistencia firmado en papel para escanear y subir en PDF — solo uno de los dos métodos es válido.</li>
             <li>Un espacio adecuado para el diálogo y la construcción colectiva.</li>
         </ul>
 
@@ -397,7 +405,7 @@ CONTENEDOR PRINCIPAL
             <h3>🏛️ Carácter institucional</h3>
 
             <p>
-                Este aplicativo tiene carácter <b>institucional y oficial</b>: es una iniciativa del equipo de Calidad Educativa de la Secretaría de Educación de Neiva (SEM Neiva), de diseño propio y exclusivo para la SEM Neiva, desarrollado por un integrante del equipo de Calidad Educativa sin ningún costo para la entidad — <b>no hace parte de ningún contrato con prestadores de servicio externos</b>. La Secretaría de Educación de Neiva se reserva el derecho de reclamación de los derechos de autor de este aplicativo web. Toda la lógica del código base no podrá ser replicada ni modificada bajo ninguna circunstancia.
+                Este aplicativo tiene carácter <b>institucional y oficial</b>: es una iniciativa del equipo de Calidad Educativa de la Secretaría de Educación de Neiva (SEM Neiva), de diseño propio y exclusivo para la SEM Neiva, desarrollado por el equipo de Calidad Educativa de la SEM Neiva sin ningún costo para la entidad — <b>no hace parte de ningún contrato con prestadores de servicio externos</b>. La Secretaría de Educación de Neiva se reserva el derecho de reclamación de los derechos de autor de este aplicativo web. Toda la lógica del código base no podrá ser replicada ni modificada bajo ninguna circunstancia.
             </p>
 
         </div>
@@ -466,10 +474,10 @@ CONTENEDOR PRINCIPAL
             Al finalizar el diligenciamiento de este instrumento, agradecemos su valiosa colaboración cargando los siguientes archivos. Estos aportes contribuirán a fortalecer la sistematización, la memoria institucional y la consolidación de los resultados del <b>Foro Educativo Institucional – Neiva 2026</b>.
         </p>
 
-        <h3>📱 Asistencia por código QR</h3>
+        <h3>📱 Asistencia digital o en PDF</h3>
 
         <p>
-            Con el propósito de consolidar las <b>estadísticas de participación</b> y apoyar los procesos de análisis, sistematización y elaboración de los informes generales del Foro Educativo, cada asistente firma la asistencia de la jornada escaneando con su celular un código QR, completando institución, nombre completo, cargo, número de documento, correo y teléfono.
+            Con el propósito de consolidar las <b>estadísticas de participación</b> y apoyar los procesos de análisis, sistematización y elaboración de los informes generales del Foro Educativo, la asistencia de la jornada puede firmarse de <b>manera digital</b> (cada asistente escanea con su celular un código QR o usa el link de asistencia, completando institución, nombre completo, cargo, número de documento, correo y teléfono) o registrarse <b>subiendo el listado firmado en papel en formato PDF</b>. Solo uno de los dos métodos es válido al momento de registrar la asistencia.
         </p>
 
         <p>
@@ -500,7 +508,7 @@ CONTENEDOR PRINCIPAL
 
             <ul>
 
-                <li>Un celular por asistente para <b>firmar la asistencia escaneando un código QR</b>.</li>
+                <li>Asistencia firmada de <b>manera digital</b> (código QR/link) o el listado <b>firmado en papel escaneado en PDF</b> — solo uno de los dos métodos es válido.</li>
 
                 <li><b>Una fotografía de la sesión de plenaria final</b>, en <b>formato horizontal</b> y con <b>calidad HD (alta resolución)</b>.</li>
 
@@ -2245,93 +2253,69 @@ Aspectos para orientar la discusión
 <!-- =================== PREGUNTA SESIÓN 4 (OPCIONAL) =================== -->
 <section id="pantallaPreguntaSesion4" class="pantalla">
     <div class="tarjetaObjetivo tarjetaPreguntaSesion4">
+        <img id="escudoPreguntaSesion4" class="escudoPreguntaSesion4" src="" alt="Escudo de la institución educativa">
         <h2 class="tituloPrincipal">Sesión 4 (opcional)</h2>
         <p>
-            Además de las tres sesiones anteriores, la institución educativa puede registrar hallazgos y desarrollos propios de la IE <strong id="nombreIEPreguntaSesion4">—</strong> y consignarlos en este espacio: si existe una nueva línea de trabajo que quieran proponer, o que ya se haya desarrollado institucionalmente y no esté contemplada en las sesiones anteriores, pueden crearla aquí.
+            Esta es una <strong>alternativa complementaria</strong> a las sesiones obligatorias 1, 2 y 3 — es opcional hacerla, y sirve para que puedan escribir las realidades propias de la IE <strong class="nombreIESesion4">—</strong>. Las respuestas serán consignadas en el informe final de la institución, pero no se incluirán en las conclusiones finales para el foro comunitario.
         </p>
         <p class="preguntaSesion4Texto">
-            ❓ ¿Desean crear una nueva línea temática adicional propia de las realidades institucionales a las anteriormente mencionadas?
+            Pueden omitir o continuar con la Sesión 4 (opcional).
         </p>
         <div class="botones">
-            <button type="button" id="btnSesion4No" class="botonSecundarioFEM">No, continuar a Evidencias</button>
-            <button type="button" id="btnSesion4Si">Sí, crear nueva línea temática</button>
+            <button type="button" id="btnSesion4No" class="botonSecundarioFEM">Omitir → siguiente página</button>
+            <button type="button" id="btnSesion4Si">Continuar con Sesión 4</button>
         </div>
     </div>
 </section>
 
-<!-- =================== SESIÓN 4 (OPCIONAL) =================== -->
+<!-- =================== SESIÓN 4 / SESIÓN PROPIA (OPCIONAL) =================== -->
 <section id="pantallaSesion4" class="pantalla">
 
-    <h2 class="tituloPrincipal">Cuarta Sesión (opcional)</h2>
-    <h3 class="subtitulo">Línea temática adicional propia de la institución educativa</h3>
+    <h2 class="tituloPrincipal">Sesión Propia de la IE <span class="nombreIESesion4">—</span></h2>
+    <h3 class="subtitulo">Complemento institucional — no se incluye en las conclusiones del foro comunitario</h3>
 
     <div class="tarjetaObjetivo">
-        <h3>🎯 OBJETIVO</h3>
-        <p>
-            Registrar hallazgos, desarrollos o una nueva línea de trabajo propia de las realidades institucionales de la IE, que no esté contemplada en las tres sesiones anteriores.
-        </p>
+        <h3>🎯 ¿Qué es esta sesión?</h3>
+        <p>Espacio para registrar hallazgos, desarrollos propios o una nueva línea temática que la institución quiera proponer, o que ya haya desarrollado, adicional a las tres sesiones anteriores.</p>
     </div>
 
-    <div class="bloqueSesion3Pregunta">
-        <div class="tarjetaPregunta">
-            <h3>❓ PREGUNTA 1</h3>
-            <p class="textoPregunta">
-                Describan la nueva línea temática que proponen, o que la institución ya haya desarrollado.
-            </p>
+    <!-- TÍTULO DE LA SESIÓN -->
+    <div class="bloqueSesionPropia">
+        <div id="tituloSesionPropiaVacio">
+            <button type="button" id="btnAgregarTituloSesionPropia" class="botonAccionOpcional">+ Título de la sesión</button>
         </div>
-        <div class="contenedorTrabajoSesion">
-            <div class="panelGuia">
-                <h3>Orientaciones</h3>
-                <ul>
-                    <li>¿En qué consiste la línea temática o el hallazgo?</li>
-                    <li>¿Por qué es relevante para la institución?</li>
-                    <li>¿Desde cuándo se viene trabajando, si ya existe?</li>
-                </ul>
-            </div>
-            <div class="panelRespuesta">
-                <textarea id="respuestaSesion4Pregunta1" rows="12" placeholder="Construya la respuesta colectiva (mínimo 30 y máximo 200 palabras)..."></textarea>
-                <div class="contadorPalabras"><span id="contadorSesion4Pregunta1">0 / 200 palabras</span></div>
-                <div class="barraPalabras"><div id="progresoPalabrasSesion4Pregunta1"></div></div>
-                <div id="mensajeContadorSesion4Pregunta1" class="mensajeContador"></div>
-            </div>
+        <div id="tituloSesionPropiaLleno" style="display:none;">
+            <label class="labelSesionPropia">Título de la sesión</label>
+            <input type="text" id="tituloSesionPropia" placeholder="Escriba el título único de esta sesión...">
+            <p class="ayudaSesionPropia">Solo pueden crear un único título para la sesión, que incluya todas las líneas temáticas y preguntas que hayan surgido adicionales a este Foro.</p>
         </div>
     </div>
 
-    <div class="bloqueSesion3Pregunta">
-        <div class="tarjetaPregunta">
-            <h3>❓ PREGUNTA 2</h3>
-            <p class="textoPregunta">
-                Describan los hallazgos, desarrollos o acciones que la institución ya haya adelantado en esta línea (si aplica).
-            </p>
-            <p><em>Esta pregunta es opcional.</em></p>
+    <!-- OBJETIVO DE LA SESIÓN -->
+    <div class="bloqueSesionPropia">
+        <div id="objetivoSesionPropiaVacio">
+            <button type="button" id="btnAgregarObjetivoSesionPropia" class="botonAccionOpcional">+ Agregar objetivo de la sesión</button>
         </div>
-        <div class="contenedorTrabajoSesion">
-            <div class="panelGuia">
-                <h3>Orientaciones</h3>
-                <ul>
-                    <li>Acciones concretas ya realizadas.</li>
-                    <li>Resultados o aprendizajes obtenidos.</li>
-                    <li>Próximos pasos que la institución contempla.</li>
-                </ul>
-            </div>
-            <div class="panelRespuesta">
-                <textarea id="respuestaSesion4Pregunta2" rows="12" placeholder="Esta respuesta es opcional (máximo 200 palabras)..."></textarea>
-                <div class="contadorPalabras"><span id="contadorSesion4Pregunta2">0 / 200 palabras</span></div>
-                <div class="barraPalabras"><div id="progresoPalabrasSesion4Pregunta2"></div></div>
-                <div id="mensajeContadorSesion4Pregunta2" class="mensajeContador"></div>
-            </div>
+        <div id="objetivoSesionPropiaLleno" style="display:none;">
+            <label class="labelSesionPropia">Objetivo de la sesión</label>
+            <textarea id="objetivoSesionPropia" rows="4" placeholder="Escriba el objetivo iniciando con un verbo en infinitivo (-ar, -er, -ir)..."></textarea>
+            <p class="ayudaSesionPropia">La primera palabra debe ser un verbo en infinitivo (terminado en <strong>-ar, -er o -ir</strong>). Se recomienda dar un alcance medible y de impacto claro para la IE <span class="nombreIESesion4">—</span>, y justificar la relevancia institucional para su comunidad educativa.</p>
+            <p id="errorObjetivoSesionPropia" class="mensajeContador" style="display:none;">⚠ La primera palabra debe ser un verbo conjugado en infinitivo (-ar, -er, -ir).</p>
         </div>
     </div>
 
-    <div class="barraHerramientas">
-        <button type="button" id="btnGuardarSesion4">💾 Guardar avance</button>
-        <button type="button" id="btnPantallaCompletaSesion4">⛶ Pantalla completa</button>
-        <button type="button" id="btnModoLecturaSesion4">📖 Modo lectura</button>
+    <!-- LÍNEAS TEMÁTICAS -->
+    <div class="bloqueSesionPropia">
+        <h3 class="tituloLineasTematicas">Líneas Temáticas Institucionales Propias de las realidades de la IE <span class="nombreIESesion4">—</span></h3>
+        <div id="listaLineasTematicasPropias"></div>
+        <button type="button" id="btnAgregarLineaTematica" class="botonAccionOpcional">+ Agregar línea temática</button>
     </div>
+
+    <input type="hidden" id="sesionPropiaLineasJSON" value="[]">
 
     <div class="botones">
         <button type="button" id="btnVolverPreguntaSesion4">← Anterior</button>
-        <button type="button" id="btnFinalizarSesion4" disabled>Continuar →</button>
+        <button type="button" id="btnFinalizarSesion4">Terminar sesión propia de IE <span class="nombreIESesion4">—</span></button>
     </div>
 </section>
 
@@ -2459,7 +2443,7 @@ Aspectos para orientar la discusión
         <div id="conteoAsistentesQRFinal" class="estadoArchivo"></div>
         <button type="button" id="btnVerFirmasEnVivoFinal" class="botonSecundarioFEM">👁 Ver quiénes han firmado (en vivo)</button>
         <div class="finalNavegacion">
-            <button type="button" id="btnVolverEvidenciasDesdeFinal" class="botonSecundarioFEM">← Anterior (ver fotografía y QR de asistencia)</button>
+            <button type="button" id="btnVolverEvidenciasDesdeFinal" class="botonSecundarioFEM">← Anterior (ver fotografía y asistencia)</button>
         </div>
         <div class="finalAcciones">
             <button type="button" id="btnGenerarInformeFinal">📄 Generar informe</button>
@@ -2604,7 +2588,7 @@ Aspectos para orientar la discusión
         <h2>📌 Antes de comenzar la Sesión 3</h2>
         <p>Por favor tenga listo:</p>
         <ul>
-            <li>📱 Un código QR para que cada asistente firme la asistencia desde su celular en un solo momento de la sesión.</li>
+            <li>📱 Asistencia firmada de manera digital (código QR/link) o el listado de asistencia firmado en papel para escanear y subir en PDF — solo uno de los dos métodos es válido.</li>
             <li>📷 Una fotografía horizontal en calidad HD de menos de 10 MB.</li>
         </ul>
         <p>Se solicitarán al finalizar la sesión, antes de iniciar la plenaria.</p>

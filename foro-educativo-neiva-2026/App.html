@@ -404,7 +404,7 @@ function iniciarApp(){
         ["inicializarResponsablesAdicionales_", inicializarResponsablesAdicionales_],
         ["inicializarSesion2", inicializarSesion2],
         ["inicializarSesion3", inicializarSesion3],
-        ["inicializarSesion4", inicializarSesion4],
+        ["inicializarSesionPropia_", inicializarSesionPropia_],
         ["inicializarPlenaria", inicializarPlenaria],
         ["activarHerramientasSesion1", activarHerramientasSesion1],
         ["activarGuardadoAutomatico", activarGuardadoAutomatico]
@@ -712,7 +712,7 @@ if(btnSesion2){
         "click",
         function(){
 
-            cambiarPantalla(
+            transicionSesionConEscudo_(
                 "pantallaSesion1",
                 "pantallaSesion2",
                 7
@@ -799,7 +799,7 @@ if(btnSesion2){
                 return;
             }
 
-            cambiarPantalla(
+            transicionSesionConEscudo_(
                 "pantallaSesion2",
                 "pantallaSesion3",
                 8
@@ -860,32 +860,31 @@ if(btnSesion2){
         btnFinalizarSesion3.addEventListener("click",function(){
             if(!validarSesion3()) return;
             guardarBorradorLocal({silencioso:true});
-            const nombreIE=document.getElementById("nombreIEPreguntaSesion4");
-            if(nombreIE) nombreIE.textContent=String(getCampoNombreIE()||"").replace(/^\s*(instituci[oó]n\s+educativa|i\.?\s*e\.?)\s+/i,"").trim()||"—";
-            cambiarPantalla("pantallaSesion3","pantallaPreguntaSesion4",9);
+            const nombreIE=String(getCampoNombreIE()||"").replace(/^\s*(instituci[oó]n\s+educativa|i\.?\s*e\.?)\s+/i,"").trim()||"—";
+            document.querySelectorAll(".nombreIESesion4").forEach(function(el){ el.textContent=nombreIE; });
+            transicionSesionConEscudo_("pantallaSesion3","pantallaPreguntaSesion4",9);
         });
     }
 
     const btnSesion4No=document.getElementById("btnSesion4No");
     if(btnSesion4No) btnSesion4No.addEventListener("click",function(){
-        cambiarPantalla("pantallaPreguntaSesion4","pantallaEvidencias",9);
+        transicionSesionConEscudo_("pantallaPreguntaSesion4","pantallaEvidencias",9);
     });
 
     const btnSesion4Si=document.getElementById("btnSesion4Si");
     if(btnSesion4Si) btnSesion4Si.addEventListener("click",function(){
-        cambiarPantalla("pantallaPreguntaSesion4","pantallaSesion4",9);
+        transicionSesionConEscudo_("pantallaPreguntaSesion4","pantallaSesion4",9);
     });
 
     const btnVolverPreguntaSesion4=document.getElementById("btnVolverPreguntaSesion4");
     if(btnVolverPreguntaSesion4) btnVolverPreguntaSesion4.addEventListener("click",function(){
-        cambiarPantalla("pantallaSesion4","pantallaPreguntaSesion4",9);
+        cambiarPantalla("pantallaSesion4","pantallaSesion3",8);
     });
 
     const btnFinalizarSesion4=document.getElementById("btnFinalizarSesion4");
     if(btnFinalizarSesion4) btnFinalizarSesion4.addEventListener("click",function(){
-        if(!validarSesion4()) return;
         guardarBorradorLocal({silencioso:true});
-        cambiarPantalla("pantallaSesion4","pantallaEvidencias",9);
+        transicionSesionConEscudo_("pantallaSesion4","pantallaEvidencias",9);
     });
 
 /*****************************************************
@@ -952,7 +951,7 @@ const tarjetasRecorrido = [
         icono: "📷",
         titulo: "Evidencias",
         que: "Registraremos las evidencias del desarrollo del Foro antes de iniciar la plenaria.",
-        preparado: "Una fotografía horizontal HD con la mayor cantidad posible de participantes trabajando. La asistencia se firma por código QR.",
+        preparado: "Una fotografía horizontal HD con la mayor cantidad posible de participantes trabajando. La asistencia puede firmarse de manera digital (código QR o link) o enviarse en formato PDF — solo uno de los dos métodos es válido al momento de registrarla.",
         paraQue: "Respaldar documentalmente el desarrollo del Foro y completar el informe institucional.",
         frase: "Cada evidencia respalda el trabajo realizado."
     },
@@ -1234,6 +1233,33 @@ function cambiarPantalla(actual,nueva,paso){
         setTimeout(renderizarPlenaria, 80);
     }
 
+}
+
+/*
+ * Transición entre sesiones (1→2→3→pregunta S4→S4→Evidencias): el
+ * escudo de la IE aparece suavemente, se sostiene un instante y se
+ * desvanece hacia la pantalla nueva — menos de 3 segundos en total.
+ * El cambio de pantalla real ocurre de inmediato, oculto detrás del
+ * overlay (que empieza opaco), así que no hay ningún salto brusco
+ * cuando el escudo termina de desvanecerse.
+ */
+function transicionSesionConEscudo_(actual, nueva, paso){
+    const logoUrl = (typeof LOGO_IE_URL !== "undefined" && LOGO_IE_URL) ? LOGO_IE_URL : "";
+
+    cambiarPantalla(actual, nueva, paso);
+
+    if(!logoUrl) return; // sin escudo cargado, no hay nada que animar
+
+    const overlay=document.createElement("div");
+    overlay.className="transicionEscudoIE";
+    overlay.innerHTML='<img src="'+logoUrl+'" class="transicionEscudoImg" alt="">';
+    document.body.appendChild(overlay);
+
+    requestAnimationFrame(function(){
+        requestAnimationFrame(function(){ overlay.classList.add("visible"); });
+    });
+    setTimeout(function(){ overlay.classList.remove("visible"); }, 1300);
+    setTimeout(function(){ overlay.remove(); }, 2100);
 }
 
 /*****************************************************
@@ -5261,66 +5287,203 @@ function validarSesion3(){
 }
 
 /*****************************************************
- * SESIÓN 4 (OPCIONAL) — línea temática adicional propia de la IE
+ * SESIÓN 4 / "SESIÓN PROPIA" (OPCIONAL)
  *
- * Pregunta 1 es obligatoria si se llegó a esta sesión (mínimo 30
- * palabras); Pregunta 2 es opcional (sin mínimo), consistente con
- * que toda la sesión es opcional desde el inicio.
+ * Título único + objetivo (debe iniciar con un verbo en infinitivo)
+ * + líneas temáticas propias, cada una con preguntas y respuestas
+ * abiertas sin límite. Las líneas/preguntas/respuestas se guardan
+ * como un único JSON en #sesionPropiaLineasJSON (campo oculto, viaja
+ * solo con el resto del formulario porque construirDatosBorrador
+ * recorre todo input/textarea con id) — evita tener que inventar y
+ * restaurar decenas de ids numerados dinámicos.
+ *
+ * No se puede agregar una pregunta sin que exista antes una línea
+ * temática (estructural: el botón vive dentro de la tarjeta de la
+ * línea), ni una respuesta sin que exista antes el texto de la
+ * pregunta (el botón "+ Agregar respuesta" solo se muestra una vez
+ * la pregunta tiene contenido).
  *****************************************************/
-const MIN_P1_S4 = 30, MAX_P1_S4 = 200;
-const MAX_P2_S4 = 200;
+let lineasTematicasPropias_ = [];
 
-function actualizarEstadoSesion4(){
-    const p1 = actualizarContadorSesion2("respuestaSesion4Pregunta1","contadorSesion4Pregunta1","progresoPalabrasSesion4Pregunta1","mensajeContadorSesion4Pregunta1",MIN_P1_S4,MAX_P1_S4);
-    const p2 = actualizarContadorSesion2("respuestaSesion4Pregunta2","contadorSesion4Pregunta2","progresoPalabrasSesion4Pregunta2","mensajeContadorSesion4Pregunta2",0,MAX_P2_S4);
-    const boton = document.getElementById("btnFinalizarSesion4");
-    if(boton) boton.disabled = !(p1 && p2);
-    return p1 && p2;
+function cargarLineasTematicasPropiasDesdeCampo_(){
+    try{
+        const raw = document.getElementById("sesionPropiaLineasJSON")?.value || "[]";
+        const parsed = JSON.parse(raw);
+        lineasTematicasPropias_ = Array.isArray(parsed) ? parsed : [];
+    }catch(error){ lineasTematicasPropias_ = []; }
 }
 
-function validarSesion4(){
-    return actualizarEstadoSesion4();
+function guardarLineasTematicasPropiasEnCampo_(){
+    const campo = document.getElementById("sesionPropiaLineasJSON");
+    if(campo) campo.value = JSON.stringify(lineasTematicasPropias_);
+    guardarBorradorLocal({silencioso:true});
 }
 
-function inicializarSesion4(){
-    const p1 = document.getElementById("respuestaSesion4Pregunta1");
-    if(p1 && !p1.dataset.inicializado){
-        p1.dataset.inicializado="1";
-        p1.addEventListener("input",function(){ actualizarEstadoSesion4(); guardarBorradorLocal({silencioso:true}); });
-    }
-    const p2 = document.getElementById("respuestaSesion4Pregunta2");
-    if(p2 && !p2.dataset.inicializado){
-        p2.dataset.inicializado="1";
-        p2.addEventListener("input",function(){ actualizarEstadoSesion4(); guardarBorradorLocal({silencioso:true}); });
-    }
+function renderLineasTematicasPropias_(){
+    const cont = document.getElementById("listaLineasTematicasPropias");
+    if(!cont) return;
 
-    const guardar=document.getElementById("btnGuardarSesion4");
-    if(guardar && !guardar.dataset.herramientaInicializada){
-        guardar.dataset.herramientaInicializada="1";
-        guardar.addEventListener("click",function(){ guardarBorradorLocal({silencioso:false}); });
-    }
-    const pantallaCompleta=document.getElementById("btnPantallaCompletaSesion4");
-    if(pantallaCompleta && !pantallaCompleta.dataset.herramientaInicializada){
-        pantallaCompleta.dataset.herramientaInicializada="1";
-        pantallaCompleta.addEventListener("click",async function(){
-            const pantalla=document.getElementById("pantallaSesion4"); if(!pantalla) return;
-            try{
-                if(!document.fullscreenElement) await pantalla.requestFullscreen();
-                else await document.exitFullscreen();
-            }catch(error){ console.error("No fue posible mostrar la Sesión 4 en pantalla completa:",error); }
+    cont.innerHTML = lineasTematicasPropias_.map(function(linea, li){
+        const numLinea = li+1;
+        const preguntasHTML = (linea.preguntas||[]).map(function(p, pi){
+            const numPregunta = pi+1;
+            const terminada = !!p.terminada;
+            let bloqueRespuesta = "";
+            if(p.respuestaVisible || terminada){
+                bloqueRespuesta =
+                    '<label class="labelSesionPropia">Respuesta de pregunta '+numPregunta+'</label>'+
+                    '<textarea class="textareaRespuestaPropia" data-linea="'+li+'" data-pregunta="'+pi+'" '+(terminada?'disabled':'')+' placeholder="Escriba la respuesta...">'+escapeHtml(p.respuesta||"")+'</textarea>'+
+                    (terminada
+                        ? '<div class="okRespuestaTerminada">✓ OK</div>'
+                        : '<button type="button" class="btnRespuestaTerminada" data-linea="'+li+'" data-pregunta="'+pi+'">✓ Respuesta terminada</button>');
+            }else if(String(p.texto||"").trim()){
+                bloqueRespuesta = '<button type="button" class="btnAgregarRespuestaPregunta" data-linea="'+li+'" data-pregunta="'+pi+'">+ Agregar respuesta de pregunta '+numPregunta+'</button>';
+            }
+            return '<div class="bloquePreguntaPropia'+(terminada?' terminada':'')+'" data-linea="'+li+'" data-pregunta="'+pi+'">'+
+                '<label class="labelSesionPropia">Pregunta '+numPregunta+'</label>'+
+                '<textarea class="textareaPreguntaPropia" data-linea="'+li+'" data-pregunta="'+pi+'" '+(terminada?'disabled':'')+' placeholder="Escriba la pregunta...">'+escapeHtml(p.texto||"")+'</textarea>'+
+                bloqueRespuesta+
+            '</div>';
+        }).join("");
+
+        return '<div class="tarjetaLineaTematicaPropia" data-linea="'+li+'">'+
+            '<div class="encabezadoLineaTematicaPropia">'+
+                '<label class="labelSesionPropia">Línea temática '+numLinea+'</label>'+
+                '<input type="text" class="inputTituloLinea" data-linea="'+li+'" value="'+escapeAttr(linea.titulo||"")+'" placeholder="Título de la línea temática...">'+
+            '</div>'+
+            '<div class="listaPreguntasLinea">'+preguntasHTML+'</div>'+
+            '<button type="button" class="btnAgregarPreguntaLinea" data-linea="'+li+'">+ Agregar pregunta</button>'+
+        '</div>';
+    }).join("");
+}
+
+function validarObjetivoSesionPropia_(){
+    const campo=document.getElementById("objetivoSesionPropia");
+    const error=document.getElementById("errorObjetivoSesionPropia");
+    if(!campo) return true;
+    const texto=String(campo.value||"").trim();
+    if(!texto){ if(error) error.style.display="none"; campo.classList.remove("campoConError"); return true; }
+    const primeraPalabra=(texto.split(/\s+/)[0]||"").toLowerCase().replace(/[^a-záéíóúñ]/g,"");
+    const esInfinitivo = primeraPalabra.length>2 && /(ar|er|ir)$/.test(primeraPalabra);
+    if(error) error.style.display = esInfinitivo ? "none" : "block";
+    campo.classList.toggle("campoConError", !esInfinitivo);
+    return esInfinitivo;
+}
+
+function inicializarSesionPropia_(){
+    const nombreIE=String(getCampoNombreIE()||"").replace(/^\s*(instituci[oó]n\s+educativa|i\.?\s*e\.?)\s+/i,"").trim();
+    if(nombreIE) document.querySelectorAll(".nombreIESesion4").forEach(function(el){ el.textContent=nombreIE; });
+    const escudo=document.getElementById("escudoPreguntaSesion4");
+    if(escudo && typeof LOGO_IE_URL!=="undefined" && LOGO_IE_URL) escudo.src=LOGO_IE_URL;
+
+    cargarLineasTematicasPropiasDesdeCampo_();
+    renderLineasTematicasPropias_();
+
+    // TÍTULO (una sola vez).
+    const btnAgregarTitulo=document.getElementById("btnAgregarTituloSesionPropia");
+    if(btnAgregarTitulo && !btnAgregarTitulo.dataset.inicializado){
+        btnAgregarTitulo.dataset.inicializado="1";
+        btnAgregarTitulo.addEventListener("click",function(){
+            document.getElementById("tituloSesionPropiaVacio").style.display="none";
+            document.getElementById("tituloSesionPropiaLleno").style.display="";
+            document.getElementById("tituloSesionPropia")?.focus();
         });
     }
-    const modoLectura=document.getElementById("btnModoLecturaSesion4");
-    if(modoLectura && !modoLectura.dataset.herramientaInicializada){
-        modoLectura.dataset.herramientaInicializada="1";
-        modoLectura.addEventListener("click",function(){
-            const pantalla=document.getElementById("pantallaSesion4"); if(!pantalla) return;
-            pantalla.classList.toggle("modoLecturaSesion3");
-            modoLectura.textContent=pantalla.classList.contains("modoLecturaSesion3")?"✏️ Volver a edición":"📖 Modo lectura";
+    if(document.getElementById("tituloSesionPropia")?.value){
+        document.getElementById("tituloSesionPropiaVacio").style.display="none";
+        document.getElementById("tituloSesionPropiaLleno").style.display="";
+    }
+    document.getElementById("tituloSesionPropia")?.addEventListener("input",function(){ guardarBorradorLocal({silencioso:true}); });
+
+    // OBJETIVO (una sola vez, valida verbo en infinitivo).
+    const btnAgregarObjetivo=document.getElementById("btnAgregarObjetivoSesionPropia");
+    if(btnAgregarObjetivo && !btnAgregarObjetivo.dataset.inicializado){
+        btnAgregarObjetivo.dataset.inicializado="1";
+        btnAgregarObjetivo.addEventListener("click",function(){
+            document.getElementById("objetivoSesionPropiaVacio").style.display="none";
+            document.getElementById("objetivoSesionPropiaLleno").style.display="";
+            document.getElementById("objetivoSesionPropia")?.focus();
+        });
+    }
+    if(document.getElementById("objetivoSesionPropia")?.value){
+        document.getElementById("objetivoSesionPropiaVacio").style.display="none";
+        document.getElementById("objetivoSesionPropiaLleno").style.display="";
+    }
+    const objetivoCampo=document.getElementById("objetivoSesionPropia");
+    if(objetivoCampo && !objetivoCampo.dataset.inicializado){
+        objetivoCampo.dataset.inicializado="1";
+        objetivoCampo.addEventListener("input",function(){ validarObjetivoSesionPropia_(); guardarBorradorLocal({silencioso:true}); });
+        validarObjetivoSesionPropia_();
+    }
+
+    // + AGREGAR LÍNEA TEMÁTICA.
+    const btnAgregarLinea=document.getElementById("btnAgregarLineaTematica");
+    if(btnAgregarLinea && !btnAgregarLinea.dataset.inicializado){
+        btnAgregarLinea.dataset.inicializado="1";
+        btnAgregarLinea.addEventListener("click",function(){
+            lineasTematicasPropias_.push({titulo:"",preguntas:[]});
+            renderLineasTematicasPropias_();
+            guardarLineasTematicasPropiasEnCampo_();
         });
     }
 
-    actualizarEstadoSesion4();
+    // Delegación de eventos sobre el contenedor dinámico: se
+    // registra UNA sola vez, no en cada renderizado.
+    const lista=document.getElementById("listaLineasTematicasPropias");
+    if(lista && !lista.dataset.inicializado){
+        lista.dataset.inicializado="1";
+
+        lista.addEventListener("input",function(evento){
+            const li=evento.target.dataset.linea;
+            if(li===undefined) return;
+            const linea=lineasTematicasPropias_[Number(li)];
+            if(!linea) return;
+            if(evento.target.classList.contains("inputTituloLinea")){
+                linea.titulo=evento.target.value;
+            }else if(evento.target.classList.contains("textareaPreguntaPropia")){
+                const pi=Number(evento.target.dataset.pregunta);
+                if(linea.preguntas[pi]) linea.preguntas[pi].texto=evento.target.value;
+            }else if(evento.target.classList.contains("textareaRespuestaPropia")){
+                const pi=Number(evento.target.dataset.pregunta);
+                if(linea.preguntas[pi]) linea.preguntas[pi].respuesta=evento.target.value;
+            }else{
+                return;
+            }
+            // No se vuelve a renderizar en cada tecla (perdería el
+            // foco): solo se guarda el estado. El "+ Agregar
+            // respuesta" solo aparecerá al perder el foco/re-render
+            // siguiente (clic en otro botón), lo cual es aceptable.
+            guardarLineasTematicasPropiasEnCampo_();
+        });
+
+        lista.addEventListener("blur",function(evento){
+            if(evento.target.classList && evento.target.classList.contains("textareaPreguntaPropia")){
+                renderLineasTematicasPropias_();
+            }
+        },true);
+
+        lista.addEventListener("click",function(evento){
+            const boton=evento.target.closest("button");
+            if(!boton) return;
+            const li=Number(boton.dataset.linea);
+            const linea=lineasTematicasPropias_[li];
+            if(!linea) return;
+
+            if(boton.classList.contains("btnAgregarPreguntaLinea")){
+                linea.preguntas.push({texto:"",respuesta:"",respuestaVisible:false,terminada:false});
+            }else if(boton.classList.contains("btnAgregarRespuestaPregunta")){
+                const pi=Number(boton.dataset.pregunta);
+                if(linea.preguntas[pi]) linea.preguntas[pi].respuestaVisible=true;
+            }else if(boton.classList.contains("btnRespuestaTerminada")){
+                const pi=Number(boton.dataset.pregunta);
+                if(linea.preguntas[pi]) linea.preguntas[pi].terminada=true;
+            }else{
+                return;
+            }
+            renderLineasTematicasPropias_();
+            guardarLineasTematicasPropiasEnCampo_();
+        });
+    }
 }
 
 /*****************************************************
@@ -6311,6 +6474,25 @@ function inicializarAccesoFEM(){
             nombreIE +
             " al FEM 2026.";
 
+    }
+
+    /*
+     * Mostrar el logo de la IE, si el token ya lo resolvió en el
+     * servidor (ver doGet en Código.js) — así se identifica la
+     * institución por nombre Y logo desde el cuadro de acceso,
+     * antes incluso de validar el código.
+     */
+    const logoIEAcceso =
+        document.getElementById("logoIEAcceso");
+
+    const logoIEUrl =
+        typeof LOGO_IE_URL !== "undefined"
+            ? String(LOGO_IE_URL || "").trim()
+            : "";
+
+    if(logoIEAcceso && logoIEUrl){
+        logoIEAcceso.src = logoIEUrl;
+        logoIEAcceso.style.display = "block";
     }
 
 
@@ -7806,6 +7988,35 @@ function renderizarPlenaria(opciones){
         });
     });
     {
+        /*
+         * "Sesión Propia" (Sesión 4, opcional): se muestra en la
+         * plenaria SOLO si la institución la habilitó y le puso
+         * contenido — es de solo lectura aquí (se edita en la
+         * pantalla de Sesión 4, no en plenaria), igual que Evidencias.
+         */
+        const tituloSesionPropiaPlenaria=getCampoValor("tituloSesionPropia");
+        const objetivoSesionPropiaPlenaria=getCampoValor("objetivoSesionPropia");
+        let lineasSesionPropiaPlenaria=[];
+        try{
+            const parsed=JSON.parse(getCampoValor("sesionPropiaLineasJSON")||"[]");
+            if(Array.isArray(parsed)) lineasSesionPropiaPlenaria=parsed.filter(function(l){ return String(l?.titulo||"").trim() || (l?.preguntas||[]).some(function(p){ return String(p?.texto||"").trim(); }); });
+        }catch(e){ lineasSesionPropiaPlenaria=[]; }
+
+        if(tituloSesionPropiaPlenaria || objetivoSesionPropiaPlenaria || lineasSesionPropiaPlenaria.length){
+            const nombreIESesionPropiaPlenaria=getCampoNombreIE();
+            let bloqueLineasHTML="";
+            lineasSesionPropiaPlenaria.forEach(function(linea, li){
+                let preguntasHTML="";
+                (linea.preguntas||[]).forEach(function(p, pi){
+                    if(!String(p?.texto||"").trim()) return;
+                    preguntasHTML+=`<p class="sesionPropiaPreguntaPlenaria"><strong>Pregunta ${pi+1}:</strong> ${escapeHtml(p.texto)}</p><p class="sesionPropiaRespuestaPlenaria"><strong>Respuesta:</strong> ${escapeHtml(p.respuesta||"—")}</p>`;
+                });
+                bloqueLineasHTML+=`<h3>Línea temática ${li+1}${linea.titulo?': '+escapeHtml(linea.titulo):''}</h3>${preguntasHTML}`;
+            });
+            html+=`<div class="plenariaPagina evidenciaInforme sesionPropiaPlenariaPagina"><h2>🛡️ Sesión Propia creada por la IE ${escapeHtml(nombreIESesionPropiaPlenaria)}</h2><p class="sesionPropiaSubtituloPlenaria">Las respuestas de esta sesión corresponden a las necesidades y realidades de la institución${objetivoSesionPropiaPlenaria?' y se hicieron con el objetivo de '+escapeHtml(objetivoSesionPropiaPlenaria):''}, de manera autónoma. No se incluyen en las conclusiones finales del foro comunitario.</p>${tituloSesionPropiaPlenaria?'<p><strong>'+escapeHtml(tituloSesionPropiaPlenaria)+'</strong></p>':''}${bloqueLineasHTML}</div>`;
+        }
+    }
+    {
         const fotoUrlPlenaria=getCampoValor("evidenciaFotoUrl");
         const fechaTextoPlenaria=getCampoValor("evidenciaFotoFecha");
         const fechaPlenaria=fechaTextoPlenaria?new Date(fechaTextoPlenaria):new Date();
@@ -7822,7 +8033,12 @@ function renderizarPlenaria(opciones){
 <p class="enlaceFotoFallback" style="display:none;">📷 <a href="${escapeAttr(fotoUrlPlenaria)}" target="_blank">Ver fotografía del Foro de la IE ${escapeHtml(nombreIEPlenaria)}</a></p>
 <p class="pieFotoEvidenciaPlenaria">${escapeHtml(piePlenaria)}</p>
 </div>`:"";
-        html+=`<div class="plenariaPagina evidenciaInforme"><h2>Evidencias</h2>${bloqueFoto}<p>✅ La asistencia se firmó por código QR durante la jornada. El listado completo se incluye al final del informe ejecutivo.</p></div>`;
+        const metodoAsistenciaPlenaria=getCampoValor("metodoAsistencia");
+        const numeroAsistentesPdfPlenaria=getCampoValor("numeroAsistentesPDF");
+        const textoAsistenciaPlenaria=metodoAsistenciaPlenaria==="PDF"
+            ? `✅ La asistencia se registró mediante PDF escaneado (${escapeHtml(numeroAsistentesPdfPlenaria||"0")} asistente(s) reportado(s)). No se genera análisis demográfico con este método.`
+            : `✅ La asistencia se firmó de manera digital (código QR/link) durante la jornada. El listado completo se incluye al final del informe ejecutivo.`;
+        html+=`<div class="plenariaPagina evidenciaInforme"><h2>Evidencias</h2>${bloqueFoto}<p>${textoAsistenciaPlenaria}</p></div>`;
     }
     contenido.innerHTML=html;
     const nav=document.getElementById("plenariaNavegacion");
