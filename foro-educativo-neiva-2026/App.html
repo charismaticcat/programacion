@@ -1990,23 +1990,28 @@ function contarPalabras(texto){
 }
 
 /*****************************************************
- * COLOR DINÁMICO DE LA BARRA DE PROGRESO
+ * COLOR DINÁMICO DE LA BARRA DE PROGRESO / TEXTAREA
  * Compartida por las tres sesiones. De 0 al 25% del mínimo se ve
  * roja, entre 25% y 50% pasa de roja a amarilla, entre 50% y 100%
  * pasa de amarilla a verde. Superado el mínimo, el verde se sigue
  * intensificando (hacia un verde "encendido") a medida que se
- * acerca al máximo permitido.
+ * acerca al máximo permitido. Si se supera el máximo, vuelve a rojo
+ * (señal de "está fuera de rango, hay que recortar el texto").
  *****************************************************/
 
 function calcularColorBarraProgreso_(palabras, minimo, maximo){
-
-    const base = minimo > 0 ? minimo : 1;
-    const porcentajeMinimo = palabras / base;
 
     const ROJO = [198, 40, 40];
     const AMARILLO = [244, 180, 0];
     const VERDE = [11, 106, 68];
     const VERDE_ENCENDIDO = [0, 200, 83];
+
+    if(maximo && palabras > maximo){
+        return "rgb(" + ROJO[0] + "," + ROJO[1] + "," + ROJO[2] + ")";
+    }
+
+    const base = minimo > 0 ? minimo : 1;
+    const porcentajeMinimo = palabras / base;
 
     function mezclar(colorA, colorB, avance){
         avance = Math.max(0, Math.min(1, avance));
@@ -2053,11 +2058,19 @@ function calcularColorBarraProgreso_(palabras, minimo, maximo){
  * cuadro de la pregunta.
  *****************************************************/
 
-function actualizarMarcaMinimoCumplido_(campo, palabras, minimo, idBloquePregunta){
+function actualizarMarcaMinimoCumplido_(campo, palabras, minimo, idBloquePregunta, maximo){
 
     if(!campo) return;
 
-    const cumplido = palabras >= minimo;
+    /*
+     * "Cumplido" = respuesta válida: alcanzó el mínimo Y, si hay
+     * máximo definido, no lo superó. Superar el máximo ya se marca
+     * en rojo (ver calcularColorBarraProgreso_), así que no tendría
+     * sentido dejarlo también "en verde" aquí.
+     */
+    const cumplido =
+        palabras >= minimo &&
+        (!maximo || palabras <= maximo);
 
     const contenedor = campo.closest(".contenedorTrabajoSesion");
     if(contenedor){
@@ -2071,6 +2084,92 @@ function actualizarMarcaMinimoCumplido_(campo, palabras, minimo, idBloquePregunt
             tarjeta.classList.toggle("minimoPalabrasCumplido", cumplido);
         }
     }
+
+}
+
+/*****************************************************
+ * COLOR EN VIVO DEL RECUADRO DE RESPUESTA (CAMPOS DE
+ * "ACCIÓN", SESIÓN 2 Y 3)
+ * En vez de una barra de progreso aparte, estos campos pintan su
+ * propio borde con el mismo semáforo (rojo → amarillo → verde →
+ * verde encendido / rojo si se pasa del máximo). Empieza a pintarse
+ * solo cuando la persona hace clic por primera vez — antes de eso
+ * se deja con el borde normal, para no mostrar un campo vacío en
+ * rojo sin que nadie lo haya tocado todavía.
+ *****************************************************/
+
+function activarColorTextareaAccion_(campo, minimo, maximo){
+
+    if(!campo || campo.dataset.colorAccionInicializado) return;
+
+    campo.dataset.colorAccionInicializado = "1";
+
+    function pintar(){
+        const palabras = contarPalabras(campo.value);
+        campo.style.borderColor =
+            calcularColorBarraProgreso_(palabras, minimo, maximo);
+    }
+
+    campo.addEventListener("focus", function(){
+        campo.dataset.colorAccionActivado = "1";
+        pintar();
+    });
+
+    campo.addEventListener("input", function(){
+        if(campo.dataset.colorAccionActivado === "1"){
+            pintar();
+        }
+    });
+
+    // Si ya trae texto guardado (se retoma el formulario), se pinta
+    // de una vez sin esperar el clic.
+    if(contarPalabras(campo.value) > 0){
+        campo.dataset.colorAccionActivado = "1";
+        pintar();
+    }
+
+}
+
+/*****************************************************
+ * ACCIONES OPCIONALES (4 y 5, SESIÓN 2 Y 3)
+ * Sin mínimo de palabras: se mantienen ocultas detrás de un botón
+ * "+ Añadir" hasta que la persona decide usarlas. Con solo abrirlas
+ * ya cuentan como completas (línea/cuadro en verde) — no hace falta
+ * escribir nada porque son opcionales.
+ *****************************************************/
+
+function activarAccionOpcional_(idBoton, idContenido, idCampo){
+
+    const boton = document.getElementById(idBoton);
+    const contenido = document.getElementById(idContenido);
+    const campo = document.getElementById(idCampo);
+
+    if(!boton || !contenido || !campo) return;
+
+    function revelar(){
+        boton.style.display = "none";
+        contenido.classList.remove("accionOpcionalOculta");
+        contenido.classList.add("minimoPalabrasCumplido");
+        campo.disabled = false;
+    }
+
+    /*
+     * Si ya había una respuesta guardada (se retoma el formulario
+     * desde otro dispositivo o después de recargar), se muestra de
+     * inmediato en vez de quedar escondida detrás del botón.
+     */
+    if(campo.value && campo.value.trim() !== ""){
+        revelar();
+    }
+
+    if(boton.dataset.accionOpcionalInicializada) return;
+
+    boton.dataset.accionOpcionalInicializada = "1";
+
+    boton.addEventListener("click", function(){
+        revelar();
+        campo.focus();
+    });
 
 }
 
@@ -2196,7 +2295,8 @@ function actualizarContadorPregunta1(){
         campo,
         palabras,
         MINIMO_PALABRAS_SESION,
-        "bloquePregunta1"
+        "bloquePregunta1",
+        MAXIMO_PALABRAS_SESION
     );
 
     /*
@@ -2342,7 +2442,8 @@ function actualizarContadorPregunta2(){
         campo,
         palabras,
         MINIMO_PALABRAS_SESION,
-        "bloquePregunta2"
+        "bloquePregunta2",
+        MAXIMO_PALABRAS_SESION
     );
 
     /*
@@ -2927,7 +3028,7 @@ function actualizarContadorSesion2(idCampo,idContador,idBarra,idMensaje,min,max,
         }
     }
 
-    actualizarMarcaMinimoCumplido_(campo, n, min, idBloquePregunta);
+    actualizarMarcaMinimoCumplido_(campo, n, min, idBloquePregunta, max);
 
     return n >= min && n <= max;
 }
@@ -3708,6 +3809,24 @@ function actualizarEstadoSesion2(){
         opcionalesHabilitadasS2
     );
 
+    /*
+     * Acciones 4 y 5 (opcionales, sin mínimo): solo se despliegan si
+     * la persona hace clic en "+ Añadir" — no tienen contador ni
+     * barra de progreso, y con solo abrirlas ya cuentan como
+     * completas.
+     */
+    activarAccionOpcional_(
+        "abrirAccion4Sesion2",
+        "contenidoAccion4Sesion2",
+        "respuestaSesion2Pregunta2Accion4"
+    );
+
+    activarAccionOpcional_(
+        "abrirAccion5Sesion2",
+        "contenidoAccion5Sesion2",
+        "respuestaSesion2Pregunta2Accion5"
+    );
+
 
     [1,2,3].forEach(function(n){
 
@@ -3716,6 +3835,12 @@ function actualizarEstadoSesion2(){
             "contadorSesion2Pregunta2Accion" + n,
             "progresoPalabrasSesion2Pregunta2Accion" + n,
             "mensajeContadorSesion2Pregunta2Accion" + n,
+            MIN_ACCION_S2,
+            MAX_ACCION_S2
+        );
+
+        activarColorTextareaAccion_(
+            document.getElementById("respuestaSesion2Pregunta2Accion" + n),
             MIN_ACCION_S2,
             MAX_ACCION_S2
         );
@@ -4060,7 +4185,7 @@ function actualizarContadorSesion3(idCampo,idContador,idBarra,idMensaje,min,max,
         }
     }
 
-    actualizarMarcaMinimoCumplido_(campo, n, min, idBloquePregunta);
+    actualizarMarcaMinimoCumplido_(campo, n, min, idBloquePregunta, max);
 
     return n >= min && n <= max;
 }
@@ -4229,9 +4354,33 @@ function actualizarEstadoSesion3(){
             MIN_ACCION_S3,
             MAX_ACCION_S3
         );
+
+        activarColorTextareaAccion_(
+            document.getElementById("respuestaSesion3Pregunta2Accion" + n),
+            MIN_ACCION_S3,
+            MAX_ACCION_S3
+        );
     });
 
     marcarAccionesOpcionalesSesion3();
+
+    /*
+     * Acciones 4 y 5 (opcionales, sin mínimo): solo se despliegan si
+     * la persona hace clic en "+ Añadir" — no tienen contador ni
+     * barra de progreso, y con solo abrirlas ya cuentan como
+     * completas.
+     */
+    activarAccionOpcional_(
+        "abrirAccion4Sesion3",
+        "contenidoAccion4Sesion3",
+        "respuestaSesion3Pregunta2Accion4"
+    );
+
+    activarAccionOpcional_(
+        "abrirAccion5Sesion3",
+        "contenidoAccion5Sesion3",
+        "respuestaSesion3Pregunta2Accion5"
+    );
 
     const accionesCompletas = a1 && a2 && a3;
 

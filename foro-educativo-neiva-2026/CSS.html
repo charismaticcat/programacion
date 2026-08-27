@@ -1498,6 +1498,12 @@ SESIÓN 1
 
     margin-bottom:18px;
 
+    /*
+     * Sombra oscura para que el amarillo no se pierda sobre el
+     * fondo claro del panel.
+     */
+    text-shadow:0 1px 2px rgba(0,0,0,.55);
+
 }
 
 .panelGuia ul{
@@ -1507,6 +1513,17 @@ SESIÓN 1
     padding:0;
 
     margin:20px 0 0;
+
+}
+
+/*
+ * Texto de apoyo (los ítems de la guía) en negrita — las preguntas
+ * de apoyo (los títulos h3, ya en amarillo) se dejan como están.
+ */
+.panelGuia li,
+.panelGuia > p{
+
+    font-weight:700;
 
 }
 
@@ -1553,6 +1570,7 @@ SESIÓN 1
     gap:10px;
     padding:6px 0;
     font-size:15px;
+    font-weight:700;
     line-height:1.45;
     color:var(--color-text);
     cursor:pointer;
@@ -1620,6 +1638,55 @@ SESIÓN 1
 .contenedorTrabajoSesion.minimoPalabrasCumplido .panelRespuesta{
 
     border-left-color:var(--verde-neiva);
+
+}
+
+/*
+ * El propio recuadro de la respuesta (el textarea) también se pone
+ * verde cuando se cumple el mínimo — además de su borde en vivo
+ * (rojo/amarillo/verde según avance, ver calcularColorBarraProgreso_
+ * en App.html), que se pinta directamente con JS.
+ */
+.contenedorTrabajoSesion.minimoPalabrasCumplido .panelRespuesta textarea{
+
+    background:rgba(11,106,68,.07);
+
+}
+
+/*
+ * Campos de "acción" (Sesión 2 y 3): ya no tienen barra de progreso
+ * aparte — su propio borde hace de semáforo. El botón "+ Añadir"
+ * de las acciones opcionales (4 y 5) y su contenido oculto hasta el
+ * clic.
+ */
+.botonAccionOpcional{
+
+    display:block;
+    width:100%;
+    background:var(--color-surface);
+    border:2px dashed var(--color-border);
+    border-radius:var(--radius-md);
+    padding:var(--space-4);
+    margin:var(--space-4) 0;
+    color:var(--color-primary);
+    font-weight:600;
+    font-size:15px;
+    text-align:center;
+    cursor:pointer;
+    transition:border-color var(--transition-fast), background var(--transition-fast);
+
+}
+
+.botonAccionOpcional:hover{
+
+    border-color:var(--color-primary);
+    background:rgba(11,106,68,.05);
+
+}
+
+.accionOpcionalOculta{
+
+    display:none;
 
 }
 
