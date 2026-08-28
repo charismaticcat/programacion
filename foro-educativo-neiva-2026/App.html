@@ -864,7 +864,15 @@ if(btnSesion2){
             guardarBorradorLocal({silencioso:true});
             const nombreIE=String(getCampoNombreIE()||"").replace(/^\s*(instituci[oó]n\s+educativa|i\.?\s*e\.?)\s+/i,"").trim()||"—";
             document.querySelectorAll(".nombreIESesion4").forEach(function(el){ el.textContent=nombreIE; });
-            transicionSesionConEscudo_("pantallaSesion3","pantallaPreguntaSesion4",9);
+            /*
+             * BUG CORREGIDO: antes se guardaba con paso=9, el MISMO
+             * número que usa Evidencias en mostrarPantallaGuardada() —
+             * si alguien recargaba la página estando en esta pantalla
+             * (o en pantallaSesion4), el checkpoint restaurado la
+             * saltaba directo a Evidencias en vez de volver aquí. Se
+             * usa un paso propio (8.5) que no choca con ningún otro.
+             */
+            transicionSesionConEscudo_("pantallaSesion3","pantallaPreguntaSesion4",8.5);
         });
     }
 
@@ -879,7 +887,8 @@ if(btnSesion2){
     const btnSesion4Si=document.getElementById("btnSesion4Si");
     if(btnSesion4Si) btnSesion4Si.addEventListener("click",function(){
         window._FEM_SESION4_OMITIDA=false; // decidió sí hacerla: vuelve a mostrar el número normal en la barra.
-        transicionSesionConEscudo_("pantallaPreguntaSesion4","pantallaSesion4",9);
+        // Paso propio (8.6), distinto del 9 de Evidencias — mismo motivo que en btnFinalizarSesion3.
+        transicionSesionConEscudo_("pantallaPreguntaSesion4","pantallaSesion4",8.6);
     });
 
     const btnVolverPreguntaSesion4=document.getElementById("btnVolverPreguntaSesion4");
@@ -1428,53 +1437,65 @@ function irAParadaNav_(parada){
 
 function renderNavPantallasFEM_(){
     const cont=document.getElementById("navPantallasFEM");
+    const barra=document.querySelector(".barraSuperior");
     if(!cont) return;
-    const idVisible=document.querySelector(".pantalla.visible")?.id||"";
 
     /*
      * La barra solo debe verse desde Consentimiento informado en
      * adelante — en Acceso, Bienvenida y Recorrido permanece oculta
      * (NAV_PARADAS_FEM_ empieza justo en Consentimiento, así que basta
      * con comprobar si la pantalla visible es una de esas paradas).
+     *
+     * Todo lo demás va en un try/catch: ante cualquier error
+     * inesperado se prefiere DEJAR VISIBLE la barra (aunque su
+     * contenido no se haya podido actualizar del todo) a que
+     * desaparezca en silencio y sin explicación — antes, si algo
+     * fallaba justo aquí, el "display:none" de la hoja de estilos se
+     * quedaba puesto para siempre porque nada volvía a quitarlo.
      */
-    const barra=document.querySelector(".barraSuperior");
-    const yaEnFormulario=NAV_PARADAS_FEM_.some(function(p){ return p.id===idVisible; });
-    if(barra) barra.style.display=yaEnFormulario ? "" : "none";
-    if(!yaEnFormulario) return;
+    try{
+        const idVisible=document.querySelector(".pantalla.visible")?.id||"";
+        const yaEnFormulario=NAV_PARADAS_FEM_.some(function(p){ return p.id===idVisible; });
+        if(barra) barra.style.display=yaEnFormulario ? "" : "none";
+        if(!yaEnFormulario) return;
 
-    const esPrincipal=!!(window.DATOS_ACCESO_FEM && window.DATOS_ACCESO_FEM.esPrincipal);
+        const esPrincipal=!!(window.DATOS_ACCESO_FEM && window.DATOS_ACCESO_FEM.esPrincipal);
 
-    let completadas=0;
-    const html=NAV_PARADAS_FEM_.map(function(parada, indice){
-        const estado=estadoDeParadaNav_(parada, idVisible);
-        if(estado==="verde") completadas++;
-        const bloqueada=!!(parada.soloPrincipal && !esPrincipal);
-        const clasePorEstado="nav"+estado.charAt(0).toUpperCase()+estado.slice(1);
-        // Sesión 4 es opcional: si se decidió omitirla, el círculo
-        // muestra "N/A" en vez del número de orden.
-        const omitidaSesion4=parada.id==="pantallaSesion4" && !!window._FEM_SESION4_OMITIDA;
-        const etiquetaCirculo=omitidaSesion4 ? "N/A" : String(indice+1);
-        return '<div class="navParadaFEM">'+
-            '<button type="button" class="navCirculoFEM '+clasePorEstado+(bloqueada?' navBloqueado':'')+(omitidaSesion4?' navOmitida':'')+'" data-parada="'+indice+'">'+
-                etiquetaCirculo+
-                '<span class="navNombreFEM">'+escapeHtml(parada.nombre)+(bloqueada?' 🔒':'')+'</span>'+
-            '</button>'+
-        '</div>';
-    }).join("");
-    cont.innerHTML=html;
+        let completadas=0;
+        const html=NAV_PARADAS_FEM_.map(function(parada, indice){
+            const estado=estadoDeParadaNav_(parada, idVisible);
+            if(estado==="verde") completadas++;
+            const bloqueada=!!(parada.soloPrincipal && !esPrincipal);
+            const clasePorEstado="nav"+estado.charAt(0).toUpperCase()+estado.slice(1);
+            // Sesión 4 es opcional: si se decidió omitirla, el círculo
+            // muestra "N/A" en vez del número de orden.
+            const omitidaSesion4=parada.id==="pantallaSesion4" && !!window._FEM_SESION4_OMITIDA;
+            const etiquetaCirculo=omitidaSesion4 ? "N/A" : String(indice+1);
+            return '<div class="navParadaFEM">'+
+                '<button type="button" class="navCirculoFEM '+clasePorEstado+(bloqueada?' navBloqueado':'')+(omitidaSesion4?' navOmitida':'')+'" data-parada="'+indice+'">'+
+                    etiquetaCirculo+
+                    '<span class="navNombreFEM">'+escapeHtml(parada.nombre)+(bloqueada?' 🔒':'')+'</span>'+
+                '</button>'+
+            '</div>';
+        }).join("");
+        cont.innerHTML=html;
 
-    const porcentaje=Math.round((completadas/NAV_PARADAS_FEM_.length)*100);
-    const porcentajeEl=document.getElementById("porcentajeNavFEM");
-    if(porcentajeEl) porcentajeEl.textContent=porcentaje+"% completado";
+        const porcentaje=Math.round((completadas/NAV_PARADAS_FEM_.length)*100);
+        const porcentajeEl=document.getElementById("porcentajeNavFEM");
+        if(porcentajeEl) porcentajeEl.textContent=porcentaje+"% completado";
 
-    if(!cont.dataset.inicializado){
-        cont.dataset.inicializado="1";
-        cont.addEventListener("click", function(evento){
-            const boton=evento.target.closest(".navCirculoFEM");
-            if(!boton) return;
-            const parada=NAV_PARADAS_FEM_[Number(boton.dataset.parada)];
-            if(parada) irAParadaNav_(parada);
-        });
+        if(!cont.dataset.inicializado){
+            cont.dataset.inicializado="1";
+            cont.addEventListener("click", function(evento){
+                const boton=evento.target.closest(".navCirculoFEM");
+                if(!boton) return;
+                const parada=NAV_PARADAS_FEM_[Number(boton.dataset.parada)];
+                if(parada) irAParadaNav_(parada);
+            });
+        }
+    }catch(errorBarraNav){
+        console.error("Error mostrando la barra de navegación:", errorBarraNav);
+        if(barra) barra.style.display="";
     }
 }
 
@@ -6612,6 +6633,12 @@ function mostrarPantallaGuardada(paso){
         6: "pantallaSesion1",
         7: "pantallaSesion2",
         8: "pantallaSesion3",
+        // Sesión 4 ("Sesión propia") es opcional y no tenía un paso
+        // fijo en esta numeración original — usa 8.5/8.6 (en vez de
+        // reutilizar el 9 de Evidencias) para que restaurar el
+        // checkpoint no la salte directo a Evidencias.
+        8.5: "pantallaPreguntaSesion4",
+        8.6: "pantallaSesion4",
         9: "pantallaEvidencias",
         10: "pantallaPlenaria",
         11: "pantallaFinalFEM",
