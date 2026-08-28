@@ -2137,11 +2137,12 @@ SESIÓN 1
    el placeholder del propio campo. */
 .filaSesionPropiaConQuitar{
     display:flex;
+    flex-wrap:wrap;
     align-items:flex-start;
     gap:10px;
 }
 .filaSesionPropiaConQuitar input,
-.filaSesionPropiaConQuitar textarea{ flex:1 1 auto; }
+.filaSesionPropiaConQuitar textarea{ flex:1 1 220px; min-width:0; }
 .btnQuitarSesionPropia{
     flex:0 0 auto;
     width:auto;
@@ -2194,6 +2195,17 @@ SESIÓN 1
     padding:9px 16px;
     font-size:13.5px;
     margin-top:8px;
+}
+/*
+ * Dentro de la fila de la pregunta (junto al textarea y el "−" de
+ * quitar), sin el margen superior de arriba — ese margen era de
+ * cuando este botón vivía solo, debajo de la fila; ahora está DENTRO
+ * de .filaSesionPropiaConQuitar y flex-wrap:wrap ya se encarga de
+ * bajarlo a su propia línea si no cabe en pantallas angostas.
+ */
+.filaSesionPropiaConQuitar .btnAgregarRespuestaPregunta{
+    margin-top:0;
+    flex:0 0 auto;
 }
 .btnRespuestaTerminada{ background:var(--verde-neiva,var(--color-primary)); }
 .okRespuestaTerminada{
