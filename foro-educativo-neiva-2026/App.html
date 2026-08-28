@@ -1231,6 +1231,17 @@ function cambiarPantalla(actual,nueva,paso){
     if(nueva === "pantallaEvidencias") {
         setTimeout(actualizarQRAsistencia_, 50);
         actualizarPreviaFotoEvidencia_();
+        /*
+         * inicializarPlenaria() (que configura esta pantalla) corre
+         * UNA sola vez al cargar la página, antes de que el borrador
+         * se restaure — así que su propia comprobación de "ya hay
+         * evidencia registrada" siempre veía los campos vacíos. Se
+         * repite aquí, cada vez que se entra de verdad a Evidencias
+         * (momento en el que el borrador ya está restaurado), para que
+         * "Registrar evidencias" y los avisos "✓ Ya hay ... registrado"
+         * reflejen lo que ya se había subido antes.
+         */
+        if(typeof actualizarEstadoEvidencias === "function") actualizarEstadoEvidencias();
     }
 
     if(nueva === "pantallaFinalFEM") {
@@ -6635,6 +6646,11 @@ function mostrarPantallaGuardada(paso){
 
     if(id === "pantallaEvidencias"){
         setTimeout(actualizarQRAsistencia_, 50);
+        if(typeof actualizarPreviaFotoEvidencia_ === "function") actualizarPreviaFotoEvidencia_();
+        // Mismo motivo que en cambiarPantalla: refleja aquí evidencia
+        // ya registrada (foto/PDF) que inicializarPlenaria() no pudo
+        // ver porque corrió antes de restaurar el borrador.
+        if(typeof actualizarEstadoEvidencias === "function") actualizarEstadoEvidencias();
     }
 
     if(id === "pantallaPlenaria"){
@@ -7659,6 +7675,18 @@ function inicializarPlenaria(){
     if(document.getElementById("evidenciaFotoUrl")?.value){
         const c=document.getElementById("btnContinuarDesdeEvidencias"); if(c)c.disabled=false;
     }
+    /*
+     * Sin esto, si la foto y/o el PDF ya estaban registrados de una
+     * visita anterior (borrador restaurado) y la persona no vuelve a
+     * tocar ningún campo de esta pantalla, "Registrar evidencias"
+     * quedaba con el disabled por defecto del HTML para siempre — y
+     * los avisos "✓ Ya hay una fotografía/PDF registrado…" nunca
+     * llegaban a pintarse, porque actualizarEstadoEvidencias() solo se
+     * llamaba desde los listeners de cambio de esos campos, nunca al
+     * entrar a la pantalla. Se llama una vez aquí para que el estado
+     * ya registrado se refleje de inmediato.
+     */
+    actualizarEstadoEvidencias();
 
     const cont=document.getElementById("btnContinuarDesdeEvidencias");
     if(cont) cont.addEventListener("click",function(){
