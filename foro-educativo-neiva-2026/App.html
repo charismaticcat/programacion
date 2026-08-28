@@ -1215,6 +1215,11 @@ function cambiarPantalla(actual,nueva,paso){
 
     guardarBorradorLocal({silencioso:true});
 
+    if(nueva === "pantallaConsentimiento") {
+        const nombreIEConsentimiento=String(getCampoNombreIE()||"").replace(/^\s*(instituci[oó]n\s+educativa|i\.?\s*e\.?)\s+/i,"").trim();
+        document.querySelectorAll(".nombreIEConsentimiento").forEach(function(el){ el.textContent=nombreIEConsentimiento||"su Institución Educativa"; });
+    }
+
     if(nueva === "pantallaSesion1" && typeof iniciarAperturaSesion1 === "function") {
         iniciarAperturaSesion1();
     }
@@ -1405,6 +1410,18 @@ function renderNavPantallasFEM_(){
     const cont=document.getElementById("navPantallasFEM");
     if(!cont) return;
     const idVisible=document.querySelector(".pantalla.visible")?.id||"";
+
+    /*
+     * La barra solo debe verse desde Consentimiento informado en
+     * adelante — en Acceso, Bienvenida y Recorrido permanece oculta
+     * (NAV_PARADAS_FEM_ empieza justo en Consentimiento, así que basta
+     * con comprobar si la pantalla visible es una de esas paradas).
+     */
+    const barra=document.querySelector(".barraSuperior");
+    const yaEnFormulario=NAV_PARADAS_FEM_.some(function(p){ return p.id===idVisible; });
+    if(barra) barra.style.display=yaEnFormulario ? "" : "none";
+    if(!yaEnFormulario) return;
+
     const esPrincipal=!!(window.DATOS_ACCESO_FEM && window.DATOS_ACCESO_FEM.esPrincipal);
 
     let completadas=0;
@@ -6601,6 +6618,11 @@ function mostrarPantallaGuardada(paso){
 
     if(id === "pantallaBienvenida" && typeof initializeWelcomeIntro === "function"){
         initializeWelcomeIntro();
+    }
+
+    if(id === "pantallaConsentimiento"){
+        const nombreIEConsentimiento=String(getCampoNombreIE()||"").replace(/^\s*(instituci[oó]n\s+educativa|i\.?\s*e\.?)\s+/i,"").trim();
+        document.querySelectorAll(".nombreIEConsentimiento").forEach(function(el){ el.textContent=nombreIEConsentimiento||"su Institución Educativa"; });
     }
 
     if(id === "pantallaSesion1" && typeof iniciarAperturaSesion1 === "function"){
