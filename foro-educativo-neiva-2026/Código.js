@@ -5244,8 +5244,13 @@ const TIPOS_ASISTENCIA_QR=["Presencial","No asistió: con permiso institucional 
 const ROLES_FORO_QR=["👑 Líder – Rector(a)","🎓 Dinamizador(a) Pedagógico(a) – Tutor(a) PTA / PFI 3.0","👥 Dinamizador(a) de Mesas de Trabajo","📝 Relator(a)","⏱️ Dinamizador(a) del Tiempo","💻 Dinamizador(a) de la Sistematización","🙋 Participante"];
 
 // Sexo (para el conteo demográfico del informe: niños/niñas,
-// jóvenes hombres/mujeres, adultos hombres/mujeres).
+// adolescentes hombres/mujeres, adultos hombres/mujeres).
 const SEXOS_ASISTENCIA_QR=["Masculino","Femenino","Prefiero no decirlo"];
+
+// Edad por RANGOS (ya no un número exacto): alimentan el análisis
+// demográfico/de percepción del informe — ver categoriaEdad_() más
+// abajo. "no_responde" se cuenta aparte, sin intentar clasificarla.
+const RANGOS_EDAD_QR=["0-12","13-18","18-25","25-35","35-45","45-55","55-65","65+","no_responde"];
 
 // Cargos que NO responden la pregunta de condición (jornada/sede):
 // según lo pedido, aplica a todos MENOS estos cuatro.
@@ -5414,7 +5419,7 @@ function registrarAsistenciaQR(idForo, nombre, sexo, edad, tipoAsistencia, cargo
     if(!nombre || !sexo || !edad || !tipoAsistencia || !cargo || !rolForo || !documento || !correo) return {ok:false, mensaje:"Complete nombre, sexo, edad, tipo de asistencia, cargo, rol en el Foro, número de documento y correo electrónico."};
     if(!consentimiento) return {ok:false, mensaje:"Debe aceptar el tratamiento de sus datos personales para continuar."};
     if(SEXOS_ASISTENCIA_QR.indexOf(sexo)===-1) return {ok:false, mensaje:"Seleccione una opción de sexo válida."};
-    if(!/^[0-9]{1,3}$/.test(edad)) return {ok:false, mensaje:"Seleccione una edad válida."};
+    if(RANGOS_EDAD_QR.indexOf(edad)===-1) return {ok:false, mensaje:"Seleccione una edad válida."};
     if(TIPOS_ASISTENCIA_QR.indexOf(tipoAsistencia)===-1) return {ok:false, mensaje:"Seleccione un tipo de asistencia válido."};
     if(ROLES_FORO_QR.indexOf(rolForo)===-1) return {ok:false, mensaje:"Seleccione un rol válido en el Foro Educativo Institucional."};
 
@@ -5663,23 +5668,37 @@ function agregarListadoAsistenciaAlInforme_(body, idForo, datos){
  * que la persona no escribió. Ver la respuesta dada al usuario.
  *****************************************************/
 
-// Edad: niños/niñas 0–14, jóvenes 15–17, adultos 18+.
+/*
+ * Edad por RANGOS (ver RANGOS_EDAD_QR): 0-12 = niños/niñas, 13-18 =
+ * adolescentes, las 6 franjas de 18 en adelante = adultos. "no_responde"
+ * se devuelve tal cual, sin clasificar — el informe solo cuenta
+ * cuántas personas eligieron esa opción (ver
+ * agregarPerfilYPercepcionAlInforme_). Se conserva compatibilidad con
+ * firmas antiguas guardadas como número exacto (0-99), de antes de
+ * este cambio.
+ */
 function categoriaEdad_(edad){
-  const n=Number(edad);
+  const e=String(edad||"").trim();
+  if(e==="no_responde") return "no_responde";
+  if(e==="0-12") return "nino";
+  if(e==="13-18") return "adolescente";
+  if(["18-25","25-35","35-45","45-55","55-65","65+"].indexOf(e)!==-1) return "adulto";
+  const n=Number(e);
   if(isNaN(n)) return "";
-  if(n<=14) return "nino";
-  if(n<=17) return "joven";
+  if(n<=12) return "nino";
+  if(n<=18) return "adolescente";
   return "adulto";
 }
 
 function calcularDemografiaAsistentes_(asistentes){
-  const t={ninos:0,ninas:0,jovenesHombres:0,jovenesMujeres:0,hombresAdultos:0,mujeresAdultas:0,otro:0};
+  const t={ninos:0,ninas:0,adolescentesHombres:0,adolescentesMujeres:0,hombresAdultos:0,mujeresAdultas:0,noResponde:0,otro:0};
   asistentes.forEach(function(p){
     const cat=categoriaEdad_(p.edad);
     const sexo=String(p.sexo||"");
     const esHombre=sexo==="Masculino", esMujer=sexo==="Femenino";
+    if(cat==="no_responde"){ t.noResponde++; return; }
     if(cat==="nino"){ if(esHombre)t.ninos++; else if(esMujer)t.ninas++; else t.otro++; }
-    else if(cat==="joven"){ if(esHombre)t.jovenesHombres++; else if(esMujer)t.jovenesMujeres++; else t.otro++; }
+    else if(cat==="adolescente"){ if(esHombre)t.adolescentesHombres++; else if(esMujer)t.adolescentesMujeres++; else t.otro++; }
     else if(cat==="adulto"){ if(esHombre)t.hombresAdultos++; else if(esMujer)t.mujeresAdultas++; else t.otro++; }
   });
   return t;
@@ -5837,27 +5856,30 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
    * Desglose por sexo y edad.
    */
   const dem=calcularDemografiaAsistentes_(asistentes);
-  const totalHombres=dem.hombresAdultos+dem.jovenesHombres+dem.ninos;
-  const totalMujeres=dem.mujeresAdultas+dem.jovenesMujeres+dem.ninas;
+  const totalHombres=dem.hombresAdultos+dem.adolescentesHombres+dem.ninos;
+  const totalMujeres=dem.mujeresAdultas+dem.adolescentesMujeres+dem.ninas;
   const pDemografia=body.appendParagraph(
-    "En cuanto a la composición demográfica de los asistentes, se registraron "+dem.hombresAdultos+" hombres mayores de edad y "+dem.mujeresAdultas+" mujeres mayores de edad; "+dem.jovenesHombres+" jóvenes hombres y "+dem.jovenesMujeres+" jóvenes mujeres (entre los 15 y los 17 años); y "+dem.ninos+" niños y "+dem.ninas+" niñas (entre los 0 y los 14 años)."+
-    (dem.otro?" Adicionalmente, "+dem.otro+" personas seleccionaron la opción \"Prefiero no decirlo\" o no registraron su edad.":"")
+    "En cuanto a la composición demográfica de los asistentes, se registraron "+dem.hombresAdultos+" hombres adultos y "+dem.mujeresAdultas+" mujeres adultas (mayores de 18 años); "+dem.adolescentesHombres+" adolescentes hombres y "+dem.adolescentesMujeres+" adolescentes mujeres (entre los 13 y los 18 años); y "+dem.ninos+" niños y "+dem.ninas+" niñas (entre los 0 y los 12 años)."+
+    (dem.otro?" Adicionalmente, "+dem.otro+" personas seleccionaron la opción \"Prefiero no decirlo\" en la pregunta de sexo.":"")+
+    (dem.noResponde?" "+dem.noResponde+" persona"+(dem.noResponde===1?"":"s")+" eligió la opción \"Prefiero no responder\" en la pregunta de edad, por lo que no se cuenta con datos de percepción demográfica de "+(dem.noResponde===1?"esa persona":"esas personas")+".":"")
   );
   pDemografia.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
   try{
-    const etiquetasSexo=["Niños","Niñas","Jóvenes hombres","Jóvenes mujeres","Hombres adultos","Mujeres adultas"];
-    const valoresSexo=[dem.ninos,dem.ninas,dem.jovenesHombres,dem.jovenesMujeres,dem.hombresAdultos,dem.mujeresAdultas];
+    const etiquetasSexo=["Niños","Niñas","Adolescentes hombres","Adolescentes mujeres","Hombres adultos","Mujeres adultas"];
+    const valoresSexo=[dem.ninos,dem.ninas,dem.adolescentesHombres,dem.adolescentesMujeres,dem.hombresAdultos,dem.mujeresAdultas];
     const blobSexo=construirGraficoColumnas_("Participantes por sexo y edad ("+(totalHombres+totalMujeres)+" total)",etiquetasSexo,valoresSexo);
     body.appendImage(blobSexo).setWidth(430);
   }catch(errorSexo){ Logger.log("Gráfico de sexo/edad: "+errorSexo.message); }
 
   /*
-   * Percepciones por categoría de edad: niños, jóvenes, adultos, y
-   * percepción general (a partir de las respuestas abiertas de la
-   * valoración de la actividad, citadas de forma literal).
+   * Percepciones por categoría de edad: niños, adolescentes, adultos,
+   * y percepción general (a partir de las respuestas abiertas de la
+   * valoración de la actividad, citadas de forma literal). Quienes
+   * eligieron "Prefiero no responder" ya quedaron contabilizados
+   * arriba, pero no entran en ningún grupo de percepción por edad.
    */
   const ninosYNinas=asistentes.filter(function(p){ return categoriaEdad_(p.edad)==="nino"; });
-  const jovenes=asistentes.filter(function(p){ return categoriaEdad_(p.edad)==="joven"; });
+  const adolescentes=asistentes.filter(function(p){ return categoriaEdad_(p.edad)==="adolescente"; });
   const adultos=asistentes.filter(function(p){ return categoriaEdad_(p.edad)==="adulto"; });
 
   const tituloPercepcion=body.appendParagraph("Percepción de la comunidad educativa sobre el Foro Educativo Institucional");
@@ -5875,15 +5897,15 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
     pNinos.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
   }
 
-  if(jovenes.length){
-    const tF=tallyOpciones_(jovenes,"fortalezas"), tD=tallyOpciones_(jovenes,"dificultades");
-    const pJovenes=body.appendParagraph(
-      "Percepción de los y las jóvenes de la IE "+ieTitulo+" sobre el Foro Educativo Institucional\n\n"+
-      "Los jóvenes hombres y mujeres de la IE "+ieTitulo+" reconocen que la institución promueve "+top3Texto_(tF)+
+  if(adolescentes.length){
+    const tF=tallyOpciones_(adolescentes,"fortalezas"), tD=tallyOpciones_(adolescentes,"dificultades");
+    const pAdolescentes=body.appendParagraph(
+      "Percepción de los y las adolescentes de la IE "+ieTitulo+" sobre el Foro Educativo Institucional\n\n"+
+      "Los y las adolescentes de la IE "+ieTitulo+" reconocen que la institución promueve "+top3Texto_(tF)+
       ". De igual manera, identifican "+top3Texto_(tD)+
       " como aspectos que representan oportunidades para el mejoramiento institucional."
     );
-    pJovenes.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
+    pAdolescentes.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
   }
 
   if(adultos.length){
@@ -5983,8 +6005,24 @@ function paginaAsistenciaQR_(idForo){
   const opcionesJornada=opcionesDe_(JORNADAS_ASISTENCIA_QR);
   const opcionesSede=opcionesDe_(sedesIE);
 
-  let opcionesEdad="";
-  for(let e=0;e<=99;e++){ opcionesEdad+='<option value="'+e+'">'+e+'</option>'; }
+  /*
+   * Edad por RANGOS (ya no un número exacto 0-99): 0-12 alimenta el
+   * análisis de "niños/niñas", 13-18 el de "adolescentes", y las 6
+   * franjas de 18 en adelante el de "adultos" en el informe (ver
+   * categoriaEdad_/agregarPerfilYPercepcionAlInforme_). "Prefiero no
+   * responder" queda registrado aparte: el informe indica cuántas
+   * personas eligieron esa opción, sin intentar clasificarlas.
+   */
+  const opcionesEdad=
+    '<option value="0-12">0 a 12 años</option>'+
+    '<option value="13-18">13 a 18 años</option>'+
+    '<option value="18-25">18 a 25 años</option>'+
+    '<option value="25-35">25 a 35 años</option>'+
+    '<option value="35-45">35 a 45 años</option>'+
+    '<option value="45-55">45 a 55 años</option>'+
+    '<option value="55-65">55 a 65 años</option>'+
+    '<option value="65+">Más de 65 años</option>'+
+    '<option value="no_responde">Prefiero no responder</option>';
 
   const checklistDe_=function(lista, clase){
     return lista.map(function(v,i){
@@ -6062,6 +6100,11 @@ function paginaAsistenciaQR_(idForo){
     '<select id="sexo"><option value="">Seleccione…</option>'+opcionesSexo+'</select>'+
     '<label>Edad</label>'+
     '<select id="edad"><option value="">Seleccione…</option>'+opcionesEdad+'</select>'+
+    '<button type="button" id="btnPorQueEdad" class="botonOjoConsentimiento">❓ ¿Por qué esta pregunta?</button>'+
+    '<div id="textoPorQueEdad" class="textoConsentimientoQR">'+
+        'Esta pregunta alimenta el análisis de percepción demográfico que se incluye en el informe del Foro Educativo Institucional de la IE '+escHtml_(nombreIESinPrefijoInstitucional_(ieTitulo))+': conocer, de forma general, cuántos niños, niñas, adolescentes y adultos participaron, para relacionar sus respuestas de fortalezas y dificultades con su rango de edad.\n\n'+
+        'Si prefiere no compartir este dato, puede elegir la opción "Prefiero no responder" en la lista de arriba — el informe indicará cuántas personas eligieron no responder esta pregunta, sin que eso afecte el resto de su registro de asistencia.'+
+    '</div>'+
     '<label>Cargo en la Institución Educativa</label>'+
     '<select id="cargo"><option value="">Seleccione…</option>'+opcionesCargo+'</select>'+
 
@@ -6111,6 +6154,12 @@ function paginaAsistenciaQR_(idForo){
     'var visible=d.style.display==="block";'+
     'd.style.display=visible?"none":"block";'+
     'this.textContent=visible?"👁️ Ver el texto completo del consentimiento":"🙈 Ocultar el texto del consentimiento";'+
+    '});'+
+    'document.getElementById("btnPorQueEdad").addEventListener("click",function(){'+
+    'var d=document.getElementById("textoPorQueEdad");'+
+    'var visible=d.style.display==="block";'+
+    'd.style.display=visible?"none":"block";'+
+    'this.textContent=visible?"❓ ¿Por qué esta pregunta?":"🙈 Ocultar explicación";'+
     '});'+
     'function actualizarBotonFirmar(){'+
     'var acepto=document.getElementById("aceptoConsentimiento").checked;'+
