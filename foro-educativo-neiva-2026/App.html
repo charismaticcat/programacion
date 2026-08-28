@@ -8097,7 +8097,14 @@ function mostrarPantallaDespedidaFEM_(){
 
     const total=(typeof getTotalParticipantes==="function" ? getTotalParticipantes() : 0)||0;
     const ie=String(getCampoNombreIE()||"").replace(/^\s*(instituci[oó]n\s+educativa|i\.?\s*e\.?)\s+/i,"").trim()||"nuestra institución";
-    const rector=String(document.getElementById("rector")?.value||"").trim()||"su rector(a)";
+    /*
+     * BUG CORREGIDO: si el campo "rector" quedaba vacío, el texto de
+     * respaldo era literalmente "su rector(a)" — y como la frase de
+     * abajo YA dice "Gracias a su Líder", terminaba mostrando "Gracias
+     * a su Líder su rector(a)" duplicado. Ahora el respaldo describe
+     * el rol sin repetir la frase que ya está en la plantilla.
+     */
+    const rector=String(document.getElementById("rector")?.value||"").trim()||"quien ejerce su liderazgo";
     const responsables=(typeof obtenerNombresResponsablesFEM_==="function" ? obtenerNombresResponsablesFEM_() : []);
 
     // "Responsables" aquí es quien diligenció el formulario (nombre)
@@ -8117,7 +8124,7 @@ function mostrarPantallaDespedidaFEM_(){
     const mensaje=document.getElementById("textoDespedidaFEM");
     if(mensaje){
         mensaje.innerHTML =
-            "¡Agradecemos a los <strong>"+total+"</strong> integrantes de la comunidad educativa de la IE <strong>"+escapeHtml(ie)+"</strong> por haber construido las respuestas de este espacio de diálogo. Gracias a su rector(a) <strong>"+escapeHtml(rector)+"</strong>,"+
+            "¡Agradecemos a los <strong>"+total+"</strong> integrantes de la comunidad educativa de la IE <strong>"+escapeHtml(ie)+"</strong> por haber construido las respuestas de este espacio de diálogo. Gracias a su Líder <strong>"+escapeHtml(rector)+"</strong>,"+
             fraseResponsables+
             " por haber enviado diligentemente las respuestas construidas desde el diálogo dentro de la IE <strong>"+escapeHtml(ie)+"</strong>."+
             "<br><br><em>"+fraseInspiradora+"</em>";
@@ -8289,13 +8296,29 @@ function nombreMetodoAsistencia_(metodo){
     return metodo==="QR" ? "código QR" : "PDF escaneado";
 }
 
-function elegirMetodoAsistencia_(metodoNuevo){
+async function elegirMetodoAsistencia_(metodoNuevo){
     const campo=document.getElementById("metodoAsistencia");
     const campoAnterior=document.getElementById("metodoAsistenciaAnterior");
     const campoCambios=document.getElementById("metodoAsistenciaCambios");
     const metodoAnterior=campoAnterior?.value||"";
     const cambios=Number(campoCambios?.value||0);
     const esCambioReal=!!metodoAnterior && metodoAnterior!==metodoNuevo;
+
+    /*
+     * Cambiar de método borra lo ya registrado con el anterior (las
+     * firmas QR, o el PDF y su número de asistentes) — antes eso
+     * pasaba en silencio en cuanto se elegía el nuevo método. Ahora
+     * se avisa y se pide confirmar antes de ejecutar el cambio.
+     */
+    if(esCambioReal){
+        const cambiosRestantes=Math.max(0,MAX_CAMBIOS_METODO_ASISTENCIA_-(cambios+1));
+        const seguirConCambio=await confirmarFEM(
+            "Solo se permitirá este cambio de método de asistencia"+(cambiosRestantes>0?" (le quedará "+textoPlural_(cambiosRestantes,"cambio disponible","cambios disponibles")+")":" (ya no podrá volver a cambiarlo)")+
+            ". La información ya registrada con "+nombreMetodoAsistencia_(metodoAnterior)+" se eliminará de esta pantalla. ¿Desea continuar con el cambio de método de asistencia?",
+            {titulo:"⚠️ Confirmar cambio de método de asistencia", textoAceptar:"Sí, continuar", textoCancelar:"No"}
+        );
+        if(!seguirConCambio) return;
+    }
 
     if(campo){ campo.value=metodoNuevo; campo.dispatchEvent(new Event("change")); }
     aplicarEstadoMetodoAsistencia_();

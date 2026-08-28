@@ -6118,7 +6118,7 @@ function paginaAsistenciaQR_(idForo){
     '<label>Rol que desempeñó en el Foro Educativo Institucional '+ieTitulo.replace(/</g,"&lt;")+'</label>'+
     '<select id="rolForo"><option value="">Seleccione…</option>'+opcionesRolForo+'</select>'+
 
-    '<label>Su asistencia fue</label>'+
+    '<label>Su participación fue</label>'+
     '<select id="tipoAsistencia"><option value="">Seleccione…</option>'+opcionesTipoAsistencia+'</select>'+
 
     '<label>Número de documento</label>'+
@@ -6340,11 +6340,44 @@ function paginaAsistenciaQR_(idForo){
     'var dificultades=valoresMarcados("checkDificultad");'+
     'var dificultadOtro=document.getElementById("dificultadOtroTexto").value.trim();'+
     'if(!acepto){estado.textContent="Debe aceptar el tratamiento de sus datos personales para continuar.";return;}'+
-    'if(!nombre||!sexo||!edad||!tipoAsistencia||!cargo||!rolForo||!documento||!correo){estado.textContent="Complete nombre, sexo, edad, tipo de asistencia, cargo, rol en el Foro, número de documento y correo electrónico.";return;}'+
-    'if(requiereCondicion&&(!jornada||!sede)){estado.textContent="Seleccione la jornada y la sede a la que pertenece.";return;}'+
+    /*
+     * En vez del mensaje genérico de siempre (la lista completa de
+     * los 8 campos, sin importar cuál faltara), se dice exactamente
+     * cuál(es) falta(n) y se desplaza hasta el primero — igual que ya
+     * se hace en la Caracterización del formulario principal.
+     */
+    'var camposRequeridosFirma=['+
+        '["nombre",nombre,"Nombre completo"],'+
+        '["sexo",sexo,"Sexo"],'+
+        '["edad",edad,"Edad"],'+
+        '["tipoAsistencia",tipoAsistencia,"Su participación fue"],'+
+        '["cargo",cargo,"Cargo en la Institución Educativa"],'+
+        '["rolForo",rolForo,"Rol que desempeñó en el Foro Educativo Institucional"],'+
+        '["documento",documento,"Número de documento"],'+
+        '["correo",correo,"Correo electrónico"]'+
+    '];'+
+    'var faltantesFirma=camposRequeridosFirma.filter(function(c){ return !c[1]; });'+
+    'if(faltantesFirma.length){'+
+        'estado.textContent="Falta completar: "+faltantesFirma.map(function(c){return c[2];}).join(", ")+".";'+
+        'var primerCampoFaltante=document.getElementById(faltantesFirma[0][0]);'+
+        'if(primerCampoFaltante){ primerCampoFaltante.scrollIntoView({behavior:"smooth",block:"center"}); primerCampoFaltante.focus(); }'+
+        'return;'+
+    '}'+
+    'if(requiereCondicion&&(!jornada||!sede)){'+
+        'estado.textContent="Seleccione la jornada y la sede a la que pertenece.";'+
+        'var campoCondicionFaltante=document.getElementById(!jornada?"jornada":"sede");'+
+        'if(campoCondicionFaltante){ campoCondicionFaltante.scrollIntoView({behavior:"smooth",block:"center"}); campoCondicionFaltante.focus(); }'+
+        'return;'+
+    '}'+
+    'if(!/^[0-9]+$/.test(documento)){'+
+        'estado.textContent="El número de documento debe contener solo números.";'+
+        'var campoDocumento=document.getElementById("documento");'+
+        'if(campoDocumento){ campoDocumento.scrollIntoView({behavior:"smooth",block:"center"}); campoDocumento.focus(); }'+
+        'return;'+
+    '}'+
     'if(fortalezas.length>3){estado.textContent="Seleccione máximo 3 fortalezas.";return;}'+
     'if(dificultades.length>3){estado.textContent="Seleccione máximo 3 aspectos de mejora.";return;}'+
-    'if(!correoEsValido(correo)){validarCorreoUI();estado.textContent="Revise el correo electrónico: no es válido.";return;}'+
+    'if(!correoEsValido(correo)){validarCorreoUI();estado.textContent="Revise el correo electrónico: no es válido.";document.getElementById("correo").scrollIntoView({behavior:"smooth",block:"center"});return;}'+
     'btn.disabled=true; btn.textContent="Firmando…";'+
     'google.script.run.withSuccessHandler(function(res){'+
     'if(res&&res.ok){ mostrarYaFirmado(nombre,res.textoFirma); }'+
@@ -6887,8 +6920,15 @@ function generarInformeFEM(idForo,datosCliente){
      * Caracterización) — mismo formato para todos: nombre en negrita
      * y subrayado, cargo en cursiva, y para los responsables del
      * envío también su rol dentro del Foro en cursiva.
+     *
+     * BUG CORREGIDO: este salto de página era forzado sin importar
+     * cuánto espacio quedara en la hoja anterior — si el contenido de
+     * Evidencias (foto, listado de asistencia) terminaba justo al
+     * final de una página, este salto dejaba una página COMPLETAMENTE
+     * en blanco (solo con el encabezado de logos) antes de "Firmas".
+     * Se quita, igual que ya se hizo para "Evidencias de la jornada"
+     * más arriba: si queda espacio, Firmas sigue en la misma hoja.
      */
-    body.appendPageBreak();
     const tituloFirmas=body.appendParagraph("Firmas");
     tituloFirmas.setHeading(DocumentApp.ParagraphHeading.HEADING1);
     tituloFirmas.editAsText().setForegroundColor(VERDE).setBold(true);
