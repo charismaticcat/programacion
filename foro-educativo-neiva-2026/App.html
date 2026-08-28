@@ -871,11 +871,14 @@ if(btnSesion2){
     const btnSesion4No=document.getElementById("btnSesion4No");
     if(btnSesion4No) btnSesion4No.addEventListener("click",function(){
         window._FEM_SESION4_HECHA=true; // se decidió omitirla: cuenta como "resuelta" para la barra de navegación.
+        window._FEM_SESION4_OMITIDA=true; // circulo de la barra muestra "N/A" en vez del número — es opcional y no se hizo.
+        if(!esPrincipalActualFEM_()){ avisarFinColaboracionSesion4_(); return; }
         transicionSesionConEscudo_("pantallaPreguntaSesion4","pantallaEvidencias",9);
     });
 
     const btnSesion4Si=document.getElementById("btnSesion4Si");
     if(btnSesion4Si) btnSesion4Si.addEventListener("click",function(){
+        window._FEM_SESION4_OMITIDA=false; // decidió sí hacerla: vuelve a mostrar el número normal en la barra.
         transicionSesionConEscudo_("pantallaPreguntaSesion4","pantallaSesion4",9);
     });
 
@@ -888,6 +891,7 @@ if(btnSesion2){
     if(btnFinalizarSesion4) btnFinalizarSesion4.addEventListener("click",function(){
         window._FEM_SESION4_HECHA=true;
         guardarBorradorLocal({silencioso:true});
+        if(!esPrincipalActualFEM_()){ avisarFinColaboracionSesion4_(); return; }
         transicionSesionConEscudo_("pantallaSesion4","pantallaEvidencias",9);
     });
 
@@ -1287,6 +1291,31 @@ function transicionSesionConEscudo_(actual, nueva, paso){
  * Evidencias — intentar entrar a una parada restringida muestra un
  * aviso en vez de bloquear en silencio.
  *****************************************************/
+function esPrincipalActualFEM_(){
+    return !!(window.DATOS_ACCESO_FEM && window.DATOS_ACCESO_FEM.esPrincipal);
+}
+
+/*
+ * Un/a colaborador(a) (hasta 3 por IE, mismo código) apoya como
+ * máximo hasta la Sesión 4 — no debe poder ingresar información en
+ * Evidencias, Plenaria ni el informe final. Se llama en vez de
+ * transicionSesionConEscudo_(...,"pantallaEvidencias",...) cuando
+ * quien completa la Sesión 4 no es el responsable principal: se
+ * queda en la misma pantalla (ya marcada como hecha) y los dos
+ * botones de cierre de Sesión 4 quedan deshabilitados.
+ */
+function avisarFinColaboracionSesion4_(){
+    ["btnSesion4No","btnFinalizarSesion4"].forEach(function(id){
+        const b=document.getElementById(id);
+        if(b) b.disabled=true;
+    });
+    try{ actualizarBarra(); }catch(e){}
+    confirmarFEM(
+        "Como colaborador(a), su apoyo en el formulario llega hasta aquí: la Sesión 4 quedó registrada en este dispositivo. El responsable principal del envío se encarga de subir las evidencias, la Plenaria y el envío del informe. ¡Gracias por su apoyo!",
+        {titulo:"✅ Sesión 4 completada", textoAceptar:"Entendido", textoCancelar:"Entendido"}
+    );
+}
+
 const NAV_PARADAS_FEM_ = [
     {paso:3,  id:"pantallaConsentimiento", nombre:"Consentimiento"},
     {paso:4,  id:"pantallaCaracterizacion", nombre:"Caracterización"},
@@ -1294,32 +1323,44 @@ const NAV_PARADAS_FEM_ = [
     {paso:7,  id:"pantallaSesion2", nombre:"Sesión 2"},
     {paso:8,  id:"pantallaSesion3", nombre:"Sesión 3"},
     {paso:null, id:"pantallaSesion4", nombre:"Sesión Propia"},
-    {paso:9,  id:"pantallaEvidencias", nombre:"Evidencias"},
+    {paso:9,  id:"pantallaEvidencias", nombre:"Evidencias", soloPrincipal:true},
     {paso:10, id:"pantallaPlenaria", nombre:"Plenaria", soloPrincipal:true},
     {paso:11, id:"pantallaFinalFEM", nombre:"Informe final", soloPrincipal:true},
     {paso:12, id:"pantallaCierreFEM", nombre:"Cierre y valoración", soloPrincipal:true}
 ];
 
-function estadoDeParadaNav_(parada, idVisible){
-    if(parada.id===idVisible) return "amarillo";
+/*
+ * Estado REAL de una parada (sin el "amarillo" de "es la pantalla
+ * actual"), usado tanto para pintar los círculos como para decidir
+ * si ya se puede avanzar a Plenaria en adelante — si se calculara
+ * mirando la pantalla visible, estar parado justo en Evidencias con
+ * la foto ya subida se leería como "no completada" solo por ser la
+ * pantalla activa, y bloquearía el avance de forma incorrecta.
+ */
+function estaCompletadaParadaNav_(parada){
     switch(parada.id){
         case "pantallaConsentimiento":
-            return document.getElementById("acepto")?.checked ? "verde" : "rojo";
+            return !!document.getElementById("acepto")?.checked;
         case "pantallaCaracterizacion": {
             const campos=["institucion","nombre","correo","cargo","rolForoResponsable"];
-            return campos.every(function(id){ return String(document.getElementById(id)?.value||"").trim()!==""; }) ? "verde" : "rojo";
+            return campos.every(function(id){ return String(document.getElementById(id)?.value||"").trim()!==""; });
         }
-        case "pantallaSesion1": return window._FEM_SESIONES_ENVIADAS?.[1] ? "verde" : "rojo";
-        case "pantallaSesion2": return window._FEM_SESIONES_ENVIADAS?.[2] ? "verde" : "rojo";
-        case "pantallaSesion3": return window._FEM_SESIONES_ENVIADAS?.[3] ? "verde" : "rojo";
-        case "pantallaSesion4": return window._FEM_SESION4_HECHA ? "verde" : "rojo";
-        case "pantallaEvidencias": return document.getElementById("evidenciaFotoUrl")?.value ? "verde" : "rojo";
+        case "pantallaSesion1": return !!window._FEM_SESIONES_ENVIADAS?.[1];
+        case "pantallaSesion2": return !!window._FEM_SESIONES_ENVIADAS?.[2];
+        case "pantallaSesion3": return !!window._FEM_SESIONES_ENVIADAS?.[3];
+        case "pantallaSesion4": return !!window._FEM_SESION4_HECHA;
+        case "pantallaEvidencias": return !!document.getElementById("evidenciaFotoUrl")?.value;
         case "pantallaPlenaria":
-            return (window._FEM_SESIONES_ENVIADAS?.[1] && window._FEM_SESIONES_ENVIADAS?.[2] && window._FEM_SESIONES_ENVIADAS?.[3]) ? "verde" : "rojo";
-        case "pantallaFinalFEM": return (typeof informeFinalData!=="undefined" && informeFinalData && informeFinalData.enviado) ? "verde" : "rojo";
-        case "pantallaCierreFEM": return window._FEM_VALORACION_ENVIADA ? "verde" : "rojo";
-        default: return "rojo";
+            return !!(window._FEM_SESIONES_ENVIADAS?.[1] && window._FEM_SESIONES_ENVIADAS?.[2] && window._FEM_SESIONES_ENVIADAS?.[3]);
+        case "pantallaFinalFEM": return !!(typeof informeFinalData!=="undefined" && informeFinalData && informeFinalData.enviado);
+        case "pantallaCierreFEM": return !!window._FEM_VALORACION_ENVIADA;
+        default: return false;
     }
+}
+
+function estadoDeParadaNav_(parada, idVisible){
+    if(parada.id===idVisible) return "amarillo";
+    return estaCompletadaParadaNav_(parada) ? "verde" : "rojo";
 }
 
 function irAParadaNav_(parada){
@@ -1330,6 +1371,24 @@ function irAParadaNav_(parada){
             {titulo:"🔒 Acceso restringido", textoAceptar:"Entendido", textoCancelar:"Entendido"}
         );
         return;
+    }
+    /*
+     * Aunque sea el responsable principal, no se habilita Plenaria en
+     * adelante mientras falte completar (en verde) cualquiera de los
+     * 7 primeros pasos (Consentimiento .. Evidencias) — evita entrar
+     * a la Plenaria con sesiones sin enviar o evidencias sin subir.
+     */
+    if(parada.soloPrincipal){
+        const pendientes=NAV_PARADAS_FEM_
+            .filter(function(p){ return !p.soloPrincipal; })
+            .filter(function(p){ return !estaCompletadaParadaNav_(p); });
+        if(pendientes.length){
+            confirmarFEM(
+                "⚠ Antes de continuar debe completar (en verde) los pasos 1 al 7: " + pendientes.map(function(p){ return p.nombre; }).join(", ") + ".",
+                {titulo:"Faltan pasos por completar", textoAceptar:"Entendido", textoCancelar:"Entendido"}
+            );
+            return;
+        }
     }
     document.querySelectorAll(".pantalla").forEach(function(p){ p.classList.remove("visible"); });
     const destino=document.getElementById(parada.id);
@@ -1354,9 +1413,13 @@ function renderNavPantallasFEM_(){
         if(estado==="verde") completadas++;
         const bloqueada=!!(parada.soloPrincipal && !esPrincipal);
         const clasePorEstado="nav"+estado.charAt(0).toUpperCase()+estado.slice(1);
+        // Sesión 4 es opcional: si se decidió omitirla, el círculo
+        // muestra "N/A" en vez del número de orden.
+        const omitidaSesion4=parada.id==="pantallaSesion4" && !!window._FEM_SESION4_OMITIDA;
+        const etiquetaCirculo=omitidaSesion4 ? "N/A" : String(indice+1);
         return '<div class="navParadaFEM">'+
-            '<button type="button" class="navCirculoFEM '+clasePorEstado+(bloqueada?' navBloqueado':'')+'" data-parada="'+indice+'">'+
-                (indice+1)+
+            '<button type="button" class="navCirculoFEM '+clasePorEstado+(bloqueada?' navBloqueado':'')+(omitidaSesion4?' navOmitida':'')+'" data-parada="'+indice+'">'+
+                etiquetaCirculo+
                 '<span class="navNombreFEM">'+escapeHtml(parada.nombre)+(bloqueada?' 🔒':'')+'</span>'+
             '</button>'+
         '</div>';
@@ -1385,14 +1448,20 @@ function actualizarBarra(){
 /*****************************************************
  * LATIDO DE SESIÓN + AVISO DE PÉRDIDA DE CONEXIÓN/INACTIVIDAD
  *
- * Solo se activa para el responsable principal (esPrincipal): es el
- * único cuya desconexión bloquearía el envío para toda la
- * institución. Cada 30s se envía un latido al servidor
- * (mantenerSesionCodigo, que existía pero nunca se llamaba desde el
- * cliente). Si el navegador se queda sin conexión o el latido falla
- * varias veces seguidas, se pregunta si desea seguir como
- * responsable en este dispositivo o transferir el control a otro
- * colaborador ya conectado.
+ * Se activa para CUALQUIER dispositivo conectado (responsable
+ * principal o colaborador/a) — antes solo corría para el principal,
+ * pero eso significaba que un/a colaborador/a promovido/a a
+ * principal por transferirResponsablePrincipalFEM (ver
+ * avisarPerdidaConexionFEM_ más abajo) nunca se enteraba: su
+ * DATOS_ACCESO_FEM.esPrincipal se quedaba en false para siempre y la
+ * barra de navegación seguía bloqueándole Plenaria en adelante hasta
+ * que volviera a ingresar el código. Cada 30s se envía un latido al
+ * servidor (mantenerSesionCodigo) que además de confirmar actividad
+ * devuelve el esPrincipal ACTUAL de este dispositivo, y aquí se
+ * refleja de inmediato si cambió. El aviso de posible pérdida de
+ * conexión (con la opción de transferir el control) solo se muestra
+ * si quien pierde el latido es, en ese momento, el responsable
+ * principal — a un/a colaborador/a no le corresponde esa decisión.
  *****************************************************/
 let latidoSesionIntervalo_=null;
 let latidosFallidosSeguidos_=0;
@@ -1401,10 +1470,10 @@ const MAX_LATIDOS_FALLIDOS_ANTES_DE_AVISAR_=2;
 function iniciarLatidoSesionFEM_(){
     if(latidoSesionIntervalo_) return;
     const datos=window.DATOS_ACCESO_FEM;
-    if(!datos || !datos.esPrincipal) return;
+    if(!datos) return;
 
     window.addEventListener("offline", function(){
-        avisarPerdidaConexionFEM_("Se perdió la conexión a Internet.");
+        if(datos.esPrincipal) avisarPerdidaConexionFEM_("Se perdió la conexión a Internet.");
     });
 
     latidoSesionIntervalo_=setInterval(function(){
@@ -1413,17 +1482,30 @@ function iniciarLatidoSesionFEM_(){
         if(!idForo) return;
         google.script.run
             .withSuccessHandler(function(res){
-                if(res && res.ok){ latidosFallidosSeguidos_=0; }
-                else{
+                if(res && res.ok){
+                    latidosFallidosSeguidos_=0;
+                    const eraPrincipal=!!datos.esPrincipal;
+                    const esPrincipalAhora=!!res.esPrincipal;
+                    if(eraPrincipal!==esPrincipalAhora){
+                        datos.esPrincipal=esPrincipalAhora;
+                        try{ actualizarBarra(); }catch(e){}
+                        if(esPrincipalAhora){
+                            confirmarFEM(
+                                "Se le transfirió el rol de responsable principal del envío. Ya puede continuar hasta Evidencias, la Plenaria y el informe final.",
+                                {titulo:"👑 Ahora es responsable principal", textoAceptar:"Entendido", textoCancelar:"Entendido"}
+                            );
+                        }
+                    }
+                }else{
                     latidosFallidosSeguidos_++;
-                    if(latidosFallidosSeguidos_>=MAX_LATIDOS_FALLIDOS_ANTES_DE_AVISAR_){
+                    if(datos.esPrincipal && latidosFallidosSeguidos_>=MAX_LATIDOS_FALLIDOS_ANTES_DE_AVISAR_){
                         avisarPerdidaConexionFEM_("No se ha registrado actividad reciente de esta sesión en el servidor.");
                     }
                 }
             })
             .withFailureHandler(function(){
                 latidosFallidosSeguidos_++;
-                if(latidosFallidosSeguidos_>=MAX_LATIDOS_FALLIDOS_ANTES_DE_AVISAR_){
+                if(datos.esPrincipal && latidosFallidosSeguidos_>=MAX_LATIDOS_FALLIDOS_ANTES_DE_AVISAR_){
                     avisarPerdidaConexionFEM_("No fue posible comunicarse con el servidor.");
                 }
             })
@@ -5698,6 +5780,7 @@ function renderLineasTematicasPropias_(){
         const preguntasHTML = (linea.preguntas||[]).map(function(p, pi){
             const numPregunta = pi+1;
             const terminada = !!p.terminada;
+            const sinRespuestaAun = !p.respuestaVisible && !terminada;
             let bloqueRespuesta = "";
             if(p.respuestaVisible || terminada){
                 bloqueRespuesta =
@@ -5710,12 +5793,17 @@ function renderLineasTematicasPropias_(){
                     (terminada
                         ? '<div class="okRespuestaTerminada">✓ OK</div>'
                         : '<button type="button" class="btnRespuestaTerminada" data-linea="'+li+'" data-pregunta="'+pi+'">✓ Respuesta terminada</button>');
-            }else if(String(p.texto||"").trim()){
-                bloqueRespuesta = '<button type="button" class="btnAgregarRespuestaPregunta" data-linea="'+li+'" data-pregunta="'+pi+'">+ Respuesta '+numPregunta+'</button>';
             }
+            // El botón "+ Respuesta N" va DENTRO de la misma fila de la
+            // pregunta (al lado del textarea, junto al "−" de quitar),
+            // visible de inmediato — ya no hace falta escribir la
+            // pregunta primero ni esperar a un blur para que aparezca.
             return '<div class="bloquePreguntaPropia'+(terminada?' terminada':'')+'" data-linea="'+li+'" data-pregunta="'+pi+'">'+
                 '<div class="filaSesionPropiaConQuitar">'+
                     '<textarea class="textareaPreguntaPropia" data-linea="'+li+'" data-pregunta="'+pi+'" '+(terminada?'disabled':'')+' placeholder="Escriba aquí la pregunta '+numPregunta+'...">'+escapeHtml(p.texto||"")+'</textarea>'+
+                    (sinRespuestaAun
+                        ? '<button type="button" class="btnAgregarRespuestaPregunta" data-linea="'+li+'" data-pregunta="'+pi+'">+ Respuesta '+numPregunta+'</button>'
+                        : '')+
                     (terminada
                         ? ''
                         : '<button type="button" class="btnQuitarSesionPropia btnQuitarPregunta" data-linea="'+li+'" data-pregunta="'+pi+'" aria-label="Quitar pregunta">−</button>')+
@@ -8308,8 +8396,33 @@ function actualizarPreviaFotoEvidencia_(){
 function actualizarEstadoEvidencias(){
     const foto=document.getElementById("archivoFoto")?.files?.[0];
     const subir=document.getElementById("btnSubirEvidencias");
-    const okFoto=foto && ["image/jpeg","image/png"].includes(foto.type) && foto.size<=10*1024*1024;
-    pintarEstadoArchivo("estadoFoto",foto,okFoto,"Imagen válida.","Seleccione JPG/PNG de máximo 10 MB.");
+    /*
+     * BUG CORREGIDO: a diferencia del PDF (ver okPdfArchivo más abajo,
+     * que sí contempla "ya hay uno subido"), esta condición exigía
+     * SIEMPRE un archivo recién elegido en el <input type=file> — pero
+     * un input de archivo nunca conserva su selección tras recargar la
+     * página o restaurar un borrador. Resultado: alguien que ya había
+     * subido la foto (evidenciaFotoUrl con valor) y volvía a esta
+     * pantalla, o tocaba cualquier otro campo de Evidencias, se
+     * encontraba con "Registrar evidencias" bloqueado para siempre,
+     * aunque la foto y el PDF ya estuvieran registrados.
+     */
+    const yaSubidaFoto=!!document.getElementById("evidenciaFotoUrl")?.value;
+    const okFoto=(foto && ["image/jpeg","image/png"].includes(foto.type) && foto.size<=10*1024*1024) || (!foto && yaSubidaFoto);
+    if(foto){
+        pintarEstadoArchivo("estadoFoto",foto,okFoto,"Imagen válida.","Seleccione JPG/PNG de máximo 10 MB.");
+    }else{
+        const estadoFotoEl=document.getElementById("estadoFoto");
+        if(estadoFotoEl){
+            if(yaSubidaFoto){
+                estadoFotoEl.textContent="✓ Ya hay una fotografía registrada. Si sube una nueva, la reemplazará.";
+                estadoFotoEl.className="estadoArchivo ok";
+            }else{
+                estadoFotoEl.textContent="";
+                estadoFotoEl.className="estadoArchivo";
+            }
+        }
+    }
 
     /*
      * Además de la foto, hay que haber elegido un método de
@@ -8378,7 +8491,20 @@ function pintarEstadoArchivo(id,file,ok,si,no){
     el.textContent=(ok?"✓ ":"⚠ ")+file.name+" — "+(file.size/1024/1024).toFixed(2)+" MB. "+(ok?si:no);
     el.className="estadoArchivo "+(ok?"ok":"error");
 }
-function mostrarMensajeEvidencias(msg){ const el=document.getElementById("mensajeEvidencias"); if(el){el.textContent=msg;el.style.display="block";} }
+/*
+ * Colorea un mensaje de estado según su contenido (⚠/error = rojo,
+ * ✓ = verde, cualquier otro caso = gris neutro) — mismos tonos que
+ * .campoError/.mensajeError (#C62828) y los mensajes de conteo de
+ * palabras (#0B6A44) en vez del negro/verde fijo sin relación con
+ * el resultado real de la operación.
+ */
+function colorearMensajeEstado_(el, msg){
+    const texto=String(msg||"");
+    if(/^⚠|error|no fue posible/i.test(texto)) el.style.color="#C62828";
+    else if(/^✓/.test(texto)) el.style.color="#0B6A44";
+    else el.style.color="";
+}
+function mostrarMensajeEvidencias(msg){ const el=document.getElementById("mensajeEvidencias"); if(el){el.textContent=msg;colorearMensajeEstado_(el,msg);el.style.display="block";} }
 // Reemplaza los alert() nativos del navegador (inconsistentes con el
 // resto del diseño del proyecto) por el mismo cuadro de advertencia
 // amarillo ya usado en Plenaria (.plenariaAdvertencia).
@@ -8473,11 +8599,29 @@ async function subirEvidenciasFEM(){
     const foto=document.getElementById("archivoFoto")?.files?.[0];
     const btn=document.getElementById("btnSubirEvidencias");
     const metodoAsistenciaElegido=document.getElementById("metodoAsistencia")?.value||"";
-    if(!foto || !metodoAsistenciaElegido){actualizarEstadoEvidencias();return;}
-    btn.disabled=true; btn.textContent="Registrando…";
+    const yaSubidaFoto=!!document.getElementById("evidenciaFotoUrl")?.value;
+    const archivoPdf=metodoAsistenciaElegido==="PDF" ? document.getElementById("archivoAsistenciaPDF")?.files?.[0] : null;
+    if((!foto && !yaSubidaFoto) || !metodoAsistenciaElegido){actualizarEstadoEvidencias();return;}
+    /*
+     * BUG CORREGIDO: antes esta función exigía SIEMPRE un archivo
+     * recién elegido en el input de foto, aunque ya estuviera
+     * registrada de una visita anterior (los <input type=file> nunca
+     * conservan su selección tras recargar la página) — quien
+     * regresaba con la foto y el PDF ya subidos no podía "continuar"
+     * porque el botón intentaba re-subir una foto que ya no estaba en
+     * el input y se quedaba sin hacer nada, sin avisar por qué. Ahora,
+     * si no hay nada nuevo que subir, simplemente se confirma que ya
+     * está todo registrado y se habilita continuar.
+     */
+    if(!foto && !archivoPdf){
+        mostrarMensajeEvidencias("✓ Ya tiene la fotografía"+(metodoAsistenciaElegido==="PDF"?" y el PDF de asistencia":"")+" registrados. Puede continuar a la plenaria.");
+        const c=document.getElementById("btnContinuarDesdeEvidencias"); if(c) c.disabled=false;
+        return;
+    }
+    btn.disabled=true; btn.textContent=foto?"Registrando…":"Subiendo PDF de asistencia…";
     mostrarOverlayProgreso_(
         "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3Z200YzZoNnpwajM5b3N5dWlob3IwZHdkeDc3bnlwMnlkbWl5OGRqciZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/cV4LUYbSFpDrIdOmIh/giphy.gif",
-        "Subiendo fotografía…",
+        foto?"Subiendo fotografía…":"Subiendo PDF de asistencia…",
         {flotante:true, duracionMs:5000}
     );
     try{
@@ -8499,55 +8643,64 @@ async function subirEvidenciasFEM(){
             }
             throw new Error("No fue posible recuperar el ID_FORO de la institución autenticada. Regrese al acceso e ingrese nuevamente el código.");
         }
-        const fotoData=await leerArchivoDataURL(foto);
 
         /*
-         * Si se pierde la conexión a mitad de la subida, no debe
-         * quedar en un estado confuso donde parece que "no pasó
-         * nada": se reintenta unas pocas veces (típico de una señal
-         * intermitente), y si de verdad no hay forma de subirla, se
-         * avisa explícitamente que la fotografía NUEVA no quedó
-         * guardada y que sigue registrada la anterior — nunca se
-         * deja pensando que sí se actualizó cuando no fue así.
+         * La foto solo se re-sube si de verdad se eligió una nueva —
+         * si ya estaba registrada y solo se quiere actualizar el PDF,
+         * este bloque se salta por completo.
          */
-        let resultado=null, ultimoError=null;
-        for(let intento=1; intento<=3; intento++){
-            try{
-                resultado=await new Promise((resolve,reject)=>{
-                    google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).subirEvidenciasFEM(
-                        datos.idForo, fotoData, foto.name, foto.type, datos
-                    );
-                });
-                ultimoError=null;
-                break;
-            }catch(err){
-                ultimoError=err;
-                if(intento<3){
-                    btn.textContent="Reintentando ("+intento+"/3)…";
-                    await esperar_(1500*intento);
+        if(foto){
+            const fotoData=await leerArchivoDataURL(foto);
+
+            /*
+             * Si se pierde la conexión a mitad de la subida, no debe
+             * quedar en un estado confuso donde parece que "no pasó
+             * nada": se reintenta unas pocas veces (típico de una señal
+             * intermitente), y si de verdad no hay forma de subirla, se
+             * avisa explícitamente que la fotografía NUEVA no quedó
+             * guardada y que sigue registrada la anterior — nunca se
+             * deja pensando que sí se actualizó cuando no fue así.
+             */
+            let resultado=null, ultimoError=null;
+            for(let intento=1; intento<=3; intento++){
+                try{
+                    resultado=await new Promise((resolve,reject)=>{
+                        google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).subirEvidenciasFEM(
+                            datos.idForo, fotoData, foto.name, foto.type, datos
+                        );
+                    });
+                    ultimoError=null;
+                    break;
+                }catch(err){
+                    ultimoError=err;
+                    if(intento<3){
+                        btn.textContent="Reintentando ("+intento+"/3)…";
+                        await esperar_(1500*intento);
+                    }
                 }
             }
+            if(ultimoError){
+                throw new Error(
+                    "No fue posible subir la nueva fotografía por un problema de conexión, después de varios intentos. " +
+                    "Sigue registrada la fotografía anterior (si había una). Verifique su conexión a Internet e intente de nuevo."
+                );
+            }
+            if(!resultado || !resultado.ok) throw new Error(resultado?.mensaje||"No fue posible registrar las evidencias.");
+            document.getElementById("evidenciaFotoUrl").value=resultado.foto.url;
+            document.getElementById("evidenciaFotoId").value=resultado.foto.id;
+            if(document.getElementById("evidenciaFotoFecha")) document.getElementById("evidenciaFotoFecha").value=new Date().toISOString();
+            actualizarPreviaFotoEvidencia_();
         }
-        if(ultimoError){
-            throw new Error(
-                "No fue posible subir la nueva fotografía por un problema de conexión, después de varios intentos. " +
-                "Sigue registrada la fotografía anterior (si había una). Verifique su conexión a Internet e intente de nuevo."
-            );
-        }
-        if(!resultado || !resultado.ok) throw new Error(resultado?.mensaje||"No fue posible registrar las evidencias.");
-        document.getElementById("evidenciaFotoUrl").value=resultado.foto.url;
-        document.getElementById("evidenciaFotoId").value=resultado.foto.id;
-        if(document.getElementById("evidenciaFotoFecha")) document.getElementById("evidenciaFotoFecha").value=new Date().toISOString();
-        actualizarPreviaFotoEvidencia_();
 
         /*
          * Si el método elegido fue PDF, subirlo también (la foto ya
          * quedó registrada arriba, independientemente del método de
          * asistencia).
          */
-        let mensajeFinal="✓ Fotografía registrada. La asistencia se sigue firmando por QR — puede continuar a la plenaria mientras tanto.";
+        let mensajeFinal=foto
+            ? "✓ Fotografía registrada. La asistencia se sigue firmando por QR — puede continuar a la plenaria mientras tanto."
+            : "✓ Evidencias ya registradas. Puede continuar a la plenaria.";
         if(metodoAsistenciaElegido==="PDF"){
-            const archivoPdf=document.getElementById("archivoAsistenciaPDF")?.files?.[0];
             if(archivoPdf){
                 btn.textContent="Subiendo PDF de asistencia…";
                 const pdfData=await leerArchivoDataURL(archivoPdf);
@@ -8558,8 +8711,12 @@ async function subirEvidenciasFEM(){
                 if(!resultadoPdf || !resultadoPdf.ok) throw new Error(resultadoPdf?.mensaje||"No fue posible subir el PDF de asistencia.");
                 document.getElementById("asistenciaPdfUrl").value=resultadoPdf.pdf.url;
                 document.getElementById("asistenciaPdfId").value=resultadoPdf.pdf.id;
+                mensajeFinal=foto
+                    ? "✓ Fotografía y PDF de asistencia registrados. Puede continuar a la plenaria."
+                    : "✓ PDF de asistencia actualizado. Puede continuar a la plenaria.";
+            }else if(foto){
+                mensajeFinal="✓ Fotografía y PDF de asistencia registrados. Puede continuar a la plenaria.";
             }
-            mensajeFinal="✓ Fotografía y PDF de asistencia registrados. Puede continuar a la plenaria.";
         }
 
         const campos=["evidenciaFotoUrl","evidenciaFotoId","evidenciaFotoFecha","metodoAsistencia","asistenciaPdfUrl","asistenciaPdfId","numeroAsistentesPDF"];
@@ -8912,7 +9069,11 @@ function insertarBotonesEnvioSesion(){
                 mostrarEstadoGuardado(`✅ Respuestas de Sesión ${ses} enviadas definitivamente.`);
             }catch(e){
                 ocultarOverlayProgreso_(true);
-                b.disabled=false; b.textContent=`📤 Enviar respuestas de Sesión ${ses}`; alert(e.message||e);
+                b.disabled=false; b.textContent=`📤 Enviar respuestas de Sesión ${ses}`;
+                confirmarFEM(
+                    "⚠ " + (e.message || e),
+                    {titulo:"No fue posible enviar", textoAceptar:"Entendido", textoCancelar:"Entendido"}
+                );
             }
         });
     });
@@ -8949,7 +9110,7 @@ async function generarInformeFinalUI(){
         ocultarOverlayProgreso_(true);
     }
 }
-function mostrarEstadoInformeFinal(msg){const e=document.getElementById("estadoInformeFinal");if(e)e.textContent=msg;}
+function mostrarEstadoInformeFinal(msg){const e=document.getElementById("estadoInformeFinal");if(e){e.textContent=msg;colorearMensajeEstado_(e,msg);}}
 function descargarInformeFinalUI(){
     if(!informeFinalData?.pdfUrl)return;
     window.open(informeFinalData.pdfUrl,"_blank");

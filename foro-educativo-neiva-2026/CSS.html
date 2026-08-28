@@ -318,6 +318,18 @@ Ver renderNavPantallasFEM_ en App.html.
     transition:transform .15s ease, box-shadow .15s ease;
     flex:0 0 auto;
 }
+/*
+ * Sesión 4 (opcional) cuando se decidió omitirla: el círculo muestra
+ * "N/A" en vez de un número — 3 caracteres no caben en el círculo
+ * redondo de 26px con la fuente normal, así que se agranda un poco y
+ * se ovala en vez de forzarlo a un círculo perfecto.
+ */
+.navCirculoFEM.navOmitida{
+    width:34px;
+    border-radius:13px;
+    font-size:9.5px;
+    letter-spacing:.2px;
+}
 
 .navCirculoFEM:hover{
     transform:scale(1.12);
@@ -366,6 +378,7 @@ Ver renderNavPantallasFEM_ en App.html.
 
 @media (max-width:600px){
     .navCirculoFEM{ width:22px; height:22px; font-size:10.5px; }
+    .navCirculoFEM.navOmitida{ width:30px; font-size:8.5px; }
     .navParadaFEM:not(:first-child)::before{ width:6px; }
 }
 
@@ -1207,11 +1220,21 @@ button:disabled{
 }
 .bloqueCodigoAccesoFEM .botonPegarCodigo:hover{ background:#e2e7e4; }
 
+/*
+ * Todo lo que se muestra aquí (código vacío, enlace inválido, error
+ * del servidor al validar, portapapeles bloqueado) es un aviso de
+ * error — nunca un mensaje de éxito (al validar bien, la pantalla
+ * cambia y este elemento ni se muestra). Antes no tenía color propio
+ * y salía en el negro plano por defecto; ahora usa el mismo rojo
+ * institucional que el resto de mensajes de error del proyecto.
+ */
 .mensajeAccesoFEM{
 
     font-size:14px;
     line-height:1.5;
     margin-top:var(--space-1);
+    color:var(--rojo-neiva,#C62828);
+    font-weight:600;
 
 }
 
@@ -1445,7 +1468,27 @@ pasar de la imagen al texto no mueva ni redimensione la tarjeta.
 
     background:#fff8f8;
 
-}/* =====================================================
+}
+
+/*
+ * Mensajes de error de validación (Caracterización, carga de
+ * instituciones, etc.). Antes no tenían ninguna regla propia y
+ * salían en el negro plano por defecto del navegador — se les da
+ * el mismo lenguaje visual que .campoError/.plenariaAdvertencia:
+ * caja con acento de color a la izquierda, en vez de texto suelto.
+ */
+.mensajeError{
+    background:#FDECEA;
+    border-left:8px solid var(--rojo-neiva,#C62828);
+    border-radius:var(--radio,8px);
+    padding:16px 20px;
+    margin-top:16px;
+    color:var(--rojo-neiva,#C62828);
+    font-weight:600;
+    line-height:1.6;
+}
+
+/* =====================================================
 SESIÓN 1
 ===================================================== */
 
@@ -1775,6 +1818,24 @@ SESIÓN 1
     gap:25px;
 
     margin:30px 0;
+
+}
+
+/*
+ * Variante sin panel de guía: se usa en las acciones opcionales
+ * (Acción 4 / Acción 5 de Sesión 2 y Sesión 3), donde el texto de
+ * orientación ahora vive en el placeholder del textarea y no hace
+ * falta el recuadro lateral. Un solo hijo en bloque, a todo el ancho.
+ */
+.contenedorAccionOpcionalSinGuia{
+
+    margin:30px 0;
+
+}
+
+.contenedorAccionOpcionalSinGuia .panelRespuesta{
+
+    width:100%;
 
 }
 
@@ -4062,6 +4123,20 @@ Su ancho ya queda acotado por .cajaTexto > * (--reading-width).
 .finalAcciones{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin:24px 0;}
 
 .mensajeEstadoInforme{min-height:24px;font-weight:600;color:var(--verde-neiva);margin-bottom:12px;}
+/*
+ * El color base de arriba es solo el valor por defecto (compatibilidad).
+ * mostrarEstadoInformeFinal() en App.html ahora fija el color real según
+ * el contenido del mensaje (verde=éxito, rojo=error) en vez de dejarlo
+ * siempre en verde — antes un error como "⚠ No fue posible..." salía en
+ * verde, lo cual confundía tanto como el negro plano.
+ */
+/*
+ * Estado de subida de evidencias (foto/PDF). Antes sin ninguna regla
+ * propia (texto negro por defecto); ahora comparte el mismo lenguaje
+ * de color rojo/verde que el resto de mensajes de estado del proyecto,
+ * fijado desde mostrarMensajeEvidencias() según el contenido.
+ */
+.mensajeEstadoEvidencias{min-height:22px;font-weight:600;margin-top:10px;color:var(--gris-texto,#444);}
 
 .finalCierre{
     border-top:1px solid var(--gris-borde);

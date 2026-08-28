@@ -3981,3 +3981,263 @@ function probarSesionesSimultaneasYFusionDatos(nombreIEPrueba){
 
   return { ok: todoBien, resultado: resultado };
 }
+
+/*****************************************************
+ * PRUEBA: TRANSFERENCIA DE RESPONSABLE PRINCIPAL (4 DISPOSITIVOS)
+ *
+ * "Secuencia de error 1": responsable principal (RESP-1) ya no puede
+ * continuar (se le da de baja como si perdiera la conexión) y
+ * transfiere su rol a un colaborador ya conectado (COLAB-2, forzado
+ * como el de actividad más reciente entre los 3 colaboradores, que es
+ * a quién transferirResponsablePrincipalFEM() siempre elige). Verifica
+ * que, tras la transferencia, COLAB-2 queda como principal, RESP-1
+ * deja de serlo, y que sesionActivaPorIdForo_ — la función que
+ * enviarRespuestasSesion()/enviarForoDefinitivo() usan para decidir si
+ * se puede enviar — sigue devolviendo true para COLAB-2 (es decir,
+ * "colaborador 2 ahora puede enviar el archivo").
+ *
+ * Usa "IE PRUEBA 1234" — no envía ningún correo ni modifica ESTADO.
+ * Libera todas las sesiones de prueba al final, incluso si algo falla.
+ *
+ * Ejecutar manualmente:  probarTransferenciaResponsablePrincipalFEM()
+ *****************************************************/
+function probarTransferenciaResponsablePrincipalFEM(nombreIEPrueba){
+  nombreIEPrueba = nombreIEPrueba || "IE PRUEBA 1234";
+  const resultado = { pasos: {}, errores: [] };
+  const RESP1 = "RESP-1", COLAB2 = "COLAB-2", COLAB3 = "COLAB-3", COLAB4 = "COLAB-4";
+  const tokensPorDispositivo = {};
+  let idForo = "";
+  let clave = "";
+
+  function log(mensaje){ Logger.log(mensaje); }
+
+  try{
+    const hoja = asegurarColumnasAccesosIE_();
+    const mapa = mapaHoja_(hoja);
+    if(hoja.getLastRow() < 2) throw new Error("AccesosIE no tiene filas.");
+    const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues();
+    const fila = valores.find(function(f){ return String(f[mapa.IE - 1] || "").trim() === nombreIEPrueba; });
+    if(!fila) throw new Error("No existe " + nombreIEPrueba + " en AccesosIE.");
+    idForo = String(fila[mapa.ID_FORO - 1] || "").trim();
+    if(!idForo) throw new Error(nombreIEPrueba + " no tiene ID_FORO.");
+    clave = obtenerClaveSesionCodigo_("", "", idForo);
+
+    // Empezar en limpio.
+    PropertiesService.getScriptProperties().deleteProperty(clave);
+
+    // --- 1. RESP-1 entra primero: debe quedar como responsable principal ---
+    const sResp1 = reclamarSesionCodigo_("", "", RESP1, idForo, false);
+    if(!sResp1.ok) throw new Error("RESP-1 no pudo conectarse: " + sResp1.mensaje);
+    tokensPorDispositivo[RESP1] = sResp1.tokenSesion;
+    resultado.pasos.resp1EsPrincipalAlEntrar = sResp1.esPrincipal === true;
+    log((sResp1.esPrincipal ? "✅" : "❌") + " RESP-1 quedó como responsable principal al ser el primero en conectarse.");
+
+    // --- 2. Se conectan los otros 3 colaboradores (hasta el máximo de 4) ---
+    [COLAB2, COLAB3, COLAB4].forEach(function(disp){
+      const s = reclamarSesionCodigo_("", "", disp, idForo, false);
+      if(!s.ok) throw new Error(disp + " no pudo conectarse: " + s.mensaje);
+      tokensPorDispositivo[disp] = s.tokenSesion;
+      if(s.esPrincipal) throw new Error(disp + " no debería quedar como principal (ya había uno: RESP-1).");
+    });
+    resultado.pasos.tresColaboradoresConectados = true;
+    log("✅ 4 dispositivos conectados con el mismo código: 1 responsable principal (RESP-1) + 3 colaboradores.");
+
+    // --- 3. Antes de transferir, los 4 pasan sesionActivaPorIdForo_ ---
+    const activosAntes = [RESP1, COLAB2, COLAB3, COLAB4].every(function(disp){
+      return sesionActivaPorIdForo_(idForo, disp, tokensPorDispositivo[disp]);
+    });
+    resultado.pasos.todosActivosAntesDeTransferir = activosAntes;
+    log((activosAntes ? "✅" : "❌") + " Los 4 dispositivos pasan sesionActivaPorIdForo_ antes de transferir.");
+
+    // --- 4. SECUENCIA DE ERROR 1: RESP-1 "ya no puede continuar" y transfiere el control ---
+    // transferirResponsablePrincipalFEM siempre elige al colaborador de
+    // actividad más reciente — se fuerza a COLAB-2 a ser ese, para
+    // probar puntualmente "se transfiere el rol a colaborador 2".
+    (function forzarColab2ComoMasReciente(){
+      const props = PropertiesService.getScriptProperties();
+      const sesiones = leerSesionesActivas_(props, clave);
+      const ahora = Date.now();
+      sesiones.forEach(function(s){
+        if(s.deviceId === COLAB2) s.ultimaActividad = ahora;
+        else if(s.deviceId !== RESP1) s.ultimaActividad = ahora - 60000;
+      });
+      props.setProperty(clave, JSON.stringify(sesiones));
+    })();
+
+    const transferencia = transferirResponsablePrincipalFEM("", "", RESP1, tokensPorDispositivo[RESP1], idForo);
+    resultado.pasos.transferenciaOk = !!transferencia.ok;
+    resultado.pasos.transferidoAColab2 = transferencia.ok && transferencia.nuevoPrincipalDispositivoId === COLAB2;
+    log((resultado.pasos.transferidoAColab2 ? "✅" : "❌") + " Transferencia de RESP-1 a COLAB-2: " + JSON.stringify(transferencia));
+
+    // --- 5. Tras la transferencia: COLAB-2 es principal, RESP-1 ya no ---
+    const sesionesDespues = leerSesionesActivas_(PropertiesService.getScriptProperties(), clave);
+    const colab2 = sesionesDespues.find(function(s){ return s.deviceId === COLAB2; });
+    const resp1 = sesionesDespues.find(function(s){ return s.deviceId === RESP1; });
+    resultado.pasos.colab2EsPrincipalDespues = !!(colab2 && colab2.esPrincipal);
+    resultado.pasos.resp1YaNoEsPrincipal = !!(resp1 && !resp1.esPrincipal);
+    log((resultado.pasos.colab2EsPrincipalDespues && resultado.pasos.resp1YaNoEsPrincipal ? "✅" : "❌") +
+        " Tras transferir: COLAB-2.esPrincipal=" + (colab2 && colab2.esPrincipal) + ", RESP-1.esPrincipal=" + (resp1 && resp1.esPrincipal) + ".");
+
+    // --- 6. COLAB-2 (nuevo principal) sigue pasando sesionActivaPorIdForo_:
+    //         es justo la condición que enviarRespuestasSesion() y
+    //         enviarForoDefinitivo() exigen para permitir el envío. ---
+    const colab2PuedeEnviar = sesionActivaPorIdForo_(idForo, COLAB2, tokensPorDispositivo[COLAB2]);
+    resultado.pasos.colab2PuedeEnviar = colab2PuedeEnviar;
+    log((colab2PuedeEnviar ? "✅" : "❌") + " COLAB-2 (nuevo responsable principal) puede enviar — sesionActivaPorIdForo_ = " + colab2PuedeEnviar + ".");
+
+    // --- 7. RESP-1 ya no puede volver a transferir (ya no es principal) ---
+    const segundaTransferencia = transferirResponsablePrincipalFEM("", "", RESP1, tokensPorDispositivo[RESP1], idForo);
+    resultado.pasos.segundaTransferenciaRechazada = segundaTransferencia.ok === false;
+    log((resultado.pasos.segundaTransferenciaRechazada ? "✅" : "❌") + " RESP-1 ya no puede transferir de nuevo (no es principal): " + segundaTransferencia.mensaje);
+
+  }catch(error){
+    resultado.errores.push(error.message);
+    log("❌ ERROR: " + error.message);
+  }finally{
+    if(idForo){
+      Object.keys(tokensPorDispositivo).forEach(function(disp){
+        try{ liberarSesionCodigo_("", "", disp, tokensPorDispositivo[disp], idForo); }catch(e){}
+      });
+      try{ PropertiesService.getScriptProperties().deleteProperty(obtenerClaveSesionCodigo_("", "", idForo)); }catch(e){}
+    }
+  }
+
+  const todoBien = resultado.errores.length === 0 &&
+    resultado.pasos.resp1EsPrincipalAlEntrar &&
+    resultado.pasos.tresColaboradoresConectados &&
+    resultado.pasos.todosActivosAntesDeTransferir &&
+    resultado.pasos.transferenciaOk &&
+    resultado.pasos.transferidoAColab2 &&
+    resultado.pasos.colab2EsPrincipalDespues &&
+    resultado.pasos.resp1YaNoEsPrincipal &&
+    resultado.pasos.colab2PuedeEnviar &&
+    resultado.pasos.segundaTransferenciaRechazada;
+
+  Logger.log("========================================");
+  Logger.log("RESULTADO — TRANSFERENCIA DE RESPONSABLE PRINCIPAL: " + (todoBien ? "✅ TODO CORRECTO" : "⚠ REVISAR"));
+  Logger.log(JSON.stringify(resultado, null, 2));
+  Logger.log("========================================");
+
+  return { ok: todoBien, resultado: resultado };
+}
+
+/*****************************************************
+ * PRUEBA: RESPONSABLE PRINCIPAL + 3 COLABORADORES EN UNA SOLA SESIÓN
+ *
+ * "Secuencia de error 2": los 4 dispositivos permitidos (1 responsable
+ * principal + 3 colaboradores) entran a la vez con el mismo código de
+ * acceso, al mismo ID_FORO. Confirma que sesionActivaPorIdForo_
+ * reconoce a los 4 simultáneamente (sin falsos negativos, que era
+ * justo el bug crítico ya corregido — ver el comentario en la propia
+ * función en Código.js), que solo uno queda marcado esPrincipal, que
+ * un token equivocado se rechaza, que los latidos (heartbeat) de los 3
+ * colaboradores no se pisan entre sí ni desalojan a nadie, y que un 5°
+ * dispositivo se rechaza sin afectar a los 4 ya conectados.
+ *
+ * Usa "IE PRUEBA 1234" — no envía ningún correo ni modifica ESTADO.
+ * Libera todas las sesiones de prueba al final, incluso si algo falla.
+ *
+ * Ejecutar manualmente:  probarTodosLosColaboradoresEnUnaSolaSesionFEM()
+ *****************************************************/
+function probarTodosLosColaboradoresEnUnaSolaSesionFEM(nombreIEPrueba){
+  nombreIEPrueba = nombreIEPrueba || "IE PRUEBA 1234";
+  const resultado = { pasos: {}, errores: [] };
+  const RESP1 = "RESP-1", COLAB2 = "COLAB-2", COLAB3 = "COLAB-3", COLAB4 = "COLAB-4";
+  const dispositivos = [RESP1, COLAB2, COLAB3, COLAB4];
+  const tokensPorDispositivo = {};
+  let idForo = "";
+  let clave = "";
+
+  function log(mensaje){ Logger.log(mensaje); }
+
+  try{
+    const hoja = asegurarColumnasAccesosIE_();
+    const mapa = mapaHoja_(hoja);
+    if(hoja.getLastRow() < 2) throw new Error("AccesosIE no tiene filas.");
+    const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, hoja.getLastColumn()).getDisplayValues();
+    const fila = valores.find(function(f){ return String(f[mapa.IE - 1] || "").trim() === nombreIEPrueba; });
+    if(!fila) throw new Error("No existe " + nombreIEPrueba + " en AccesosIE.");
+    idForo = String(fila[mapa.ID_FORO - 1] || "").trim();
+    if(!idForo) throw new Error(nombreIEPrueba + " no tiene ID_FORO.");
+    clave = obtenerClaveSesionCodigo_("", "", idForo);
+
+    PropertiesService.getScriptProperties().deleteProperty(clave);
+
+    // --- 1. Los 4 entran "a la vez", con el mismo código, al mismo ID_FORO ---
+    dispositivos.forEach(function(disp){
+      const s = reclamarSesionCodigo_("", "", disp, idForo, false);
+      if(!s.ok) throw new Error(disp + " no pudo conectarse: " + s.mensaje);
+      tokensPorDispositivo[disp] = s.tokenSesion;
+    });
+    resultado.pasos.cuatroEnUnaSolaSesion = true;
+    log("✅ RESP-1 + 3 colaboradores conectados a la vez, mismo código y mismo ID_FORO.");
+
+    // --- 2. Cada uno pasa sesionActivaPorIdForo_ de forma independiente ---
+    const estadoActivos = {};
+    dispositivos.forEach(function(disp){ estadoActivos[disp] = sesionActivaPorIdForo_(idForo, disp, tokensPorDispositivo[disp]); });
+    resultado.pasos.todosActivosSimultaneamente = dispositivos.every(function(disp){ return estadoActivos[disp]; });
+    log((resultado.pasos.todosActivosSimultaneamente ? "✅" : "❌") + " Estado activo por dispositivo: " + JSON.stringify(estadoActivos));
+
+    // --- 3. Solo RESP-1 queda marcado esPrincipal; los otros 3 son colaboradores ---
+    const sesiones = leerSesionesActivas_(PropertiesService.getScriptProperties(), clave);
+    const principales = sesiones.filter(function(s){ return s.esPrincipal; });
+    resultado.pasos.unSoloPrincipal = principales.length === 1 && principales[0].deviceId === RESP1;
+    log((resultado.pasos.unSoloPrincipal ? "✅" : "❌") + " Un solo responsable principal (RESP-1): " + JSON.stringify(principales.map(function(s){ return s.deviceId; })));
+
+    // --- 4. Un token que no corresponde a nadie NO debe pasar como activo ---
+    const tokenEquivocadoActivo = sesionActivaPorIdForo_(idForo, COLAB2, "token-que-no-es-de-nadie");
+    resultado.pasos.tokenEquivocadoRechazado = tokenEquivocadoActivo === false;
+    log((resultado.pasos.tokenEquivocadoRechazado ? "✅" : "❌") + " Un token que no corresponde a COLAB-2 se rechaza correctamente.");
+
+    // --- 5. Los 3 colaboradores mandan su latido en la misma sesión, sin pisarse entre sí ---
+    [COLAB2, COLAB3, COLAB4].forEach(function(disp){
+      const latido = mantenerSesionCodigo_("", "", disp, tokensPorDispositivo[disp], idForo);
+      if(!latido.ok) throw new Error("Latido de " + disp + " falló: " + JSON.stringify(latido));
+    });
+    const todosSiguenActivosTrasLatidos = dispositivos.every(function(disp){
+      return sesionActivaPorIdForo_(idForo, disp, tokensPorDispositivo[disp]);
+    });
+    resultado.pasos.latidosNoConflictan = todosSiguenActivosTrasLatidos;
+    log((todosSiguenActivosTrasLatidos ? "✅" : "❌") + " Tras los latidos de los 3 colaboradores, los 4 dispositivos siguen activos (ninguno se desalojó).");
+
+    // --- 6. Un 5° dispositivo debe rechazarse: ya hay 4 (el máximo permitido) ---
+    const quinto = reclamarSesionCodigo_("", "", "COLAB-5", idForo, false);
+    resultado.pasos.quintoRechazado = quinto.ok === false && quinto.codigo === "SESION_YA_ABIERTA";
+    log((resultado.pasos.quintoRechazado ? "✅" : "❌") + " Un 5° dispositivo (COLAB-5) es rechazado sin forzar: " + quinto.mensaje);
+
+    // --- 7. Tras el intento rechazado, los 4 originales siguen intactos ---
+    const siguenActivosTrasRechazo = dispositivos.every(function(disp){
+      return sesionActivaPorIdForo_(idForo, disp, tokensPorDispositivo[disp]);
+    });
+    resultado.pasos.integridadTrasRechazo = siguenActivosTrasRechazo;
+    log((siguenActivosTrasRechazo ? "✅" : "❌") + " Los 4 dispositivos originales siguen intactos tras el intento rechazado del 5°.");
+
+  }catch(error){
+    resultado.errores.push(error.message);
+    log("❌ ERROR: " + error.message);
+  }finally{
+    if(idForo){
+      dispositivos.forEach(function(disp){
+        try{ liberarSesionCodigo_("", "", disp, tokensPorDispositivo[disp], idForo); }catch(e){}
+      });
+      try{ liberarSesionCodigo_("", "", "COLAB-5", "", idForo); }catch(e){}
+      try{ PropertiesService.getScriptProperties().deleteProperty(obtenerClaveSesionCodigo_("", "", idForo)); }catch(e){}
+    }
+  }
+
+  const todoBien = resultado.errores.length === 0 &&
+    resultado.pasos.cuatroEnUnaSolaSesion &&
+    resultado.pasos.todosActivosSimultaneamente &&
+    resultado.pasos.unSoloPrincipal &&
+    resultado.pasos.tokenEquivocadoRechazado &&
+    resultado.pasos.latidosNoConflictan &&
+    resultado.pasos.quintoRechazado &&
+    resultado.pasos.integridadTrasRechazo;
+
+  Logger.log("========================================");
+  Logger.log("RESULTADO — TODOS LOS COLABORADORES EN UNA SOLA SESIÓN: " + (todoBien ? "✅ TODO CORRECTO" : "⚠ REVISAR"));
+  Logger.log(JSON.stringify(resultado, null, 2));
+  Logger.log("========================================");
+
+  return { ok: todoBien, resultado: resultado };
+}
