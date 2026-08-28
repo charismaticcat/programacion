@@ -4265,3 +4265,73 @@ function reordenarHojasIEExistentesFEM(){
   Logger.log("Orden DESPUÉS: "+JSON.stringify(despues));
   return {ok:true, antes:antes, despues:despues};
 }
+
+/*****************************************************
+ * REINTENTAR ENVÍOS DE INFORME DIFERIDOS POR CUOTA DE CORREO
+ *
+ * Cuando enviarInformeFEM() (Código.js) se encuentra con la cuota
+ * diaria de GmailApp agotada (bug crítico en vivo, 2026-08-28: ~100
+ * IE enviando el mismo día comparten UNA sola cuota de la cuenta que
+ * ejecuta el script), ya no falla: guarda el ID_FORO en la hoja
+ * "EnviosInformeDiferidos" y le informa a la persona que su informe
+ * quedó generado y se enviará por correo más adelante.
+ *
+ * Esta función reintenta el envío real para cada ID_FORO todavía
+ * pendiente (REINTENTADO=NO) — pensada para ejecutarse manualmente al
+ * día siguiente (o cuando se sepa que la cuota ya se renovó; Google
+ * la renueva a medianoche, hora del script). No reenvía nada que ya
+ * se haya marcado como reintentado con éxito.
+ *
+ * Ejecutar manualmente: reintentarEnviosInformeDiferidosFEM()
+ *****************************************************/
+function reintentarEnviosInformeDiferidosFEM(){
+  const hoja=asegurarHojaEnviosDiferidosFEM_();
+  const last=hoja.getLastRow();
+  const resultado={reenviados:[],fallidos:[],sinPendientes:false};
+
+  if(last<2){
+    resultado.sinPendientes=true;
+    Logger.log("No hay envíos de informe diferidos pendientes.");
+    return resultado;
+  }
+
+  const filas=hoja.getRange(2,1,last-1,3).getValues();
+  for(let i=0;i<filas.length;i++){
+    const idForo=String(filas[i][0]||"").trim();
+    const yaReintentado=String(filas[i][2]||"").toUpperCase()==="SI";
+    if(!idForo || yaReintentado) continue;
+
+    try{
+      const acceso=obtenerAccesoPorIdForoRaw_(idForo);
+      if(!acceso){ resultado.fallidos.push({idForo:idForo, motivo:"ID_FORO no encontrado en AccesosIE."}); continue; }
+
+      const pdfId=acceso.mapa.ID_PDF_INFORME
+        ? String(acceso.hoja.getRange(acceso.fila, acceso.mapa.ID_PDF_INFORME).getValue()||"").trim()
+        : "";
+      if(!pdfId){ resultado.fallidos.push({idForo:idForo, motivo:"Esa IE no tiene ID_PDF_INFORME registrado (el informe no llegó a generarse)."}); continue; }
+
+      const datosGuardados=obtenerDatosGuardadosPorIdForo_(idForo);
+      if(!datosGuardados){ resultado.fallidos.push({idForo:idForo, motivo:"No se encontró el avance guardado en AvancesForo."}); continue; }
+      datosGuardados.idForo=idForo;
+      datosGuardados.institucion=datosGuardados.institucion||acceso.ie;
+
+      const r=enviarInformeFEM(idForo, datosGuardados, pdfId);
+      if(r && r.ok && !r.diferido){
+        hoja.getRange(i+2,3).setValue("SI");
+        resultado.reenviados.push(idForo+" ("+(datosGuardados.institucion||acceso.ie)+")");
+      }else{
+        resultado.fallidos.push({idForo:idForo, motivo:"Sigue sin cuota disponible — se reintentará en la próxima ejecución."});
+      }
+    }catch(error){
+      resultado.fallidos.push({idForo:idForo, motivo:error.message});
+    }
+  }
+
+  Logger.log("========================================");
+  Logger.log("REINTENTO DE ENVÍOS DE INFORME DIFERIDOS");
+  Logger.log("Reenviados con éxito ("+resultado.reenviados.length+"): "+JSON.stringify(resultado.reenviados));
+  Logger.log("Pendientes/fallidos ("+resultado.fallidos.length+"): "+JSON.stringify(resultado.fallidos));
+  Logger.log("========================================");
+
+  return resultado;
+}

@@ -9392,8 +9392,23 @@ async function enviarInformeFinalUI(){
         const r=await new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).enviarInformeFEM(datos.idForo,datos,informeFinalData.pdfId));
         if(!r?.ok) throw new Error(r?.mensaje||"No fue posible enviar el informe.");
         informeFinalData.enviado=true;
-        mostrarEstadoInformeFinal("✓ Informe enviado por correo.");
-        b.textContent="✓ Informe enviado";
+        /*
+         * Cuando se agota la cuota diaria de correo del script (ver
+         * enviarInformeFEM en Código.js), el servidor ya NO falla:
+         * responde ok:true con diferido:true. El informe queda
+         * generado y descargable de todas formas — solo el correo se
+         * pospone — así que se cuenta igual como "enviado" para poder
+         * continuar a la valoración y cerrar el formulario, en vez de
+         * dejar a la persona bloqueada por un límite que no depende
+         * de ella.
+         */
+        if(r.diferido){
+            mostrarEstadoInformeFinal("📩 "+(r.mensaje||"El informe se enviará al correo de la institución entre el 28 de agosto y el 4 de septiembre de 2026."));
+            b.textContent="✓ Informe generado (correo pendiente)";
+        }else{
+            mostrarEstadoInformeFinal("✓ Informe enviado por correo.");
+            b.textContent="✓ Informe enviado";
+        }
         document.getElementById("btnFinalizarFEM").disabled=!informeFinalData.descargado;
         // Mensaje en negrita + botón de valoración resaltado: el
         // siguiente paso claro tras enviar el informe.
