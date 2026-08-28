@@ -3523,6 +3523,28 @@ function actualizarTotalParticipantes(){
         totalResumen.textContent = total;
     }
 
+    /*
+     * "Número de participantes en la jornada" (pantalla de
+     * Evidencias) ya no se escribe a mano: se llena automáticamente
+     * con este mismo total de Caracterización, para no duplicar el
+     * dato ni arriesgarse a que no coincidan. Se actualiza el campo
+     * oculto (el que de verdad viaja con el formulario) y la caja
+     * verde visible que lo muestra en Evidencias.
+     */
+    const campoParticipantesEvidencias =
+        document.getElementById("numeroParticipantesEvidencias");
+    if(campoParticipantesEvidencias){
+        campoParticipantesEvidencias.value = total;
+    }
+    const cajaParticipantesEvidencias =
+        document.getElementById("valorParticipantesEvidencias");
+    if(cajaParticipantesEvidencias){
+        cajaParticipantesEvidencias.textContent = total;
+    }
+    if(typeof actualizarEstadoEvidencias === "function"){
+        try{ actualizarEstadoEvidencias(); }catch(e){}
+    }
+
     return total;
 
 }
@@ -8564,7 +8586,7 @@ function actualizarEstadoEvidencias(){
          */
         const faltantes=[];
         if(!metodo) faltantes.push("elegir el método de asistencia (QR o PDF)");
-        if(!okParticipantes) faltantes.push('el "Número de participantes en la jornada" (más arriba, junto a la fotografía)');
+        if(!okParticipantes) faltantes.push('el número de participantes en Caracterización — todavía está en 0, complete al menos un estamento ahí');
         if(metodo==="PDF" && !okAsistencia) faltantes.push("el PDF de asistencia y su número de asistentes");
         if(!okFoto) faltantes.push("la fotografía horizontal HD");
         const elMensajeEvidencias=document.getElementById("mensajeEvidencias");

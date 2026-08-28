@@ -419,9 +419,10 @@ Ver renderNavPantallasFEM_ en App.html.
 }
 
 .marcaDisenadorImagen{
-    /* Logo plano, sin sombra ni efecto de relieve. */
-    width:22px;
-    height:22px;
+    /* Logo plano, sin sombra ni efecto de relieve — 3 veces más
+       grande que el tamaño original (22px). */
+    width:66px;
+    height:66px;
     object-fit:contain;
     display:block;
     background:transparent;
@@ -444,7 +445,7 @@ Ver renderNavPantallasFEM_ en App.html.
         padding:3px 8px 3px 3px;
         gap:5px;
     }
-    .marcaDisenadorImagen{ width:18px; height:18px; }
+    .marcaDisenadorImagen{ width:54px; height:54px; }
     .marcaDisenadorTexto{ font-size:8.5px; }
 }
 
@@ -4368,6 +4369,52 @@ Su ancho ya queda acotado por .cajaTexto > * (--reading-width).
 .estadoArchivo{margin-top:10px;font-size:14px;color:var(--gris-texto);min-height:20px;}
 .estadoArchivo.ok{color:var(--verde-neiva);font-weight:600;}
 .estadoArchivo.error{color:var(--rojo-neiva);font-weight:600;}
+
+/*
+ * Los dos números de participantes (el de la jornada, automático, y
+ * el del PDF, escrito a mano) van juntos en cajas verdes separadas,
+ * un poco debajo del PDF — antes eran fáciles de confundir por estar
+ * lejos entre sí y con nombres parecidos.
+ */
+.filaResumenAsistencia{
+    display:flex;
+    flex-wrap:wrap;
+    gap:14px;
+    margin:16px 0;
+}
+.cajaResumenVerde{
+    flex:1 1 180px;
+    background:#EAF6EF;
+    border:1px solid var(--verde-neiva);
+    border-radius:var(--radio);
+    padding:12px 14px;
+    text-align:center;
+}
+.cajaResumenEtiqueta{
+    display:block;
+    font-size:12.5px;
+    font-weight:700;
+    color:var(--verde-neiva);
+    margin-bottom:6px;
+}
+.cajaResumenValor{
+    display:block;
+    font-size:22px;
+    font-weight:700;
+    color:var(--verde-neiva);
+}
+.cajaResumenConInput .cajaResumenInput{
+    width:100%;
+    text-align:center;
+    font-size:18px;
+    font-weight:700;
+    color:var(--verde-neiva);
+    background:#fff;
+    border:1px solid var(--verde-neiva);
+    border-radius:8px;
+    padding:8px;
+    box-sizing:border-box;
+}
 
 /*
  * Fotografía ya seleccionada: más grande y resaltada en amarillo,

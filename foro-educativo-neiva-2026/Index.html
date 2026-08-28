@@ -2398,12 +2398,11 @@ Aspectos para orientar la discusión
         </p>
     </div>
 
-    <!-- Independiente del método elegido: se exige siempre para
-         poder continuar, junto con la fotografía. -->
-    <div class="grupo grupoParticipantesEvidencias">
-        <label for="numeroParticipantesEvidencias">Número de participantes en la jornada *</label>
-        <input type="number" id="numeroParticipantesEvidencias" min="1" inputmode="numeric" placeholder="Ej: 45">
-    </div>
+    <!-- Se llena automáticamente con el total de Caracterización
+         (ver actualizarTotalParticipantes en App.html) — ya no se
+         escribe a mano. Independiente del método elegido: se exige
+         siempre para poder continuar, junto con la fotografía. -->
+    <input type="hidden" id="numeroParticipantesEvidencias">
 
     <!-- SELECTOR DE MÉTODO: un solo clic activa uno u otro -->
     <div id="selectorMetodoAsistencia" class="selectorMetodoAsistencia">
@@ -2444,10 +2443,23 @@ Aspectos para orientar la discusión
             <p class="textoAyudaQR">Suba, en un solo archivo PDF, el listado de asistencia firmado en papel durante la jornada.</p>
             <input type="file" id="archivoAsistenciaPDF" accept="application/pdf">
             <div id="estadoAsistenciaPDF" class="estadoArchivo"></div>
-            <div class="grupo">
-                <label for="numeroAsistentesPDF">Número de asistentes registrados en el PDF *</label>
-                <input type="number" id="numeroAsistentesPDF" min="1" inputmode="numeric">
+
+            <!-- Los dos números de participantes van juntos, en cajas
+                 verdes, justo debajo del PDF: el de la jornada se
+                 llena solo (Caracterización) y el del PDF se escribe
+                 a mano — antes eran fáciles de confundir por estar
+                 separados y con nombres parecidos. -->
+            <div class="filaResumenAsistencia">
+                <div class="cajaResumenVerde">
+                    <span class="cajaResumenEtiqueta">Participantes en la jornada</span>
+                    <span class="cajaResumenValor" id="valorParticipantesEvidencias">0</span>
+                </div>
+                <div class="cajaResumenVerde cajaResumenConInput">
+                    <label for="numeroAsistentesPDF" class="cajaResumenEtiqueta">Asistentes registrados en el PDF *</label>
+                    <input type="number" id="numeroAsistentesPDF" min="1" inputmode="numeric" class="cajaResumenInput">
+                </div>
             </div>
+
             <p class="avisoMetodoAsistenciaPequeno" style="margin:0;">No se generará el análisis demográfico ni de percepción en el informe final con este método.</p>
         </div>
         <div class="evidenciaCard">
