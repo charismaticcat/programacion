@@ -1370,10 +1370,19 @@ const NAV_PARADAS_FEM_ = [
     {paso:7,  id:"pantallaSesion2", nombre:"Sesión 2"},
     {paso:8,  id:"pantallaSesion3", nombre:"Sesión 3"},
     {paso:null, id:"pantallaSesion4", nombre:"Sesión Propia"},
+    /*
+     * Evidencias (donde vive el código QR de asistencia) es
+     * soloPrincipal (rol), pero NO exige tener las demás secciones
+     * completas primero: el QR se necesita disponible desde el
+     * inicio de la jornada, para que los participantes vayan
+     * firmando su asistencia mientras se avanza con las sesiones —
+     * no solo al final. Plenaria en adelante sí exige el formulario
+     * completo (requiereFormularioCompleto), Evidencias no.
+     */
     {paso:9,  id:"pantallaEvidencias", nombre:"Evidencias", soloPrincipal:true},
-    {paso:10, id:"pantallaPlenaria", nombre:"Plenaria", soloPrincipal:true},
-    {paso:11, id:"pantallaFinalFEM", nombre:"Informe final", soloPrincipal:true},
-    {paso:12, id:"pantallaCierreFEM", nombre:"Cierre y valoración", soloPrincipal:true}
+    {paso:10, id:"pantallaPlenaria", nombre:"Plenaria", soloPrincipal:true, requiereFormularioCompleto:true},
+    {paso:11, id:"pantallaFinalFEM", nombre:"Informe final", soloPrincipal:true, requiereFormularioCompleto:true},
+    {paso:12, id:"pantallaCierreFEM", nombre:"Cierre y valoración", soloPrincipal:true, requiereFormularioCompleto:true}
 ];
 
 /*
@@ -1439,10 +1448,13 @@ function irAParadaNav_(parada){
      * adelante mientras falte completar (en verde) cualquiera de los
      * 7 primeros pasos (Consentimiento .. Evidencias) — evita entrar
      * a la Plenaria con sesiones sin enviar o evidencias sin subir.
+     * Evidencias en sí NO exige esto (ver su comentario en
+     * NAV_PARADAS_FEM_): el QR de asistencia debe poder verse desde
+     * el principio, sin haber terminado las demás secciones.
      */
-    if(parada.soloPrincipal){
+    if(parada.requiereFormularioCompleto){
         const pendientes=NAV_PARADAS_FEM_
-            .filter(function(p){ return !p.soloPrincipal; })
+            .filter(function(p){ return !p.requiereFormularioCompleto; })
             .filter(function(p){ return !estaCompletadaParadaNav_(p); });
         if(pendientes.length){
             confirmarFEM(
