@@ -8143,7 +8143,7 @@ function mostrarPantallaDespedidaFEM_(){
      * a su Líder su rector(a)" duplicado. Ahora el respaldo describe
      * el rol sin repetir la frase que ya está en la plantilla.
      */
-    const rector=String(document.getElementById("rector")?.value||"").trim()||"quien ejerce su liderazgo";
+    const rector=String(document.getElementById("rector")?.value||"").trim()||"(nombre de rector registrado en Caracterización)";
     const responsables=(typeof obtenerNombresResponsablesFEM_==="function" ? obtenerNombresResponsablesFEM_() : []);
 
     // "Responsables" aquí es quien diligenció el formulario (nombre)

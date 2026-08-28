@@ -5161,10 +5161,40 @@ function actualizarParticipacion_(datos){
 
 
 function guardarEnHojaIE_(datos){
-  const ss=abrirSpreadsheet_(); const shName=nombreHojaIE_(datos.institucion); let sh=ss.getSheetByName(shName); if(!sh){sh=ss.insertSheet(shName); const headers=obtenerCabecerasAvancesForo(); sh.getRange(1,1,1,headers.length).setValues([headers]);}
+  const ss=abrirSpreadsheet_(); const shName=nombreHojaIE_(datos.institucion); let sh=ss.getSheetByName(shName);
+  const esHojaNueva=!sh;
+  if(!sh){sh=ss.insertSheet(shName); const headers=obtenerCabecerasAvancesForo(); sh.getRange(1,1,1,headers.length).setValues([headers]);}
   if(!sh)return; const headers=obtenerCabecerasAvancesForo(); if(sh.getLastColumn()<headers.length)sh.getRange(1,1,1,headers.length).setValues([headers]); const m=mapaHoja_(sh); const respuestas=extraerRespuestasSesiones_(datos);
   const row=Object.assign({ID_FORO:datos.idForo,INSTITUCION:datos.institucion,DANE:datos.dane,FECHA_INICIO:datos.fechaInicio||new Date(),ULTIMA_ACTUALIZACION:new Date(),ESTADO:"En proceso"},respuestas,{DATOS:JSON.stringify(datos)});
   const out=new Array(sh.getLastColumn()).fill(""); Object.keys(row).forEach(k=>{if(m[k])out[m[k]-1]=normalizarValorHoja_(row[k]);}); let found=-1;if(sh.getLastRow()>=2){const ids=sh.getRange(2,m.ID_FORO,sh.getLastRow()-1,1).getValues();for(let i=0;i<ids.length;i++)if(String(ids[i][0]||"")===String(datos.idForo||"")){found=i+2;break;}} if(found>0)sh.getRange(found,1,1,out.length).setValues([out]);else sh.appendRow(out);
+  // Solo se reordena cuando aparece una IE nueva — en actualizaciones
+  // normales (misma IE) el orden ya es correcto y no hace falta
+  // recorrer todas las hojas.
+  if(esHojaNueva){ try{ reordenarHojasPorIE_(ss); }catch(errorOrden){ Logger.log("reordenarHojasPorIE_: "+errorOrden.message); } }
+}
+
+/*
+ * Ordena alfabéticamente las hojas individuales por IE (una por
+ * institución, ver nombreHojaIE_/guardarEnHojaIE_) justo después de
+ * la hoja "AvancesForo" — antes quedaban simplemente al final de todo
+ * el spreadsheet, en el orden en que cada IE iba enviando su primer
+ * avance, sin ningún criterio. Solo se identifican como "de IE" las
+ * hojas cuyo nombre coincide EXACTAMENTE con nombreHojaIE_(ie) para
+ * alguna institución real — así nunca se reordena por accidente una
+ * hoja fija (Oficiales, Participación, AsistenciaQR, etc.) que
+ * casualmente comparta nombre con una IE.
+ */
+function reordenarHojasPorIE_(ss){
+  ss = ss || abrirSpreadsheet_();
+  const hojaAvances = ss.getSheetByName(HOJA_AVANCES);
+  if(!hojaAvances) return;
+  const instituciones = obtenerInstituciones();
+  const nombresHojasIE = {};
+  Object.keys(instituciones).forEach(function(ie){ nombresHojasIE[nombreHojaIE_(ie)] = true; });
+  const hojasIE = ss.getSheets().filter(function(h){ return nombresHojasIE[h.getName()]; });
+  hojasIE.sort(function(a,b){ return a.getName().localeCompare(b.getName(),"es"); });
+  let posicion = hojaAvances.getIndex() + 1;
+  hojasIE.forEach(function(h){ ss.setActiveSheet(h); ss.moveActiveSheet(posicion); posicion++; });
 }
 
 
@@ -6933,11 +6963,16 @@ function generarInformeFEM(idForo,datosCliente){
     tituloFirmas.setHeading(DocumentApp.ParagraphHeading.HEADING1);
     tituloFirmas.editAsText().setForegroundColor(VERDE).setBold(true);
 
-    function agregarBloqueFirma_(nombre, cargo, rolTexto){
+    /*
+     * El nombre del rector(a) se ve más grande que el de los
+     * responsables del envío (16pt vs. 12pt) — es quien lidera la IE,
+     * así que su firma encabeza la sección con mayor peso visual.
+     */
+    function agregarBloqueFirma_(nombre, cargo, rolTexto, tamanoNombre){
       if(!String(nombre||"").trim()) return;
       const pNombre=body.appendParagraph(String(nombre).trim());
       pNombre.setSpacingBefore(18).setSpacingAfter(2);
-      pNombre.editAsText().setBold(true).setUnderline(true).setForegroundColor(NEGRO);
+      pNombre.editAsText().setBold(true).setUnderline(true).setForegroundColor(NEGRO).setFontSize(tamanoNombre||12);
       if(String(cargo||"").trim()){
         const pCargo=body.appendParagraph(String(cargo).trim());
         pCargo.setSpacingBefore(0).setSpacingAfter(rolTexto?2:10);
@@ -6950,7 +6985,7 @@ function generarInformeFEM(idForo,datosCliente){
       }
     }
 
-    agregarBloqueFirma_(c.rector?.valor, "Rector(a)", null);
+    agregarBloqueFirma_(c.rector?.valor, "Rector(a)", null, 16);
 
     const ieParaFirma=nombreIESinPrefijoInstitucional_(datos.institucion||"");
     const responsablesFirma=[{nombre:c.nombre?.valor, cargo:c.cargo?.valor, rol:c.rolForoResponsable?.valor}];

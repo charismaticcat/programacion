@@ -4241,3 +4241,27 @@ function probarTodosLosColaboradoresEnUnaSolaSesionFEM(nombreIEPrueba){
 
   return { ok: todoBien, resultado: resultado };
 }
+
+/*****************************************************
+ * REORDENAR (UNA VEZ) LAS HOJAS YA EXISTENTES POR IE
+ *
+ * reordenarHojasPorIE_() (Código.js) ya ordena alfabéticamente,
+ * justo después de "AvancesForo", cualquier hoja de IE NUEVA que se
+ * cree de aquí en adelante — pero las hojas de IE que ya existían
+ * ANTES de ese cambio se quedan donde estaban (guardarEnHojaIE_
+ * reutiliza la hoja existente y nunca la reordena por sí sola). Esta
+ * función corre ese mismo reordenamiento una sola vez, de una vez
+ * para todas las hojas de IE que ya existen en el spreadsheet.
+ *
+ * No borra ni modifica ningún dato — solo cambia la POSICIÓN de las
+ * pestañas. Ejecutar manualmente: reordenarHojasIEExistentesFEM()
+ *****************************************************/
+function reordenarHojasIEExistentesFEM(){
+  const ss=abrirSpreadsheet_();
+  const antes=ss.getSheets().map(function(h){ return h.getName(); });
+  reordenarHojasPorIE_(ss);
+  const despues=ss.getSheets().map(function(h){ return h.getName(); });
+  Logger.log("Orden ANTES: "+JSON.stringify(antes));
+  Logger.log("Orden DESPUÉS: "+JSON.stringify(despues));
+  return {ok:true, antes:antes, despues:despues};
+}
