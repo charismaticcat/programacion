@@ -6434,19 +6434,13 @@ function agregarSesionPropiaAlInforme_(body, datos, ieSinPrefijo, estilos){
 
   body.appendPageBreak();
 
-  // Logo de la IE encima del título (ya no al lado), mismo tamaño
-  // grande (100x100) que el logo de la portada/encabezado del resto
-  // del informe — el mismo diseño visual de esta sección se conserva
-  // (solo cambia la posición y el tamaño del logo).
-  const logoIdIE=obtenerLogoIdPorNombreIE_(datos.institucion||"");
-  if(logoIdIE){
-    try{
-      const pLogoSesionPropia=body.appendParagraph("");
-      pLogoSesionPropia.setSpacingBefore(0).setSpacingAfter(4);
-      pLogoSesionPropia.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
-      pLogoSesionPropia.appendInlineImage(DriveApp.getFileById(logoIdIE).getBlob()).setWidth(100).setHeight(100);
-    }catch(e){}
-  }
+  /*
+   * Ya NO se repite el logo de la IE aquí encima del título: el
+   * encabezado de 3 logos (SEM/FEM/IE) ya se repite en TODAS las
+   * páginas del informe (limitación de DocumentApp, ver
+   * generarInformeFEM), así que este escudo adicional quedaba
+   * redundante justo en medio de la página.
+   */
   const pTitulo=body.appendParagraph("Sesión Propia creada por la IE "+ieSinPrefijo);
   pTitulo.setHeading(DocumentApp.ParagraphHeading.HEADING1);
   pTitulo.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
@@ -6519,14 +6513,18 @@ function generarInformeFEM(idForo,datosCliente){
     const body=doc.getBody(); body.clear(); body.setPageWidth(612).setPageHeight(792).setMarginTop(18).setMarginBottom(24).setMarginLeft(36).setMarginRight(36);
     /*
      * Encabezado con los 3 logos institucionales: SEM a la izquierda,
-     * FEM en el centro, IE a la derecha — SEM e IE al mismo tamaño
-     * grande que el logo de la portada (100x100), FEM proporcionado
-     * entre los otros dos. Documentos/Apps Script NO permite un
-     * encabezado "distinto en la primera página" (no existe esa
-     * opción en DocumentApp): este mismo encabezado se repite igual
-     * en TODAS las páginas, incluida la primera — no hay forma de
-     * quitarlo solo de la portada sin también quitarlo de las
-     * páginas 2 en adelante, donde sí se pidió expresamente.
+     * FEM en el centro, IE a la derecha — IE al mismo tamaño grande
+     * que el logo de la portada (100x100), FEM y SEM proporcionados
+     * (el logo de la SEM es naturalmente ancho/rectangular, no
+     * cuadrado: forzarlo a 100x100 lo deformaba y se veía "muy
+     * largo"; se usa la misma proporción 2:1 ya usada para este mismo
+     * logo en el pie de página, 80x40, escalada a 100x50).
+     * Documentos/Apps Script NO permite un encabezado "distinto en la
+     * primera página" (no existe esa opción en DocumentApp): este
+     * mismo encabezado se repite igual en TODAS las páginas, incluida
+     * la primera — no hay forma de quitarlo solo de la portada sin
+     * también quitarlo de las páginas 2 en adelante, donde sí se pidió
+     * expresamente.
      */
     const h=doc.getHeader()||doc.addHeader(); h.clear();
     const logoIdIE=obtenerLogoIdPorNombreIE_(datos.institucion||"");
@@ -6536,7 +6534,7 @@ function generarInformeFEM(idForo,datosCliente){
     tablaEncabezado.setBorderWidth(0);
     const celdaLogoSem=tablaEncabezado.getCell(0,0);
     celdaLogoSem.setWidth(120);
-    try{ celdaLogoSem.getChild(0).asParagraph().appendInlineImage(DriveApp.getFileById(LOGO_PIE_ID).getBlob()).setWidth(100).setHeight(100); }catch(e){}
+    try{ celdaLogoSem.getChild(0).asParagraph().appendInlineImage(DriveApp.getFileById(LOGO_PIE_ID).getBlob()).setWidth(100).setHeight(50); }catch(e){}
     const celdaLogoFem=tablaEncabezado.getCell(0,1);
     celdaLogoFem.setWidth(300);
     const pLogoFem=celdaLogoFem.getChild(0).asParagraph();
