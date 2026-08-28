@@ -2658,13 +2658,26 @@ function reclamarSesionCodigo_(token, codigo, dispositivoId, idForo, forzar) {
     const ahora = Date.now();
     let sesiones = leerSesionesActivas_(props, clave);
 
+    /*
+     * Responsable principal ("sistematizador/a"): el PRIMER
+     * dispositivo en reclamar un cupo para este idForo queda marcado
+     * esPrincipal=true de forma permanente (salvo transferencia
+     * explícita, ver transferirResponsablePrincipalFEM_). Es quien
+     * puede llegar hasta Plenaria y enviar el informe; los demás
+     * (hasta 3 colaboradores) llegan como máximo hasta Sesión 4.
+     */
+    const yaHabiaPrincipal = sesiones.some(s=>s.esPrincipal);
+
     // Si este dispositivo ya tenía un cupo (recarga de página,
     // reconexión), se reutiliza en vez de contarlo como uno nuevo.
     const existente = sesiones.find(s=>s.deviceId===dispositivoId);
     if(existente){
       existente.ultimaActividad = ahora;
+      // Compatibilidad: sesiones creadas antes de que existiera
+      // esPrincipal se tratan como principal si nadie más lo es.
+      if(existente.esPrincipal===undefined && !yaHabiaPrincipal) existente.esPrincipal = true;
       props.setProperty(clave, JSON.stringify(sesiones));
-      return {ok:true, tokenSesion:existente.tokenSesion};
+      return {ok:true, tokenSesion:existente.tokenSesion, esPrincipal:!!existente.esPrincipal};
     }
 
     if(sesiones.length >= MAX_SESIONES_SIMULTANEAS_IE){
@@ -2677,14 +2690,19 @@ function reclamarSesionCodigo_(token, codigo, dispositivoId, idForo, forzar) {
       }
       // No tiene sentido "tomar el lugar de uno en particular" cuando
       // hay hasta 4 cupos: se libera el de menor actividad reciente.
+      // Nunca se desaloja al principal por esta vía (si el único
+      // candidato a desalojar fuera el principal, se desaloja el
+      // siguiente menos activo en su lugar).
       sesiones.sort((a,b)=>(a.ultimaActividad||0)-(b.ultimaActividad||0));
-      sesiones.shift();
+      const indiceExpulsar = sesiones.findIndex(s=>!s.esPrincipal);
+      sesiones.splice(indiceExpulsar===-1?0:indiceExpulsar, 1);
     }
 
     const tokenSesion = Utilities.getUuid();
-    sesiones.push({deviceId:dispositivoId, tokenSesion:tokenSesion, ultimaActividad:ahora});
+    const esPrimeraSesion = !sesiones.some(s=>s.esPrincipal);
+    sesiones.push({deviceId:dispositivoId, tokenSesion:tokenSesion, ultimaActividad:ahora, esPrincipal:esPrimeraSesion});
     props.setProperty(clave, JSON.stringify(sesiones));
-    return {ok:true, tokenSesion:tokenSesion};
+    return {ok:true, tokenSesion:tokenSesion, esPrincipal:esPrimeraSesion};
   } catch(e) { return {ok:false,codigo:"LOCK_SESION_ERROR",mensaje:"No fue posible asegurar la sesión de acceso. Intente nuevamente."}; }
   finally { try{lock.releaseLock();}catch(e){} }
 }
@@ -2706,8 +2724,35 @@ function mantenerSesionCodigo_(token,codigo,dispositivoId,tokenSesion,idForo){
     if(!mia) return {ok:false,codigo:"SESION_NO_AUTORIZADA",mensaje:"Este dispositivo ya no tiene un cupo activo en esta sesión."};
     mia.ultimaActividad=Date.now();
     props.setProperty(clave, JSON.stringify(sesiones));
-    return {ok:true};
+    return {ok:true, esPrincipal:!!mia.esPrincipal};
   }catch(e){return {ok:false,codigo:"HEARTBEAT_ERROR"};} finally{try{lock.releaseLock();}catch(e){}}
+}
+
+/*
+ * El responsable principal transfiere su rol a otro colaborador
+ * actualmente conectado (el de actividad más reciente) — usado
+ * cuando se detecta pérdida de conexión/inactividad prolongada y el
+ * propio principal decide ceder el control en vez de continuar.
+ */
+function transferirResponsablePrincipalFEM(token,codigo,dispositivoId,tokenSesion,idForo){
+  const lock=LockService.getScriptLock();
+  try{
+    lock.waitLock(10000);
+    const props=PropertiesService.getScriptProperties();
+    const clave=obtenerClaveSesionCodigo_(token,codigo,idForo);
+    const sesiones=leerSesionesActivas_(props, clave);
+    const mia=sesiones.find(s=>s.deviceId===dispositivoId && s.tokenSesion===tokenSesion);
+    if(!mia) return {ok:false, mensaje:"Este dispositivo ya no tiene un cupo activo en esta sesión."};
+    if(!mia.esPrincipal) return {ok:false, mensaje:"Este dispositivo no es el responsable principal del envío."};
+    const otras=sesiones.filter(s=>s.deviceId!==dispositivoId);
+    if(!otras.length) return {ok:false, mensaje:"No hay otro colaborador conectado en este momento para transferir el control."};
+    otras.sort((a,b)=>(b.ultimaActividad||0)-(a.ultimaActividad||0));
+    const nuevoPrincipalId=otras[0].deviceId;
+    sesiones.forEach(function(s){ s.esPrincipal = (s.deviceId===nuevoPrincipalId); });
+    props.setProperty(clave, JSON.stringify(sesiones));
+    return {ok:true, nuevoPrincipalDispositivoId:nuevoPrincipalId};
+  }catch(e){ return {ok:false, mensaje:"No fue posible transferir el control. Intente nuevamente."}; }
+  finally{ try{lock.releaseLock();}catch(e){} }
 }
 
 function liberarSesionCodigo(token,codigo,dispositivoId,tokenSesion,idForo){return liberarSesionCodigo_(token,codigo,dispositivoId,tokenSesion,idForo);}
@@ -3321,6 +3366,13 @@ function validarAccesoIE(token, codigo, dispositivoId, forzar) {
 
       tokenSesion:
         resultadoSesion.tokenSesion,
+
+      // true si este dispositivo es el responsable principal
+      // ("sistematizador/a"): el único que puede llegar hasta
+      // Plenaria y enviar el informe. Los demás (colaboradores) solo
+      // llegan hasta Sesión 4 — ver esPrincipal en reclamarSesionCodigo_.
+      esPrincipal:
+        !!resultadoSesion.esPrincipal,
 
       // Se devuelve el mismo identificador que fue validado para que
       // el frontend pueda conservar la sesión de forma inequívoca.
@@ -7157,10 +7209,26 @@ function obtenerAccesoPorIdForoRaw_(idForo){
   return null;
 }
 function sesionActivaPorIdForo_(idForo,dispositivoId,tokenSesion){
-  // Sin temporizador de inactividad: la sesión es válida mientras
-  // pertenezca a este mismo dispositivo/token — sin límite de tiempo —
-  // hasta que otro dispositivo la tome explícitamente (takeover).
-  const props=PropertiesService.getScriptProperties(); const clave=obtenerClaveSesionCodigo_("","",idForo); const raw=props.getProperty(clave); if(!raw)return false; let a; try{a=JSON.parse(raw);}catch(e){return false;} if(a.deviceId!==String(dispositivoId||"")||a.tokenSesion!==String(tokenSesion||""))return false; return true;
+  /*
+   * BUG CRÍTICO CORREGIDO: esta función seguía interpretando lo
+   * guardado como UN SOLO objeto ({deviceId,tokenSesion,...}), pero
+   * desde que se permiten hasta 4 dispositivos simultáneos
+   * (reclamarSesionCodigo_) lo que se guarda es SIEMPRE un ARRAY de
+   * sesiones. Un array no tiene propiedad .deviceId, así que
+   * "a.deviceId !== dispositivoId" era SIEMPRE true — esta función
+   * devolvía false para absolutamente cualquier dispositivo, lo que
+   * bloqueaba enviarRespuestasSesion() y enviarForoDefinitivo() con
+   * "la sesión ya no está activa" incluso para el dispositivo dueño
+   * legítimo de su propio cupo. Ahora busca correctamente dentro del
+   * array (vía leerSesionesActivas_, que además mantiene
+   * compatibilidad con el formato antiguo de un solo objeto).
+   */
+  const props=PropertiesService.getScriptProperties();
+  const clave=obtenerClaveSesionCodigo_("","",idForo);
+  const sesiones=leerSesionesActivas_(props, clave);
+  return sesiones.some(function(s){
+    return s.deviceId===String(dispositivoId||"") && s.tokenSesion===String(tokenSesion||"");
+  });
 }
 function validarEnvioFinal_(datos){
   const c=datos?.campos||{}; const v=id=>String(c[id]?.valor||"").trim();
