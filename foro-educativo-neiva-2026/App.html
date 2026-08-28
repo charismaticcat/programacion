@@ -1437,28 +1437,18 @@ function irAParadaNav_(parada){
 
 function renderNavPantallasFEM_(){
     const cont=document.getElementById("navPantallasFEM");
-    const barra=document.querySelector(".barraSuperior");
     if(!cont) return;
 
     /*
-     * La barra solo debe verse desde Consentimiento informado en
-     * adelante — en Acceso, Bienvenida y Recorrido permanece oculta
-     * (NAV_PARADAS_FEM_ empieza justo en Consentimiento, así que basta
-     * con comprobar si la pantalla visible es una de esas paradas).
-     *
-     * Todo lo demás va en un try/catch: ante cualquier error
-     * inesperado se prefiere DEJAR VISIBLE la barra (aunque su
-     * contenido no se haya podido actualizar del todo) a que
-     * desaparezca en silencio y sin explicación — antes, si algo
-     * fallaba justo aquí, el "display:none" de la hoja de estilos se
-     * quedaba puesto para siempre porque nada volvía a quitarlo.
+     * La barra se muestra siempre (como antes) — se probó ocultarla
+     * hasta Consentimiento, pero cualquier fallo al decidir cuándo
+     * mostrarla la dejaba invisible sin aviso, así que se volvió a
+     * este comportamiento simple y confiable. Todo el cuerpo va en un
+     * try/catch: ante cualquier error inesperado se prefiere dejar la
+     * barra tal como estaba (visible) a que quede rota o vacía.
      */
     try{
         const idVisible=document.querySelector(".pantalla.visible")?.id||"";
-        const yaEnFormulario=NAV_PARADAS_FEM_.some(function(p){ return p.id===idVisible; });
-        if(barra) barra.style.display=yaEnFormulario ? "" : "none";
-        if(!yaEnFormulario) return;
-
         const esPrincipal=!!(window.DATOS_ACCESO_FEM && window.DATOS_ACCESO_FEM.esPrincipal);
 
         let completadas=0;
@@ -1495,7 +1485,6 @@ function renderNavPantallasFEM_(){
         }
     }catch(errorBarraNav){
         console.error("Error mostrando la barra de navegación:", errorBarraNav);
-        if(barra) barra.style.display="";
     }
 }
 
