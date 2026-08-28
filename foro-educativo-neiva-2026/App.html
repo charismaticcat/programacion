@@ -870,6 +870,7 @@ if(btnSesion2){
 
     const btnSesion4No=document.getElementById("btnSesion4No");
     if(btnSesion4No) btnSesion4No.addEventListener("click",function(){
+        window._FEM_SESION4_HECHA=true; // se decidió omitirla: cuenta como "resuelta" para la barra de navegación.
         transicionSesionConEscudo_("pantallaPreguntaSesion4","pantallaEvidencias",9);
     });
 
@@ -885,6 +886,7 @@ if(btnSesion2){
 
     const btnFinalizarSesion4=document.getElementById("btnFinalizarSesion4");
     if(btnFinalizarSesion4) btnFinalizarSesion4.addEventListener("click",function(){
+        window._FEM_SESION4_HECHA=true;
         guardarBorradorLocal({silencioso:true});
         transicionSesionConEscudo_("pantallaSesion4","pantallaEvidencias",9);
     });
@@ -1268,17 +1270,199 @@ function transicionSesionConEscudo_(actual, nueva, paso){
 }
 
 /*****************************************************
- * BARRA
+ * BARRA DE NAVEGACIÓN POR PANTALLAS
+ *
+ * Círculos numerados, uno por pantalla (desde Consentimiento hasta el
+ * cierre/valoración), libremente navegables con un clic. Rojo = no
+ * iniciada, amarillo = pantalla actual, verde = terminada; el nombre
+ * de cada pantalla aparece al pasar el cursor por encima del número
+ * (.navNombreFEM en CSS.html). El porcentaje completado se muestra
+ * centrado arriba de los círculos.
+ *
+ * Solo el responsable principal (esPrincipal — ver validarAccesoIE /
+ * reclamarSesionCodigo_ en Código.js, el primer dispositivo que
+ * reclamó un cupo para este código) puede llegar hasta Plenaria, el
+ * informe final y el cierre/valoración. Los colaboradores (hasta 3
+ * más, mismo código de acceso) llegan como máximo hasta Sesión 4 /
+ * Evidencias — intentar entrar a una parada restringida muestra un
+ * aviso en vez de bloquear en silencio.
  *****************************************************/
+const NAV_PARADAS_FEM_ = [
+    {paso:3,  id:"pantallaConsentimiento", nombre:"Consentimiento"},
+    {paso:4,  id:"pantallaCaracterizacion", nombre:"Caracterización"},
+    {paso:6,  id:"pantallaSesion1", nombre:"Sesión 1"},
+    {paso:7,  id:"pantallaSesion2", nombre:"Sesión 2"},
+    {paso:8,  id:"pantallaSesion3", nombre:"Sesión 3"},
+    {paso:null, id:"pantallaSesion4", nombre:"Sesión Propia"},
+    {paso:9,  id:"pantallaEvidencias", nombre:"Evidencias"},
+    {paso:10, id:"pantallaPlenaria", nombre:"Plenaria", soloPrincipal:true},
+    {paso:11, id:"pantallaFinalFEM", nombre:"Informe final", soloPrincipal:true},
+    {paso:12, id:"pantallaCierreFEM", nombre:"Cierre y valoración", soloPrincipal:true}
+];
+
+function estadoDeParadaNav_(parada, idVisible){
+    if(parada.id===idVisible) return "amarillo";
+    switch(parada.id){
+        case "pantallaConsentimiento":
+            return document.getElementById("acepto")?.checked ? "verde" : "rojo";
+        case "pantallaCaracterizacion": {
+            const campos=["institucion","nombre","correo","cargo","rolForoResponsable"];
+            return campos.every(function(id){ return String(document.getElementById(id)?.value||"").trim()!==""; }) ? "verde" : "rojo";
+        }
+        case "pantallaSesion1": return window._FEM_SESIONES_ENVIADAS?.[1] ? "verde" : "rojo";
+        case "pantallaSesion2": return window._FEM_SESIONES_ENVIADAS?.[2] ? "verde" : "rojo";
+        case "pantallaSesion3": return window._FEM_SESIONES_ENVIADAS?.[3] ? "verde" : "rojo";
+        case "pantallaSesion4": return window._FEM_SESION4_HECHA ? "verde" : "rojo";
+        case "pantallaEvidencias": return document.getElementById("evidenciaFotoUrl")?.value ? "verde" : "rojo";
+        case "pantallaPlenaria":
+            return (window._FEM_SESIONES_ENVIADAS?.[1] && window._FEM_SESIONES_ENVIADAS?.[2] && window._FEM_SESIONES_ENVIADAS?.[3]) ? "verde" : "rojo";
+        case "pantallaFinalFEM": return (typeof informeFinalData!=="undefined" && informeFinalData && informeFinalData.enviado) ? "verde" : "rojo";
+        case "pantallaCierreFEM": return window._FEM_VALORACION_ENVIADA ? "verde" : "rojo";
+        default: return "rojo";
+    }
+}
+
+function irAParadaNav_(parada){
+    const esPrincipal=!!(window.DATOS_ACCESO_FEM && window.DATOS_ACCESO_FEM.esPrincipal);
+    if(parada.soloPrincipal && !esPrincipal){
+        confirmarFEM(
+            "Solo el responsable principal del envío puede continuar hasta aquí. Como colaborador(a), puede apoyar hasta la Sesión 4.",
+            {titulo:"🔒 Acceso restringido", textoAceptar:"Entendido", textoCancelar:"Entendido"}
+        );
+        return;
+    }
+    document.querySelectorAll(".pantalla").forEach(function(p){ p.classList.remove("visible"); });
+    const destino=document.getElementById(parada.id);
+    if(!destino) return;
+    destino.classList.add("visible");
+    if(typeof parada.paso==="number") pantallaActual=parada.paso;
+    if(parada.id==="pantallaPlenaria" && typeof renderizarPlenaria==="function") renderizarPlenaria();
+    actualizarBarra();
+    try{ guardarBorradorLocal({silencioso:true}); }catch(e){}
+    window.scrollTo(0,0);
+}
+
+function renderNavPantallasFEM_(){
+    const cont=document.getElementById("navPantallasFEM");
+    if(!cont) return;
+    const idVisible=document.querySelector(".pantalla.visible")?.id||"";
+    const esPrincipal=!!(window.DATOS_ACCESO_FEM && window.DATOS_ACCESO_FEM.esPrincipal);
+
+    let completadas=0;
+    const html=NAV_PARADAS_FEM_.map(function(parada, indice){
+        const estado=estadoDeParadaNav_(parada, idVisible);
+        if(estado==="verde") completadas++;
+        const bloqueada=!!(parada.soloPrincipal && !esPrincipal);
+        const clasePorEstado="nav"+estado.charAt(0).toUpperCase()+estado.slice(1);
+        return '<div class="navParadaFEM">'+
+            '<button type="button" class="navCirculoFEM '+clasePorEstado+(bloqueada?' navBloqueado':'')+'" data-parada="'+indice+'">'+
+                (indice+1)+
+                '<span class="navNombreFEM">'+escapeHtml(parada.nombre)+(bloqueada?' 🔒':'')+'</span>'+
+            '</button>'+
+        '</div>';
+    }).join("");
+    cont.innerHTML=html;
+
+    const porcentaje=Math.round((completadas/NAV_PARADAS_FEM_.length)*100);
+    const porcentajeEl=document.getElementById("porcentajeNavFEM");
+    if(porcentajeEl) porcentajeEl.textContent=porcentaje+"% completado";
+
+    if(!cont.dataset.inicializado){
+        cont.dataset.inicializado="1";
+        cont.addEventListener("click", function(evento){
+            const boton=evento.target.closest(".navCirculoFEM");
+            if(!boton) return;
+            const parada=NAV_PARADAS_FEM_[Number(boton.dataset.parada)];
+            if(parada) irAParadaNav_(parada);
+        });
+    }
+}
 
 function actualizarBarra(){
+    renderNavPantallasFEM_();
+}
 
-    const porcentaje =
-        ((pantallaActual-1)/(TOTAL_PANTALLAS-1))*100;
+/*****************************************************
+ * LATIDO DE SESIÓN + AVISO DE PÉRDIDA DE CONEXIÓN/INACTIVIDAD
+ *
+ * Solo se activa para el responsable principal (esPrincipal): es el
+ * único cuya desconexión bloquearía el envío para toda la
+ * institución. Cada 30s se envía un latido al servidor
+ * (mantenerSesionCodigo, que existía pero nunca se llamaba desde el
+ * cliente). Si el navegador se queda sin conexión o el latido falla
+ * varias veces seguidas, se pregunta si desea seguir como
+ * responsable en este dispositivo o transferir el control a otro
+ * colaborador ya conectado.
+ *****************************************************/
+let latidoSesionIntervalo_=null;
+let latidosFallidosSeguidos_=0;
+const MAX_LATIDOS_FALLIDOS_ANTES_DE_AVISAR_=2;
 
-    document.getElementById("barraProgreso")
-        .style.width = porcentaje + "%";
+function iniciarLatidoSesionFEM_(){
+    if(latidoSesionIntervalo_) return;
+    const datos=window.DATOS_ACCESO_FEM;
+    if(!datos || !datos.esPrincipal) return;
 
+    window.addEventListener("offline", function(){
+        avisarPerdidaConexionFEM_("Se perdió la conexión a Internet.");
+    });
+
+    latidoSesionIntervalo_=setInterval(function(){
+        if(!navigator.onLine) return; // el evento "offline" ya se encarga de avisar
+        let idForo=""; try{ idForo=obtenerIdForo(); }catch(e){}
+        if(!idForo) return;
+        google.script.run
+            .withSuccessHandler(function(res){
+                if(res && res.ok){ latidosFallidosSeguidos_=0; }
+                else{
+                    latidosFallidosSeguidos_++;
+                    if(latidosFallidosSeguidos_>=MAX_LATIDOS_FALLIDOS_ANTES_DE_AVISAR_){
+                        avisarPerdidaConexionFEM_("No se ha registrado actividad reciente de esta sesión en el servidor.");
+                    }
+                }
+            })
+            .withFailureHandler(function(){
+                latidosFallidosSeguidos_++;
+                if(latidosFallidosSeguidos_>=MAX_LATIDOS_FALLIDOS_ANTES_DE_AVISAR_){
+                    avisarPerdidaConexionFEM_("No fue posible comunicarse con el servidor.");
+                }
+            })
+            .mantenerSesionCodigo("","",datos.dispositivoId||obtenerDispositivoIdFEM(),datos.tokenSesion,idForo);
+    }, 30000);
+}
+
+let avisoPerdidaConexionEnCurso_=false;
+async function avisarPerdidaConexionFEM_(motivo){
+    if(avisoPerdidaConexionEnCurso_) return;
+    avisoPerdidaConexionEnCurso_=true;
+    latidosFallidosSeguidos_=0;
+    try{
+        const seguirComoResponsable=await confirmarFEM(
+            motivo+" ¿Desea seguir como responsable del envío en este dispositivo, o transferir el control a otro colaborador ya conectado?",
+            {titulo:"⚠️ Posible pérdida de conexión", textoAceptar:"Seguir como responsable", textoCancelar:"Transferir el control"}
+        );
+        if(seguirComoResponsable) return;
+
+        const datos=window.DATOS_ACCESO_FEM;
+        let idForo=""; try{ idForo=obtenerIdForo(); }catch(e){}
+        google.script.run
+            .withSuccessHandler(function(res){
+                if(res && res.ok){
+                    datos.esPrincipal=false;
+                    if(latidoSesionIntervalo_){ clearInterval(latidoSesionIntervalo_); latidoSesionIntervalo_=null; }
+                    actualizarBarra();
+                    confirmarFEM("El control del envío fue transferido a otro colaborador conectado. Puede seguir apoyando hasta la Sesión 4.", {titulo:"✅ Control transferido", textoAceptar:"Entendido", textoCancelar:"Entendido"});
+                }else{
+                    confirmarFEM((res&&res.mensaje)||"No fue posible transferir el control.", {titulo:"⚠️ No fue posible transferir", textoAceptar:"Entendido", textoCancelar:"Entendido"});
+                }
+            })
+            .withFailureHandler(function(){
+                confirmarFEM("No fue posible transferir el control por un problema de conexión. Intente nuevamente.", {titulo:"⚠️ Error", textoAceptar:"Entendido", textoCancelar:"Entendido"});
+            })
+            .transferirResponsablePrincipalFEM("","",datos.dispositivoId||obtenerDispositivoIdFEM(),datos.tokenSesion,idForo);
+    }finally{
+        avisoPerdidaConexionEnCurso_=false;
+    }
 }
 /*****************************************************
  * CARGAR INSTITUCIONES
@@ -7083,6 +7267,8 @@ function validarCodigoAccesoFEM(forzar){
                     3: !!(resultado.sesiones && resultado.sesiones.s3)
                 };
 
+                try{ iniciarLatidoSesionFEM_(); }catch(errorLatido){ console.error("No fue posible iniciar el latido de sesión:", errorLatido); }
+
                 /*
                  * Aplicar inmediatamente los datos oficiales
                  * de la institución al formulario.
@@ -7597,6 +7783,7 @@ function inicializarValoracionFEM_(){
                 if(res && res.ok){
                     if(estado) estado.textContent="¡Gracias por su valoración!";
                     btnEnviar.textContent="✓ Valoración enviada";
+                    window._FEM_VALORACION_ENVIADA=true;
                     mostrarModalCierreDefinitivoFEM_(idForo);
                 }else{
                     btnEnviar.disabled=false; btnEnviar.textContent="Enviar valoración";
