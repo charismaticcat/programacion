@@ -7853,6 +7853,14 @@ function inicializarPlenaria(){
         btnContinuarModalInforme.addEventListener("click",function(){
             document.getElementById("modalContinuarInformeFEM")?.classList.remove("visible");
             cambiarPantalla("pantallaPlenaria","pantallaFinalFEM",11);
+            /*
+             * Generar el informe automáticamente al llegar aquí: antes
+             * hacía falta un clic aparte en "Generar informe" DESPUÉS
+             * de haber dicho "Continuar" en el modal anterior, lo que
+             * se sentía como "dos pantallas" solo para poder
+             * descargarlo. La persona ya confirmó que quiere seguir.
+             */
+            generarInformeFinalUI();
         });
         btnContinuarModalInforme.dataset.inicializado="1";
     }
@@ -9225,7 +9233,12 @@ const _renderizarPlenariaOriginal = renderizarPlenaria;
 renderizarPlenaria = function(opciones){ _renderizarPlenariaOriginal(opciones); insertarBotonesEnvioSesion(); };
 
 async function generarInformeFinalUI(){
-    const btn=document.getElementById("btnGenerarInformeFinal"); if(btn) {btn.disabled=true;btn.textContent="Generando…";}
+    const btn=document.getElementById("btnGenerarInformeFinal");
+    // Evita duplicar el trabajo si ya se generó (p. ej. llamado
+    // automáticamente al llegar a esta pantalla) y la persona además
+    // hace clic en el botón, o si ya está en curso.
+    if(informeFinalData?.ok || (btn && btn.disabled && btn.textContent==="Generando…")) return;
+    if(btn) {btn.disabled=true;btn.textContent="Generando…";}
     // Bloqueante (no "flotante"): deshabilita el resto de la pantalla
     // hasta que el informe termine de generarse, ya que esta llamada
     // crea el documento completo (caracterización, sesiones,
@@ -9244,10 +9257,21 @@ async function generarInformeFinalUI(){
         const e=document.getElementById("btnEnviarInformeFinal"); if(e) e.disabled=false;
         const f=document.getElementById("tituloInformeFinal"); if(f) f.textContent=getCampoNombreIE();
         mostrarEstadoInformeFinal("✓ Informe generado y guardado en Drive.");
-        if(btn) btn.textContent="✓ Informe generado";
+        /*
+         * Se genera automáticamente al llegar a esta pantalla (ver el
+         * botón "Continuar" del modal tras enviar la plenaria), así
+         * que este botón ya no hace falta — se oculta del todo en vez
+         * de dejarlo como "✓ Informe generado" sin nada que hacer, y
+         * solo quedan visibles "Descargar" y "Enviar".
+         */
+        if(btn) btn.style.display="none";
         ocultarOverlayProgreso_();
     }catch(err){
-        if(btn){btn.disabled=false;btn.textContent="📄 Generar informe";}mostrarEstadoInformeFinal("⚠ "+(err.message||err));
+        // Si la generación automática falla, el botón vuelve a
+        // aparecer para poder reintentar manualmente — nunca se deja
+        // a la persona sin ninguna forma de generar el informe.
+        if(btn){btn.style.display="";btn.disabled=false;btn.textContent="📄 Generar informe";}
+        mostrarEstadoInformeFinal("⚠ "+(err.message||err));
         ocultarOverlayProgreso_(true);
     }
 }
