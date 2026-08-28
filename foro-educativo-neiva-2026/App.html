@@ -7733,6 +7733,11 @@ function inicializarPlenaria(){
         }catch(error){ console.error("No fue posible mostrar la fotografía en pantalla completa:",error); }
     });
 
+    const btnCambiarFotoEvidencia=document.getElementById("btnCambiarFotoEvidencia");
+    if(btnCambiarFotoEvidencia) btnCambiarFotoEvidencia.addEventListener("click",function(){
+        document.getElementById("archivoFoto")?.click();
+    });
+
     inicializarSelectorMetodoAsistencia_();
     inicializarDescargaQR_();
     inicializarFirmasEnVivo_();
@@ -8506,6 +8511,8 @@ function actualizarPreviaFotoEvidencia_(){
     const texto=document.getElementById("textoFotoRegistrada");
     const pie=document.getElementById("pieFotoEvidencia");
     const ojo=document.getElementById("btnFotoEvidenciaPantallaCompleta");
+    const archivoFoto=document.getElementById("archivoFoto");
+    const btnCambiar=document.getElementById("btnCambiarFotoEvidencia");
     if(!img) return;
     if(url){
         img.src=url;
@@ -8518,11 +8525,21 @@ function actualizarPreviaFotoEvidencia_(){
             pie.textContent=construirPieFotoEvidenciaCliente_(fecha);
             pie.style.display="block";
         }
+        /*
+         * Con la foto ya registrada, el input nativo de "elegir
+         * archivo" queda oculto (se ve desconectado justo debajo de
+         * una foto grande ya subida) y en su lugar aparece un botón
+         * explícito "Cambiar fotografía" que abre el mismo selector.
+         */
+        if(archivoFoto) archivoFoto.style.display="none";
+        if(btnCambiar) btnCambiar.style.display="";
     }else{
         img.style.display="none";
         if(texto) texto.style.display="none";
         if(ojo) ojo.style.display="none";
         if(pie) pie.style.display="none";
+        if(archivoFoto) archivoFoto.style.display="";
+        if(btnCambiar) btnCambiar.style.display="none";
     }
 }
 function actualizarEstadoEvidencias(){
@@ -8917,7 +8934,7 @@ function formatearFechaFotoEvidenciaCliente_(fecha){
 
 function construirPieFotoEvidenciaCliente_(fecha){
     const ieSinPrefijo=getCampoNombreIE().replace(/^\s*(instituci[oó]n\s+educativa|i\.?\s*e\.?)\s+/i,"").trim();
-    return "Imagen 1: Docentes de la IE "+ieSinPrefijo+" en actividad del Foro Educativo Institucional — Neiva 2026 (fecha "+formatearFechaFotoEvidenciaCliente_(fecha)+").";
+    return "📷 Imagen 1: Docentes de la IE "+ieSinPrefijo+" en actividad del Foro Educativo Institucional — Neiva 2026 (fecha "+formatearFechaFotoEvidenciaCliente_(fecha)+").";
 }
 function getTotalParticipantes(){ return Number(document.getElementById("totalParticipantes")?.textContent||0); }
 

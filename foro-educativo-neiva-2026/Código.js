@@ -5389,7 +5389,7 @@ function formatearFechaSubidaFoto_(fecha){
 
 function construirPieFotoEvidencia_(ieSinPrefijo,fecha,cantidadParticipantes){
   const cantidad=Number(cantidadParticipantes||0);
-  return cantidad+" de participantes de la IE "+ieSinPrefijo+" en actividad del Foro Educativo Institucional — Neiva 2026. Subida el "+formatearFechaSubidaFoto_(fecha)+".";
+  return "📷 "+cantidad+" de participantes de la IE "+ieSinPrefijo+" en actividad del Foro Educativo Institucional — Neiva 2026. Subida el "+formatearFechaSubidaFoto_(fecha)+".";
 }
 
 function registrarAsistenciaQR(idForo, nombre, sexo, edad, tipoAsistencia, cargo, rolForo, jornada, sede, fortalezas, fortalezaOtro, dificultades, dificultadOtro, documento, correo, telefono, consentimiento, dispositivoId){
