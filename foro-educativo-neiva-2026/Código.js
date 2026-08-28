@@ -5088,7 +5088,7 @@ function asegurarColumnasAccesosIE_(){
   const ss=abrirSpreadsheet_();
   let hoja=ss.getSheetByName(HOJA_ACCESOS);
   if(!hoja) hoja=ss.insertSheet(HOJA_ACCESOS);
-  const requeridas=["ID_ACCESO","IE","DANE","CODIGO_ACCESO","TOKEN","URL_ACCESO","ID_FORO","ESTADO","TOKEN_SESION","DISPOSITIVO_ID","FECHA_GENERACION","FECHA_PRIMER_ACCESO","ULTIMA_ACTIVIDAD","FECHA_ENVIO","EMAIL_IE","EMAIL_RESPONSABLE","TIPO","S1_ENVIADA","S2_ENVIADA","S3_ENVIADA","ID_INFORME","ID_PDF_INFORME","LOGO_ID","HABILITAR_DESDE"];
+  const requeridas=["ID_ACCESO","IE","DANE","CODIGO_ACCESO","TOKEN","URL_ACCESO","ID_FORO","ESTADO","TOKEN_SESION","DISPOSITIVO_ID","FECHA_GENERACION","FECHA_PRIMER_ACCESO","ULTIMA_ACTIVIDAD","FECHA_ENVIO","EMAIL_IE","EMAIL_RESPONSABLE","TIPO","S1_ENVIADA","S2_ENVIADA","S3_ENVIADA","ID_INFORME","ID_PDF_INFORME","LOGO_ID","HABILITAR_DESDE","ENVIADO_POR"];
   const last=hoja.getLastColumn();
   const existentes=last?hoja.getRange(1,1,1,last).getValues()[0].map(String):[];
   if(!last){hoja.getRange(1,1,1,requeridas.length).setValues([requeridas]);}
@@ -7444,7 +7444,27 @@ function enviarForoDefinitivo(idForo,tokenSesion,dispositivoId,datos){
   try{
     const raw=obtenerAccesoPorIdForoRaw_(idForo); if(!raw)return {ok:false,mensaje:"La institución no está autorizada."};
     const estado=String(raw.hoja.getRange(raw.fila,raw.mapa.ESTADO).getValue()||"").toUpperCase();
-    if(estado==="ENVIADO")return {ok:true,yaEnviado:true,mensaje:"Las respuestas ya fueron enviadas definitivamente."};
+    /*
+     * Solo se permite UN envío definitivo por IE. Un segundo intento
+     * (de cualquier colaborador(a), incluso desde otro dispositivo)
+     * ya no recibe el mensaje genérico de antes — se le informa
+     * exactamente cuándo y quién ya lo envió, para que sepa que debe
+     * comunicarse con esa persona en vez de reintentar.
+     */
+    if(estado==="ENVIADO"){
+      const am=raw.mapa;
+      const fechaEnvioPrevio=am.FECHA_ENVIO ? raw.hoja.getRange(raw.fila,am.FECHA_ENVIO).getValue() : null;
+      const enviadoPorPrevio=am.ENVIADO_POR ? String(raw.hoja.getRange(raw.fila,am.ENVIADO_POR).getValue()||"").trim() : "";
+      const zona=Session.getScriptTimeZone();
+      const fechaTexto=fechaEnvioPrevio ? Utilities.formatDate(new Date(fechaEnvioPrevio),zona,"dd/MM/yyyy") : "una fecha anterior";
+      const horaTexto=fechaEnvioPrevio ? Utilities.formatDate(new Date(fechaEnvioPrevio),zona,"HH:mm") : "";
+      const ieSinPrefijoEnvio=nombreIESinPrefijoInstitucional_(raw.ie||"");
+      const mensajeYaEnviado=
+        "El Foro Educativo Institucional de la IE "+ieSinPrefijoEnvio+" ya fue enviado el "+fechaTexto+(horaTexto?" a las "+horaTexto:"")+
+        (enviadoPorPrevio ? " por "+enviadoPorPrevio : "")+
+        ". Por favor comuníquese con "+(enviadoPorPrevio||"la persona responsable")+".\n\nGracias por su participación.";
+      return {ok:true,yaEnviado:true,mensaje:mensajeYaEnviado};
+    }
     if(!sesionActivaPorIdForo_(idForo,dispositivoId,tokenSesion))return {ok:false,mensaje:"Otro dispositivo tomó el control de esta sesión. Ingrese nuevamente con uno de los códigos de la institución si desea continuar aquí."};
     const valida=validarEnvioFinal_(datos); if(!valida.ok)return valida;
     datos.idForo=String(idForo); datos.institucion=raw.ie; datos.dane=raw.dane;
@@ -7457,6 +7477,10 @@ function enviarForoDefinitivo(idForo,tokenSesion,dispositivoId,datos){
     const shIE=abrirSpreadsheet_().getSheetByName(nombreHojaIE_(datos.institucion)); if(shIE&&shIE.getLastRow()>=2){const mi=obtenerMapaCabeceras_(shIE);const rr=buscarFilaPorIdForo_(shIE,idForo,mi);if(rr>0&&mi.ESTADO)shIE.getRange(rr,mi.ESTADO).setValue("ENVIADO");}
     actualizarGraficosParticipacion_();
     const am=raw.mapa; if(am.ESTADO)raw.hoja.getRange(raw.fila,am.ESTADO).setValue("ENVIADO"); if(am.FECHA_ENVIO)raw.hoja.getRange(raw.fila,am.FECHA_ENVIO).setValue(now);
+    if(am.ENVIADO_POR){
+      const nombreQuienEnvia=String(datos.campos?.nombre?.valor||"").trim();
+      if(nombreQuienEnvia) raw.hoja.getRange(raw.fila,am.ENVIADO_POR).setValue(nombreQuienEnvia);
+    }
     try{ actualizarAnalisisFEMIndividual_(idForo); }catch(errorAnalisis){ Logger.log("Análisis FEM (enviarForoDefinitivo): "+errorAnalisis.message); }
     return {ok:true,fecha:now.toISOString(),idForo:idForo};
   }finally{try{lock.releaseLock();}catch(e){}}

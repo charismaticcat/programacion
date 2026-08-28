@@ -3644,7 +3644,10 @@ Su ancho ya queda acotado por .cajaTexto > * (--reading-width).
 .modalFEMContenido ul{padding-left:24px;margin:12px 0 24px;}
 .modalFEMContenidoConfirmar{width:min(440px,100%);text-align:center;}
 .modalFEMContenidoConfirmar h2{margin:0 0 12px;}
-.modalFEMContenidoConfirmar p{margin:0 0 26px;}
+/* white-space:pre-line respeta los "\n\n" de mensajes largos (p. ej.
+   el aviso de "ya fue enviado") como párrafos separados, en vez de
+   aplanarlos en una sola línea corrida. */
+.modalFEMContenidoConfirmar p{margin:0 0 26px;white-space:pre-line;}
 .modalConfirmarAcciones{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
 
 /* Confirmación final, grande y centrada, tras enviar la valoración */

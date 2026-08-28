@@ -880,7 +880,7 @@ if(btnSesion2){
     if(btnSesion4No) btnSesion4No.addEventListener("click",function(){
         window._FEM_SESION4_HECHA=true; // se decidió omitirla: cuenta como "resuelta" para la barra de navegación.
         window._FEM_SESION4_OMITIDA=true; // circulo de la barra muestra "N/A" en vez del número — es opcional y no se hizo.
-        if(!esPrincipalActualFEM_()){ avisarFinColaboracionSesion4_(); return; }
+        // Cualquier colaborador(a) puede seguir hasta Evidencias — ya no se detiene aquí a quien no es el responsable principal.
         transicionSesionConEscudo_("pantallaPreguntaSesion4","pantallaEvidencias",9);
     });
 
@@ -900,7 +900,7 @@ if(btnSesion2){
     if(btnFinalizarSesion4) btnFinalizarSesion4.addEventListener("click",function(){
         window._FEM_SESION4_HECHA=true;
         guardarBorradorLocal({silencioso:true});
-        if(!esPrincipalActualFEM_()){ avisarFinColaboracionSesion4_(); return; }
+        // Cualquier colaborador(a) puede seguir hasta Evidencias — ya no se detiene aquí a quien no es el responsable principal.
         transicionSesionConEscudo_("pantallaSesion4","pantallaEvidencias",9);
     });
 
@@ -1371,15 +1371,13 @@ const NAV_PARADAS_FEM_ = [
     {paso:8,  id:"pantallaSesion3", nombre:"Sesión 3"},
     {paso:null, id:"pantallaSesion4", nombre:"Sesión Propia"},
     /*
-     * Evidencias (donde vive el código QR de asistencia) es
-     * soloPrincipal (rol), pero NO exige tener las demás secciones
-     * completas primero: el QR se necesita disponible desde el
-     * inicio de la jornada, para que los participantes vayan
-     * firmando su asistencia mientras se avanza con las sesiones —
-     * no solo al final. Plenaria en adelante sí exige el formulario
-     * completo (requiereFormularioCompleto), Evidencias no.
+     * Evidencias (donde vive el código QR de asistencia) ya NO es
+     * soloPrincipal: cualquier colaborador(a) puede llegar hasta
+     * aquí y ayudar a subir la foto/PDF y compartir el QR — el envío
+     * definitivo (Plenaria en adelante) sigue siendo exclusivo del
+     * responsable principal.
      */
-    {paso:9,  id:"pantallaEvidencias", nombre:"Evidencias", soloPrincipal:true},
+    {paso:9,  id:"pantallaEvidencias", nombre:"Evidencias"},
     {paso:10, id:"pantallaPlenaria", nombre:"Plenaria", soloPrincipal:true, requiereFormularioCompleto:true},
     {paso:11, id:"pantallaFinalFEM", nombre:"Informe final", soloPrincipal:true, requiereFormularioCompleto:true},
     {paso:12, id:"pantallaCierreFEM", nombre:"Cierre y valoración", soloPrincipal:true, requiereFormularioCompleto:true}
@@ -1437,8 +1435,11 @@ function estadoDeParadaNav_(parada, idVisible){
 function irAParadaNav_(parada){
     const esPrincipal=!!(window.DATOS_ACCESO_FEM && window.DATOS_ACCESO_FEM.esPrincipal);
     if(parada.soloPrincipal && !esPrincipal){
+        const nombreResponsablePrincipal=String(document.getElementById("nombre")?.value||"").trim();
         confirmarFEM(
-            "Solo el responsable principal del envío puede continuar hasta aquí. Como colaborador(a), puede apoyar hasta la Sesión 4.",
+            "Solo el responsable principal del envío puede continuar hasta aquí."+
+            (nombreResponsablePrincipal ? " El responsable principal registrado en su IE es "+nombreResponsablePrincipal+"." : "")+
+            " Como colaborador(a), puede apoyar hasta Evidencias.",
             {titulo:"🔒 Acceso restringido", textoAceptar:"Entendido", textoCancelar:"Entendido"}
         );
         return;
@@ -7897,6 +7898,19 @@ function inicializarPlenaria(){
             });
             if(!r || !r.ok) throw new Error(r?.mensaje||"No fue posible finalizar el envío.");
             ocultarOverlayProgreso_();
+            /*
+             * Solo se permite un envío definitivo por IE. Si esto ya
+             * lo hizo alguien más (otro colaborador, otro
+             * dispositivo), antes se seguía en silencio como si nada
+             * — ahora se avisa explícitamente quién y cuándo lo
+             * envió, antes de continuar a la pantalla del informe.
+             */
+            if(r.yaEnviado){
+                await confirmarFEM(
+                    r.mensaje||"Las respuestas ya fueron enviadas definitivamente.",
+                    {titulo:"ℹ️ Foro ya enviado", textoAceptar:"Entendido", textoCancelar:"Entendido"}
+                );
+            }
             mostrarModalContinuarInforme_();
         }catch(error){
             ocultarOverlayProgreso_(true);
