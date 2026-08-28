@@ -1190,6 +1190,8 @@ mostrarTarjetaRecorrido();
 
 function cambiarPantalla(actual,nueva,paso){
 
+    const pasoAnterior = pantallaActual;
+
     if(accesoEstaAutorizadoFEM()){
 
         guardarBorradorLocal({
@@ -1228,6 +1230,17 @@ function cambiarPantalla(actual,nueva,paso){
     }
 
     pantallaActual = Number(paso);
+
+    /*
+     * Para el % de progreso de la barra de navegación: cada vez que
+     * se avanza con "Continuar" (o equivalente) hacia un paso mayor,
+     * la pantalla que se deja atrás cuenta de una vez como
+     * "completada" (círculo verde) — es una visualización de avance
+     * por el formulario, no un indicador de si ya se envió al
+     * servidor (Sesión 1/2/3 también se marcan aquí, no solo al
+     * enviarlas definitivamente desde la Plenaria).
+     */
+    if(Number(paso) > Number(pasoAnterior)) marcarPantallaAvanzada_(actual);
 
     actualizarBarra();
 
@@ -1371,7 +1384,22 @@ const NAV_PARADAS_FEM_ = [
  * la foto ya subida se leería como "no completada" solo por ser la
  * pantalla activa, y bloquearía el avance de forma incorrecta.
  */
+/*
+ * Paradas marcadas como "avanzadas" simplemente por haber usado
+ * "Continuar" (o equivalente) para dejarlas atrás — ver
+ * cambiarPantalla(). Es un criterio adicional de progreso, puramente
+ * visual: no reemplaza el criterio real de cada pantalla (p. ej.
+ * Sesión 1/2/3 solo quedan realmente enviadas al hacerlo desde la
+ * Plenaria), solo hace que el círculo se pinte verde y el % avance
+ * de una vez al recorrer el formulario hacia adelante.
+ */
+const _FEM_PANTALLAS_AVANZADAS_={};
+function marcarPantallaAvanzada_(idPantalla){
+    if(idPantalla) _FEM_PANTALLAS_AVANZADAS_[idPantalla]=true;
+}
+
 function estaCompletadaParadaNav_(parada){
+    if(_FEM_PANTALLAS_AVANZADAS_[parada.id]) return true;
     switch(parada.id){
         case "pantallaConsentimiento":
             return !!document.getElementById("acepto")?.checked;
@@ -6669,6 +6697,17 @@ function mostrarPantallaGuardada(paso){
         pantallas[paso];
 
     if(!id) return;
+
+    /*
+     * Al restaurar directo a un paso (borrador local o de la nube),
+     * todas las paradas ANTERIORES a esa ya se recorrieron alguna vez
+     * — se marcan "avanzadas" para que el % de progreso de la barra
+     * las cuente, igual que si se hubiera llegado hasta aquí haciendo
+     * clic en "Continuar" pantalla por pantalla.
+     */
+    Object.keys(pantallas).forEach(function(clave){
+        if(Number(clave) < Number(paso)) marcarPantallaAvanzada_(pantallas[clave]);
+    });
 
     document
         .querySelectorAll(".pantalla")
