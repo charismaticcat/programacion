@@ -6805,9 +6805,27 @@ function activarGuardadoAutomatico(){
     // Guardar inmediatamente al abandonar la página.
     window.addEventListener(
         "beforeunload",
-        function(){
+        function(evento){
             if(accesoEstaAutorizadoFEM()){
                 guardarBorradorLocal({silencioso:true});
+            }
+            /*
+             * Los archivos elegidos en los <input type=file> de
+             * Evidencias (foto y PDF de asistencia) NUNCA se pueden
+             * restaurar tras recargar — es una limitación del propio
+             * navegador, no algo que este formulario pueda evitar. Si
+             * hay un archivo elegido que todavía no se registró (no
+             * se hizo clic en "Registrar evidencias", o el envío no
+             * terminó), se muestra la confirmación nativa de "¿seguro
+             * que desea salir?" para no perderlo por una recarga o
+             * cierre accidental.
+             */
+            const fotoSinRegistrar=document.getElementById("archivoFoto")?.files?.length>0;
+            const pdfSinRegistrar=document.getElementById("archivoAsistenciaPDF")?.files?.length>0;
+            if(fotoSinRegistrar || pdfSinRegistrar){
+                evento.preventDefault();
+                evento.returnValue = "Tiene una fotografía o un PDF de asistencia seleccionados que aún no se han registrado. Si sale ahora, tendrá que volver a elegirlos.";
+                return evento.returnValue;
             }
         }
     );
@@ -8532,7 +8550,33 @@ function actualizarEstadoEvidencias(){
         }
     }
 
-    if(subir) subir.disabled=!(okFoto && okAsistencia && okParticipantes);
+    if(subir){
+        subir.disabled=!(okFoto && okAsistencia && okParticipantes);
+        /*
+         * El botón se quedaba gris sin ninguna explicación cuando
+         * faltaba UN SOLO requisito — en particular, "Número de
+         * participantes en la jornada" (el general, arriba de las
+         * tarjetas de foto/PDF) es fácil de pasar por alto porque hay
+         * otro campo con nombre parecido ("Número de asistentes
+         * registrados en el PDF") dentro de la tarjeta de PDF. Ahora
+         * se explica exactamente qué falta, en vez de dejar el botón
+         * gris sin ninguna pista.
+         */
+        const faltantes=[];
+        if(!metodo) faltantes.push("elegir el método de asistencia (QR o PDF)");
+        if(!okParticipantes) faltantes.push('el "Número de participantes en la jornada" (más arriba, junto a la fotografía)');
+        if(metodo==="PDF" && !okAsistencia) faltantes.push("el PDF de asistencia y su número de asistentes");
+        if(!okFoto) faltantes.push("la fotografía horizontal HD");
+        const elMensajeEvidencias=document.getElementById("mensajeEvidencias");
+        if(subir.disabled && faltantes.length){
+            mostrarMensajeEvidencias("⚠ Falta completar: "+faltantes.join("; ")+".");
+        }else if(elMensajeEvidencias && /^⚠ Falta completar/.test(elMensajeEvidencias.textContent||"")){
+            // Solo limpia este aviso propio — nunca un mensaje real de
+            // éxito/error dejado por subirEvidenciasFEM().
+            elMensajeEvidencias.style.display="none";
+            elMensajeEvidencias.textContent="";
+        }
+    }
 
     /*
      * Vista previa inmediata (antes de subir): se muestra debajo del
