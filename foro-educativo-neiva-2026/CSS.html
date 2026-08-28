@@ -1628,11 +1628,13 @@ SESIÓN 1
 
 .documentos-apoyo-texto{
 
-    font-size:15px;
-    line-height:1.6;
+    /* Mismo tamaño de letra que el objetivo (.tarjetaObjetivo p, que
+       no fija font-size propio) y ancho libre hasta el borde del
+       recuadro, en vez de limitarse a --reading-width. */
+    line-height:1.7;
     color:var(--color-text-muted);
     margin-bottom:var(--space-4);
-    max-width:var(--reading-width);
+    max-width:none;
 
 }
 

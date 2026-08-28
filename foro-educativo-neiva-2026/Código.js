@@ -5189,7 +5189,7 @@ const TIPOS_ASISTENCIA_QR=["Presencial","No asistió: con permiso institucional 
 // literal al insertar el rol dentro de una oración ("En mi papel
 // como Relator(a)..."), y no depende de saber el género de quien
 // firma.
-const ROLES_FORO_QR=["👑 Líder – Rectora","🎓 Dinamizadora Pedagógica – Tutora PTA / PFI 3.0","👥 Dinamizadora de Mesas de Trabajo","📝 Relatora","⏱️ Dinamizadora del Tiempo","💻 Dinamizadora de la Sistematización","🙋 Participante"];
+const ROLES_FORO_QR=["👑 Líder – Rector(a)","🎓 Dinamizador(a) Pedagógico(a) – Tutor(a) PTA / PFI 3.0","👥 Dinamizador(a) de Mesas de Trabajo","📝 Relator(a)","⏱️ Dinamizador(a) del Tiempo","💻 Dinamizador(a) de la Sistematización","🙋 Participante"];
 
 // Sexo (para el conteo demográfico del informe: niños/niñas,
 // jóvenes hombres/mujeres, adultos hombres/mujeres).
@@ -5313,8 +5313,26 @@ function formatearFechaFotoEvidencia_(fecha){
   return dia+"-"+mesCapitalizado+"-"+anio+", a las "+hora;
 }
 
-function construirPieFotoEvidencia_(ieSinPrefijo,fecha){
-  return "Imagen 1: Docentes de la IE "+ieSinPrefijo+" en actividad del Foro Educativo Institucional — Neiva 2026 (fecha "+formatearFechaFotoEvidencia_(fecha)+").";
+/*
+ * "27 de agosto de 2026, a las 12:25" — formato largo usado en el
+ * nuevo pie de foto (distinto del corto "27-Agosto-2026, a las 14:32"
+ * de formatearFechaFotoEvidencia_, que se conserva por si algo más lo
+ * sigue usando).
+ */
+function formatearFechaSubidaFoto_(fecha){
+  const zona=Session.getScriptTimeZone();
+  const meses=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  const dia=Utilities.formatDate(fecha,zona,"d");
+  const mesIndex=Number(Utilities.formatDate(fecha,zona,"M"))-1;
+  const mesCapitalizado=(meses[mesIndex]||"").charAt(0).toUpperCase()+(meses[mesIndex]||"").slice(1);
+  const anio=Utilities.formatDate(fecha,zona,"yyyy");
+  const hora=Utilities.formatDate(fecha,zona,"HH:mm");
+  return dia+" de "+mesCapitalizado+" de "+anio+", a las "+hora;
+}
+
+function construirPieFotoEvidencia_(ieSinPrefijo,fecha,cantidadParticipantes){
+  const cantidad=Number(cantidadParticipantes||0);
+  return cantidad+" de participantes de la IE "+ieSinPrefijo+" en actividad del Foro Educativo Institucional — Neiva 2026. Subida el "+formatearFechaSubidaFoto_(fecha)+".";
 }
 
 function registrarAsistenciaQR(idForo, nombre, sexo, edad, tipoAsistencia, cargo, rolForo, jornada, sede, fortalezas, fortalezaOtro, dificultades, dificultadOtro, documento, correo, telefono, consentimiento, dispositivoId){
@@ -6315,19 +6333,23 @@ function agregarSesionPropiaAlInforme_(body, datos, ieSinPrefijo, estilos){
 
   body.appendPageBreak();
 
+  // Logo de la IE encima del título (ya no al lado), mismo tamaño
+  // grande (100x100) que el logo de la portada/encabezado del resto
+  // del informe — el mismo diseño visual de esta sección se conserva
+  // (solo cambia la posición y el tamaño del logo).
   const logoIdIE=obtenerLogoIdPorNombreIE_(datos.institucion||"");
-  const tablaTitulo=body.appendTable([["",""]]);
-  tablaTitulo.setBorderWidth(0);
-  const celdaTexto=tablaTitulo.getCell(0,0);
-  const pTitulo=celdaTexto.getChild(0).asParagraph();
-  pTitulo.setText("Sesión Propia creada por la IE "+ieSinPrefijo);
-  pTitulo.setHeading(DocumentApp.ParagraphHeading.HEADING1);
-  pTitulo.editAsText().setForegroundColor(VERDE).setBold(true);
-  const celdaEscudo=tablaTitulo.getCell(0,1);
-  celdaEscudo.setWidth(50);
   if(logoIdIE){
-    try{ celdaEscudo.getChild(0).asParagraph().setAlignment(DocumentApp.HorizontalAlignment.RIGHT).appendInlineImage(DriveApp.getFileById(logoIdIE).getBlob()).setWidth(40).setHeight(40); }catch(e){}
+    try{
+      const pLogoSesionPropia=body.appendParagraph("");
+      pLogoSesionPropia.setSpacingBefore(0).setSpacingAfter(4);
+      pLogoSesionPropia.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+      pLogoSesionPropia.appendInlineImage(DriveApp.getFileById(logoIdIE).getBlob()).setWidth(100).setHeight(100);
+    }catch(e){}
   }
+  const pTitulo=body.appendParagraph("Sesión Propia creada por la IE "+ieSinPrefijo);
+  pTitulo.setHeading(DocumentApp.ParagraphHeading.HEADING1);
+  pTitulo.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+  pTitulo.editAsText().setForegroundColor(VERDE).setBold(true);
 
   const subtitulo=body.appendParagraph(
     "Las respuestas de esta sesión corresponden a las necesidades y realidades de la IE "+ieSinPrefijo+
@@ -6393,50 +6415,51 @@ function generarInformeFEM(idForo,datosCliente){
     const VERDE=COLOR_VERDE_DOC, GRIS_TEXTO=COLOR_GRIS_TEXTO_DOC, GRIS_FONDO=COLOR_GRIS_FONDO_DOC, GRIS_BORDE=COLOR_GRIS_BORDE_DOC;
     const AZUL_CLARO=COLOR_AZUL_CLARO_DOC, AMARILLO=COLOR_AMARILLO_DOC, NEGRO=COLOR_NEGRO_DOC;
 
-    const body=doc.getBody(); body.clear(); body.setPageWidth(612).setPageHeight(792).setMarginTop(28).setMarginBottom(28).setMarginLeft(36).setMarginRight(36);
+    const body=doc.getBody(); body.clear(); body.setPageWidth(612).setPageHeight(792).setMarginTop(18).setMarginBottom(24).setMarginLeft(36).setMarginRight(36);
     /*
-     * Encabezado con el logo de la Alcaldía/SEM a la derecha y el
-     * logo de la IE (pequeño) a la izquierda. Documentos/Apps Script
-     * no permite un encabezado "distinto en la primera página" —
-     * este encabezado se repite igual en TODAS las páginas,
-     * incluida la primera. En la portada eso no estorba porque el
-     * logo de la IE ya aparece ahí grande y centrado por separado.
+     * Encabezado con los 3 logos institucionales: SEM a la izquierda,
+     * FEM en el centro, IE a la derecha — SEM e IE al mismo tamaño
+     * grande que el logo de la portada (100x100), FEM proporcionado
+     * entre los otros dos. Documentos/Apps Script NO permite un
+     * encabezado "distinto en la primera página" (no existe esa
+     * opción en DocumentApp): este mismo encabezado se repite igual
+     * en TODAS las páginas, incluida la primera — no hay forma de
+     * quitarlo solo de la portada sin también quitarlo de las
+     * páginas 2 en adelante, donde sí se pidió expresamente.
      */
     const h=doc.getHeader()||doc.addHeader(); h.clear();
     const logoIdIE=obtenerLogoIdPorNombreIE_(datos.institucion||"");
-    // Tabla sin bordes (2 columnas) en vez de tabulaciones, para que
-    // el logo de la IE quede fijo a la izquierda y el de la
-    // Alcaldía/SEM a la derecha, sin depender de dónde caigan los
-    // tabuladores por defecto.
-    const tablaEncabezado=h.appendTable([["",""]]);
+    // Tabla sin bordes (3 columnas) para fijar SEM/FEM/IE cada uno en
+    // su lugar, sin depender de tabuladores.
+    const tablaEncabezado=h.appendTable([["","",""]]);
     tablaEncabezado.setBorderWidth(0);
-    const celdaLogoIE=tablaEncabezado.getCell(0,0);
-    celdaLogoIE.setWidth(300);
+    const celdaLogoSem=tablaEncabezado.getCell(0,0);
+    celdaLogoSem.setWidth(120);
+    try{ celdaLogoSem.getChild(0).asParagraph().appendInlineImage(DriveApp.getFileById(LOGO_PIE_ID).getBlob()).setWidth(100).setHeight(100); }catch(e){}
+    const celdaLogoFem=tablaEncabezado.getCell(0,1);
+    celdaLogoFem.setWidth(300);
+    const pLogoFem=celdaLogoFem.getChild(0).asParagraph();
+    pLogoFem.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    try{ pLogoFem.appendInlineImage(DriveApp.getFileById(LOGO_ENCABEZADO_ID).getBlob()).setWidth(126).setHeight(70); }catch(e){}
+    const celdaLogoIE=tablaEncabezado.getCell(0,2);
+    celdaLogoIE.setWidth(120);
     if(logoIdIE){
-      try{ celdaLogoIE.getChild(0).asParagraph().appendInlineImage(DriveApp.getFileById(logoIdIE).getBlob()).setWidth(36).setHeight(36); }catch(e){}
+      const pLogoIEEncabezado=celdaLogoIE.getChild(0).asParagraph();
+      pLogoIEEncabezado.setAlignment(DocumentApp.HorizontalAlignment.RIGHT);
+      try{ pLogoIEEncabezado.appendInlineImage(DriveApp.getFileById(logoIdIE).getBlob()).setWidth(100).setHeight(100); }catch(e){}
     }
-    const celdaLogoAlcaldia=tablaEncabezado.getCell(0,1);
-    const pLogoAlcaldia=celdaLogoAlcaldia.getChild(0).asParagraph();
-    pLogoAlcaldia.setAlignment(DocumentApp.HorizontalAlignment.RIGHT);
-    try{ pLogoAlcaldia.appendInlineImage(DriveApp.getFileById(LOGO_ENCABEZADO_ID).getBlob()).setWidth(90).setHeight(50); }catch(e){};
     const footer=doc.getFooter()||doc.addFooter(); footer.clear(); const fp=footer.appendParagraph(""); fp.setAlignment(DocumentApp.HorizontalAlignment.CENTER); try{fp.appendInlineImage(DriveApp.getFileById(LOGO_PIE_ID).getBlob()).setWidth(80).setHeight(40);}catch(e){};
     const fpTexto=footer.appendParagraph("Generado por SEM el "+Utilities.formatDate(new Date(),Session.getScriptTimeZone(),"dd/MM/yyyy 'a las' HH:mm")+". Enviado por "+(datos.campos?.nombre?.valor||"")+" — "+(datos.campos?.correo?.valor||"")+" — "+(datos.campos?.cargo?.valor||"")+" de la "+(datos.institucion||""));
     fpTexto.setAlignment(DocumentApp.HorizontalAlignment.CENTER); fpTexto.editAsText().setForegroundColor(GRIS_TEXTO).setFontSize(9);
 
     /*
-     * Logo de la IE, grande (100x100 — el doble de lo que tenía antes
-     * en el encabezado) y centrado, como primer elemento de la
-     * portada del informe. Si la IE todavía no tiene logo vinculado,
-     * este bloque simplemente no aparece.
+     * Título subido directamente a continuación del encabezado — ya
+     * NO se repite el logo de la IE aquí como primer elemento de la
+     * portada (quedaba duplicado con el que ya está en el
+     * encabezado); esto libera el espacio vertical que hacía falta
+     * para que el párrafo introductorio y la Caracterización cupieran
+     * en una sola hoja.
      */
-    if(logoIdIE){
-      try{
-        const pLogoIE=body.appendParagraph("");
-        pLogoIE.setSpacingBefore(0).setSpacingAfter(4);
-        pLogoIE.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
-        pLogoIE.appendInlineImage(DriveApp.getFileById(logoIdIE).getBlob()).setWidth(100).setHeight(100);
-      }catch(e){}
-    }
 
     // Título subido (spacingBefore en 0) y 2pt más pequeño que el
     // tamaño por defecto del estilo "Título" de Documentos (26pt),
@@ -6649,7 +6672,7 @@ function generarInformeFEM(idForo,datosCliente){
       tituloSinAnalisis.editAsText().setForegroundColor(VERDE).setBold(true);
       const numeroAsistentesPdf=String(datos.campos?.numeroAsistentesPDF?.valor||"0");
       const notaSinAnalisis=body.appendParagraph(
-        "La institución educativa registró la asistencia mediante un PDF escaneado ("+numeroAsistentesPdf+" asistente(s) reportado(s)), en vez de firmas por código QR. Por esa razón, este informe no incluye el análisis demográfico ni el de fortalezas y oportunidades de mejora percibidas por la comunidad educativa, que solo puede construirse a partir de los datos estructurados que registra cada persona al firmar por QR."
+        "La institución educativa "+nombreIESinPrefijoInstitucional_(datos.institucion||"")+" registró la asistencia mediante un PDF escaneado con "+numeroAsistentesPdf+" de participantes según el listado adjunto que se encuentra al final de este consolidado Institucional."
       );
       notaSinAnalisis.editAsText().setForegroundColor(GRIS_TEXTO);
     }else{
@@ -6705,14 +6728,14 @@ function generarInformeFEM(idForo,datosCliente){
      */
     encabezadoSeccion_("Evidencias de la jornada");
     const textoEvidenciasAsistencia=metodoAsistenciaInforme==="PDF"
-      ? "La asistencia se registró mediante un PDF escaneado, que puede verse aquí:"
+      ? "La asistencia se registró mediante un PDF escaneado, que puede verse aquí: 🔗"
       : "La asistencia se firmó de manera digital (código QR/link) durante la jornada; el listado completo se incluye a continuación.";
     const pEv=body.appendParagraph(textoEvidenciasAsistencia);
     pEv.editAsText().setForegroundColor(GRIS_TEXTO);
 
     // El enlace de descarga del PDF de asistencia va justo debajo del
-    // aviso ("que puede verse aquí:"), no varias secciones después de
-    // la fotografía como antes.
+    // aviso ("que puede verse aquí: 🔗"), no varias secciones después
+    // de la fotografía como antes.
     if(metodoAsistenciaInforme==="PDF" && datos.campos?.asistenciaPdfUrl?.valor){
       const pEnlacePdfAsistencia=body.appendParagraph("");
       const rangoEnlacePdfAsistencia=pEnlacePdfAsistencia.appendText(String(datos.campos.asistenciaPdfUrl.valor));
@@ -6738,7 +6761,7 @@ function generarInformeFEM(idForo,datosCliente){
           const factor=anchoMax/anchoOriginal;
           imagenInsertada.setWidth(anchoMax).setHeight(Math.round(altoOriginal*factor));
         }
-        const pieFoto=body.appendParagraph(construirPieFotoEvidencia_(nombreIESinPrefijoInstitucional_(datos.institucion||""), fotoFile.getDateCreated()));
+        const pieFoto=body.appendParagraph(construirPieFotoEvidencia_(nombreIESinPrefijoInstitucional_(datos.institucion||""), fotoFile.getDateCreated(), totalParticipantesServer_(datos)));
         pieFoto.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
         pieFoto.editAsText().setForegroundColor(GRIS_TEXTO).setItalic(true).setFontSize(10);
       }catch(errorFoto){
@@ -6747,7 +6770,7 @@ function generarInformeFEM(idForo,datosCliente){
     }
 
     if(c.evidenciaFotoUrl?.valor){
-      const pDescarga=body.appendParagraph("Descarga de fotografía: ");
+      const pDescarga=body.appendParagraph("📷 Descarga de fotografía: ");
       pDescarga.editAsText().setForegroundColor(GRIS_TEXTO);
       const rangoEnlace=pDescarga.appendText(String(c.evidenciaFotoUrl.valor));
       rangoEnlace.setLinkUrl(String(c.evidenciaFotoUrl.valor));
@@ -6757,6 +6780,50 @@ function generarInformeFEM(idForo,datosCliente){
     if(metodoAsistenciaInforme!=="PDF"){
       agregarListadoAsistenciaAlInforme_(body, idForo, datos);
     }
+
+    /*
+     * Firmas originales al final del informe: el líder (rector/a) de
+     * la IE, seguido de cada responsable del envío (el principal y
+     * cualquier responsable adicional que se haya agregado en
+     * Caracterización) — mismo formato para todos: nombre en negrita
+     * y subrayado, cargo en cursiva, y para los responsables del
+     * envío también su rol dentro del Foro en cursiva.
+     */
+    body.appendPageBreak();
+    const tituloFirmas=body.appendParagraph("Firmas");
+    tituloFirmas.setHeading(DocumentApp.ParagraphHeading.HEADING1);
+    tituloFirmas.editAsText().setForegroundColor(VERDE).setBold(true);
+
+    function agregarBloqueFirma_(nombre, cargo, rolTexto){
+      if(!String(nombre||"").trim()) return;
+      const pNombre=body.appendParagraph(String(nombre).trim());
+      pNombre.setSpacingBefore(18).setSpacingAfter(2);
+      pNombre.editAsText().setBold(true).setUnderline(true).setForegroundColor(NEGRO);
+      if(String(cargo||"").trim()){
+        const pCargo=body.appendParagraph(String(cargo).trim());
+        pCargo.setSpacingBefore(0).setSpacingAfter(rolTexto?2:10);
+        pCargo.editAsText().setItalic(true).setForegroundColor(GRIS_TEXTO);
+      }
+      if(rolTexto){
+        const pRol=body.appendParagraph(rolTexto);
+        pRol.setSpacingBefore(0).setSpacingAfter(10);
+        pRol.editAsText().setItalic(true).setForegroundColor(GRIS_TEXTO);
+      }
+    }
+
+    agregarBloqueFirma_(c.rector?.valor, "Rector(a)", null);
+
+    const ieParaFirma=nombreIESinPrefijoInstitucional_(datos.institucion||"");
+    const responsablesFirma=[{nombre:c.nombre?.valor, cargo:c.cargo?.valor, rol:c.rolForoResponsable?.valor}];
+    for(let i=2;i<=4;i++){
+      const nombreResponsableAdicional=c["responsable"+i+"Nombre"]?.valor;
+      if(!String(nombreResponsableAdicional||"").trim()) continue;
+      responsablesFirma.push({nombre:nombreResponsableAdicional, cargo:c["responsable"+i+"Cargo"]?.valor, rol:c["responsable"+i+"RolForo"]?.valor});
+    }
+    responsablesFirma.forEach(function(r){
+      const rolTexto=String(r.rol||"").trim() + " del Foro Educativo Institucional "+ieParaFirma+" 2026";
+      agregarBloqueFirma_(r.nombre, r.cargo, rolTexto);
+    });
 
     doc.saveAndClose();
     const pdfBlob=DriveApp.getFileById(doc.getId()).getAs(MimeType.PDF).setName(nombreArchivo+".pdf");
