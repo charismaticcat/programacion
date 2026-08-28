@@ -3469,6 +3469,15 @@ function inicializarColapsoSesion1(){
 
 }
 
+/*
+ * "N singular"/"N plural" según corresponda (1 participante, 45
+ * participantes) — sin usar la notación "(s)" en pantalla.
+ */
+function textoPlural_(n, singular, plural){
+    const numero = Number(n)||0;
+    return numero + " " + (numero===1 ? singular : plural);
+}
+
 /*****************************************************
  * ACTUALIZAR TOTAL DE PARTICIPANTES
  *****************************************************/
@@ -3539,7 +3548,7 @@ function actualizarTotalParticipantes(){
     const cajaParticipantesEvidencias =
         document.getElementById("valorParticipantesEvidencias");
     if(cajaParticipantesEvidencias){
-        cajaParticipantesEvidencias.textContent = total;
+        cajaParticipantesEvidencias.textContent = textoPlural_(total,"participante","participantes");
     }
     if(typeof actualizarEstadoEvidencias === "function"){
         try{ actualizarEstadoEvidencias(); }catch(e){}
@@ -8577,6 +8586,10 @@ function actualizarEstadoEvidencias(){
                 estadoPdfEl.textContent="";
                 estadoPdfEl.className="estadoArchivo";
             }
+        }
+        const textoAsistentesPdfEl=document.getElementById("textoAsistentesPDFPlural");
+        if(textoAsistentesPdfEl){
+            textoAsistentesPdfEl.textContent = numero>0 ? textoPlural_(numero,"asistente reportado","asistentes reportados") : "";
         }
     }
 
