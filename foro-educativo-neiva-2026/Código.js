@@ -5406,15 +5406,28 @@ function formatearFechaFotoEvidencia_(fecha){
  * de formatearFechaFotoEvidencia_, que se conserva por si algo más lo
  * sigue usando).
  */
-function formatearFechaSubidaFoto_(fecha){
+// BUG CORREGIDO: Utilities.formatDate con el patrón "MMMM" (nombre del
+// mes) usa el locale del entorno de ejecución, no el idioma del
+// documento — en la práctica eso produce nombres de mes en INGLÉS
+// ("August" en vez de "agosto"), sin importar la zona horaria pasada.
+// Se arma el nombre del mes a mano, en español, en vez de confiar en
+// ese patrón. Usada por cualquier fecha larga que aparezca en el
+// informe o en los correos.
+const MESES_ES_=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+
+function formatearFechaLargaEs_(fecha, capitalizarMes){
   const zona=Session.getScriptTimeZone();
-  const meses=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
   const dia=Utilities.formatDate(fecha,zona,"d");
   const mesIndex=Number(Utilities.formatDate(fecha,zona,"M"))-1;
-  const mesCapitalizado=(meses[mesIndex]||"").charAt(0).toUpperCase()+(meses[mesIndex]||"").slice(1);
+  let mes=MESES_ES_[mesIndex]||"";
+  if(capitalizarMes) mes=mes.charAt(0).toUpperCase()+mes.slice(1);
   const anio=Utilities.formatDate(fecha,zona,"yyyy");
   const hora=Utilities.formatDate(fecha,zona,"HH:mm");
-  return dia+" de "+mesCapitalizado+" de "+anio+", a las "+hora;
+  return dia+" de "+mes+" de "+anio+", a las "+hora;
+}
+
+function formatearFechaSubidaFoto_(fecha){
+  return formatearFechaLargaEs_(fecha, true);
 }
 
 function construirPieFotoEvidencia_(ieSinPrefijo,fecha,cantidadParticipantes){
@@ -5745,10 +5758,30 @@ function tallyOpciones_(personas,campo){
   return Object.keys(conteo).map(function(k){return {opcion:k,votos:conteo[k]};}).sort(function(a,b){return b.votos-a.votos;});
 }
 
+/*
+ * BUG CORREGIDO: con etiquetas largas (p. ej. "Adolescentes hombres")
+ * y solo 480x300, Google Charts recortaba el texto del eje horizontal
+ * en vez de mostrarlo completo. Se agranda el lienzo y se inclinan
+ * las etiquetas (en vez de dejarlas horizontales, que necesitan más
+ * alto) para que quepan enteras sin aumentar tanto la altura — así el
+ * gráfico tiene más chance de seguir cabiendo en la misma página que
+ * el párrafo que lo antecede (DocumentApp no tiene forma de forzar
+ * "mantener junto con el párrafo anterior").
+ */
 function construirGraficoColumnas_(titulo,etiquetas,valores){
   const dt=Charts.newDataTable().addColumn(Charts.ColumnType.STRING,"Categoría").addColumn(Charts.ColumnType.NUMBER,"Cantidad");
   etiquetas.forEach(function(e,i){ dt.addRow([e,valores[i]]); });
-  return Charts.newColumnChart().setDataTable(dt.build()).setTitle(titulo).setDimensions(480,300).setColors(["#0B6A44"]).build().getAs("image/png");
+  return Charts.newColumnChart()
+    .setDataTable(dt.build())
+    .setTitle(titulo)
+    .setDimensions(620,300)
+    .setColors(["#0B6A44"])
+    .setOption("hAxis.slantedText",true)
+    .setOption("hAxis.slantedTextAngle",30)
+    .setOption("hAxis.textStyle",{fontSize:11})
+    .setOption("chartArea",{left:60,top:40,width:"85%",height:"60%"})
+    .build()
+    .getAs("image/png");
 }
 
 function construirGraficoBarrasHorizontal_(titulo,etiquetas,valores){
@@ -5845,7 +5878,7 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
    * cuántos participantes y con cuántas firmas de asistencia.
    */
   const nombreResponsable=String(c.nombre?.valor||"quien diligenció el formulario").trim();
-  const fechaHoy=Utilities.formatDate(new Date(),Session.getScriptTimeZone(),"dd 'de' MMMM 'de' yyyy 'a las' HH:mm");
+  const fechaHoy=formatearFechaLargaEs_(new Date(), false);
   const totalCaracterizacion=totalParticipantesServer_(datos);
   const pConsolidado=body.appendParagraph(
     "El presente informe fue consolidado por "+nombreResponsable+" el día "+fechaHoy+", siguiendo las indicaciones dadas por la Secretaría de Educación de Neiva (SEM Neiva) y en cooperación con "+totalCaracterizacion+" integrantes de la comunidad académica de la IE "+ieTitulo+", con una asistencia registrada de "+asistentes.length+" personas que firmaron por código QR."
@@ -5895,10 +5928,10 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
   );
   pDemografia.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
   try{
-    const etiquetasSexo=["Niños","Niñas","Adolescentes hombres","Adolescentes mujeres","Hombres adultos","Mujeres adultas"];
+    const etiquetasSexo=["Niños","Niñas","Adolesc. hombres","Adolesc. mujeres","Hombres adultos","Mujeres adultas"];
     const valoresSexo=[dem.ninos,dem.ninas,dem.adolescentesHombres,dem.adolescentesMujeres,dem.hombresAdultos,dem.mujeresAdultas];
     const blobSexo=construirGraficoColumnas_("Participantes por sexo y edad ("+(totalHombres+totalMujeres)+" total)",etiquetasSexo,valoresSexo);
-    body.appendImage(blobSexo).setWidth(430);
+    body.appendImage(blobSexo).setWidth(460);
   }catch(errorSexo){ Logger.log("Gráfico de sexo/edad: "+errorSexo.message); }
 
   /*
@@ -5918,8 +5951,9 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
 
   if(ninosYNinas.length){
     const tF=tallyOpciones_(ninosYNinas,"fortalezas"), tD=tallyOpciones_(ninosYNinas,"dificultades");
+    const tituloNinos=body.appendParagraph(("Percepción de los niños y las niñas de la IE "+ieTitulo+" sobre el Foro Educativo Institucional").toUpperCase());
+    tituloNinos.editAsText().setBold(true).setForegroundColor(estilos.GRIS_TEXTO);
     const pNinos=body.appendParagraph(
-      "Percepción de los niños y las niñas de la IE "+ieTitulo+" sobre el Foro Educativo Institucional\n\n"+
       "Desde la perspectiva de los niños y niñas, en la IE "+ieTitulo+" se valora especialmente "+top3Texto_(tF)+
       ". No obstante, también manifiestan dificultades relacionadas con "+top3Texto_(tD)+
       ", las cuales constituyen oportunidades para fortalecer la experiencia educativa y la vida escolar."
@@ -5929,8 +5963,9 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
 
   if(adolescentes.length){
     const tF=tallyOpciones_(adolescentes,"fortalezas"), tD=tallyOpciones_(adolescentes,"dificultades");
+    const tituloAdolescentes=body.appendParagraph(("Percepción de los y las adolescentes de la IE "+ieTitulo+" sobre el Foro Educativo Institucional").toUpperCase());
+    tituloAdolescentes.editAsText().setBold(true).setForegroundColor(estilos.GRIS_TEXTO);
     const pAdolescentes=body.appendParagraph(
-      "Percepción de los y las adolescentes de la IE "+ieTitulo+" sobre el Foro Educativo Institucional\n\n"+
       "Los y las adolescentes de la IE "+ieTitulo+" reconocen que la institución promueve "+top3Texto_(tF)+
       ". De igual manera, identifican "+top3Texto_(tD)+
       " como aspectos que representan oportunidades para el mejoramiento institucional."
@@ -5940,8 +5975,9 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
 
   if(adultos.length){
     const tF=tallyOpciones_(adultos,"fortalezas"), tD=tallyOpciones_(adultos,"dificultades");
+    const tituloAdultos=body.appendParagraph(("Percepción de los adultos de la IE "+ieTitulo+" sobre el Foro Educativo Institucional").toUpperCase());
+    tituloAdultos.editAsText().setBold(true).setForegroundColor(estilos.GRIS_TEXTO);
     const pAdultos=body.appendParagraph(
-      "Percepción de los adultos de la IE "+ieTitulo+" sobre el Foro Educativo Institucional\n\n"+
       "De acuerdo con las respuestas de los adultos participantes, la IE "+ieTitulo+" se destaca por "+top3Texto_(tF)+
       ". A su vez, señalan "+top3Texto_(tD)+
       " como aspectos que requieren atención y pueden orientar acciones de mejoramiento institucional."
@@ -5955,7 +5991,7 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
    * la valoración de la actividad (P5: sugerencias/comentarios).
    */
   const sugerenciasValoracion=obtenerSugerenciasValoracion_(idForo);
-  const pGeneralTitulo=body.appendParagraph("Percepción general de la comunidad de la IE "+ieTitulo+" sobre el Foro Educativo Institucional");
+  const pGeneralTitulo=body.appendParagraph(("Percepción general de la comunidad de la IE "+ieTitulo+" sobre el Foro Educativo Institucional").toUpperCase());
   pGeneralTitulo.editAsText().setBold(true).setForegroundColor(estilos.GRIS_TEXTO);
   const pGeneral=body.appendParagraph(sugerenciasValoracion||"La comunidad educativa no registró comentarios adicionales en la valoración de la actividad.");
   pGeneral.editAsText().setForegroundColor(estilos.GRIS_TEXTO).setItalic(!!sugerenciasValoracion);
@@ -6611,7 +6647,7 @@ function generarInformeFEM(idForo,datosCliente){
       try{ pLogoIEEncabezado.appendInlineImage(DriveApp.getFileById(logoIdIE).getBlob()).setWidth(100).setHeight(100); }catch(e){}
     }
     const footer=doc.getFooter()||doc.addFooter(); footer.clear(); const fp=footer.appendParagraph(""); fp.setAlignment(DocumentApp.HorizontalAlignment.CENTER); try{fp.appendInlineImage(DriveApp.getFileById(LOGO_PIE_ID).getBlob()).setWidth(80).setHeight(40);}catch(e){};
-    const fpTexto=footer.appendParagraph("Generado por SEM el "+Utilities.formatDate(new Date(),Session.getScriptTimeZone(),"dd/MM/yyyy 'a las' HH:mm")+". Enviado por "+(datos.campos?.nombre?.valor||"")+" — "+(datos.campos?.correo?.valor||"")+" — "+(datos.campos?.cargo?.valor||"")+" de la "+(datos.institucion||""));
+    const fpTexto=footer.appendParagraph("Generado por SEM el "+Utilities.formatDate(new Date(),Session.getScriptTimeZone(),"dd/MM/yyyy 'a las' HH:mm")+". Enviado por "+(datos.campos?.nombre?.valor||"")+" — "+(datos.campos?.correo?.valor||"")+" — "+(datos.campos?.cargo?.valor||"")+" de la IE "+nombreIESinPrefijoInstitucional_(datos.institucion||""));
     fpTexto.setAlignment(DocumentApp.HorizontalAlignment.CENTER); fpTexto.editAsText().setForegroundColor(GRIS_TEXTO).setFontSize(9);
 
     /*
