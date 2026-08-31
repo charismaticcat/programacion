@@ -5226,6 +5226,28 @@ function crearCarpetaIE_(ie){
 function hacerPublicoSiEsPosible_(file){try{file.setSharing(DriveApp.Access.ANYONE_WITH_LINK,DriveApp.Permission.VIEW);}catch(e){Logger.log("No se pudo cambiar compartir: "+e.message);}}
 
 /*
+ * Confirma que un ID de Drive corresponde a una CARPETA real antes de
+ * usarlo como destino de addFile()/createFile(). DriveApp.getFolderById(id)
+ * no valida esto por sí solo: si el ID es en realidad el de un
+ * archivo (por ejemplo, se copió el enlace "compartir" de un archivo
+ * dentro de la carpeta, o el de un acceso directo, en vez de la
+ * carpeta en sí) el error solo aparece más tarde, al intentar mover
+ * un archivo ahí ("Invalid argument: parent.mimeType") — casi
+ * siempre después de haber creado ya el archivo que se quería mover,
+ * dejándolo huérfano. Validar antes evita el huérfano y da un
+ * mensaje en español de qué corregir.
+ */
+function validarCarpetaDrive_(idCarpeta, descripcion){
+  let item;
+  try{ item=DriveApp.getFileById(idCarpeta); }
+  catch(error){ throw new Error("No fue posible acceder a "+descripcion+" (ID "+idCarpeta+"): "+error.message); }
+  if(item.getMimeType()!=="application/vnd.google-apps.folder"){
+    throw new Error("El ID configurado para "+descripcion+" (\""+idCarpeta+"\") no es una carpeta de Drive (es de tipo \""+item.getMimeType()+"\"). Verifique que el enlace copiado sea el de la carpeta en sí (drive.google.com/drive/folders/...) y no el de un archivo o acceso directo dentro de ella.");
+  }
+  return DriveApp.getFolderById(idCarpeta);
+}
+
+/*
  * URL de imagen directamente visible (sin necesidad de sesión de
  * Google) para un archivo de Drive ya compartido como "cualquiera
  * con el enlace". Se usa para los logos por IE en el encabezado de
@@ -6704,9 +6726,6 @@ function generarInformeFEM(idForo,datosCliente){
      * documento directamente con DocumentApp siempre produce un
      * Google Doc nativo, sin depender de ningún archivo externo.
      */
-    const nombreArchivo="Informe Ejecutivo - "+datos.institucion+" FEM 2026";
-    const doc=DocumentApp.create(nombreArchivo);
-    const docFile=DriveApp.getFileById(doc.getId());
     /*
      * BUG CORREGIDO: el Google Doc EDITABLE se guardaba en la misma
      * carpeta pública de la IE (junto al PDF), compartida como
@@ -6715,9 +6734,35 @@ function generarInformeFEM(idForo,datosCliente){
      * Doc editable va únicamente a la carpeta privada de editables
      * (DRIVE_CARPETA_EDITABLES_FEM_ID); la IE solo recibe el PDF
      * (ver más abajo, folder.createFile(pdfBlob)).
+     *
+     * BUG CORREGIDO: se valida que ese ID sea realmente una carpeta
+     * ANTES de crear el Doc — antes, si el ID configurado apuntaba a
+     * un archivo o a un acceso directo (no a la carpeta en sí),
+     * DriveApp.getFolderById().addFile() fallaba con el críptico
+     * "Invalid argument: parent.mimeType" DESPUÉS de haber creado ya
+     * el Doc, dejándolo huérfano en la raíz de Drive. Validando antes
+     * se evita el huérfano y da un mensaje claro de qué corregir —
+     * PERO esa validación NO puede tumbar la generación del informe
+     * para la IE si el ID quedó mal configurado: lo único que se
+     * pierde en ese caso es que el Doc editable queda en la raíz de
+     * Drive en vez de la carpeta privada (el PDF, que es lo único que
+     * la IE recibe, no se ve afectado). Por eso se captura el error
+     * en vez de dejarlo propagarse.
      */
-    DriveApp.getFolderById(DRIVE_CARPETA_EDITABLES_FEM_ID).addFile(docFile);
-    try{ DriveApp.getRootFolder().removeFile(docFile); }catch(errorMover){ Logger.log("No fue posible quitar el informe de la raíz de Drive: "+errorMover.message); }
+    let folderEditables=null;
+    try{
+      folderEditables=validarCarpetaDrive_(DRIVE_CARPETA_EDITABLES_FEM_ID, "la carpeta de editables (DRIVE_CARPETA_EDITABLES_FEM_ID)");
+    }catch(errorCarpetaEditables){
+      Logger.log("Carpeta de editables no disponible, el Doc quedará en la raíz de Drive: "+errorCarpetaEditables.message);
+    }
+
+    const nombreArchivo="Informe Ejecutivo - "+datos.institucion+" FEM 2026";
+    const doc=DocumentApp.create(nombreArchivo);
+    const docFile=DriveApp.getFileById(doc.getId());
+    if(folderEditables){
+      folderEditables.addFile(docFile);
+      try{ DriveApp.getRootFolder().removeFile(docFile); }catch(errorMover){ Logger.log("No fue posible quitar el informe de la raíz de Drive: "+errorMover.message); }
+    }
 
     /*
      * Paleta institucional del FEM 2026 (la misma del formulario).
