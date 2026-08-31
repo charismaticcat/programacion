@@ -4399,3 +4399,34 @@ function regenerarInformeFEMPorIE(nombreIE){
   Logger.log("Informe regenerado para "+nombreIE+": "+JSON.stringify(informe));
   return informe;
 }
+
+/*
+ * PASO ÚNICO Y MANUAL: ejecutar esta función UNA SOLA VEZ desde el
+ * editor de Apps Script (seleccionarla en el desplegable de
+ * funciones y presionar "Ejecutar"), no desde la app web.
+ *
+ * Se agregó el servicio avanzado "Docs" (API de Documentos de
+ * Google) al proyecto para poder corregir los títulos huérfanos del
+ * informe (ver aplicarKeepWithNextATitulosInforme_ en Código.js).
+ * La PRIMERA vez que un proyecto de Apps Script usa un servicio
+ * avanzado nuevo, hace falta autorizar ese permiso nuevo una vez
+ * — y esa autorización solo se puede conceder desde el editor
+ * (aparece un cuadro de diálogo "Se requiere autorización"), nunca
+ * desde una llamada de la app web ya desplegada.
+ *
+ * Esta función crea un Google Doc de prueba, lo lee con la API de
+ * Docs (lo que dispara el cuadro de autorización si hace falta) y
+ * lo borra (papelera) al terminar. Si "Ver registros de ejecución"
+ * muestra "Autorización de Docs API: OK", quedó todo listo — los
+ * próximos informes generados ya podrán corregir sus títulos
+ * huérfanos automáticamente.
+ */
+function autorizarServicioAvanzadoDocs_(){
+  const doc=DocumentApp.create("PRUEBA — autorizar Docs API (se puede borrar)");
+  try{
+    const info=Docs.Documents.get(doc.getId());
+    Logger.log("Autorización de Docs API: OK. Título leído vía Docs API: \""+info.title+"\".");
+  }finally{
+    try{ DriveApp.getFileById(doc.getId()).setTrashed(true); }catch(e){}
+  }
+}

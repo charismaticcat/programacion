@@ -5796,6 +5796,24 @@ function tallyOpciones_(personas,campo){
 }
 
 /*
+ * DocumentApp (el servicio "simple" que se usa en todo este archivo)
+ * NO tiene ninguna función para "mantener un párrafo junto con el
+ * siguiente" — ni con el anterior. Ese control (keepWithNext) sí
+ * existe, pero únicamente en la API AVANZADA de Documentos de Google
+ * (Docs.Documents.batchUpdate — servicio avanzado "Docs", habilitado
+ * en appsscript.json). Cada título/subtítulo del informe se va
+ * anotando acá (su texto final, ya en mayúscula) mientras se
+ * construye el documento con DocumentApp; al terminar,
+ * generarInformeFEM relee el documento con la API avanzada y les
+ * aplica keepWithNext en un solo batchUpdate (ver
+ * aplicarKeepWithNextATitulosInforme_). Se reinicia al principio de
+ * cada generarInformeFEM(): cada ejecución del script corre en su
+ * propio contexto aislado, no se mezcla entre solicitudes de
+ * distintas IE.
+ */
+let TITULOS_KEEP_WITH_NEXT_INFORME_ = [];
+
+/*
  * Estilo uniforme para TODOS los títulos de sección/subsección del
  * informe ejecutivo: mismo verde institucional, mayúscula, negrilla
  * y misma fuente — antes cada sección definía su propio estilo por
@@ -5811,6 +5829,7 @@ function estilizarTituloInforme_(parrafo, colorVerde, heading){
   if(heading) parrafo.setHeading(heading);
   parrafo.setSpacingBefore(14).setSpacingAfter(2);
   parrafo.editAsText().setForegroundColor(colorVerde).setBold(true).setFontFamily(DocumentApp.FontFamily.ARIAL);
+  TITULOS_KEEP_WITH_NEXT_INFORME_.push(parrafo.getText());
   return parrafo;
 }
 
@@ -5840,7 +5859,59 @@ function estilizarSubtituloInforme_(parrafo, colorVerde){
   parrafo.setText(parrafo.getText().toUpperCase());
   parrafo.setSpacingBefore(10).setSpacingAfter(2);
   parrafo.editAsText().setForegroundColor(colorVerde).setBold(true).setFontSize(10).setFontFamily(DocumentApp.FontFamily.ARIAL);
+  TITULOS_KEEP_WITH_NEXT_INFORME_.push(parrafo.getText());
   return parrafo;
+}
+
+/*
+ * Relee el documento recién construido con la API AVANZADA de Docs
+ * (Docs.Documents.get) y le aplica keepWithNext=true, en un solo
+ * batchUpdate, a cada párrafo de nivel superior (nunca dentro de una
+ * celda de tabla — ningún título va ahí) cuyo texto coincida
+ * exactamente con uno de los títulos/subtítulos registrados por
+ * estilizarTituloInforme_/estilizarSubtituloInforme_. Con eso,
+ * Documentos ya no pone un salto de página entre un título y el
+ * párrafo/imagen que le sigue de inmediato: si ese contenido no cabe
+ * en lo que resta de la página, título y contenido se van juntos a
+ * la siguiente.
+ *
+ * NUNCA debe tumbar la generación del informe: si el servicio
+ * avanzado "Docs" todavía no está autorizado (la primera vez que se
+ * habilita un servicio avanzado nuevo en un proyecto, hace falta
+ * autorizarlo una vez desde el editor — ver autorizarServicioAvanzadoDocs_
+ * en Pruebas.js) o cualquier otro error ocurre acá, se registra en el
+ * log y se sigue de largo: el Doc/PDF ya generados con DocumentApp
+ * son válidos igual sin este ajuste, solo sin la mejora de
+ * paginación.
+ */
+function aplicarKeepWithNextATitulosInforme_(docId, textosTitulos){
+  if(!textosTitulos || !textosTitulos.length) return;
+  try{
+    const documento=Docs.Documents.get(docId);
+    const contenido=(documento.body&&documento.body.content)||[];
+    const pendientes=new Set(textosTitulos);
+    const requests=[];
+    contenido.forEach(function(elemento){
+      if(!elemento.paragraph || !pendientes.size) return;
+      const texto=(elemento.paragraph.elements||[])
+        .map(function(e){ return (e.textRun&&e.textRun.content)||""; })
+        .join("")
+        .replace(/\n$/,"");
+      if(pendientes.has(texto)){
+        requests.push({
+          updateParagraphStyle:{
+            range:{startIndex:elemento.startIndex, endIndex:elemento.endIndex},
+            paragraphStyle:{keepWithNext:true},
+            fields:"keepWithNext"
+          }
+        });
+        pendientes.delete(texto);
+      }
+    });
+    if(requests.length) Docs.Documents.batchUpdate({requests:requests}, docId);
+  }catch(error){
+    Logger.log("No fue posible aplicar 'mantener con el siguiente' a los títulos del informe (el informe queda generado con normalidad de todas formas): "+error.message);
+  }
 }
 
 /*
@@ -6781,6 +6852,7 @@ function agregarValoracionAlInforme_(body, idForo, estilos){
 
 function generarInformeFEM(idForo,datosCliente){
   const lock=LockService.getScriptLock(); lock.waitLock(30000);
+  TITULOS_KEEP_WITH_NEXT_INFORME_ = [];
   try{
     const estadoFinal=obtenerEstadoSesiones_(idForo); if(!estadoFinal.s1||!estadoFinal.s2||!estadoFinal.s3)throw new Error("Las tres sesiones deben estar enviadas definitivamente antes de generar el informe.");
     const datos=obtenerDatosGuardadosPorIdForo_(idForo)||datosCliente; if(!datos)throw new Error("No hay datos guardados para generar el informe."); const folder=crearCarpetaIE_(datos.institucion||"Institución Educativa");
@@ -7316,6 +7388,12 @@ function generarInformeFEM(idForo,datosCliente){
     });
 
     doc.saveAndClose();
+    // "Título huérfano" (título solo al final de una página, contenido
+    // empujado a la siguiente): se aplica ACÁ, después de cerrar el
+    // documento, para que el PDF que se exporta a continuación ya
+    // incluya el ajuste. Nunca puede tumbar la generación del informe
+    // (ver el propio try/catch de la función).
+    aplicarKeepWithNextATitulosInforme_(doc.getId(), TITULOS_KEEP_WITH_NEXT_INFORME_);
     const pdfBlob=DriveApp.getFileById(doc.getId()).getAs(MimeType.PDF).setName(nombreArchivo+".pdf");
     const pdf=folder.createFile(pdfBlob);
     // Solo el PDF se comparte como "cualquiera con el enlace puede
