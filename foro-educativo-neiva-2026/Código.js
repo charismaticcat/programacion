@@ -59,6 +59,16 @@ const HOJA_ACCESOS = "AccesosIE";
 const HOJA_PARTICIPACION = "Participacion";
 const HOJA_ASISTENCIA_QR = "AsistenciaQR";
 const DRIVE_CARPETA_FEM_ID = "1IqcFgQUSKocvGX3JwvNOu-xJzt0gfKc8";
+// Carpeta PRIVADA (creada y controlada por quien administra el FEM,
+// nadie más tiene acceso) donde se guarda el documento EDITABLE
+// (Google Doc nativo) del informe de cada IE. Antes ese Doc se
+// guardaba en la misma carpeta pública de la IE (crearCarpetaIE_,
+// compartida con "cualquiera con el enlace"), lo que dejaba una
+// versión editable del informe al alcance de quien tuviera ese
+// enlace. El PDF (lo único que la IE necesita ver/descargar) sigue
+// yendo a la carpeta pública de la IE; el Doc editable, de aquí en
+// adelante, va únicamente a esta carpeta.
+const DRIVE_CARPETA_EDITABLES_FEM_ID = "1pKyyNRH7JsG2XkQth70UhyKgjoGK-Bjc";
 
 // Paleta usada al construir documentos con DocumentApp (informe
 // ejecutivo, listado de asistencia). Misma paleta del formulario.
@@ -5759,6 +5769,36 @@ function tallyOpciones_(personas,campo){
 }
 
 /*
+ * Estilo uniforme para TODOS los títulos de sección/subsección del
+ * informe ejecutivo: mismo verde institucional, mayúscula, negrilla
+ * y misma fuente — antes cada sección definía su propio estilo por
+ * separado y algunas quedaban en gris, sin mayúscula o con un tamaño
+ * distinto al resto. spacingBefore/After quedan fijos también acá
+ * para que el espacio antes de un título nuevo sea siempre el mismo
+ * ("doble espacio" entre el cuerpo de una sección y el título de la
+ * siguiente) y el espacio entre el título y su propio cuerpo sea
+ * siempre "sencillo" (ver estilizarCuerpoInforme_).
+ */
+function estilizarTituloInforme_(parrafo, colorVerde, heading){
+  parrafo.setText(parrafo.getText().toUpperCase());
+  if(heading) parrafo.setHeading(heading);
+  parrafo.setSpacingBefore(14).setSpacingAfter(2);
+  parrafo.editAsText().setForegroundColor(colorVerde).setBold(true).setFontFamily(DocumentApp.FontFamily.ARIAL);
+  return parrafo;
+}
+
+// Espacio "sencillo" entre un título y el párrafo de cuerpo que le
+// sigue de inmediato: sin espacio extra antes, y sin negrilla (un
+// párrafo nuevo dentro de una celda de tabla puede heredar la
+// negrilla del título que quedó justo antes si no se fija lo
+// contrario explícitamente).
+function estilizarCuerpoInforme_(parrafo){
+  parrafo.setSpacingBefore(0);
+  parrafo.editAsText().setBold(false);
+  return parrafo;
+}
+
+/*
  * BUG CORREGIDO: con etiquetas largas (p. ej. "Adolescentes hombres")
  * y solo 480x300, Google Charts recortaba el texto del eje horizontal
  * en vez de mostrarlo completo. Se agranda el lienzo y se inclinan
@@ -5784,10 +5824,29 @@ function construirGraficoColumnas_(titulo,etiquetas,valores){
     .getAs("image/png");
 }
 
+/*
+ * BUG CORREGIDO: las etiquetas largas ("Necesidades de formación y
+ * acompañamiento docente", "Baja participación de estudiantes y
+ * familias"...) quedaban recortadas con "..." en el eje de categorías
+ * (a la izquierda, en un gráfico de barras horizontal) porque el
+ * lienzo de 500x320 no dejaba suficiente margen izquierdo para el
+ * texto completo. Se agranda el lienzo y se reserva explícitamente un
+ * margen izquierdo amplio (chartArea.left) para que quepa la etiqueta
+ * más larga sin cortarse, con el resto del ancho para las barras.
+ */
 function construirGraficoBarrasHorizontal_(titulo,etiquetas,valores){
   const dt=Charts.newDataTable().addColumn(Charts.ColumnType.STRING,"Opción").addColumn(Charts.ColumnType.NUMBER,"Votos");
   etiquetas.forEach(function(e,i){ dt.addRow([e,valores[i]]); });
-  return Charts.newBarChart().setDataTable(dt.build()).setTitle(titulo).setDimensions(500,320).setColors(["#0B6A44"]).build().getAs("image/png");
+  return Charts.newBarChart()
+    .setDataTable(dt.build())
+    .setTitle(titulo)
+    .setDimensions(760,340)
+    .setColors(["#0B6A44"])
+    .setOption("vAxis.textStyle",{fontSize:10})
+    .setOption("legend",{position:"none"})
+    .setOption("chartArea",{left:340,top:30,width:"55%",height:"78%"})
+    .build()
+    .getAs("image/png");
 }
 
 function agregarGraficoConOtro_(body,estilos,titulo,tally,otrosTextos){
@@ -5864,12 +5923,12 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
   const c=datos.campos||{};
 
   const tituloSeccion=body.appendParagraph("Perfil de los participantes y percepción del Foro");
-  tituloSeccion.setHeading(DocumentApp.ParagraphHeading.HEADING1);
-  tituloSeccion.editAsText().setForegroundColor(estilos.VERDE).setBold(true);
+  estilizarTituloInforme_(tituloSeccion, estilos.VERDE, DocumentApp.ParagraphHeading.HEADING1);
 
   if(!asistentes.length){
     const vacio=body.appendParagraph("No hay firmas de asistencia por código QR registradas para calcular el perfil demográfico ni la percepción del Foro en esta jornada.");
     vacio.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
+    estilizarCuerpoInforme_(vacio);
     return;
   }
 
@@ -5884,6 +5943,7 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
     "El presente informe fue consolidado por "+nombreResponsable+" el día "+fechaHoy+", siguiendo las indicaciones dadas por la Secretaría de Educación de Neiva (SEM Neiva) y en cooperación con "+totalCaracterizacion+" integrantes de la comunidad académica de la IE "+ieTitulo+", con una asistencia registrada de "+asistentes.length+" personas que firmaron por código QR."
   );
   pConsolidado.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
+  estilizarCuerpoInforme_(pConsolidado);
 
   /*
    * Desglose por sede (a partir de la respuesta a la pregunta de
@@ -5896,6 +5956,7 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
     const listaSedes=sedesOrdenadas.map(function(s){ return conteoSedes[s]+" a la sede "+s; }).join(", ");
     const pSedes=body.appendParagraph("De los participantes, "+listaSedes+".");
     pSedes.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
+    estilizarCuerpoInforme_(pSedes);
     try{
       const blobSedes=construirGraficoColumnas_("Participantes por sede",sedesOrdenadas,sedesOrdenadas.map(function(s){return conteoSedes[s];}));
       body.appendImage(blobSedes).setWidth(430);
@@ -5927,6 +5988,7 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
     (dem.noResponde?" "+dem.noResponde+" persona"+(dem.noResponde===1?"":"s")+" eligió la opción \"Prefiero no responder\" en la pregunta de edad, por lo que no se cuenta con datos de percepción demográfica de "+(dem.noResponde===1?"esa persona":"esas personas")+".":"")
   );
   pDemografia.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
+  estilizarCuerpoInforme_(pDemografia);
   try{
     const etiquetasSexo=["Niños","Niñas","Adolesc. hombres","Adolesc. mujeres","Hombres adultos","Mujeres adultas"];
     const valoresSexo=[dem.ninos,dem.ninas,dem.adolescentesHombres,dem.adolescentesMujeres,dem.hombresAdultos,dem.mujeresAdultas];
@@ -5946,43 +6008,45 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
   const adultos=asistentes.filter(function(p){ return categoriaEdad_(p.edad)==="adulto"; });
 
   const tituloPercepcion=body.appendParagraph("Percepción de la comunidad educativa sobre el Foro Educativo Institucional");
-  tituloPercepcion.setHeading(DocumentApp.ParagraphHeading.HEADING2);
-  tituloPercepcion.editAsText().setForegroundColor(estilos.VERDE).setBold(true);
+  estilizarTituloInforme_(tituloPercepcion, estilos.VERDE, DocumentApp.ParagraphHeading.HEADING2);
 
   if(ninosYNinas.length){
     const tF=tallyOpciones_(ninosYNinas,"fortalezas"), tD=tallyOpciones_(ninosYNinas,"dificultades");
-    const tituloNinos=body.appendParagraph(("Percepción de los niños y las niñas de la IE "+ieTitulo+" sobre el Foro Educativo Institucional").toUpperCase());
-    tituloNinos.editAsText().setBold(true).setForegroundColor(estilos.GRIS_TEXTO);
+    const tituloNinos=body.appendParagraph("Percepción de los niños y las niñas de la IE "+ieTitulo+" sobre el Foro Educativo Institucional");
+    estilizarTituloInforme_(tituloNinos, estilos.VERDE, DocumentApp.ParagraphHeading.HEADING2);
     const pNinos=body.appendParagraph(
       "Desde la perspectiva de los niños y niñas, en la IE "+ieTitulo+" se valora especialmente "+top3Texto_(tF)+
       ". No obstante, también manifiestan dificultades relacionadas con "+top3Texto_(tD)+
       ", las cuales constituyen oportunidades para fortalecer la experiencia educativa y la vida escolar."
     );
     pNinos.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
+    estilizarCuerpoInforme_(pNinos);
   }
 
   if(adolescentes.length){
     const tF=tallyOpciones_(adolescentes,"fortalezas"), tD=tallyOpciones_(adolescentes,"dificultades");
-    const tituloAdolescentes=body.appendParagraph(("Percepción de los y las adolescentes de la IE "+ieTitulo+" sobre el Foro Educativo Institucional").toUpperCase());
-    tituloAdolescentes.editAsText().setBold(true).setForegroundColor(estilos.GRIS_TEXTO);
+    const tituloAdolescentes=body.appendParagraph("Percepción de los y las adolescentes de la IE "+ieTitulo+" sobre el Foro Educativo Institucional");
+    estilizarTituloInforme_(tituloAdolescentes, estilos.VERDE, DocumentApp.ParagraphHeading.HEADING2);
     const pAdolescentes=body.appendParagraph(
       "Los y las adolescentes de la IE "+ieTitulo+" reconocen que la institución promueve "+top3Texto_(tF)+
       ". De igual manera, identifican "+top3Texto_(tD)+
       " como aspectos que representan oportunidades para el mejoramiento institucional."
     );
     pAdolescentes.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
+    estilizarCuerpoInforme_(pAdolescentes);
   }
 
   if(adultos.length){
     const tF=tallyOpciones_(adultos,"fortalezas"), tD=tallyOpciones_(adultos,"dificultades");
-    const tituloAdultos=body.appendParagraph(("Percepción de los adultos de la IE "+ieTitulo+" sobre el Foro Educativo Institucional").toUpperCase());
-    tituloAdultos.editAsText().setBold(true).setForegroundColor(estilos.GRIS_TEXTO);
+    const tituloAdultos=body.appendParagraph("Percepción de los adultos de la IE "+ieTitulo+" sobre el Foro Educativo Institucional");
+    estilizarTituloInforme_(tituloAdultos, estilos.VERDE, DocumentApp.ParagraphHeading.HEADING2);
     const pAdultos=body.appendParagraph(
       "De acuerdo con las respuestas de los adultos participantes, la IE "+ieTitulo+" se destaca por "+top3Texto_(tF)+
       ". A su vez, señalan "+top3Texto_(tD)+
       " como aspectos que requieren atención y pueden orientar acciones de mejoramiento institucional."
     );
     pAdultos.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
+    estilizarCuerpoInforme_(pAdultos);
   }
 
   /*
@@ -5991,10 +6055,11 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
    * la valoración de la actividad (P5: sugerencias/comentarios).
    */
   const sugerenciasValoracion=obtenerSugerenciasValoracion_(idForo);
-  const pGeneralTitulo=body.appendParagraph(("Percepción general de la comunidad de la IE "+ieTitulo+" sobre el Foro Educativo Institucional").toUpperCase());
-  pGeneralTitulo.editAsText().setBold(true).setForegroundColor(estilos.GRIS_TEXTO);
+  const pGeneralTitulo=body.appendParagraph("Percepción general de la comunidad de la IE "+ieTitulo+" sobre el Foro Educativo Institucional");
+  estilizarTituloInforme_(pGeneralTitulo, estilos.VERDE, DocumentApp.ParagraphHeading.HEADING2);
   const pGeneral=body.appendParagraph(sugerenciasValoracion||"La comunidad educativa no registró comentarios adicionales en la valoración de la actividad.");
   pGeneral.editAsText().setForegroundColor(estilos.GRIS_TEXTO).setItalic(!!sugerenciasValoracion);
+  estilizarCuerpoInforme_(pGeneral);
 
   /*
    * Gráficos de fortalezas y dificultades institucionales (top 5,
@@ -6002,18 +6067,14 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
    * forma literal debajo de cada gráfico.
    */
   const tituloFortalezas=body.appendParagraph("Fortalezas institucionales identificadas en el Foro");
-  tituloFortalezas.setHeading(DocumentApp.ParagraphHeading.HEADING2);
-  tituloFortalezas.editAsText().setForegroundColor(estilos.VERDE).setBold(true);
+  estilizarTituloInforme_(tituloFortalezas, estilos.VERDE, DocumentApp.ParagraphHeading.HEADING2);
   agregarGraficoConOtro_(body,estilos,"Fortalezas más votadas",tallyOpciones_(asistentes,"fortalezas"),
     asistentes.map(function(p){return p.fortalezaOtro;}).filter(Boolean));
 
   const tituloDificultades=body.appendParagraph("Oportunidades de mejoramiento institucional identificadas en el Foro");
-  tituloDificultades.setHeading(DocumentApp.ParagraphHeading.HEADING2);
-  tituloDificultades.editAsText().setForegroundColor(estilos.VERDE).setBold(true);
+  estilizarTituloInforme_(tituloDificultades, estilos.VERDE, DocumentApp.ParagraphHeading.HEADING2);
   agregarGraficoConOtro_(body,estilos,"Aspectos de mejora más votados",tallyOpciones_(asistentes,"dificultades"),
     asistentes.map(function(p){return p.dificultadOtro;}).filter(Boolean));
-
-  body.appendPageBreak();
 }
 
 /*
@@ -6531,19 +6592,22 @@ function agregarSesionPropiaAlInforme_(body, datos, ieSinPrefijo, estilos){
 
   const VERDE=estilos.VERDE, GRIS_TEXTO=estilos.GRIS_TEXTO;
 
-  body.appendPageBreak();
-
   /*
    * Ya NO se repite el logo de la IE aquí encima del título: el
    * encabezado de 3 logos (SEM/FEM/IE) ya se repite en TODAS las
    * páginas del informe (limitación de DocumentApp, ver
    * generarInformeFEM), así que este escudo adicional quedaba
    * redundante justo en medio de la página.
+   *
+   * Tampoco se fuerza más un salto de página antes de esta sección:
+   * sigue de corrido justo después de la última Sesión, con el mismo
+   * espacio "doble" antes del título que separa cualquier otra
+   * sección (ver estilizarTituloInforme_) — no una hoja en blanco
+   * completa si la anterior terminó a medio camino.
    */
   const pTitulo=body.appendParagraph("Sesión Propia creada por la IE "+ieSinPrefijo);
-  pTitulo.setHeading(DocumentApp.ParagraphHeading.HEADING1);
+  estilizarTituloInforme_(pTitulo, VERDE, DocumentApp.ParagraphHeading.HEADING1);
   pTitulo.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
-  pTitulo.editAsText().setForegroundColor(VERDE).setBold(true);
 
   const subtitulo=body.appendParagraph(
     "Las respuestas de esta sesión corresponden a las necesidades y realidades de la IE "+ieSinPrefijo+
@@ -6551,6 +6615,7 @@ function agregarSesionPropiaAlInforme_(body, datos, ieSinPrefijo, estilos){
     ", de manera autónoma. Esta sesión es un complemento institucional y no se incluye en las conclusiones finales del foro comunitario."
   );
   subtitulo.editAsText().setForegroundColor(GRIS_TEXTO).setItalic(true);
+  estilizarCuerpoInforme_(subtitulo);
 
   if(sesionPropia.titulo){
     const pTituloSesion=body.appendParagraph(sesionPropia.titulo);
@@ -6558,15 +6623,15 @@ function agregarSesionPropiaAlInforme_(body, datos, ieSinPrefijo, estilos){
   }
   if(sesionPropia.objetivo){
     const pObjetivoLabel=body.appendParagraph("Objetivo de la sesión");
-    pObjetivoLabel.editAsText().setBold(true).setForegroundColor(VERDE);
+    estilizarTituloInforme_(pObjetivoLabel, VERDE, null);
     const pObjetivo=body.appendParagraph(sesionPropia.objetivo);
     pObjetivo.editAsText().setForegroundColor(GRIS_TEXTO);
+    estilizarCuerpoInforme_(pObjetivo);
   }
 
   sesionPropia.lineas.forEach(function(linea, li){
     const pLinea=body.appendParagraph("Línea temática "+(li+1)+(linea.titulo?": "+linea.titulo:""));
-    pLinea.setHeading(DocumentApp.ParagraphHeading.HEADING2);
-    pLinea.editAsText().setForegroundColor(VERDE).setBold(true);
+    estilizarTituloInforme_(pLinea, VERDE, DocumentApp.ParagraphHeading.HEADING2);
 
     (linea.preguntas||[]).forEach(function(pregunta, pi){
       if(!String(pregunta?.texto||"").trim()) return;
@@ -6574,8 +6639,50 @@ function agregarSesionPropiaAlInforme_(body, datos, ieSinPrefijo, estilos){
       pPregunta.editAsText().setBold(true).setForegroundColor(GRIS_TEXTO);
       const pRespuesta=body.appendParagraph("Respuesta: "+(pregunta.respuesta||"—"));
       pRespuesta.editAsText().setForegroundColor(GRIS_TEXTO);
+      estilizarCuerpoInforme_(pRespuesta);
     });
   });
+}
+
+
+/*
+ * Sintetizado de la valoración del Foro (encuesta de satisfacción de
+ * 4 preguntas calificadas de 1 a 5 corazones + comentarios abiertos,
+ * ver guardarValoracionFEM/obtenerValoracionPorIdForo_), para el
+ * apartado del informe que va entre la asistencia y las firmas. Si
+ * todavía no se ha registrado (lo normal la primera vez que se
+ * genera el informe, ya que la valoración se responde después), se
+ * indica expresamente en vez de dejar la sección vacía o a medias.
+ */
+function agregarValoracionAlInforme_(body, idForo, estilos){
+  const tituloValoracion=body.appendParagraph("Valoración del Foro");
+  estilizarTituloInforme_(tituloValoracion, estilos.VERDE, DocumentApp.ParagraphHeading.HEADING1);
+
+  const val=obtenerValoracionPorIdForo_(idForo);
+  if(!val){
+    const pSinValoracion=body.appendParagraph("La institución educativa aún no ha registrado la valoración de esta jornada.");
+    pSinValoracion.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
+    estilizarCuerpoInforme_(pSinValoracion);
+    return;
+  }
+
+  const etiquetasValoracion=["Diálogo y reflexión","Participación","Ideas y propuestas","Satisfacción con el instrumento"];
+  const puntajes=[val.p1,val.p2,val.p3,val.p4].map(function(n){ return Number(n)||0; });
+  const detalleValoracion=etiquetasValoracion.map(function(et,i){ return et+": "+puntajes[i].toFixed(0)+"/5"; }).join(", ");
+  const pResumen=body.appendParagraph(
+    "La comunidad educativa calificó esta jornada con un promedio general de "+Number(val.nota||0).toFixed(1)+"/5. Por aspecto: "+detalleValoracion+"."
+  );
+  pResumen.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
+  estilizarCuerpoInforme_(pResumen);
+
+  const comentarios=[val.p1Mejora,val.p2Mejora,val.p3Mejora,val.p4Mejora,val.p5]
+    .map(function(t){ return String(t||"").trim(); })
+    .filter(Boolean);
+  if(comentarios.length){
+    const pComentarios=body.appendParagraph("Comentarios y sugerencias registrados: "+comentarios.join("; ")+".");
+    pComentarios.editAsText().setForegroundColor(estilos.GRIS_TEXTO).setItalic(true);
+    estilizarCuerpoInforme_(pComentarios);
+  }
 }
 
 
@@ -6600,7 +6707,16 @@ function generarInformeFEM(idForo,datosCliente){
     const nombreArchivo="Informe Ejecutivo - "+datos.institucion+" FEM 2026";
     const doc=DocumentApp.create(nombreArchivo);
     const docFile=DriveApp.getFileById(doc.getId());
-    folder.addFile(docFile);
+    /*
+     * BUG CORREGIDO: el Google Doc EDITABLE se guardaba en la misma
+     * carpeta pública de la IE (junto al PDF), compartida como
+     * "cualquiera con el enlace" — eso dejaba una versión editable
+     * del informe al alcance de quien tuviera ese enlace. Ahora el
+     * Doc editable va únicamente a la carpeta privada de editables
+     * (DRIVE_CARPETA_EDITABLES_FEM_ID); la IE solo recibe el PDF
+     * (ver más abajo, folder.createFile(pdfBlob)).
+     */
+    DriveApp.getFolderById(DRIVE_CARPETA_EDITABLES_FEM_ID).addFile(docFile);
     try{ DriveApp.getRootFolder().removeFile(docFile); }catch(errorMover){ Logger.log("No fue posible quitar el informe de la raíz de Drive: "+errorMover.message); }
 
     /*
@@ -6679,9 +6795,7 @@ function generarInformeFEM(idForo,datosCliente){
 
     function encabezadoSeccion_(texto){
       const p=body.appendParagraph(texto);
-      p.setHeading(DocumentApp.ParagraphHeading.HEADING1);
-      p.setSpacingBefore(6).setSpacingAfter(4);
-      p.editAsText().setForegroundColor(VERDE).setBold(true);
+      estilizarTituloInforme_(p, VERDE, DocumentApp.ParagraphHeading.HEADING1);
       return p;
     }
 
@@ -6761,7 +6875,12 @@ function generarInformeFEM(idForo,datosCliente){
         pTitulo.editAsText().setBold(true).setForegroundColor(VERDE).setFontSize(9);
         const pValor=contenido.appendParagraph(String(x[1]||"—"));
         pValor.setSpacingBefore(0).setSpacingAfter(0);
-        pValor.editAsText().setForegroundColor(NEGRO).setFontSize(9);
+        // BUG CORREGIDO: sin este setBold(false) explícito, este
+        // párrafo (nuevo, dentro de una celda de tabla que ya tenía
+        // un título en negrilla justo arriba) podía heredar la
+        // negrilla del título — mismo caso ya identificado y
+        // corregido en tablaClaveValor_.
+        pValor.editAsText().setBold(false).setForegroundColor(NEGRO).setFontSize(9);
       });
       reducirPaddingTabla_(t, 3);
       return t;
@@ -6812,7 +6931,9 @@ function generarInformeFEM(idForo,datosCliente){
         pEtq.editAsText().setForegroundColor(GRIS_TEXTO).setFontSize(8).setBold(true);
         const pCantidad=cEtq.appendParagraph(n+" participante"+(n===1?"":"s"));
         pCantidad.setSpacingBefore(0).setSpacingAfter(0);
-        pCantidad.editAsText().setForegroundColor(GRIS_TEXTO).setFontSize(7);
+        // Mismo caso de herencia de negrilla que en tablaCaracterizacion_/
+        // tablaClaveValor_: se fija sin negrilla explícitamente.
+        pCantidad.editAsText().setBold(false).setForegroundColor(GRIS_TEXTO).setFontSize(7);
 
         const cBarra=r.appendTableCell("");
         cBarra.setWidth(190);
@@ -6839,21 +6960,22 @@ function generarInformeFEM(idForo,datosCliente){
       "La institución educativa "+String(datos.institucion||"")+" construyó colectivamente las conclusiones que se presentan a continuación con la participación de "+totalParticipantesInforme+" integrantes de su comunidad educativa."
     );
     parrafoIntro.editAsText().setForegroundColor(GRIS_TEXTO);
+    estilizarCuerpoInforme_(parrafoIntro);
 
     /*
-     * Logo, título, caracterización y el párrafo introductorio quedan
-     * en la primera hoja; la participación empieza en una segunda
-     * hoja aparte.
+     * BUG CORREGIDO: antes había un salto de página forzado aquí (y
+     * otro más justo después de la tabla de participación) sin
+     * importar cuánto espacio quedara en la hoja — eso podía dejar
+     * media página en blanco. Ahora el documento fluye de corrido de
+     * una sección a la siguiente (mismo espacio "doble" antes de cada
+     * título nuevo, ver estilizarTituloInforme_) y es Documentos
+     * quien decide dónde cae cada salto de página según el contenido
+     * real, aprovechando el espacio disponible.
      */
-    body.appendPageBreak();
-
     encabezadoSeccion_("Participación");
     const pPart=body.appendParagraph("Participantes: "+totalParticipantesInforme);
-    pPart.setHeading(DocumentApp.ParagraphHeading.HEADING2); pPart.setSpacingBefore(2).setSpacingAfter(4);
-    pPart.editAsText().setForegroundColor(VERDE).setBold(true);
+    estilizarTituloInforme_(pPart, VERDE, DocumentApp.ParagraphHeading.HEADING2);
     tablaParticipacionDoc_(datos);
-
-    body.appendPageBreak();
 
     /*
      * El apartado demográfico y de percepción (fortalezas/dificultades)
@@ -6866,13 +6988,13 @@ function generarInformeFEM(idForo,datosCliente){
     const metodoAsistenciaInforme=String(datos.campos?.metodoAsistencia?.valor||"QR");
     if(metodoAsistenciaInforme==="PDF"){
       const tituloSinAnalisis=body.appendParagraph("Perfil de los participantes y percepción del Foro");
-      tituloSinAnalisis.setHeading(DocumentApp.ParagraphHeading.HEADING1);
-      tituloSinAnalisis.editAsText().setForegroundColor(VERDE).setBold(true);
+      estilizarTituloInforme_(tituloSinAnalisis, VERDE, DocumentApp.ParagraphHeading.HEADING1);
       const numeroAsistentesPdf=String(datos.campos?.numeroAsistentesPDF?.valor||"0");
       const notaSinAnalisis=body.appendParagraph(
         "La institución educativa "+nombreIESinPrefijoInstitucional_(datos.institucion||"")+" registró la asistencia mediante un PDF escaneado con "+numeroAsistentesPdf+" de participantes según el listado adjunto que se encuentra al final de este consolidado Institucional."
       );
       notaSinAnalisis.editAsText().setForegroundColor(GRIS_TEXTO);
+      estilizarCuerpoInforme_(notaSinAnalisis);
     }else{
       try{ agregarPerfilYPercepcionAlInforme_(body, idForo, datos, {VERDE,GRIS_TEXTO,GRIS_FONDO,GRIS_BORDE,AZUL_CLARO,AMARILLO,NEGRO}); }
       catch(errorPerfil){ Logger.log("No fue posible agregar el perfil de participantes/percepción: "+errorPerfil.message); }
@@ -6910,10 +7032,9 @@ function generarInformeFEM(idForo,datosCliente){
       ]}
     ];
 
-    grupos.forEach((g,gi)=>{
+    grupos.forEach((g)=>{
       encabezadoSeccion_(g.n);
       tablaClaveValor_(g.items);
-      if(gi<grupos.length-1)body.appendPageBreak();
     });
 
     try{ agregarSesionPropiaAlInforme_(body, datos, nombreIESinPrefijoInstitucional_(datos.institucion||""), {VERDE,GRIS_TEXTO}); }
@@ -6930,6 +7051,7 @@ function generarInformeFEM(idForo,datosCliente){
       : "La asistencia se firmó de manera digital (código QR/link) durante la jornada; el listado completo se incluye a continuación.";
     const pEv=body.appendParagraph(textoEvidenciasAsistencia);
     pEv.editAsText().setForegroundColor(GRIS_TEXTO);
+    estilizarCuerpoInforme_(pEv);
 
     // El enlace de descarga del PDF de asistencia va justo debajo del
     // aviso ("que puede verse aquí: 🔗"), no varias secciones después
@@ -6980,6 +7102,19 @@ function generarInformeFEM(idForo,datosCliente){
     }
 
     /*
+     * Sintetizado de la valoración del Foro, entre la asistencia y
+     * las firmas. NOTA: la valoración se responde DESPUÉS de generar
+     * este informe (ver flujo de cierre en App.html), así que en la
+     * PRIMERA generación normalmente no habrá nada que sintetizar
+     * todavía — agregarValoracionAlInforme_ lo indica expresamente en
+     * vez de dejar la sección vacía o a medias; si el informe se
+     * vuelve a generar más adelante para la misma IE, si ya se
+     * aparecerá completo.
+     */
+    try{ agregarValoracionAlInforme_(body, idForo, {VERDE,GRIS_TEXTO}); }
+    catch(errorValoracion){ Logger.log("No fue posible agregar la valoración del Foro al informe: "+errorValoracion.message); }
+
+    /*
      * Firmas originales al final del informe: el líder (rector/a) de
      * la IE, seguido de cada responsable del envío (el principal y
      * cualquier responsable adicional que se haya agregado en
@@ -6996,8 +7131,7 @@ function generarInformeFEM(idForo,datosCliente){
      * más arriba: si queda espacio, Firmas sigue en la misma hoja.
      */
     const tituloFirmas=body.appendParagraph("Firmas");
-    tituloFirmas.setHeading(DocumentApp.ParagraphHeading.HEADING1);
-    tituloFirmas.editAsText().setForegroundColor(VERDE).setBold(true);
+    estilizarTituloInforme_(tituloFirmas, VERDE, DocumentApp.ParagraphHeading.HEADING1);
 
     /*
      * El nombre del rector(a) se ve más grande que el de los
@@ -7038,7 +7172,11 @@ function generarInformeFEM(idForo,datosCliente){
     doc.saveAndClose();
     const pdfBlob=DriveApp.getFileById(doc.getId()).getAs(MimeType.PDF).setName(nombreArchivo+".pdf");
     const pdf=folder.createFile(pdfBlob);
-    hacerPublicoSiEsPosible_(docFile); hacerPublicoSiEsPosible_(pdf);
+    // Solo el PDF se comparte como "cualquiera con el enlace puede
+    // ver" — es lo único que la IE necesita ver/descargar. El Doc
+    // editable (docFile) queda en la carpeta privada de editables
+    // sin compartir, para que nadie pueda modificarlo desde ahí.
+    hacerPublicoSiEsPosible_(pdf);
     const ac=obtenerAccesoPorIdForoRaw_(idForo); if(ac){const m=ac.mapa; if(m.ID_INFORME)ac.hoja.getRange(ac.fila,m.ID_INFORME).setValue(doc.getId()); if(m.ID_PDF_INFORME)ac.hoja.getRange(ac.fila,m.ID_PDF_INFORME).setValue(pdf.getId());}
     return {ok:true,docId:doc.getId(),docUrl:doc.getUrl(),pdfId:pdf.getId(),pdfUrl:pdf.getUrl(),folderId:folder.getId()};
   }finally{try{lock.releaseLock();}catch(e){}}
