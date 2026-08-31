@@ -5810,15 +5810,6 @@ function estilizarTituloInforme_(parrafo, colorVerde, heading){
   parrafo.setText(parrafo.getText().toUpperCase());
   if(heading) parrafo.setHeading(heading);
   parrafo.setSpacingBefore(14).setSpacingAfter(2);
-  // BUG CORREGIDO: "títulos huérfanos" — un título quedaba solo al
-  // final de una página con su contenido (texto o gráfico) empujado a
-  // la siguiente. setKeepWithNext SÍ existe en DocumentApp (a
-  // diferencia de "mantener con el párrafo ANTERIOR", que no tiene
-  // API): evita que Documentos ponga un salto de página entre este
-  // título y el párrafo/imagen que le sigue inmediatamente — si ese
-  // contenido no cabe en lo que resta de la página, título y
-  // contenido se van juntos a la siguiente.
-  parrafo.setKeepWithNext(true);
   parrafo.editAsText().setForegroundColor(colorVerde).setBold(true).setFontFamily(DocumentApp.FontFamily.ARIAL);
   return parrafo;
 }
@@ -5848,9 +5839,6 @@ function estilizarCuerpoInforme_(parrafo){
 function estilizarSubtituloInforme_(parrafo, colorVerde){
   parrafo.setText(parrafo.getText().toUpperCase());
   parrafo.setSpacingBefore(10).setSpacingAfter(2);
-  // Mismo "keep with next" que estilizarTituloInforme_ — ver el
-  // comentario ahí.
-  parrafo.setKeepWithNext(true);
   parrafo.editAsText().setForegroundColor(colorVerde).setBold(true).setFontSize(10).setFontFamily(DocumentApp.FontFamily.ARIAL);
   return parrafo;
 }
@@ -6016,9 +6004,6 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
     const pSedes=body.appendParagraph("De los participantes, "+listaSedes+".");
     pSedes.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
     estilizarCuerpoInforme_(pSedes);
-    // Se mantiene junto con el gráfico que le sigue (no hay un título
-    // aparte entre este párrafo y el gráfico de sedes).
-    pSedes.setKeepWithNext(true);
     try{
       // Ancho proporcional a la hoja (540pt: 612pt de página - 36pt
       // de margen a cada lado), igual que los demás gráficos.
@@ -6053,7 +6038,6 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
   );
   pDemografia.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
   estilizarCuerpoInforme_(pDemografia);
-  pDemografia.setKeepWithNext(true);
   try{
     const etiquetasSexo=["Niños","Niñas","Adolesc. hombres","Adolesc. mujeres","Hombres adultos","Mujeres adultas"];
     const valoresSexo=[dem.ninos,dem.ninas,dem.adolescentesHombres,dem.adolescentesMujeres,dem.hombresAdultos,dem.mujeresAdultas];
