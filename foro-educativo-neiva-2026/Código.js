@@ -5821,6 +5821,24 @@ function estilizarCuerpoInforme_(parrafo){
 }
 
 /*
+ * Formato de SUBTÍTULO: mismo verde/mayúscula/negrilla que un título
+ * de sección, pero con el mismo tamaño pequeño (10pt) que ya se usa
+ * para "Pregunta N" dentro de las tablas de Sesión 1/2/3
+ * (tablaClaveValor_) — para un subtítulo anidado DENTRO de una
+ * sección más grande (por ejemplo, "Percepción de los niños..."
+ * dentro de "Perfil de los participantes y percepción del Foro", o
+ * "Línea temática N" dentro de "Sesión Propia"), en vez del tamaño de
+ * encabezado completo (HEADING1/HEADING2) que le compite en tamaño al
+ * título de la sección que lo contiene.
+ */
+function estilizarSubtituloInforme_(parrafo, colorVerde){
+  parrafo.setText(parrafo.getText().toUpperCase());
+  parrafo.setSpacingBefore(10).setSpacingAfter(2);
+  parrafo.editAsText().setForegroundColor(colorVerde).setBold(true).setFontSize(10).setFontFamily(DocumentApp.FontFamily.ARIAL);
+  return parrafo;
+}
+
+/*
  * BUG CORREGIDO: con etiquetas largas (p. ej. "Adolescentes hombres")
  * y solo 480x300, Google Charts recortaba el texto del eje horizontal
  * en vez de mostrarlo completo. Se agranda el lienzo y se inclinan
@@ -6030,12 +6048,12 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
   const adultos=asistentes.filter(function(p){ return categoriaEdad_(p.edad)==="adulto"; });
 
   const tituloPercepcion=body.appendParagraph("Percepción de la comunidad educativa sobre el Foro Educativo Institucional");
-  estilizarTituloInforme_(tituloPercepcion, estilos.VERDE, DocumentApp.ParagraphHeading.HEADING2);
+  estilizarSubtituloInforme_(tituloPercepcion, estilos.VERDE);
 
   if(ninosYNinas.length){
     const tF=tallyOpciones_(ninosYNinas,"fortalezas"), tD=tallyOpciones_(ninosYNinas,"dificultades");
     const tituloNinos=body.appendParagraph("Percepción de los niños y las niñas de la IE "+ieTitulo+" sobre el Foro Educativo Institucional");
-    estilizarTituloInforme_(tituloNinos, estilos.VERDE, DocumentApp.ParagraphHeading.HEADING2);
+    estilizarSubtituloInforme_(tituloNinos, estilos.VERDE);
     const pNinos=body.appendParagraph(
       "Desde la perspectiva de los niños y niñas, en la IE "+ieTitulo+" se valora especialmente "+top3Texto_(tF)+
       ". No obstante, también manifiestan dificultades relacionadas con "+top3Texto_(tD)+
@@ -6048,7 +6066,7 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
   if(adolescentes.length){
     const tF=tallyOpciones_(adolescentes,"fortalezas"), tD=tallyOpciones_(adolescentes,"dificultades");
     const tituloAdolescentes=body.appendParagraph("Percepción de los y las adolescentes de la IE "+ieTitulo+" sobre el Foro Educativo Institucional");
-    estilizarTituloInforme_(tituloAdolescentes, estilos.VERDE, DocumentApp.ParagraphHeading.HEADING2);
+    estilizarSubtituloInforme_(tituloAdolescentes, estilos.VERDE);
     const pAdolescentes=body.appendParagraph(
       "Los y las adolescentes de la IE "+ieTitulo+" reconocen que la institución promueve "+top3Texto_(tF)+
       ". De igual manera, identifican "+top3Texto_(tD)+
@@ -6061,7 +6079,7 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
   if(adultos.length){
     const tF=tallyOpciones_(adultos,"fortalezas"), tD=tallyOpciones_(adultos,"dificultades");
     const tituloAdultos=body.appendParagraph("Percepción de los adultos de la IE "+ieTitulo+" sobre el Foro Educativo Institucional");
-    estilizarTituloInforme_(tituloAdultos, estilos.VERDE, DocumentApp.ParagraphHeading.HEADING2);
+    estilizarSubtituloInforme_(tituloAdultos, estilos.VERDE);
     const pAdultos=body.appendParagraph(
       "De acuerdo con las respuestas de los adultos participantes, la IE "+ieTitulo+" se destaca por "+top3Texto_(tF)+
       ". A su vez, señalan "+top3Texto_(tD)+
@@ -6078,7 +6096,7 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
    */
   const sugerenciasValoracion=obtenerSugerenciasValoracion_(idForo);
   const pGeneralTitulo=body.appendParagraph("Percepción general de la comunidad de la IE "+ieTitulo+" sobre el Foro Educativo Institucional");
-  estilizarTituloInforme_(pGeneralTitulo, estilos.VERDE, DocumentApp.ParagraphHeading.HEADING2);
+  estilizarSubtituloInforme_(pGeneralTitulo, estilos.VERDE);
   const pGeneral=body.appendParagraph(sugerenciasValoracion||"La comunidad educativa no registró comentarios adicionales en la valoración de la actividad.");
   pGeneral.editAsText().setForegroundColor(estilos.GRIS_TEXTO).setItalic(!!sugerenciasValoracion);
   estilizarCuerpoInforme_(pGeneral);
@@ -6089,12 +6107,12 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
    * forma literal debajo de cada gráfico.
    */
   const tituloFortalezas=body.appendParagraph("Fortalezas institucionales identificadas en el Foro");
-  estilizarTituloInforme_(tituloFortalezas, estilos.VERDE, DocumentApp.ParagraphHeading.HEADING2);
+  estilizarSubtituloInforme_(tituloFortalezas, estilos.VERDE);
   agregarGraficoConOtro_(body,estilos,"Fortalezas más votadas",tallyOpciones_(asistentes,"fortalezas"),
     asistentes.map(function(p){return p.fortalezaOtro;}).filter(Boolean));
 
   const tituloDificultades=body.appendParagraph("Oportunidades de mejoramiento institucional identificadas en el Foro");
-  estilizarTituloInforme_(tituloDificultades, estilos.VERDE, DocumentApp.ParagraphHeading.HEADING2);
+  estilizarSubtituloInforme_(tituloDificultades, estilos.VERDE);
   agregarGraficoConOtro_(body,estilos,"Aspectos de mejora más votados",tallyOpciones_(asistentes,"dificultades"),
     asistentes.map(function(p){return p.dificultadOtro;}).filter(Boolean));
 }
@@ -6645,7 +6663,7 @@ function agregarSesionPropiaAlInforme_(body, datos, ieSinPrefijo, estilos){
   }
   if(sesionPropia.objetivo){
     const pObjetivoLabel=body.appendParagraph("Objetivo de la sesión");
-    estilizarTituloInforme_(pObjetivoLabel, VERDE, null);
+    estilizarSubtituloInforme_(pObjetivoLabel, VERDE);
     const pObjetivo=body.appendParagraph(sesionPropia.objetivo);
     pObjetivo.editAsText().setForegroundColor(GRIS_TEXTO);
     estilizarCuerpoInforme_(pObjetivo);
@@ -6653,7 +6671,7 @@ function agregarSesionPropiaAlInforme_(body, datos, ieSinPrefijo, estilos){
 
   sesionPropia.lineas.forEach(function(linea, li){
     const pLinea=body.appendParagraph("Línea temática "+(li+1)+(linea.titulo?": "+linea.titulo:""));
-    estilizarTituloInforme_(pLinea, VERDE, DocumentApp.ParagraphHeading.HEADING2);
+    estilizarSubtituloInforme_(pLinea, VERDE);
 
     (linea.preguntas||[]).forEach(function(pregunta, pi){
       if(!String(pregunta?.texto||"").trim()) return;
@@ -7019,7 +7037,7 @@ function generarInformeFEM(idForo,datosCliente){
      */
     encabezadoSeccion_("Participación");
     const pPart=body.appendParagraph("Participantes: "+totalParticipantesInforme);
-    estilizarTituloInforme_(pPart, VERDE, DocumentApp.ParagraphHeading.HEADING2);
+    estilizarSubtituloInforme_(pPart, VERDE);
     tablaParticipacionDoc_(datos);
 
     /*
