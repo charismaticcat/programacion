@@ -4335,3 +4335,45 @@ function reintentarEnviosInformeDiferidosFEM(){
 
   return resultado;
 }
+
+
+/*
+ * Regenera el Doc/PDF del informe ejecutivo de UNA IE ya en
+ * producción, a partir de sus datos YA GUARDADOS (Caracterización,
+ * Sesiones 1-3, asistencia QR) — sin volver a llamar
+ * enviarForoDefinitivo ni tocar ninguna respuesta guardada. Sirve
+ * para aplicar correcciones de formato del informe (fecha, pie de
+ * página, gráficos, títulos...) a una IE cuyo informe ya se había
+ * generado con una versión anterior del código. generarInformeFEM ya
+ * actualiza por su cuenta ID_INFORME/ID_PDF_INFORME en AccesosIE con
+ * el Doc/PDF nuevo. El nombre de la IE debe coincidir con el valor
+ * guardado en AccesosIE (columna IE) — mayúsculas/minúsculas no
+ * importan.
+ *
+ * Uso: desde el editor de Apps Script, seleccionar esta función,
+ * cambiar el valor por defecto de nombreIE si hace falta y presionar
+ * "Ejecutar". El resultado (con el docUrl/pdfUrl nuevos) queda en
+ * "Ver registros de ejecución".
+ */
+function regenerarInformeFEMPorIE(nombreIE){
+  nombreIE = nombreIE || "EL LIMONAR";
+  const hoja = asegurarColumnasAccesosIE_();
+  const mapa = mapaHoja_(hoja);
+  const ultimaFila = hoja.getLastRow();
+  if(ultimaFila < 2) throw new Error("AccesosIE no tiene filas.");
+
+  const valores = hoja.getRange(2, 1, ultimaFila - 1, hoja.getLastColumn()).getDisplayValues();
+  const fila = valores.find(function(f){
+    return String(f[mapa.IE-1]||"").trim().toUpperCase() === String(nombreIE).trim().toUpperCase();
+  });
+  if(!fila) throw new Error("No existe \""+nombreIE+"\" en AccesosIE.");
+
+  const idForo = String(fila[mapa.ID_FORO-1]||"").trim();
+  const datosGuardados = obtenerDatosGuardadosPorIdForo_(idForo);
+  if(!datosGuardados) throw new Error("No hay datos guardados para "+nombreIE+" (ID_FORO "+idForo+").");
+  datosGuardados.idForo = idForo;
+
+  const informe = generarInformeFEM(idForo, datosGuardados);
+  Logger.log("Informe regenerado para "+nombreIE+": "+JSON.stringify(informe));
+  return informe;
+}
