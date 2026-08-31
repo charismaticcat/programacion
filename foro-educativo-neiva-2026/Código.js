@@ -5698,9 +5698,8 @@ function obtenerListaAsistentesQR(idForo){
 function agregarListadoAsistenciaAlInforme_(body, idForo, datos){
   const asistentes=obtenerAsistentesQR_(idForo);
 
-  const titulo=body.appendParagraph("Listado de asistencia (firmado por código QR)");
-  titulo.setHeading(DocumentApp.ParagraphHeading.HEADING1);
-  titulo.editAsText().setForegroundColor(COLOR_VERDE_DOC).setBold(true);
+  const titulo=body.appendParagraph("3.1 Listado de asistencia (firmado por código QR)");
+  estilizarTituloInforme_(titulo, COLOR_VERDE_DOC, DocumentApp.ParagraphHeading.HEADING1);
 
   if(!asistentes.length){
     const vacio=body.appendParagraph("No se registraron firmas de asistencia por código QR.");
@@ -5894,7 +5893,9 @@ function agregarGraficoConOtro_(body,estilos,titulo,tally,otrosTextos){
   if(top5.length){
     try{
       const blob=construirGraficoBarrasHorizontal_(titulo,top5.map(function(x){return x.opcion;}),top5.map(function(x){return x.votos;}));
-      body.appendImage(blob).setWidth(430);
+      // Ancho completo de la hoja (612pt de página - 36pt de margen a
+      // cada lado = 540pt), a pedido expreso para estos dos gráficos.
+      body.appendImage(blob).setWidth(540);
     }catch(errorGrafico){ Logger.log("Gráfico \""+titulo+"\": "+errorGrafico.message); }
   }
   if(otrosTextos&&otrosTextos.length){
@@ -5962,7 +5963,7 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
   const ieTitulo=nombreIESinPrefijoInstitucional_(capitalizarNombreIE_(datos.institucion||""));
   const c=datos.campos||{};
 
-  const tituloSeccion=body.appendParagraph("Perfil de los participantes y percepción del Foro");
+  const tituloSeccion=body.appendParagraph("1.1 Perfil de los participantes");
   estilizarTituloInforme_(tituloSeccion, estilos.VERDE, DocumentApp.ParagraphHeading.HEADING1);
 
   if(!asistentes.length){
@@ -6047,12 +6048,12 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
   const adolescentes=asistentes.filter(function(p){ return categoriaEdad_(p.edad)==="adolescente"; });
   const adultos=asistentes.filter(function(p){ return categoriaEdad_(p.edad)==="adulto"; });
 
-  const tituloPercepcion=body.appendParagraph("Percepción de la comunidad educativa sobre el Foro Educativo Institucional");
-  estilizarSubtituloInforme_(tituloPercepcion, estilos.VERDE);
+  const tituloPercepcion=body.appendParagraph("1.2 Percepción de la comunidad educativa sobre el Foro Educativo Institucional");
+  estilizarTituloInforme_(tituloPercepcion, estilos.VERDE, DocumentApp.ParagraphHeading.HEADING1);
 
   if(ninosYNinas.length){
     const tF=tallyOpciones_(ninosYNinas,"fortalezas"), tD=tallyOpciones_(ninosYNinas,"dificultades");
-    const tituloNinos=body.appendParagraph("Percepción de los niños y las niñas de la IE "+ieTitulo+" sobre el Foro Educativo Institucional");
+    const tituloNinos=body.appendParagraph("1.2.1 Percepción de los niños y las niñas de la IE "+ieTitulo+" sobre el Foro Educativo Institucional");
     estilizarSubtituloInforme_(tituloNinos, estilos.VERDE);
     const pNinos=body.appendParagraph(
       "Desde la perspectiva de los niños y niñas, en la IE "+ieTitulo+" se valora especialmente "+top3Texto_(tF)+
@@ -6065,7 +6066,7 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
 
   if(adolescentes.length){
     const tF=tallyOpciones_(adolescentes,"fortalezas"), tD=tallyOpciones_(adolescentes,"dificultades");
-    const tituloAdolescentes=body.appendParagraph("Percepción de los y las adolescentes de la IE "+ieTitulo+" sobre el Foro Educativo Institucional");
+    const tituloAdolescentes=body.appendParagraph("1.2.2 Percepción de los y las adolescentes de la IE "+ieTitulo+" sobre el Foro Educativo Institucional");
     estilizarSubtituloInforme_(tituloAdolescentes, estilos.VERDE);
     const pAdolescentes=body.appendParagraph(
       "Los y las adolescentes de la IE "+ieTitulo+" reconocen que la institución promueve "+top3Texto_(tF)+
@@ -6078,7 +6079,7 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
 
   if(adultos.length){
     const tF=tallyOpciones_(adultos,"fortalezas"), tD=tallyOpciones_(adultos,"dificultades");
-    const tituloAdultos=body.appendParagraph("Percepción de los adultos de la IE "+ieTitulo+" sobre el Foro Educativo Institucional");
+    const tituloAdultos=body.appendParagraph("1.2.3 Percepción de los adultos de la IE "+ieTitulo+" sobre el Foro Educativo Institucional");
     estilizarSubtituloInforme_(tituloAdultos, estilos.VERDE);
     const pAdultos=body.appendParagraph(
       "De acuerdo con las respuestas de los adultos participantes, la IE "+ieTitulo+" se destaca por "+top3Texto_(tF)+
@@ -6090,30 +6091,41 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
   }
 
   /*
-   * Percepción general: se cita LITERALMENTE (sin parafrasear) lo
-   * que la persona responsable escribió en la pregunta abierta de
-   * la valoración de la actividad (P5: sugerencias/comentarios).
+   * BUG CORREGIDO: "Percepción general" citaba el comentario abierto
+   * de la VALORACIÓN de la actividad (P5), que llena la persona
+   * responsable del envío al cerrar el instrumento — un comentario
+   * de esa persona, no de "la comunidad". Ahora se sintetiza a partir
+   * de las mismas fortalezas/dificultades más votadas que se
+   * muestran en los gráficos de abajo (1.2.5/1.2.6), sin citar ningún
+   * comentario de valoración del responsable del envío (ese va
+   * únicamente en la sección 4, "Valoración del Foro por
+   * responsable(s) de envío del instrumento").
    */
-  const sugerenciasValoracion=obtenerSugerenciasValoracion_(idForo);
-  const pGeneralTitulo=body.appendParagraph("Percepción general de la comunidad de la IE "+ieTitulo+" sobre el Foro Educativo Institucional");
+  const tF_general=tallyOpciones_(asistentes,"fortalezas"), tD_general=tallyOpciones_(asistentes,"dificultades");
+  const pGeneralTitulo=body.appendParagraph("1.2.4 Percepción general de la comunidad de la IE "+ieTitulo+" sobre el Foro Educativo Institucional");
   estilizarSubtituloInforme_(pGeneralTitulo, estilos.VERDE);
-  const pGeneral=body.appendParagraph(sugerenciasValoracion||"La comunidad educativa no registró comentarios adicionales en la valoración de la actividad.");
-  pGeneral.editAsText().setForegroundColor(estilos.GRIS_TEXTO).setItalic(!!sugerenciasValoracion);
+  const pGeneral=body.appendParagraph(
+    "Los "+asistentes.length+" participantes que firmaron asistencia por código QR expresaron que las principales fortalezas institucionales identificadas en el Foro fueron "+top3Texto_(tF_general)+
+    ", mientras que las principales oportunidades de mejoramiento institucional identificadas fueron "+top3Texto_(tD_general)+"."
+  );
+  pGeneral.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
   estilizarCuerpoInforme_(pGeneral);
 
   /*
    * Gráficos de fortalezas y dificultades institucionales (top 5,
    * todas las personas), con las respuestas "Otro" listadas de
-   * forma literal debajo de cada gráfico.
+   * forma literal debajo de cada gráfico. Se amplían al ancho
+   * completo de la hoja (540pt: 612pt de página menos 36pt de margen
+   * a cada lado).
    */
-  const tituloFortalezas=body.appendParagraph("Fortalezas institucionales identificadas en el Foro");
+  const tituloFortalezas=body.appendParagraph("1.2.5 Fortalezas institucionales identificadas en el Foro");
   estilizarSubtituloInforme_(tituloFortalezas, estilos.VERDE);
-  agregarGraficoConOtro_(body,estilos,"Fortalezas más votadas",tallyOpciones_(asistentes,"fortalezas"),
+  agregarGraficoConOtro_(body,estilos,"Fortalezas más votadas",tF_general,
     asistentes.map(function(p){return p.fortalezaOtro;}).filter(Boolean));
 
-  const tituloDificultades=body.appendParagraph("Oportunidades de mejoramiento institucional identificadas en el Foro");
+  const tituloDificultades=body.appendParagraph("1.2.6 Oportunidades de mejoramiento institucional identificadas en el Foro");
   estilizarSubtituloInforme_(tituloDificultades, estilos.VERDE);
-  agregarGraficoConOtro_(body,estilos,"Aspectos de mejora más votados",tallyOpciones_(asistentes,"dificultades"),
+  agregarGraficoConOtro_(body,estilos,"Aspectos de mejora más votados",tD_general,
     asistentes.map(function(p){return p.dificultadOtro;}).filter(Boolean));
 }
 
@@ -6686,6 +6698,20 @@ function agregarSesionPropiaAlInforme_(body, datos, ieSinPrefijo, estilos){
 
 
 /*
+ * BUG CORREGIDO: obtenerValoracionPorIdForo_ lee la hoja con
+ * getDisplayValues() (el TEXTO tal como se ve en la celda) — en una
+ * hoja de cálculo en configuración regional en español, un decimal
+ * como el promedio (NOTA_PROMEDIO, p. ej. 4.75) se MUESTRA con coma
+ * ("4,75"), y Number("4,75") da NaN en JavaScript. Eso era lo que
+ * producía "NaN/5" en el informe. Se reemplaza la coma por punto
+ * antes de convertir a número.
+ */
+function numeroLocalizado_(texto){
+  const n=Number(String(texto||"").trim().replace(",","."));
+  return isNaN(n) ? 0 : n;
+}
+
+/*
  * Sintetizado de la valoración del Foro (encuesta de satisfacción de
  * 4 preguntas calificadas de 1 a 5 corazones + comentarios abiertos,
  * ver guardarValoracionFEM/obtenerValoracionPorIdForo_), para el
@@ -6695,7 +6721,7 @@ function agregarSesionPropiaAlInforme_(body, datos, ieSinPrefijo, estilos){
  * indica expresamente en vez de dejar la sección vacía o a medias.
  */
 function agregarValoracionAlInforme_(body, idForo, estilos){
-  const tituloValoracion=body.appendParagraph("Valoración del Foro");
+  const tituloValoracion=body.appendParagraph("4. Valoración del Foro por responsable(s) de envío del instrumento");
   estilizarTituloInforme_(tituloValoracion, estilos.VERDE, DocumentApp.ParagraphHeading.HEADING1);
 
   const val=obtenerValoracionPorIdForo_(idForo);
@@ -6706,22 +6732,37 @@ function agregarValoracionAlInforme_(body, idForo, estilos){
     return;
   }
 
-  const etiquetasValoracion=["Diálogo y reflexión","Participación","Ideas y propuestas","Satisfacción con el instrumento"];
-  const puntajes=[val.p1,val.p2,val.p3,val.p4].map(function(n){ return Number(n)||0; });
-  const detalleValoracion=etiquetasValoracion.map(function(et,i){ return et+": "+puntajes[i].toFixed(0)+"/5"; }).join(", ");
+  const notaPromedio=numeroLocalizado_(val.nota);
   const pResumen=body.appendParagraph(
-    "La comunidad educativa calificó esta jornada con un promedio general de "+Number(val.nota||0).toFixed(1)+"/5. Por aspecto: "+detalleValoracion+"."
+    "La comunidad educativa calificó esta jornada con un promedio general de "+notaPromedio.toFixed(1)+"/5. Por criterio:"
   );
   pResumen.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
   estilizarCuerpoInforme_(pResumen);
+
+  // Un criterio por línea (formato vertical), con un emoji distinto
+  // por criterio en vez de una sola línea con todo separado por comas.
+  const criterios=[
+    {emoji:"💬", etiqueta:"Diálogo y reflexión", valor:val.p1},
+    {emoji:"🙋", etiqueta:"Participación", valor:val.p2},
+    {emoji:"💡", etiqueta:"Ideas y propuestas", valor:val.p3},
+    {emoji:"😊", etiqueta:"Satisfacción con el instrumento", valor:val.p4}
+  ];
+  criterios.forEach(function(cr){
+    const pCriterio=body.appendParagraph(cr.emoji+" "+cr.etiqueta+": "+numeroLocalizado_(cr.valor).toFixed(0)+"/5");
+    pCriterio.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
+    estilizarCuerpoInforme_(pCriterio);
+  });
 
   const comentarios=[val.p1Mejora,val.p2Mejora,val.p3Mejora,val.p4Mejora,val.p5]
     .map(function(t){ return String(t||"").trim(); })
     .filter(Boolean);
   if(comentarios.length){
     const pComentarios=body.appendParagraph("Comentarios y sugerencias registrados: "+comentarios.join("; ")+".");
-    pComentarios.editAsText().setForegroundColor(estilos.GRIS_TEXTO).setItalic(true);
     estilizarCuerpoInforme_(pComentarios);
+    // En negrita a pedido expreso — va DESPUÉS de estilizarCuerpoInforme_
+    // (que fija setBold(false) para el cuerpo estándar) para que la
+    // negrilla explícita de este párrafo en particular no quede pisada.
+    pComentarios.editAsText().setForegroundColor(estilos.GRIS_TEXTO).setItalic(true).setBold(true);
   }
 }
 
@@ -6841,7 +6882,7 @@ function generarInformeFEM(idForo,datosCliente){
     // Título subido (spacingBefore en 0) y 2pt más pequeño que el
     // tamaño por defecto del estilo "Título" de Documentos (26pt),
     // para que la Caracterización quepa completa en una sola página.
-    const title=body.appendParagraph("INFORME EJECUTIVO DE "+String(datos.institucion||"").toUpperCase()+" FEM 2026");
+    const title=body.appendParagraph("INFORME EJECUTIVO DE LA IE "+nombreIESinPrefijoInstitucional_(datos.institucion||"").toUpperCase()+" FEM 2026");
     title.setHeading(DocumentApp.ParagraphHeading.TITLE); title.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
     title.setSpacingBefore(0).setSpacingAfter(6);
     title.editAsText().setForegroundColor(VERDE).setFontSize(24);
@@ -7026,16 +7067,16 @@ function generarInformeFEM(idForo,datosCliente){
     estilizarCuerpoInforme_(parrafoIntro);
 
     /*
-     * BUG CORREGIDO: antes había un salto de página forzado aquí (y
-     * otro más justo después de la tabla de participación) sin
-     * importar cuánto espacio quedara en la hoja — eso podía dejar
-     * media página en blanco. Ahora el documento fluye de corrido de
-     * una sección a la siguiente (mismo espacio "doble" antes de cada
-     * título nuevo, ver estilizarTituloInforme_) y es Documentos
-     * quien decide dónde cae cada salto de página según el contenido
-     * real, aprovechando el espacio disponible.
+     * "Participación" pide expresamente quedar completa en una sola
+     * página (la tabla de participación por estamento es corta, 11
+     * filas, pero si empieza a mitad de una página con poco espacio
+     * restante puede partirse en dos). Se reintroduce, solo acá, un
+     * salto de página forzado para que la sección arranque siempre al
+     * inicio de una hoja nueva con el espacio completo disponible —
+     * el resto del informe sigue sin saltos forzados.
      */
-    encabezadoSeccion_("Participación");
+    body.appendPageBreak();
+    encabezadoSeccion_("1. Participación");
     const pPart=body.appendParagraph("Participantes: "+totalParticipantesInforme);
     estilizarSubtituloInforme_(pPart, VERDE);
     tablaParticipacionDoc_(datos);
@@ -7050,7 +7091,7 @@ function generarInformeFEM(idForo,datosCliente){
      */
     const metodoAsistenciaInforme=String(datos.campos?.metodoAsistencia?.valor||"QR");
     if(metodoAsistenciaInforme==="PDF"){
-      const tituloSinAnalisis=body.appendParagraph("Perfil de los participantes y percepción del Foro");
+      const tituloSinAnalisis=body.appendParagraph("1.1 Perfil de los participantes y percepción del Foro");
       estilizarTituloInforme_(tituloSinAnalisis, VERDE, DocumentApp.ParagraphHeading.HEADING1);
       const numeroAsistentesPdf=String(datos.campos?.numeroAsistentesPDF?.valor||"0");
       const notaSinAnalisis=body.appendParagraph(
@@ -7075,23 +7116,37 @@ function generarInformeFEM(idForo,datosCliente){
         .filter(function(fila, i){ return i<3 || fila[1]; });
     }
 
+    /*
+     * "2. Desarrollo de la agenda propuesta del Foro": encabezado que
+     * agrupa Sesión 1/2/3 como sus subsecciones (2.1, 2.2, 2.3), con
+     * un párrafo introductorio antes de la primera.
+     */
+    encabezadoSeccion_("2. Desarrollo de la agenda propuesta del Foro");
+    const nombreResponsableAgenda=String(c.nombre?.valor||"la persona responsable del envío").trim();
+    const rolResponsableAgenda=String(c.rolForoResponsable?.valor||"responsable del envío del instrumento").trim();
+    const pAgenda=body.appendParagraph(
+      "Los "+totalParticipantesInforme+" participantes elaboraron las conclusiones de las preguntas sugeridas desde la orientación compartida por la Secretaría de Educación de Neiva, respondiendo una a una las preguntas orientadoras que fueron consolidadas y socializadas por "+nombreResponsableAgenda+", "+rolResponsableAgenda+"."
+    );
+    pAgenda.editAsText().setForegroundColor(GRIS_TEXTO);
+    estilizarCuerpoInforme_(pAgenda);
+
     const grupos=[
-      {n:"Sesión 1",items:[
-        ["Pregunta orientadora (para todos): ¿Cómo hemos avanzado, desde nuestra institución educativa, en el logro de los retos y propósitos planteados en el FEM2025?",c.respuestaSesion1?.valor||""],
-        ["Pregunta 2 (para todos): ¿Cómo hemos avanzado, desde nuestra institución educativa, en la implementación de los nuevos grados del nivel de preescolar (jardín, prejardín)?",c.respuestaSesion1Pregunta2?.valor||""]
+      {n:"2.1 Sesión 1",items:[
+        ["Pregunta orientadora: ¿Cómo hemos avanzado, desde nuestra institución educativa, en el logro de los retos y propósitos planteados en el FEM2025?",c.respuestaSesion1?.valor||""],
+        ["Pregunta 2: ¿Cómo hemos avanzado, desde nuestra institución educativa, en la implementación de los nuevos grados del nivel de preescolar (jardín, prejardín)?",c.respuestaSesion1Pregunta2?.valor||""]
       ]},
-      {n:"Sesión 2",items:[
-        ["Pregunta 1 (para todos): ¿Consideran que los currículos actuales que se desarrollan en las instituciones educativas son pertinentes con sus realidades territoriales (sociales, culturales, productivas)? ¿Por qué?",c.respuestaSesion2Pregunta1?.valor||""],
+      {n:"2.2 Sesión 2",items:[
+        ["Pregunta 1: ¿Consideran que los currículos actuales que se desarrollan en las instituciones educativas son pertinentes con sus realidades territoriales (sociales, culturales, productivas)? ¿Por qué?",c.respuestaSesion2Pregunta1?.valor||""],
         ...filasAcciones_("Pregunta 2",[1,2,3,4,5].map(i=>c["respuestaSesion2Pregunta2Accion"+i]?.valor||"")),
-        ["Pregunta 3 (para todos): ¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar estas acciones?",c.respuestaSesion2Pregunta3?.valor||""],
-        ["Pregunta 4 (para todos): ¿Cómo se están articulando estos equipos de trabajo para lograr currículos más pertinentes territorialmente?",c.respuestaSesion2Pregunta4?.valor||""],
-        ["Pregunta 5 (para todos): ¿Qué mecanismos de seguimiento se están implementando para que dichas acciones se cumplan?",c.respuestaSesion2Pregunta5?.valor||""]
+        ["Pregunta 3: ¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar estas acciones?",c.respuestaSesion2Pregunta3?.valor||""],
+        ["Pregunta 4: ¿Cómo se están articulando estos equipos de trabajo para lograr currículos más pertinentes territorialmente?",c.respuestaSesion2Pregunta4?.valor||""],
+        ["Pregunta 5: ¿Qué mecanismos de seguimiento se están implementando para que dichas acciones se cumplan?",c.respuestaSesion2Pregunta5?.valor||""]
       ]},
-      {n:"Sesión 3",items:[
-        ["Pregunta 1 (para todos): ¿Consideran que la toma de decisiones en las instituciones educativas actualmente es participativa y democrática? ¿Por qué?",c.respuestaSesion3Pregunta1?.valor||""],
+      {n:"2.3 Sesión 3",items:[
+        ["Pregunta 1: ¿Consideran que la toma de decisiones en las instituciones educativas actualmente es participativa y democrática? ¿Por qué?",c.respuestaSesion3Pregunta1?.valor||""],
         ...filasAcciones_("Pregunta 2",[1,2,3,4,5].map(i=>c["respuestaSesion3Pregunta2Accion"+i]?.valor||"")),
-        ["Equipos de trabajo (para todos): ¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar las estrategias y mecanismos de participación escolar?",c.respuestaSesion3Pregunta3?.valor||""],
-        ["Mecanismos de seguimiento (para todos): ¿Qué mecanismos de seguimiento se están implementando para garantizar las acciones encaminadas a promover gobiernos educativos democráticos?",c.respuestaSesion3Pregunta4?.valor||""]
+        ["Equipos de trabajo: ¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar las estrategias y mecanismos de participación escolar?",c.respuestaSesion3Pregunta3?.valor||""],
+        ["Mecanismos de seguimiento: ¿Qué mecanismos de seguimiento se están implementando para garantizar las acciones encaminadas a promover gobiernos educativos democráticos?",c.respuestaSesion3Pregunta4?.valor||""]
       ]}
     ];
 
@@ -7108,7 +7163,7 @@ function generarInformeFEM(idForo,datosCliente){
      * hoja de las sesiones, la sección de Evidencias continúa ahí
      * mismo en vez de empezar siempre una hoja nueva.
      */
-    encabezadoSeccion_("Evidencias de la jornada");
+    encabezadoSeccion_("3. Evidencias de la jornada");
     const textoEvidenciasAsistencia=metodoAsistenciaInforme==="PDF"
       ? "La asistencia se registró mediante un PDF escaneado, que puede verse aquí: 🔗"
       : "La asistencia se firmó de manera digital (código QR/link) durante la jornada; el listado completo se incluye a continuación.";
@@ -7185,15 +7240,14 @@ function generarInformeFEM(idForo,datosCliente){
      * y subrayado, cargo en cursiva, y para los responsables del
      * envío también su rol dentro del Foro en cursiva.
      *
-     * BUG CORREGIDO: este salto de página era forzado sin importar
-     * cuánto espacio quedara en la hoja anterior — si el contenido de
-     * Evidencias (foto, listado de asistencia) terminaba justo al
-     * final de una página, este salto dejaba una página COMPLETAMENTE
-     * en blanco (solo con el encabezado de logos) antes de "Firmas".
-     * Se quita, igual que ya se hizo para "Evidencias de la jornada"
-     * más arriba: si queda espacio, Firmas sigue en la misma hoja.
+     * A pedido expreso, "Firmas" siempre queda en la última hoja del
+     * informe: se fuerza un salto de página justo antes (a diferencia
+     * del resto del informe, que fluye sin saltos forzados desde que
+     * se corrigió el bug de páginas en blanco entre Evidencias y
+     * Firmas — acá el salto es intencional, no ese bug).
      */
-    const tituloFirmas=body.appendParagraph("Firmas");
+    body.appendPageBreak();
+    const tituloFirmas=body.appendParagraph("5. Firmas");
     estilizarTituloInforme_(tituloFirmas, VERDE, DocumentApp.ParagraphHeading.HEADING1);
 
     /*
