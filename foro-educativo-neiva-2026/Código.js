@@ -68,7 +68,7 @@ const DRIVE_CARPETA_FEM_ID = "1IqcFgQUSKocvGX3JwvNOu-xJzt0gfKc8";
 // enlace. El PDF (lo único que la IE necesita ver/descargar) sigue
 // yendo a la carpeta pública de la IE; el Doc editable, de aquí en
 // adelante, va únicamente a esta carpeta.
-const DRIVE_CARPETA_EDITABLES_FEM_ID = "1pKyyNRH7JsG2XkQth70UhyKgjoGK-Bjc";
+const DRIVE_CARPETA_EDITABLES_FEM_ID = "1047FoYnCOsVakUl-7pCtvwpeceWM2DpB";
 
 // Paleta usada al construir documentos con DocumentApp (informe
 // ejecutivo, listado de asistencia). Misma paleta del formulario.
