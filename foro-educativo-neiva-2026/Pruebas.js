@@ -4350,6 +4350,14 @@ function reintentarEnviosInformeDiferidosFEM(){
  * guardado en AccesosIE (columna IE) — mayúsculas/minúsculas no
  * importan.
  *
+ * generarInformeFEM() SIEMPRE crea un Doc/PDF nuevo (no sobrescribe
+ * el anterior), así que — una vez el nuevo informe se generó bien —
+ * el Doc y el PDF VIEJOS (con la fecha en inglés, sin "IE" en el pie,
+ * etc.) se envían a la papelera de Drive (setTrashed, recuperable
+ * desde la papelera si hiciera falta) para que en la carpeta de la
+ * IE quede solo el informe correcto, sin dos versiones distintas
+ * conviviendo.
+ *
  * Uso: desde el editor de Apps Script, seleccionar esta función,
  * cambiar el valor por defecto de nombreIE si hace falta y presionar
  * "Ejecutar". El resultado (con el docUrl/pdfUrl nuevos) queda en
@@ -4373,7 +4381,21 @@ function regenerarInformeFEMPorIE(nombreIE){
   if(!datosGuardados) throw new Error("No hay datos guardados para "+nombreIE+" (ID_FORO "+idForo+").");
   datosGuardados.idForo = idForo;
 
+  // IDs del Doc/PDF viejos, ANTES de regenerar, para poder mandarlos
+  // a la papelera después (solo si la regeneración sale bien).
+  const idDocViejo = mapa.ID_INFORME ? String(fila[mapa.ID_INFORME-1]||"").trim() : "";
+  const idPdfViejo = mapa.ID_PDF_INFORME ? String(fila[mapa.ID_PDF_INFORME-1]||"").trim() : "";
+
   const informe = generarInformeFEM(idForo, datosGuardados);
+
+  if(informe && informe.ok){
+    [idDocViejo, idPdfViejo].forEach(function(idViejo){
+      if(!idViejo) return;
+      try{ DriveApp.getFileById(idViejo).setTrashed(true); }
+      catch(errorPapelera){ Logger.log("No fue posible enviar a la papelera el archivo viejo "+idViejo+": "+errorPapelera.message); }
+    });
+  }
+
   Logger.log("Informe regenerado para "+nombreIE+": "+JSON.stringify(informe));
   return informe;
 }
