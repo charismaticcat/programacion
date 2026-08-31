@@ -5707,6 +5707,12 @@ function agregarListadoAsistenciaAlInforme_(body, idForo, datos){
     return;
   }
 
+  // Orden alfabético por nombre completo (antes quedaban en el orden
+  // en que fueron firmando por QR).
+  const asistentesOrdenados=asistentes.slice().sort(function(a,b){
+    return String(a.nombre||"").localeCompare(String(b.nombre||""),"es",{sensitivity:"base"});
+  });
+
   const t=body.appendTable();
   t.setBorderColor(COLOR_GRIS_BORDE_DOC); t.setBorderWidth(1);
   const encabezado=t.appendTableRow();
@@ -5715,7 +5721,7 @@ function agregarListadoAsistenciaAlInforme_(body, idForo, datos){
     celda.setBackgroundColor(COLOR_VERDE_DOC);
     celda.editAsText().setForegroundColor("#FFFFFF").setBold(true).setFontSize(9);
   });
-  asistentes.forEach(function(a){
+  asistentesOrdenados.forEach(function(a){
     const r=t.appendTableRow();
     [a.nombre,a.tipoAsistencia,a.cargo,a.rolForo,a.documento,a.correo,a.telefono,a.fecha,a.hora].forEach(function(valor){
       r.appendTableCell(String(valor||"—")).editAsText().setForegroundColor(COLOR_GRIS_TEXTO_DOC).setFontSize(9);
@@ -5804,6 +5810,15 @@ function estilizarTituloInforme_(parrafo, colorVerde, heading){
   parrafo.setText(parrafo.getText().toUpperCase());
   if(heading) parrafo.setHeading(heading);
   parrafo.setSpacingBefore(14).setSpacingAfter(2);
+  // BUG CORREGIDO: "títulos huérfanos" — un título quedaba solo al
+  // final de una página con su contenido (texto o gráfico) empujado a
+  // la siguiente. setKeepWithNext SÍ existe en DocumentApp (a
+  // diferencia de "mantener con el párrafo ANTERIOR", que no tiene
+  // API): evita que Documentos ponga un salto de página entre este
+  // título y el párrafo/imagen que le sigue inmediatamente — si ese
+  // contenido no cabe en lo que resta de la página, título y
+  // contenido se van juntos a la siguiente.
+  parrafo.setKeepWithNext(true);
   parrafo.editAsText().setForegroundColor(colorVerde).setBold(true).setFontFamily(DocumentApp.FontFamily.ARIAL);
   return parrafo;
 }
@@ -5833,6 +5848,9 @@ function estilizarCuerpoInforme_(parrafo){
 function estilizarSubtituloInforme_(parrafo, colorVerde){
   parrafo.setText(parrafo.getText().toUpperCase());
   parrafo.setSpacingBefore(10).setSpacingAfter(2);
+  // Mismo "keep with next" que estilizarTituloInforme_ — ver el
+  // comentario ahí.
+  parrafo.setKeepWithNext(true);
   parrafo.editAsText().setForegroundColor(colorVerde).setBold(true).setFontSize(10).setFontFamily(DocumentApp.FontFamily.ARIAL);
   return parrafo;
 }
@@ -5998,9 +6016,14 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
     const pSedes=body.appendParagraph("De los participantes, "+listaSedes+".");
     pSedes.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
     estilizarCuerpoInforme_(pSedes);
+    // Se mantiene junto con el gráfico que le sigue (no hay un título
+    // aparte entre este párrafo y el gráfico de sedes).
+    pSedes.setKeepWithNext(true);
     try{
+      // Ancho proporcional a la hoja (540pt: 612pt de página - 36pt
+      // de margen a cada lado), igual que los demás gráficos.
       const blobSedes=construirGraficoColumnas_("Participantes por sede",sedesOrdenadas,sedesOrdenadas.map(function(s){return conteoSedes[s];}));
-      body.appendImage(blobSedes).setWidth(430);
+      body.appendImage(blobSedes).setWidth(540);
     }catch(errorSedes){ Logger.log("Gráfico de sedes: "+errorSedes.message); }
   }
 
@@ -6013,7 +6036,7 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
   if(jornadasOrdenadas.length){
     try{
       const blobJornadas=construirGraficoColumnas_("Participantes por jornada",jornadasOrdenadas,jornadasOrdenadas.map(function(j){return conteoJornadas[j];}));
-      body.appendImage(blobJornadas).setWidth(430);
+      body.appendImage(blobJornadas).setWidth(540);
     }catch(errorJornadas){ Logger.log("Gráfico de jornadas: "+errorJornadas.message); }
   }
 
@@ -6030,11 +6053,12 @@ function agregarPerfilYPercepcionAlInforme_(body, idForo, datos, estilos){
   );
   pDemografia.editAsText().setForegroundColor(estilos.GRIS_TEXTO);
   estilizarCuerpoInforme_(pDemografia);
+  pDemografia.setKeepWithNext(true);
   try{
     const etiquetasSexo=["Niños","Niñas","Adolesc. hombres","Adolesc. mujeres","Hombres adultos","Mujeres adultas"];
     const valoresSexo=[dem.ninos,dem.ninas,dem.adolescentesHombres,dem.adolescentesMujeres,dem.hombresAdultos,dem.mujeresAdultas];
     const blobSexo=construirGraficoColumnas_("Participantes por sexo y edad ("+(totalHombres+totalMujeres)+" total)",etiquetasSexo,valoresSexo);
-    body.appendImage(blobSexo).setWidth(460);
+    body.appendImage(blobSexo).setWidth(540);
   }catch(errorSexo){ Logger.log("Gráfico de sexo/edad: "+errorSexo.message); }
 
   /*
@@ -6757,12 +6781,16 @@ function agregarValoracionAlInforme_(body, idForo, estilos){
     .map(function(t){ return String(t||"").trim(); })
     .filter(Boolean);
   if(comentarios.length){
-    const pComentarios=body.appendParagraph("Comentarios y sugerencias registrados: "+comentarios.join("; ")+".");
+    // Solo la ETIQUETA ("Comentarios y sugerencias registrados:") va
+    // en negrita — el comentario en sí, escrito por la persona
+    // responsable del envío, NO — por eso se arma con dos rangos de
+    // texto (appendText) en vez de un solo string con negrilla pareja.
+    const pComentarios=body.appendParagraph("");
     estilizarCuerpoInforme_(pComentarios);
-    // En negrita a pedido expreso — va DESPUÉS de estilizarCuerpoInforme_
-    // (que fija setBold(false) para el cuerpo estándar) para que la
-    // negrilla explícita de este párrafo en particular no quede pisada.
-    pComentarios.editAsText().setForegroundColor(estilos.GRIS_TEXTO).setItalic(true).setBold(true);
+    const rangoEtiquetaComentarios=pComentarios.appendText("Comentarios y sugerencias registrados: ");
+    rangoEtiquetaComentarios.setBold(true).setItalic(true).setForegroundColor(estilos.GRIS_TEXTO);
+    const rangoTextoComentarios=pComentarios.appendText(comentarios.join("; ")+".");
+    rangoTextoComentarios.setBold(false).setItalic(true).setForegroundColor(estilos.GRIS_TEXTO);
   }
 }
 
@@ -7257,7 +7285,8 @@ function generarInformeFEM(idForo,datosCliente){
      */
     function agregarBloqueFirma_(nombre, cargo, rolTexto, tamanoNombre){
       if(!String(nombre||"").trim()) return;
-      const pNombre=body.appendParagraph(String(nombre).trim());
+      // Nombre en mayúscula sostenida, a pedido expreso.
+      const pNombre=body.appendParagraph(String(nombre).trim().toUpperCase());
       pNombre.setSpacingBefore(18).setSpacingAfter(2);
       pNombre.editAsText().setBold(true).setUnderline(true).setForegroundColor(NEGRO).setFontSize(tamanoNombre||12);
       if(String(cargo||"").trim()){
@@ -7272,8 +7301,6 @@ function generarInformeFEM(idForo,datosCliente){
       }
     }
 
-    agregarBloqueFirma_(c.rector?.valor, "Rector(a)", null, 16);
-
     const ieParaFirma=nombreIESinPrefijoInstitucional_(datos.institucion||"");
     const responsablesFirma=[{nombre:c.nombre?.valor, cargo:c.cargo?.valor, rol:c.rolForoResponsable?.valor}];
     for(let i=2;i<=4;i++){
@@ -7281,6 +7308,24 @@ function generarInformeFEM(idForo,datosCliente){
       if(!String(nombreResponsableAdicional||"").trim()) continue;
       responsablesFirma.push({nombre:nombreResponsableAdicional, cargo:c["responsable"+i+"Cargo"]?.valor, rol:c["responsable"+i+"RolForo"]?.valor});
     }
+
+    /*
+     * BUG CORREGIDO: cuando el/la rectora ES ADEMÁS quien diligenció
+     * y envió el formulario (el caso más común), su nombre firmaba
+     * DOS veces: una sin cargo completo ni rol (el bloque fijo de
+     * "Rector(a)") y otra con cargo y rol (en el bloque de
+     * responsables del envío). Se omite el bloque fijo de Rector(a)
+     * cuando su nombre coincide con alguno de los responsables del
+     * envío, dejando solo la versión completa (con cargo y rol).
+     */
+    const nombreRectorNormalizado=String(c.rector?.valor||"").trim().toUpperCase();
+    const rectorYaApareceComoResponsable=!!nombreRectorNormalizado && responsablesFirma.some(function(r){
+      return String(r.nombre||"").trim().toUpperCase()===nombreRectorNormalizado;
+    });
+    if(!rectorYaApareceComoResponsable){
+      agregarBloqueFirma_(c.rector?.valor, "Rector(a)", null, 16);
+    }
+
     responsablesFirma.forEach(function(r){
       const rolTexto=String(r.rol||"").trim() + " del Foro Educativo Institucional "+ieParaFirma+" 2026";
       agregarBloqueFirma_(r.nombre, r.cargo, rolTexto);
