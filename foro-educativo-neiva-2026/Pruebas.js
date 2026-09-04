@@ -5051,3 +5051,433 @@ function corregirRectorYRegenerarInformeFEM(nombreIE, nombreRectorCorrecto){
 
   return regenerarInformeFEMPorIE(nombreIE);
 }
+
+/*****************************************************
+ * ORGANIZACIÓN Y REPORTES POR GRUPO DE TRABAJO (G1-G6)
+ *
+ * Tres funciones independientes, pensadas para ejecutarse manualmente
+ * desde el editor de Apps Script (en cualquier orden, y las veces que
+ * hagan falta — todas son idempotentes, no duplican carpetas, copias
+ * ni hojas si ya existen de una ejecución anterior):
+ *
+ *   1) organizarInformesPorGrupoFEM()   — carpetas de Drive por grupo
+ *      con copias de los PDF e informes editables ya generados.
+ *   2) compilarRespuestasPorGrupoFEM()  — un Doc editable por grupo
+ *      con las respuestas de todas sus IE.
+ *   3) generarSpreadsheetGrupoFEM()     — una sola hoja de cálculo con
+ *      participación, valoración y percepción, todas por grupo.
+ *
+ * Las tres reutilizan mapaGruposFEM_() como única fuente de "qué IE
+ * pertenece a qué grupo", para que las tres cuenten siempre la misma
+ * historia.
+ *****************************************************/
+
+/*
+ * Agrupa todas las IE REALES (excluye TIPO="PRUEBA") de AccesosIE
+ * según su grupo de trabajo (G1-G6), usando obtenerGrupoRealDeIEFEM_
+ * (Código.js) — que prioriza la respuesta de caracterización ya
+ * guardada por la propia IE y solo recurre al catálogo fijo si esa
+ * respuesta todavía no existe. Las IE que no calzan en ninguna de las
+ * dos fuentes (ni catálogo ni respuesta guardada) quedan aparte, en
+ * "SIN_GRUPO", en vez de perderse en silencio.
+ */
+function mapaGruposFEM_(){
+  const hoja=asegurarColumnasAccesosIE_();
+  const mapa=mapaHoja_(hoja);
+  const ultimaFila=hoja.getLastRow();
+  const grupos={G1:[],G2:[],G3:[],G4:[],G5:[],G6:[],SIN_GRUPO:[]};
+  if(ultimaFila<2) return grupos;
+
+  const valores=hoja.getRange(2,1,ultimaFila-1,hoja.getLastColumn()).getDisplayValues();
+  valores.forEach(function(fila){
+    const nombreIE=String(fila[mapa.IE-1]||"").trim();
+    const idForo=String(fila[mapa.ID_FORO-1]||"").trim();
+    if(!nombreIE || !idForo) return;
+
+    const tipo=mapa.TIPO ? String(fila[mapa.TIPO-1]||"").trim().toUpperCase() : "";
+    if(tipo==="PRUEBA") return;
+
+    const pdfId=mapa.ID_PDF_INFORME ? String(fila[mapa.ID_PDF_INFORME-1]||"").trim() : "";
+    const grupo=obtenerGrupoRealDeIEFEM_(nombreIE, idForo) || "SIN_GRUPO";
+    const entrada={nombreIE:nombreIE, idForo:idForo, pdfId:pdfId};
+    if(grupos[grupo]) grupos[grupo].push(entrada); else grupos.SIN_GRUPO.push(entrada);
+  });
+
+  return grupos;
+}
+
+const GRUPOS_FEM_ORDEN_=["G1","G2","G3","G4","G5","G6"];
+
+/*
+ * 1) Crea (si no existen) la carpeta de cada grupo y sus dos
+ * subcarpetas, y copia ahí — NUNCA MUEVE — el PDF más reciente y el
+ * Doc editable de cada IE del grupo que ya tenga informe generado.
+ * Se copia, no se mueve, porque el PDF original en la carpeta propia
+ * de la IE (DRIVE_CARPETA_FEM_ID/{IE}) sigue siendo el que usan
+ * enviarInformeFEM/reintentarEnviosInformeDiferidosFEM para reenviar
+ * o adjuntar por correo — moverlo de ahí rompería esos flujos en
+ * vivo. Idempotente: si una copia con el mismo nombre ya existe en la
+ * carpeta del grupo, no se duplica.
+ *
+ * Uso: desde el editor de Apps Script, seleccionar esta función y
+ * presionar "Ejecutar". El resultado (qué se copió, qué faltó) queda
+ * en "Ver registros de ejecución".
+ */
+function organizarInformesPorGrupoFEM(){
+  const grupos=mapaGruposFEM_();
+  const resultado={};
+
+  GRUPOS_FEM_ORDEN_.forEach(function(g){
+    const miembros=(grupos[g]||[]).slice().sort(function(a,b){ return a.nombreIE.localeCompare(b.nombreIE,"es"); });
+    const carpetas=crearEstructuraCarpetasGrupoFEM_(g);
+    const pdfCopiados=[], editablesCopiados=[], sinInforme=[], fallidos=[];
+
+    miembros.forEach(function(m){
+      if(!m.pdfId){ sinInforme.push(m.nombreIE); return; }
+
+      try{
+        const nombreArchivo="Informe Ejecutivo - "+m.nombreIE+" FEM 2026";
+        const pdfOriginal=obtenerPdfInformeMasRecienteFEM_(crearCarpetaIE_(m.nombreIE), nombreArchivo, m.pdfId);
+        if(!carpetas.sentFolder.getFilesByName(pdfOriginal.getName()).hasNext()){
+          pdfOriginal.makeCopy(pdfOriginal.getName(), carpetas.sentFolder);
+        }
+        pdfCopiados.push(m.nombreIE);
+      }catch(errorPdf){
+        fallidos.push({ie:m.nombreIE, motivo:"PDF: "+errorPdf.message});
+      }
+
+      try{
+        const nombreDoc="Informe Ejecutivo - "+m.nombreIE+" FEM 2026";
+        const it=DriveApp.getFolderById(DRIVE_CARPETA_EDITABLES_FEM_ID).getFilesByName(nombreDoc);
+        if(it.hasNext()){
+          const docOriginal=it.next();
+          if(!carpetas.editableFolder.getFilesByName(nombreDoc).hasNext()){
+            docOriginal.makeCopy(nombreDoc, carpetas.editableFolder);
+          }
+          editablesCopiados.push(m.nombreIE);
+        }
+      }catch(errorDoc){
+        fallidos.push({ie:m.nombreIE, motivo:"Editable: "+errorDoc.message});
+      }
+    });
+
+    resultado[g]={
+      carpetaGrupo:carpetas.grupoFolder.getUrl(),
+      pdfCopiados:pdfCopiados,
+      editablesCopiados:editablesCopiados,
+      sinInformeTodavia:sinInforme,
+      fallidos:fallidos
+    };
+  });
+
+  Logger.log("========================================");
+  Logger.log("ORGANIZACIÓN DE INFORMES POR GRUPO — RESULTADO");
+  Logger.log(JSON.stringify(resultado, null, 2));
+  if((grupos.SIN_GRUPO||[]).length){
+    Logger.log("IE SIN GRUPO asignado (ni respuesta guardada ni catálogo) — revisar manualmente: "+JSON.stringify(grupos.SIN_GRUPO.map(function(m){return m.nombreIE;})));
+  }
+  Logger.log("========================================");
+
+  return resultado;
+}
+
+/*
+ * 2) Un Google Doc editable POR GRUPO que compila, con un título por
+ * IE (orden alfabético) y debajo sus respuestas, las Sesiones 1/2/3
+ * de todas las IE del grupo que ya tengan datos guardados. Se deja en
+ * la raíz de la carpeta del grupo (no dentro de ninguna de las dos
+ * subcarpetas: es un documento nuevo que sintetiza el grupo completo,
+ * distinto de los informes individuales que ya se copian a "Informes
+ * editables de grupo GN" con organizarInformesPorGrupoFEM). Si ya
+ * existe un documento con el mismo nombre de una ejecución anterior,
+ * se reemplaza (papelera) para dejar siempre la versión más reciente.
+ *
+ * Uso: desde el editor de Apps Script, seleccionar esta función y
+ * presionar "Ejecutar".
+ */
+function compilarRespuestasPorGrupoFEM(){
+  const grupos=mapaGruposFEM_();
+  const resultado={};
+
+  GRUPOS_FEM_ORDEN_.forEach(function(g){
+    const miembros=(grupos[g]||[]).slice().sort(function(a,b){ return a.nombreIE.localeCompare(b.nombreIE,"es"); });
+    const listaConDatos=[], sinDatos=[];
+
+    miembros.forEach(function(m){
+      try{
+        const datos=obtenerDatosGuardadosPorIdForo_(m.idForo);
+        if(datos) listaConDatos.push({nombreIE:m.nombreIE, datos:datos});
+        else sinDatos.push(m.nombreIE);
+      }catch(error){ sinDatos.push(m.nombreIE); }
+    });
+
+    if(!listaConDatos.length){
+      resultado[g]={omitido:"Ninguna IE del grupo tiene datos guardados todavía.", sinDatos:sinDatos};
+      return;
+    }
+
+    const carpetas=crearEstructuraCarpetasGrupoFEM_(g);
+    const nombreDoc="Respuestas Compiladas - Grupo "+g+" FEM 2026";
+    const existentes=carpetas.grupoFolder.getFilesByName(nombreDoc);
+    while(existentes.hasNext()) existentes.next().setTrashed(true);
+
+    const archivoDoc=generarDocumentoCompiladoGrupoFEM_(g, listaConDatos);
+    carpetas.grupoFolder.addFile(archivoDoc);
+    try{ DriveApp.getRootFolder().removeFile(archivoDoc); }catch(e){}
+
+    resultado[g]={documento:archivoDoc.getUrl(), ieIncluidas:listaConDatos.map(function(x){return x.nombreIE;}), sinDatos:sinDatos};
+  });
+
+  Logger.log("========================================");
+  Logger.log("DOCUMENTOS COMPILADOS POR GRUPO — RESULTADO");
+  Logger.log(JSON.stringify(resultado, null, 2));
+  Logger.log("========================================");
+
+  return resultado;
+}
+
+/*
+ * 3) Hoja de cálculo dedicada, aparte del documento de análisis
+ * general (Análisis FEM 2026), con tres hojas: "Participación",
+ * "Valoración" y "Percepción por Grupo". Su ID queda guardado en
+ * ScriptProperties para que volver a ejecutar esta función actualice
+ * la MISMA hoja de cálculo en vez de crear una nueva cada vez.
+ */
+const CLAVE_PROP_SPREADSHEET_GRUPOS_FEM_="SPREADSHEET_GRUPOS_FEM_ID";
+
+function obtenerSpreadsheetGruposFEM_(){
+  const props=PropertiesService.getScriptProperties();
+  const idGuardado=props.getProperty(CLAVE_PROP_SPREADSHEET_GRUPOS_FEM_);
+  if(idGuardado){
+    try{ return SpreadsheetApp.openById(idGuardado); }
+    catch(e){ Logger.log("La hoja de grupos guardada ("+idGuardado+") ya no es accesible, se creará una nueva: "+e.message); }
+  }
+  const ss=SpreadsheetApp.create("Participación, Valoración y Percepción por Grupo — FEM 2026");
+  try{
+    const archivo=DriveApp.getFileById(ss.getId());
+    DriveApp.getFolderById(DRIVE_CARPETA_FEM_ID).addFile(archivo);
+    DriveApp.getRootFolder().removeFile(archivo);
+  }catch(e){ Logger.log("No fue posible mover la hoja de grupos a la carpeta del FEM: "+e.message); }
+  props.setProperty(CLAVE_PROP_SPREADSHEET_GRUPOS_FEM_, ss.getId());
+  return ss;
+}
+
+function hojaLimpiaGrupoFEM_(ss, nombre){
+  let sh=ss.getSheetByName(nombre);
+  if(!sh){ sh=ss.insertSheet(nombre); }
+  else{ sh.getCharts().forEach(function(c){ sh.removeChart(c); }); sh.clear(); }
+  return sh;
+}
+
+// Etiqueta legible de un grupo, para encabezados y títulos de gráficos.
+function etiquetaGrupoFEM_(g){ return g==="SIN_GRUPO" ? "Sin grupo asignado" : "Grupo "+g; }
+
+function construirHojaParticipacionGrupoFEM_(ss, grupos){
+  const sh=hojaLimpiaGrupoFEM_(ss, "Participación");
+  const headers=["IE","Grupo"].concat(ETIQUETAS_PARTICIPACION_ANALISIS_).concat(["Total"]);
+  const filasIE=[];
+  const gruposConSinAsignar=GRUPOS_FEM_ORDEN_.concat((grupos.SIN_GRUPO||[]).length?["SIN_GRUPO"]:[]);
+
+  // sumasPorGrupo[grupo][índice de rol] = total de ese rol en ese grupo.
+  const sumasPorGrupo={};
+  gruposConSinAsignar.forEach(function(g){ sumasPorGrupo[g]=ROLES_PARTICIPACION_ANALISIS_.map(function(){return 0;}); });
+
+  gruposConSinAsignar.forEach(function(g){
+    (grupos[g]||[]).slice().sort(function(a,b){return a.nombreIE.localeCompare(b.nombreIE,"es");}).forEach(function(m){
+      let conteo=ROLES_PARTICIPACION_ANALISIS_.map(function(){return 0;});
+      try{
+        const datos=obtenerDatosGuardadosPorIdForo_(m.idForo);
+        const c=(datos&&datos.campos)||{};
+        conteo=ROLES_PARTICIPACION_ANALISIS_.map(function(id){ return Number(c["participantes"+id]?.valor||0); });
+      }catch(error){ Logger.log("Participación de "+m.nombreIE+": "+error.message); }
+      const total=conteo.reduce(function(a,b){return a+b;},0);
+      filasIE.push([m.nombreIE, etiquetaGrupoFEM_(g)].concat(conteo).concat([total]));
+      conteo.forEach(function(v,i){ sumasPorGrupo[g][i]+=v; });
+    });
+  });
+
+  sh.getRange(1,1,1,headers.length).setValues([headers]);
+  sh.setFrozenRows(1);
+  if(filasIE.length) sh.getRange(2,1,filasIE.length,headers.length).setValues(filasIE);
+
+  // Un gráfico por CADA TIPO DE PARTICIPANTE que sí participó (total
+  // municipal > 0), comparando el total de ese rol entre los grupos.
+  const colInicioAyuda=headers.length+2;
+  let filaAyuda=1;
+  ROLES_PARTICIPACION_ANALISIS_.forEach(function(idRol, i){
+    const totalRol=gruposConSinAsignar.reduce(function(s,g){return s+sumasPorGrupo[g][i];},0);
+    if(totalRol<=0) return;
+    const etiqueta=ETIQUETAS_PARTICIPACION_ANALISIS_[i];
+    const filaInicio=filaAyuda;
+    sh.getRange(filaInicio,colInicioAyuda,1,2).setValues([["Grupo",etiqueta]]);
+    const datosGrupo=gruposConSinAsignar.map(function(g){ return [etiquetaGrupoFEM_(g), sumasPorGrupo[g][i]]; });
+    sh.getRange(filaInicio+1,colInicioAyuda,datosGrupo.length,2).setValues(datosGrupo);
+    const rango=sh.getRange(filaInicio,colInicioAyuda,datosGrupo.length+1,2);
+    sh.insertChart(sh.newChart().setChartType(Charts.ChartType.COLUMN).addRange(rango)
+      .setOption("title","Participación de "+etiqueta+" por grupo")
+      .setOption("width",420).setOption("height",260)
+      .setPosition(filaInicio,colInicioAyuda+3,0,0).build());
+    filaAyuda+=datosGrupo.length+3;
+  });
+
+  sh.autoResizeColumns(1,headers.length);
+  return sh;
+}
+
+function construirHojaValoracionGrupoFEM_(ss, grupos){
+  const sh=hojaLimpiaGrupoFEM_(ss, "Valoración");
+  const headers=["IE","Grupo","Estado","Nota promedio","P1 diálogo y reflexión","P2 participación","P3 ideas y propuestas","P4 satisfacción del instrumento","P1 mejora","P2 mejora","P3 mejora","P4 mejora","P5 sugerencias"];
+  const filas=[];
+  const gruposConSinAsignar=GRUPOS_FEM_ORDEN_.concat((grupos.SIN_GRUPO||[]).length?["SIN_GRUPO"]:[]);
+
+  gruposConSinAsignar.forEach(function(g){
+    (grupos[g]||[]).slice().sort(function(a,b){return a.nombreIE.localeCompare(b.nombreIE,"es");}).forEach(function(m){
+      const val=obtenerValoracionPorIdForo_(m.idForo);
+      if(val){
+        // numeroLocalizado_ (no Number() directo): la nota puede venir
+        // con coma decimal ("4,75") por el formato de hoja en español,
+        // y Number("4,75") da NaN — ya se vio este mismo bug en el
+        // informe individual (ver numeroLocalizado_ en Código.js).
+        filas.push([m.nombreIE, etiquetaGrupoFEM_(g), "Diligenciada", numeroLocalizado_(val.nota), val.p1, val.p2, val.p3, val.p4, val.p1Mejora, val.p2Mejora, val.p3Mejora, val.p4Mejora, val.p5]);
+      }else{
+        filas.push([m.nombreIE, etiquetaGrupoFEM_(g), "Pendiente", "", "", "", "", "", "", "", "", "", ""]);
+      }
+    });
+  });
+
+  sh.getRange(1,1,1,headers.length).setValues([headers]);
+  sh.setFrozenRows(1);
+  if(filas.length) sh.getRange(2,1,filas.length,headers.length).setValues(filas);
+
+  // Gráfico 1: nota promedio por IE (solo las que ya valoraron).
+  const colAyuda=headers.length+2;
+  const conNota=filas.filter(function(f){ return f[2]==="Diligenciada" && Number(f[3])>0; }).map(function(f){ return [f[0], Number(f[3])]; });
+  let filaSiguiente=1;
+  if(conNota.length){
+    sh.getRange(1,colAyuda,1,2).setValues([["IE","Nota promedio"]]);
+    sh.getRange(2,colAyuda,conNota.length,2).setValues(conNota);
+    const rango=sh.getRange(1,colAyuda,conNota.length+1,2);
+    sh.insertChart(sh.newChart().setChartType(Charts.ChartType.COLUMN).addRange(rango)
+      .setOption("title","Nota promedio de valoración por IE").setOption("vAxis.viewWindow.max",5)
+      .setOption("width",480).setOption("height",280)
+      .setPosition(1,colAyuda+3,0,0).build());
+    filaSiguiente=conNota.length+4;
+  }
+
+  // Gráfico 2: nota promedio (del promedio de sus IE) por grupo.
+  const promediosPorGrupo=gruposConSinAsignar.map(function(g){
+    const notas=filas.filter(function(f){ return f[1]===etiquetaGrupoFEM_(g) && f[2]==="Diligenciada" && Number(f[3])>0; }).map(function(f){ return Number(f[3]); });
+    const promedio=notas.length ? notas.reduce(function(a,b){return a+b;},0)/notas.length : 0;
+    return [etiquetaGrupoFEM_(g), Number(promedio.toFixed(2))];
+  }).filter(function(f){ return f[1]>0; });
+  if(promediosPorGrupo.length){
+    sh.getRange(filaSiguiente,colAyuda,1,2).setValues([["Grupo","Nota promedio"]]);
+    sh.getRange(filaSiguiente+1,colAyuda,promediosPorGrupo.length,2).setValues(promediosPorGrupo);
+    const rango2=sh.getRange(filaSiguiente,colAyuda,promediosPorGrupo.length+1,2);
+    sh.insertChart(sh.newChart().setChartType(Charts.ChartType.COLUMN).addRange(rango2)
+      .setOption("title","Nota promedio de valoración por grupo").setOption("vAxis.viewWindow.max",5)
+      .setOption("width",480).setOption("height",280)
+      .setPosition(filaSiguiente,colAyuda+3,0,0).build());
+  }
+
+  sh.autoResizeColumns(1,headers.length);
+  return sh;
+}
+
+function construirHojaPercepcionGrupoFEM_(ss, grupos){
+  const sh=hojaLimpiaGrupoFEM_(ss, "Percepción por Grupo");
+  sh.getRange(1,1).setValue("PERCEPCIÓN DE FORTALEZAS Y OPORTUNIDADES DE MEJORAMIENTO, COMBINADA POR GRUPO — FEM 2026");
+  sh.getRange(1,1).setFontWeight("bold").setFontSize(13);
+
+  let filaActual=3;
+  GRUPOS_FEM_ORDEN_.forEach(function(g){
+    const miembros=grupos[g]||[];
+    let asistentes=[];
+    miembros.forEach(function(m){
+      try{ asistentes=asistentes.concat(obtenerAsistentesQR_(m.idForo)); }
+      catch(error){ Logger.log("Asistentes QR de "+m.nombreIE+" ("+g+"): "+error.message); }
+    });
+
+    sh.getRange(filaActual,1).setValue(etiquetaGrupoFEM_(g)+" — Percepción combinada ("+asistentes.length+" asistentes de "+miembros.length+" IE)");
+    sh.getRange(filaActual,1).setFontWeight("bold").setFontSize(11);
+    filaActual+=1;
+
+    if(!asistentes.length){
+      sh.getRange(filaActual,1).setValue("Todavía no hay asistencia registrada por código QR en ninguna IE de este grupo.");
+      filaActual+=3;
+      return;
+    }
+
+    const tF=tallyOpciones_(asistentes,"fortalezas"), tD=tallyOpciones_(asistentes,"dificultades");
+    sh.getRange(filaActual,1).setValue(
+      "Los "+asistentes.length+" participantes de este grupo que firmaron asistencia por código QR expresaron que las principales fortalezas institucionales identificadas en el Foro fueron "+top3Texto_(tF)+
+      ", mientras que las principales oportunidades de mejoramiento institucional identificadas fueron "+top3Texto_(tD)+"."
+    );
+    sh.getRange(filaActual,1,1,1).setWrap(true);
+    filaActual+=2;
+
+    const filaTablas=filaActual;
+    sh.getRange(filaTablas,1,1,2).setValues([["Fortaleza","Votos"]]);
+    if(tF.length) sh.getRange(filaTablas+1,1,tF.length,2).setValues(tF.map(function(x){return [x.opcion,x.votos];}));
+
+    sh.getRange(filaTablas,4,1,2).setValues([["Oportunidad de mejoramiento","Votos"]]);
+    if(tD.length) sh.getRange(filaTablas+1,4,tD.length,2).setValues(tD.map(function(x){return [x.opcion,x.votos];}));
+
+    if(tF.length){
+      const rangoF=sh.getRange(filaTablas,1,tF.length+1,2);
+      sh.insertChart(sh.newChart().setChartType(Charts.ChartType.BAR).addRange(rangoF)
+        .setOption("title","Fortalezas más votadas — "+etiquetaGrupoFEM_(g))
+        .setOption("width",420).setOption("height",Math.max(220,40+tF.length*22))
+        .setPosition(filaTablas,7,0,0).build());
+    }
+    if(tD.length){
+      const rangoD=sh.getRange(filaTablas,4,tD.length+1,2);
+      sh.insertChart(sh.newChart().setChartType(Charts.ChartType.BAR).addRange(rangoD)
+        .setOption("title","Oportunidades de mejoramiento más votadas — "+etiquetaGrupoFEM_(g))
+        .setOption("width",420).setOption("height",Math.max(220,40+tD.length*22))
+        .setPosition(filaTablas,13,0,0).build());
+    }
+
+    const filasTablaMax=Math.max(tF.length,tD.length)+1;
+    const filasChartMax=Math.ceil(Math.max(220,40+Math.max(tF.length,tD.length)*22)/21);
+    filaActual=filaTablas+Math.max(filasTablaMax,filasChartMax)+3;
+  });
+
+  sh.autoResizeColumns(1,6);
+  return sh;
+}
+
+/*
+ * Orquesta las tres hojas de arriba en una sola hoja de cálculo.
+ * Vuelve a ejecutarse las veces que haga falta: cada vez recalcula
+ * las tres hojas desde cero con los datos más recientes (no va
+ * acumulando versiones viejas).
+ *
+ * Uso: desde el editor de Apps Script, seleccionar esta función y
+ * presionar "Ejecutar". La URL de la hoja de cálculo queda en "Ver
+ * registros de ejecución".
+ */
+function generarSpreadsheetGrupoFEM(){
+  const grupos=mapaGruposFEM_();
+  const ss=obtenerSpreadsheetGruposFEM_();
+
+  construirHojaParticipacionGrupoFEM_(ss, grupos);
+  construirHojaValoracionGrupoFEM_(ss, grupos);
+  construirHojaPercepcionGrupoFEM_(ss, grupos);
+
+  // La primera hoja que trae toda hoja de cálculo nueva de Apps
+  // Script ("Hoja 1"/"Sheet1") ya no hace falta una vez existen las
+  // tres de arriba.
+  const hojaPorDefecto=ss.getSheetByName("Hoja 1")||ss.getSheetByName("Sheet1");
+  if(hojaPorDefecto && ss.getSheets().length>1) ss.deleteSheet(hojaPorDefecto);
+
+  Logger.log("========================================");
+  Logger.log("HOJA DE PARTICIPACIÓN, VALORACIÓN Y PERCEPCIÓN POR GRUPO");
+  Logger.log(ss.getUrl());
+  if((grupos.SIN_GRUPO||[]).length){
+    Logger.log("IE SIN GRUPO asignado incluidas aparte — revisar manualmente: "+JSON.stringify(grupos.SIN_GRUPO.map(function(m){return m.nombreIE;})));
+  }
+  Logger.log("========================================");
+
+  return {url:ss.getUrl(), sinGrupo:(grupos.SIN_GRUPO||[]).map(function(m){return m.nombreIE;})};
+}

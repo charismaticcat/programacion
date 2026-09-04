@@ -8783,3 +8783,184 @@ function actualizarGraficosAnalisisFEM_(ss){
     }
   }
 }
+
+/*****************************************************
+ * GRUPOS DE TRABAJO (G1-G6) — CARACTERIZACIÓN
+ *
+ * Catálogo IE -> grupo, copiado del mismo GRUPOS_INSTITUCIONES que ya
+ * existe en App.html (se usa ahí del lado del cliente, para
+ * autocompletar el campo "grupo" de la Caracterización mientras se
+ * llena el formulario). Código.js corre en un contexto de script
+ * separado del HtmlService y no puede ver funciones definidas dentro
+ * de una plantilla HTML, así que hace falta esta copia server-side
+ * para poder agrupar IE administrativamente (reportes, carpetas de
+ * Drive, etc.) sin depender del navegador de nadie.
+ *
+ * MANTENER SINCRONIZADO con App.html si cambia la composición de los
+ * grupos — son listas independientes por el motivo de arriba.
+ *****************************************************/
+const GRUPOS_INSTITUCIONES_FEM_ = {
+  G1: ["AIPECITO","LICEO DE SANTA LIBRADA","INEM JULIAM MOTTA SALAS","I.E. CLARETIANO GUSTAVO TORRES PARRA","PROMOCION SOCIAL","CHAPINERO"],
+  G2: ["MARIA CRISTINA ARANGO DE PASTRANA.","LUIS IGNACIO ANDRADE","GABRIEL GARCIA MARQUEZ","EDUARDO SANTOS","MARIA AUXILIADORA FORTALECILLAS","JAIRO MOSQUERA MORENO"],
+  G3: ["TECNICO SUPERIOR","DEPARTAMENTAL TIERRA DE PROMISIÓN","SANTA LIBRADA","RICARDO BORRERO ALVAREZ","ANGEL MARIA PAREDES","CEINAR"],
+  G4: ["JOSE EUSTASIO RIVERA","ATANASIO GIRARDOT","MISAEL PASTRANA BORRERO","HUMBERTO TAFUR CHARRY","ENRIQUE OLAYA HERRERA","ROBERTO DURAN ALVIRA"],
+  G5: ["SANTA TERESA","ESCUELA NORMAL SUPERIOR","INSTITUTO TECNICO IPC ANDRES ROSA","JUAN DE CABRERA","JAIRO MORERA LIZCANO","SAN ANTONIO DE ANACONIA"],
+  G6: ["OLIVERIO LARA BORRERO","AGUSTIN CODAZZI","EL LIMONAR","RODRIGO LARA BONILLA","EL CAGUAN","SAN LUIS BELTRAN"]
+};
+
+function normalizarNombreParaGrupoFEM_(texto){
+  return String(texto||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[.,]/g,"").replace(/\s+/g," ").trim().toLowerCase();
+}
+
+function obtenerGrupoInstitucionCatalogoFEM_(nombreIE){
+  const nombreNormalizado=normalizarNombreParaGrupoFEM_(nombreIE);
+  if(!nombreNormalizado) return "";
+  for(const grupo in GRUPOS_INSTITUCIONES_FEM_){
+    if(GRUPOS_INSTITUCIONES_FEM_[grupo].some(n=>normalizarNombreParaGrupoFEM_(n)===nombreNormalizado)) return grupo;
+  }
+  return "";
+}
+
+/*
+ * Grupo REAL de una IE: se prioriza la respuesta de caracterización
+ * que la propia IE dejó guardada (campos.grupo.valor — la misma que
+ * se muestra en la tabla de Caracterización del informe, y que
+ * App.html calcula con el mismo catálogo al momento de llenar el
+ * formulario), y solo si todavía no hay nada guardado se recurre al
+ * catálogo fijo de arriba. Devuelve "" si ninguna de las dos fuentes
+ * tiene el dato — para que quien llame pueda marcar la IE
+ * explícitamente como "sin grupo asignado" en vez de omitirla en
+ * silencio (por ejemplo, una IE nueva que todavía no se agregó a
+ * ningún catálogo).
+ */
+function obtenerGrupoRealDeIEFEM_(nombreIE, idForo){
+  if(idForo){
+    try{
+      const datosGuardados=obtenerDatosGuardadosPorIdForo_(idForo);
+      const grupoGuardado=String(datosGuardados?.campos?.grupo?.valor||"").trim();
+      if(grupoGuardado) return grupoGuardado;
+    }catch(error){ Logger.log("obtenerGrupoRealDeIEFEM_ ("+nombreIE+"): "+error.message); }
+  }
+  return obtenerGrupoInstitucionCatalogoFEM_(nombreIE);
+}
+
+/*
+ * Preguntas orientadoras y respuestas de las Sesiones 1, 2 y 3 de UNA
+ * IE, en el mismo formato [etiqueta, respuesta] que usa
+ * generarInformeFEM (tablaClaveValor_) para su sección "2. Desarrollo
+ * de la agenda propuesta del Foro" — extraído a una función aparte
+ * para poder reutilizar exactamente las mismas preguntas al compilar
+ * las respuestas de varias IE en un solo documento por grupo (ver
+ * generarDocumentoCompiladoGrupoFEM_), sin duplicar el texto de las
+ * preguntas ni arriesgar que las dos versiones queden desincronizadas.
+ */
+function obtenerRespuestasSesionesParaCompilado_(datos){
+  const c=datos.campos||{};
+  function filasAcciones_(etiqueta, valores){
+    return valores.map((valor,i)=>[etiqueta+" — Acción "+(i+1), valor]).filter((fila,i)=>i<3||fila[1]);
+  }
+  return [
+    {n:"Sesión 1",items:[
+      ["Pregunta orientadora: ¿Cómo hemos avanzado, desde nuestra institución educativa, en el logro de los retos y propósitos planteados en el FEM2025?",c.respuestaSesion1?.valor||""],
+      ["Pregunta 2: ¿Cómo hemos avanzado, desde nuestra institución educativa, en la implementación de los nuevos grados del nivel de preescolar (jardín, prejardín)?",c.respuestaSesion1Pregunta2?.valor||""]
+    ]},
+    {n:"Sesión 2",items:[
+      ["Pregunta 1: ¿Consideran que los currículos actuales que se desarrollan en las instituciones educativas son pertinentes con sus realidades territoriales (sociales, culturales, productivas)? ¿Por qué?",c.respuestaSesion2Pregunta1?.valor||""],
+      ...filasAcciones_("Pregunta 2",[1,2,3,4,5].map(i=>c["respuestaSesion2Pregunta2Accion"+i]?.valor||"")),
+      ["Pregunta 3: ¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar estas acciones?",c.respuestaSesion2Pregunta3?.valor||""],
+      ["Pregunta 4: ¿Cómo se están articulando estos equipos de trabajo para lograr currículos más pertinentes territorialmente?",c.respuestaSesion2Pregunta4?.valor||""],
+      ["Pregunta 5: ¿Qué mecanismos de seguimiento se están implementando para que dichas acciones se cumplan?",c.respuestaSesion2Pregunta5?.valor||""]
+    ]},
+    {n:"Sesión 3",items:[
+      ["Pregunta 1: ¿Consideran que la toma de decisiones en las instituciones educativas actualmente es participativa y democrática? ¿Por qué?",c.respuestaSesion3Pregunta1?.valor||""],
+      ...filasAcciones_("Pregunta 2",[1,2,3,4,5].map(i=>c["respuestaSesion3Pregunta2Accion"+i]?.valor||"")),
+      ["Equipos de trabajo: ¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar las estrategias y mecanismos de participación escolar?",c.respuestaSesion3Pregunta3?.valor||""],
+      ["Mecanismos de seguimiento: ¿Qué mecanismos de seguimiento se están implementando para garantizar las acciones encaminadas a promover gobiernos educativos democráticos?",c.respuestaSesion3Pregunta4?.valor||""]
+    ]}
+  ];
+}
+
+/*
+ * Obtiene la subcarpeta "nombre" dentro de "padre", creándola si
+ * todavía no existe — mismo patrón "obtener o crear" de
+ * crearCarpetaIE_, pero genérico para cualquier carpeta padre/nombre.
+ */
+function crearOFolderHija_(padre, nombre){
+  const it=padre.getFoldersByName(nombre);
+  if(it.hasNext()) return it.next();
+  return padre.createFolder(nombre);
+}
+
+/*
+ * Estructura de carpetas de UN grupo de trabajo (G1-G6), dentro de la
+ * misma carpeta raíz del FEM (DRIVE_CARPETA_FEM_ID, la que ya
+ * contiene la carpeta de cada IE): una carpeta "Grupo GN" con dos
+ * subcarpetas, "Informes enviados de grupo GN" (copias de los PDF ya
+ * enviados a cada IE del grupo) e "Informes editables de grupo GN"
+ * (copias de los Doc editables de cada IE del grupo). Idempotente:
+ * si ya existen, las reutiliza en vez de duplicarlas.
+ */
+function crearEstructuraCarpetasGrupoFEM_(grupo){
+  const raiz=DriveApp.getFolderById(DRIVE_CARPETA_FEM_ID);
+  const grupoFolder=crearOFolderHija_(raiz, "Grupo "+grupo);
+  const sentFolder=crearOFolderHija_(grupoFolder, "Informes enviados de grupo "+grupo);
+  const editableFolder=crearOFolderHija_(grupoFolder, "Informes editables de grupo "+grupo);
+  return {grupoFolder:grupoFolder, sentFolder:sentFolder, editableFolder:editableFolder};
+}
+
+/*
+ * Documento de Word (Google Doc) editable que COMPILA las respuestas
+ * de las Sesiones 1/2/3 de todas las IE de un grupo: un título por IE
+ * (en el orden ya dado en listaIEsConDatos) y debajo, sus preguntas y
+ * respuestas — mismas preguntas exactas que en el informe individual
+ * (ver obtenerRespuestasSesionesParaCompilado_). Es un documento
+ * NUEVO y separado de los informes individuales de cada IE (que ya
+ * van, cada uno completo, a la carpeta "Informes editables de grupo
+ * GN" — ver organizarInformesPorGrupoFEM en Pruebas.js): este solo
+ * reúne, para lectura rápida por grupo, las respuestas de la agenda.
+ */
+function generarDocumentoCompiladoGrupoFEM_(grupo, listaIEsConDatos){
+  const VERDE=COLOR_VERDE_DOC, GRIS_TEXTO=COLOR_GRIS_TEXTO_DOC, AMARILLO=COLOR_AMARILLO_DOC;
+  const doc=DocumentApp.create("Respuestas Compiladas - Grupo "+grupo+" FEM 2026");
+  const body=doc.getBody();
+  body.clear();
+
+  const titulo=body.appendParagraph("RESPUESTAS COMPILADAS — GRUPO "+grupo);
+  titulo.setHeading(DocumentApp.ParagraphHeading.TITLE);
+  titulo.editAsText().setBold(true).setForegroundColor(VERDE);
+  const subtitulo=body.appendParagraph("Foro Educativo Institucional – Neiva 2026");
+  subtitulo.editAsText().setForegroundColor(GRIS_TEXTO).setItalic(true);
+  body.appendParagraph("");
+
+  function tablaClaveValorGrupo_(filas){
+    const t=body.appendTable();
+    t.setBorderColor("#FFFFFF"); t.setBorderWidth(6);
+    filas.forEach(function(x){
+      const r=t.appendTableRow();
+      const acento=r.appendTableCell(""); acento.setBackgroundColor(AMARILLO); acento.setWidth(6);
+      const contenido=r.appendTableCell(""); contenido.setBackgroundColor("#FFFFFF");
+      const pTitulo=contenido.getChild(0).asParagraph(); pTitulo.setText(String(x[0]||""));
+      pTitulo.editAsText().setBold(true).setForegroundColor(VERDE).setFontSize(10);
+      const pValor=contenido.appendParagraph(String(x[1]||"—"));
+      pValor.editAsText().setBold(false).setForegroundColor(GRIS_TEXTO).setFontSize(10);
+    });
+    return t;
+  }
+
+  listaIEsConDatos.forEach(function(item, indice){
+    if(indice>0) body.appendPageBreak();
+    const tituloIE=body.appendParagraph(item.nombreIE);
+    tituloIE.setHeading(DocumentApp.ParagraphHeading.HEADING1);
+    tituloIE.editAsText().setBold(true).setForegroundColor(VERDE);
+    const sesiones=obtenerRespuestasSesionesParaCompilado_(item.datos);
+    sesiones.forEach(function(s){
+      const subtituloSesion=body.appendParagraph(s.n);
+      subtituloSesion.setHeading(DocumentApp.ParagraphHeading.HEADING2);
+      subtituloSesion.editAsText().setBold(true).setForegroundColor(VERDE);
+      tablaClaveValorGrupo_(s.items);
+    });
+  });
+
+  doc.saveAndClose();
+  return DriveApp.getFileById(doc.getId());
+}
