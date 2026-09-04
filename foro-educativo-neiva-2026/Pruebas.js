@@ -4782,6 +4782,135 @@ function enviarRecordatoriosValoracionPendientesFEM(){
 }
 
 /*
+ * Recordatorio de VENCIMIENTO DE PLAZO (ver
+ * construirCorreoRecordatorioVencimientoFEM_/enviarRecordatorioVencimientoFEM_
+ * en Código.js) para las IE REALES que todavía NO han culminado el
+ * Foro (sin ID_PDF_INFORME) — se excluyen las filas de prueba
+ * (TIPO="PRUEBA": IE PRUEBA 1234, IE Prueba *, IE Simulación *) para
+ * no mandarle este aviso a nadie que no sea una institución real.
+ * Con copia fija a ronald.polania@alcaldianeiva.gov.co en cada envío,
+ * a pedido expreso.
+ *
+ * Se detiene (sin marcar como fallidas las que faltan) si se agota la
+ * cuota diaria de correo — puede volver a ejecutarse más tarde para
+ * las que quedaron pendientes, sin duplicar los correos ya enviados.
+ *
+ * Uso: desde el editor de Apps Script, seleccionar esta función y
+ * presionar "Ejecutar". El resultado queda en "Ver registros de
+ * ejecución".
+ */
+function enviarRecordatoriosVencimientoFEMPendientes(){
+  const hoja=asegurarColumnasAccesosIE_();
+  const mapa=mapaHoja_(hoja);
+  const ultimaFila=hoja.getLastRow();
+  const resultado={enviados:[],omitidosDePrueba:[],omitidosYaCulminaron:[],omitidosSinDatos:[],fallidos:[],cuotaAgotada:false};
+
+  if(ultimaFila<2){
+    Logger.log("AccesosIE no tiene filas.");
+    return resultado;
+  }
+
+  const valores=hoja.getRange(2,1,ultimaFila-1,hoja.getLastColumn()).getDisplayValues();
+
+  for(let i=0;i<valores.length;i++){
+    if(resultado.cuotaAgotada) break;
+
+    const fila=valores[i];
+    const nombreIE=String(fila[mapa.IE-1]||"").trim();
+    const idForo=String(fila[mapa.ID_FORO-1]||"").trim();
+    if(!nombreIE || !idForo) continue;
+
+    const tipo=mapa.TIPO ? String(fila[mapa.TIPO-1]||"").trim().toUpperCase() : "";
+    if(tipo==="PRUEBA"){ resultado.omitidosDePrueba.push(nombreIE); continue; }
+
+    const pdfId=mapa.ID_PDF_INFORME ? String(fila[mapa.ID_PDF_INFORME-1]||"").trim() : "";
+    if(pdfId){ resultado.omitidosYaCulminaron.push(nombreIE); continue; }
+
+    const destinatario=mapa.EMAIL_IE ? String(fila[mapa.EMAIL_IE-1]||"").trim() : "";
+    const responsable=mapa.EMAIL_RESPONSABLE ? String(fila[mapa.EMAIL_RESPONSABLE-1]||"").trim() : "";
+    const urlAcceso=mapa.URL_ACCESO ? String(fila[mapa.URL_ACCESO-1]||"").trim() : "";
+    const codigoAcceso=mapa.CODIGO_ACCESO ? String(fila[mapa.CODIGO_ACCESO-1]||"").trim() : "";
+
+    if(!destinatario || !urlAcceso){ resultado.omitidosSinDatos.push(nombreIE); continue; }
+
+    try{
+      const ieSinPrefijo=nombreIESinPrefijoInstitucional_(nombreIE);
+      const logoIEUrlCorreo=urlPublicaLogoDrive_(obtenerLogoIdPorNombreIE_(nombreIE));
+      enviarRecordatorioVencimientoFEM_(destinatario, responsable, ieSinPrefijo, logoIEUrlCorreo, urlAcceso, codigoAcceso);
+      resultado.enviados.push(nombreIE);
+    }catch(error){
+      if(esErrorCuotaCorreoAgotada_(error)){
+        resultado.cuotaAgotada=true;
+        Logger.log("Cuota de correo agotada — se detiene el envío masivo de recordatorios de vencimiento. Vuelva a ejecutar esta función más tarde para las IE que quedaron pendientes.");
+        break;
+      }
+      resultado.fallidos.push({ie:nombreIE, motivo:error.message});
+    }
+  }
+
+  Logger.log("========================================");
+  Logger.log("RECORDATORIOS DE VENCIMIENTO DE PLAZO — RESULTADO");
+  Logger.log("Enviados ("+resultado.enviados.length+"): "+JSON.stringify(resultado.enviados));
+  Logger.log("Omitidos, filas de prueba ("+resultado.omitidosDePrueba.length+"): "+JSON.stringify(resultado.omitidosDePrueba));
+  Logger.log("Omitidos, ya culminaron ("+resultado.omitidosYaCulminaron.length+"): "+JSON.stringify(resultado.omitidosYaCulminaron));
+  Logger.log("Omitidos, sin correo o sin URL_ACCESO ("+resultado.omitidosSinDatos.length+"): "+JSON.stringify(resultado.omitidosSinDatos));
+  Logger.log("Fallidos ("+resultado.fallidos.length+"): "+JSON.stringify(resultado.fallidos));
+  if(resultado.cuotaAgotada) Logger.log("Se detuvo por cuota de correo agotada — vuelva a ejecutar más tarde.");
+  Logger.log("========================================");
+
+  return resultado;
+}
+
+/*
+ * Correo de PRUEBA del recordatorio de vencimiento — únicamente a
+ * jhonefrainsanchez@gmail.com, con el contenido real de una IE que
+ * todavía no ha culminado (o la indicada por parámetro). Nunca lleva
+ * la copia a ronald.polania@alcaldianeiva.gov.co (esa copia es solo
+ * para el envío real, ver enviarRecordatorioVencimientoFEM_).
+ *
+ * Uso: desde el editor de Apps Script, seleccionar esta función y
+ * presionar "Ejecutar". Qué IE se usó queda en "Ver registros de
+ * ejecución".
+ */
+function enviarCorreoPruebaRecordatorioVencimientoFEM(nombreIE){
+  const hoja=asegurarColumnasAccesosIE_();
+  const mapa=mapaHoja_(hoja);
+  const ultimaFila=hoja.getLastRow();
+  if(ultimaFila<2) throw new Error("AccesosIE no tiene filas.");
+  const valores=hoja.getRange(2,1,ultimaFila-1,hoja.getLastColumn()).getDisplayValues();
+
+  let fila;
+  if(nombreIE){
+    fila=valores.find(function(f){ return String(f[mapa.IE-1]||"").trim().toUpperCase()===String(nombreIE).trim().toUpperCase(); });
+    if(!fila) throw new Error("No existe \""+nombreIE+"\" en AccesosIE.");
+  }else{
+    fila=valores.find(function(f){
+      const tipo=mapa.TIPO ? String(f[mapa.TIPO-1]||"").trim().toUpperCase() : "";
+      const pdfId=mapa.ID_PDF_INFORME ? String(f[mapa.ID_PDF_INFORME-1]||"").trim() : "";
+      return tipo!=="PRUEBA" && !pdfId;
+    });
+    if(!fila) throw new Error("No se encontró ninguna IE real pendiente de culminar. Indique el nombre de la IE por parámetro.");
+    nombreIE=String(fila[mapa.IE-1]||"").trim();
+  }
+
+  const urlAcceso=mapa.URL_ACCESO ? String(fila[mapa.URL_ACCESO-1]||"").trim() : "";
+  const codigoAcceso=mapa.CODIGO_ACCESO ? String(fila[mapa.CODIGO_ACCESO-1]||"").trim() : "";
+  const ieSinPrefijo=nombreIESinPrefijoInstitucional_(nombreIE);
+  const logoIEUrlCorreo=urlPublicaLogoDrive_(obtenerLogoIdPorNombreIE_(nombreIE));
+
+  const correo=construirCorreoRecordatorioVencimientoFEM_(ieSinPrefijo, logoIEUrlCorreo, urlAcceso, codigoAcceso);
+  const avisoPrueba="<p style=\"background:#FFF3CD;color:#664D03;padding:8px 12px;border-radius:6px;\"><strong>⚠ Correo de PRUEBA</strong> — contenido real de "+nombreIE+", enviado únicamente a jhonefrainsanchez@gmail.com para revisión. No se envió a la institución ni lleva copia a ronald.polania@alcaldianeiva.gov.co.</p>";
+
+  GmailApp.sendEmail("jhonefrainsanchez@gmail.com", "[PRUEBA] "+correo.asunto, correo.cuerpoTexto, {
+    htmlBody: avisoPrueba+correo.cuerpoHTML,
+    from: REMITENTE_FEM,
+    name: "Secretaría de Educación de Neiva (PRUEBA)"
+  });
+
+  Logger.log("Correo de prueba del recordatorio de vencimiento enviado a jhonefrainsanchez@gmail.com, con los datos de "+nombreIE+".");
+}
+
+/*
  * Busca automáticamente una IE con informe ya generado pero que
  * TODAVÍA NO tenga Valoración registrada, y le corre
  * enviarCorreoPruebaInformeFEM() con esa IE — para ver, en un caso

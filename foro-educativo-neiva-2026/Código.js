@@ -7882,6 +7882,78 @@ function enviarRecordatorioValoracionFEM_(idForo, ie, ieSinPrefijo, logoIEUrlCor
 }
 
 /*
+ * Recordatorio de VENCIMIENTO DE PLAZO para las IE que todavía no han
+ * culminado el Foro Educativo Institucional (no tienen informe
+ * generado todavía) — mismo lenguaje visual (tarjeta blanca
+ * redondeada, encabezado verde institucional) que el resto de los
+ * correos del Foro. Se separa en su propio "constructor" (igual que
+ * construirCorreoRecordatorioValoracionFEM_) para poder reutilizarlo
+ * también en un envío de prueba sin duplicar el armado del mensaje.
+ */
+function construirCorreoRecordatorioVencimientoFEM_(ieSinPrefijo, logoIEUrlCorreo, urlAcceso, codigoAcceso){
+  const asunto="Hoy vence el plazo del Foro Educativo Institucional – IE "+ieSinPrefijo;
+  const cuerpoTexto=
+    "Secretaría de Educación de Neiva\n\n"+
+    "Estimada comunidad educativa de la Institución Educativa "+ieSinPrefijo+":\n\n"+
+    "Les recordamos que el día de hoy vence el plazo para el desarrollo del Foro Educativo Institucional – Neiva 2026.\n\n"+
+    "Los invitamos a realizar el envío de sus avances y a culminar completamente el proceso, con el fin de dar cierre formal a la etapa de Foros Institucionales.\n\n"+
+    "Pueden continuar su Foro desde este enlace:\n"+urlAcceso+
+    (codigoAcceso?"\nCódigo de ingreso de su institución: "+codigoAcceso:"")+"\n\n"+
+    "Ante cualquier inconveniente, pueden escribir a este mismo correo o comunicarse al WhatsApp 318 456 1081.\n\n"+
+    "Secretaría de Educación de Neiva\nForo Educativo Institucional – Neiva 2026\n\“Escuela Viva: Voces que construyen territorio\”";
+
+  const cuerpoHTML=
+    "<div style=\"background:#F7F8FA;padding:28px 12px;font-family:Arial,Helvetica,sans-serif;\">"+
+    "<div style=\"max-width:520px;margin:0 auto;background:#FFFFFF;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.10);\">"+
+    "<div style=\"background:#0B6A44;padding:26px 28px;text-align:center;\">"+
+    (logoIEUrlCorreo ? "<img src=\""+logoIEUrlCorreo+"\" alt=\"Logo de la institución educativa\" style=\"display:block;max-width:56px;max-height:56px;margin:0 auto 10px;border-radius:8px;\">" : "")+
+    "<div style=\"color:#FFFFFF;font-size:19px;font-weight:700;\">Foro Educativo Institucional</div>"+
+    "<div style=\"color:#CFE8DC;font-size:13px;margin-top:2px;\">Neiva 2026</div>"+
+    "</div>"+
+    "<div style=\"padding:28px;\">"+
+    "<p style=\"font-size:16px;color:#333333;margin:0 0 14px;\">Estimada comunidad educativa de la Institución Educativa <strong>"+ieSinPrefijo+"</strong>:</p>"+
+    "<div style=\"background:#FDECEA;border-left:6px solid #C0392B;border-radius:10px;padding:14px 18px;margin:0 0 22px;\">"+
+    "<p style=\"font-size:14px;color:#7A1F1F;margin:0;\"><strong>Hoy vence el plazo</strong> para el desarrollo del Foro Educativo Institucional – Neiva 2026.</p>"+
+    "</div>"+
+    "<p style=\"font-size:15px;color:#4A4A4A;line-height:1.6;margin:0 0 22px;\">Los invitamos a realizar el envío de sus avances y a <strong>culminar completamente</strong> el proceso, con el fin de dar cierre formal a la etapa de Foros Institucionales.</p>"+
+    "<div style=\"text-align:center;margin:0 0 22px;\">"+
+    "<a href=\""+urlAcceso+"\" target=\"_blank\" style=\"display:inline-block;background:#0B6A44;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:15px;padding:14px 26px;border-radius:10px;\">Continuar y enviar mi Foro</a>"+
+    "</div>"+
+    (codigoAcceso?"<div style=\"background:#FFF8E1;border-left:6px solid #F4B400;border-radius:10px;padding:14px 18px;margin:0 0 22px;text-align:center;\"><p style=\"font-size:12px;font-weight:700;color:#0B6A44;text-transform:uppercase;letter-spacing:.5px;margin:0 0 4px;\">Código de ingreso de su institución</p><p style=\"font-size:22px;font-weight:700;letter-spacing:4px;color:#0B6A44;margin:0;\">"+codigoAcceso+"</p></div>":"")+
+    "<div style=\"background:#F7F8FA;border:1px dashed #C7CDD1;border-radius:10px;padding:10px 14px;margin:0 0 22px;text-align:center;\">"+
+    "<p style=\"font-size:11px;font-weight:700;color:#888888;text-transform:uppercase;letter-spacing:.4px;margin:0 0 4px;\">También puede copiar este enlace</p>"+
+    "<p style=\"font-size:12px;color:#0B6A44;word-break:break-all;margin:0;\">"+urlAcceso+"</p>"+
+    "</div>"+
+    "<p style=\"font-size:13px;color:#888888;margin:0;\">Ante cualquier inconveniente, pueden escribir a este mismo correo o comunicarse al WhatsApp 318 456 1081.</p>"+
+    "</div>"+
+    "<div style=\"background:#F7F8FA;padding:18px 28px;text-align:center;border-top:1px solid #E5E7EA;\">"+
+    "<p style=\"font-size:13px;color:#0B6A44;font-weight:700;margin:0;\">Secretaría de Educación de Neiva</p>"+
+    "<p style=\"font-size:12px;color:#888888;margin:4px 0 0;font-style:italic;\">“Escuela Viva: Voces que construyen territorio”</p>"+
+    "</div>"+
+    "</div>"+
+    "</div>";
+
+  return {asunto:asunto, cuerpoTexto:cuerpoTexto, cuerpoHTML:cuerpoHTML};
+}
+
+/*
+ * Envía el recordatorio de vencimiento a la IE (correo institucional)
+ * y, si existe y es distinto, a la persona responsable — con copia
+ * fija a ronald.polania@alcaldianeiva.gov.co (a pedido expreso, solo
+ * en el envío real, nunca en los correos de prueba).
+ */
+function enviarRecordatorioVencimientoFEM_(destinatario, responsable, ieSinPrefijo, logoIEUrlCorreo, urlAcceso, codigoAcceso){
+  const correo=construirCorreoRecordatorioVencimientoFEM_(ieSinPrefijo, logoIEUrlCorreo, urlAcceso, codigoAcceso);
+
+  const destinatarios=[destinatario];
+  if(responsable && responsable.toLowerCase()!==destinatario.toLowerCase()) destinatarios.push(responsable);
+
+  GmailApp.sendEmail(destinatarios.join(","), correo.asunto, correo.cuerpoTexto, {
+    htmlBody:correo.cuerpoHTML, cc:"ronald.polania@alcaldianeiva.gov.co", from:REMITENTE_FEM, name:"Secretaría de Educación de Neiva"
+  });
+}
+
+/*
  * BUG CORREGIDO: si la carpeta de la IE terminó con más de un PDF del
  * informe (por ejemplo, una regeneración cuyo paso de mandar a la
  * papelera el archivo viejo falló, o dos generaciones separadas), el
