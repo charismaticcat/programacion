@@ -4421,7 +4421,7 @@ function regenerarInformeFEMPorIE(nombreIE){
  * próximos informes generados ya podrán corregir sus títulos
  * huérfanos automáticamente.
  */
-function autorizarServicioAvanzadoDocs_(){
+function autorizarServicioAvanzadoDocs(){
   const doc=DocumentApp.create("PRUEBA — autorizar Docs API (se puede borrar)");
   try{
     const info=Docs.Documents.get(doc.getId());
