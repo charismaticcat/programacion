@@ -4480,6 +4480,52 @@ function backfillFechaEnvioCorreoInformeDesdeGmailFEM(){
 
 
 /*
+ * Investigación puntual de UNA IE que quedó "sin rastro en Enviados"
+ * en backfillFechaEnvioCorreoInformeDesdeGmailFEM — antes de reenviar
+ * a ciegas, busca en Enviados por el NOMBRE de la IE (sin exigir el
+ * asunto exacto) para distinguir dos casos muy distintos:
+ *   a) si aparece algo, es que el asunto exacto cambió con el tiempo
+ *      (por ejemplo el nombre de la IE se corrigió después) y el
+ *      correo sí salió — no hay que reenviar nada;
+ *   b) si de verdad no aparece nada, el correo nunca salió y sí hay
+ *      que volver a llamar a enviarInformeFEM para esa IE.
+ * Solo lee — nunca envía correos ni modifica AccesosIE.
+ */
+function investigarEnvioInformeIE(nombreIE){
+  nombreIE = nombreIE || "AIPECITO";
+  const idForo = buscarIdForoPorNombreIE_(nombreIE);
+  const acceso = obtenerAccesoPorIdForoRaw_(idForo);
+  if(!acceso) throw new Error("No se encontró el acceso de "+nombreIE+" (ID_FORO "+idForo+").");
+
+  const pdfId = acceso.mapa.ID_PDF_INFORME ? String(acceso.hoja.getRange(acceso.fila, acceso.mapa.ID_PDF_INFORME).getValue()||"").trim() : "";
+  const emailIE = acceso.mapa.EMAIL_IE ? String(acceso.hoja.getRange(acceso.fila, acceso.mapa.EMAIL_IE).getValue()||"").trim() : "";
+  const fechaRegistrada = acceso.mapa.FECHA_ENVIO_CORREO_INFORME ? String(acceso.hoja.getRange(acceso.fila, acceso.mapa.FECHA_ENVIO_CORREO_INFORME).getValue()||"").trim() : "";
+
+  Logger.log("========================================");
+  Logger.log("INVESTIGACIÓN DE ENVÍO DE INFORME — "+nombreIE);
+  Logger.log("ID_FORO: "+idForo+" | ID_PDF_INFORME: "+(pdfId||"(vacío)")+" | EMAIL_IE: "+(emailIE||"(vacío)")+" | FECHA_ENVIO_CORREO_INFORME registrada: "+(fechaRegistrada||"(vacío)"));
+
+  const hilos = GmailApp.search('in:sent "'+nombreIE.replace(/"/g,'\\"')+'"', 0, 10);
+  const coincidencias = [];
+  hilos.forEach(function(hilo){
+    hilo.getMessages().forEach(function(msj){
+      coincidencias.push({asunto: msj.getSubject(), fecha: msj.getDate(), para: msj.getTo()});
+    });
+  });
+  coincidencias.sort(function(a,b){ return b.fecha.getTime()-a.fecha.getTime(); });
+
+  Logger.log("Correos en Enviados que mencionan \""+nombreIE+"\" (sin exigir asunto exacto), encontrados ("+coincidencias.length+"):");
+  coincidencias.forEach(function(c){ Logger.log("  - \""+c.asunto+"\" -> "+c.para+" ("+c.fecha+")"); });
+  if(!coincidencias.length){
+    Logger.log("No se encontró NINGÚN correo en Enviados que mencione a esta IE — todo indica que el correo del informe realmente nunca salió. Se recomienda volver a llamar a enviarInformeFEM para esta IE.");
+  }
+  Logger.log("========================================");
+
+  return {idForo:idForo, pdfId:pdfId, emailIE:emailIE, fechaRegistrada:fechaRegistrada, coincidencias:coincidencias};
+}
+
+
+/*
  * Regenera el Doc/PDF del informe ejecutivo de UNA IE ya en
  * producción, a partir de sus datos YA GUARDADOS (Caracterización,
  * Sesiones 1-3, asistencia QR) — sin volver a llamar
