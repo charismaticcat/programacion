@@ -253,6 +253,28 @@ function doGet(e) {
     return paginaAsistenciaQR_(idForoAsistencia);
   }
 
+  /*
+   * =================================================
+   * VALORACIÓN Y CIERRE FORMAL DEL FORO
+   * =================================================
+   *
+   * .../exec?valoracion=ID_FORO
+   *
+   * Página pública mínima, independiente del resto del
+   * formulario (mismo patrón que la firma de asistencia por QR de
+   * arriba): permite diligenciar la Valoración del Foro desde el
+   * enlace personalizado que llega por correo (a la IE y a quien
+   * envió el informe), sin tener que volver a pasar por todo el
+   * formulario ni por ninguna restricción de "solo el responsable
+   * principal" — cualquier persona con el enlace puede enviarla.
+   */
+  const idForoValoracion =
+    String(parametros.valoracion || "").trim();
+
+  if (idForoValoracion !== "") {
+    return paginaValoracionFEM_(idForoValoracion);
+  }
+
 const token =
   String(
     parametros.t ||
@@ -6651,6 +6673,247 @@ function paginaAsistenciaQR_(idForo){
     .addMetaTag("viewport","width=device-width, initial-scale=1");
 }
 
+/*
+ * Página pública mínima e independiente del resto del formulario
+ * (mismo patrón que paginaAsistenciaQR_) para diligenciar la
+ * Valoración del Foro — "cierre formal" del instrumento. Cualquiera
+ * con el enlace puede enviarla (no se restringe al responsable
+ * principal); no exige pasar de nuevo por "enviar"/"descargar
+ * informe" si ya se hizo. Antes de mostrar el formulario, hace un
+ * "cruce" real contra el archivo del informe en Drive (no solo el ID
+ * guardado en AccesosIE) y contra si ya existe una valoración para
+ * este ID_FORO — solo una valoración por IE.
+ */
+function paginaValoracionFEM_(idForo){
+  const escHtml_=function(t){ return String(t||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); };
+  const paginaSimple_=function(titulo, cuerpoHtml){
+    const html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'+
+      '<meta name="viewport" content="width=device-width, initial-scale=1"><base target="_top">'+
+      '<title>'+escHtml_(titulo)+' — FEM 2026</title>'+
+      '<style>body{font-family:Arial,Helvetica,sans-serif;background:#F7F8FA;color:#4A4A4A;margin:0;padding:24px;}'+
+      '.tarjeta{max-width:440px;margin:40px auto 0;background:#fff;border-radius:16px;padding:28px;box-shadow:0 8px 24px rgba(0,0,0,.12);text-align:center;}'+
+      'h1{color:#0B6A44;font-size:20px;margin:0 0 10px;}p{line-height:1.55;}</style></head><body>'+
+      '<div class="tarjeta"><h1>'+escHtml_(titulo)+'</h1>'+cuerpoHtml+'</div>'+
+      '</body></html>';
+    return HtmlService.createHtmlOutput(html).setTitle(titulo+" — FEM 2026").addMetaTag("viewport","width=device-width, initial-scale=1");
+  };
+
+  const acceso=obtenerAccesoPorIdForoRaw_(idForo);
+  if(!acceso){
+    return paginaSimple_("Enlace no válido","<p>Este enlace de Valoración no corresponde a ningún registro del Foro Educativo Institucional.</p>");
+  }
+
+  const ie=acceso.ie;
+  const ieTitulo=nombreIESinPrefijoInstitucional_(capitalizarNombreIE_(ie));
+  const logoUrlIE=urlPublicaLogoDrive_(obtenerLogoIdPorNombreIE_(ie));
+
+  /*
+   * "Cruce con los informes creados": no basta con que ID_PDF_INFORME
+   * tenga un valor guardado — se confirma que ese archivo exista de
+   * verdad en Drive (por si se movió, se borró o el ID quedó
+   * desactualizado).
+   */
+  const pdfId=acceso.mapa.ID_PDF_INFORME ? String(acceso.hoja.getRange(acceso.fila,acceso.mapa.ID_PDF_INFORME).getValue()||"").trim() : "";
+  let informeDisponible=false;
+  if(pdfId){
+    try{ DriveApp.getFileById(pdfId); informeDisponible=true; }
+    catch(errorPdf){ informeDisponible=false; }
+  }
+  if(!informeDisponible){
+    return paginaSimple_(
+      "Aún no hay un informe generado",
+      "<p>La Valoración del Foro se habilita una vez la IE <strong>"+escHtml_(ieTitulo)+"</strong> haya generado y descargado su Informe Ejecutivo. Por favor complete primero ese paso desde su enlace de acceso al instrumento.</p>"
+    );
+  }
+
+  // Solo una Valoración por IE: si ya existe, se muestra el cierre y
+  // agradecimiento en vez del formulario — nunca una segunda vez.
+  const valoracionExistente=obtenerValoracionPorIdForo_(idForo);
+  if(valoracionExistente){
+    return paginaSimple_(
+      "Valoración y Cierre Formal de IE "+ieTitulo,
+      "<p>✅ La Institución Educativa <strong>"+escHtml_(ieTitulo)+"</strong> ya diligenció su Valoración del Foro Educativo Institucional – Neiva 2026.</p>"+
+      "<p>Con esto el proceso queda <strong>formalmente cerrado</strong> para su institución. ¡Muchas gracias por su participación y por los aportes construidos durante la jornada!</p>"
+    );
+  }
+
+  const tituloPagina="Valoración y Cierre Formal de IE "+ieTitulo;
+
+  const html=
+    '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'+
+    '<meta name="viewport" content="width=device-width, initial-scale=1">'+
+    '<base target="_top">'+
+    '<title>'+escHtml_(tituloPagina)+' — FEM 2026</title>'+
+    '<style>'+
+    // Mismo lenguaje visual que la página de firma de asistencia por
+    // QR y que los correos del Foro (tarjeta blanca redondeada,
+    // encabezado verde institucional, acento amarillo, botón verde).
+    'body{font-family:Arial,Helvetica,sans-serif;background:#F7F8FA;color:#4A4A4A;margin:0;padding:24px;}'+
+    '.tarjeta{max-width:480px;margin:0 auto;background:#fff;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.12);overflow:hidden;}'+
+    '.encabezadoValoracionFEM{background:#0B6A44;padding:26px 28px;text-align:center;}'+
+    '.encabezadoValoracionFEM img{display:block;max-width:56px;max-height:56px;margin:0 auto 10px;border-radius:8px;}'+
+    '.encabezadoValoracionFEM h1{color:#fff;font-size:19px;margin:0;line-height:1.35;}'+
+    '.encabezadoValoracionFEM p{color:#CFE8DC;font-size:13px;margin:4px 0 0;}'+
+    '.cuerpoValoracionFEM{padding:24px 24px 28px;}'+
+    '.cuerpoValoracionFEM>p{line-height:1.55;font-size:14px;}'+
+    '.avisoCierreFormal{background:#FFF8E1;border-left:6px solid #F4B400;border-radius:10px;padding:14px 16px;margin:0 0 22px;}'+
+    '.avisoCierreFormal p{font-size:13px;color:#7A5B00;margin:0;line-height:1.5;}'+
+    '.bloqueCriterioValFEM{margin-bottom:22px;}'+
+    '.bloqueCriterioValFEM>p{font-weight:600;color:#333;font-size:14px;margin:0 0 8px;}'+
+    '.corazonesValFEM{font-size:26px;letter-spacing:4px;}'+
+    '.corazonValFEM{background:none;border:none;cursor:pointer;padding:2px;font-size:inherit;}'+
+    '.mejoraValFEM{display:none;margin-top:8px;}'+
+    '.mejoraValFEM label{display:block;font-weight:600;color:#4A4A4A;font-size:13px;margin-bottom:4px;}'+
+    'textarea{width:100%;padding:12px;font-size:14px;border:1px solid #DADCE0;border-radius:8px;box-sizing:border-box;font-family:inherit;min-height:64px;resize:vertical;}'+
+    '.resultadoValFEM{display:none;text-align:center;font-weight:700;color:#0B6A44;margin:0 0 18px;}'+
+    '.abiertaValFEM{display:none;margin-bottom:18px;}'+
+    '.abiertaValFEM label{display:block;font-weight:600;color:#0B6A44;font-size:14px;margin-bottom:6px;line-height:1.4;}'+
+    'button#btnEnviarValFEM{width:100%;margin-top:6px;padding:14px;font-size:16px;background:#0B6A44;color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700;}'+
+    'button#btnEnviarValFEM:disabled{background:#bdbdbd;}'+
+    '#estadoValFEM{margin-top:14px;font-weight:600;min-height:20px;text-align:center;}'+
+    '</style></head><body>'+
+    '<div class="tarjeta">'+
+    '<div class="encabezadoValoracionFEM">'+
+    (logoUrlIE?'<img src="'+logoUrlIE+'" alt="Logo de la institución educativa">':'')+
+    '<h1>Valoración y Cierre Formal de IE '+escHtml_(ieTitulo)+'</h1>'+
+    '<p>Foro Educativo Institucional — Neiva 2026</p>'+
+    '</div>'+
+    '<div class="cuerpoValoracionFEM">'+
+    '<p>Ahora termine formalmente la actividad dando su valoración del Foro Educativo de la IE <strong>'+escHtml_(ieTitulo)+'</strong>. Recibirá un correo de confirmación de recepción de sus respuestas cuando finalice la valoración.</p>'+
+    '<div class="avisoCierreFormal"><p>📋 Este espacio lo puede diligenciar cualquier integrante de la comunidad educativa que haya participado en la organización del Foro — no hace falta volver a enviar ni a descargar el informe, eso ya quedó hecho.</p></div>'+
+
+    '<div class="bloqueCriterioValFEM" data-pregunta="p1">'+
+    '<p>🏫 ¿La fase del Foro Educativo Institucional permitió generar espacios de diálogo y reflexión sobre los retos y oportunidades de la educación en nuestra comunidad educativa?</p>'+
+    '<div class="corazonesValFEM" role="radiogroup" aria-label="Pregunta 1">'+
+    '<button type="button" class="corazonValFEM" data-valor="1">🤍</button><button type="button" class="corazonValFEM" data-valor="2">🤍</button><button type="button" class="corazonValFEM" data-valor="3">🤍</button><button type="button" class="corazonValFEM" data-valor="4">🤍</button><button type="button" class="corazonValFEM" data-valor="5">🤍</button>'+
+    '</div>'+
+    '<div class="mejoraValFEM" data-mejora-de="p1"><label for="mejoraP1ValFEM">😔 ¿Nos dice brevemente cómo podría mejorar esto para el FEM 2027?</label><textarea id="mejoraP1ValFEM" rows="2" placeholder="Escriba aquí su respuesta (opcional)"></textarea></div>'+
+    '</div>'+
+
+    '<div class="bloqueCriterioValFEM" data-pregunta="p2">'+
+    '<p>🤝 ¿Considera que el Foro Educativo Institucional permitió la participación activa de estudiantes, docentes, familias y demás integrantes de la comunidad educativa?</p>'+
+    '<div class="corazonesValFEM" role="radiogroup" aria-label="Pregunta 2">'+
+    '<button type="button" class="corazonValFEM" data-valor="1">🤍</button><button type="button" class="corazonValFEM" data-valor="2">🤍</button><button type="button" class="corazonValFEM" data-valor="3">🤍</button><button type="button" class="corazonValFEM" data-valor="4">🤍</button><button type="button" class="corazonValFEM" data-valor="5">🤍</button>'+
+    '</div>'+
+    '<div class="mejoraValFEM" data-mejora-de="p2"><label for="mejoraP2ValFEM">😔 ¿Nos dice brevemente cómo podría mejorar esto para el FEM 2027?</label><textarea id="mejoraP2ValFEM" rows="2" placeholder="Escriba aquí su respuesta (opcional)"></textarea></div>'+
+    '</div>'+
+
+    '<div class="bloqueCriterioValFEM" data-pregunta="p3">'+
+    '<p>💡 ¿Los temas abordados durante el Foro Educativo Institucional aportaron ideas o propuestas que pueden contribuir al mejoramiento de nuestra institución educativa?</p>'+
+    '<div class="corazonesValFEM" role="radiogroup" aria-label="Pregunta 3">'+
+    '<button type="button" class="corazonValFEM" data-valor="1">🤍</button><button type="button" class="corazonValFEM" data-valor="2">🤍</button><button type="button" class="corazonValFEM" data-valor="3">🤍</button><button type="button" class="corazonValFEM" data-valor="4">🤍</button><button type="button" class="corazonValFEM" data-valor="5">🤍</button>'+
+    '</div>'+
+    '<div class="mejoraValFEM" data-mejora-de="p3"><label for="mejoraP3ValFEM">😔 ¿Nos dice brevemente cómo podría mejorar esto para el FEM 2027?</label><textarea id="mejoraP3ValFEM" rows="2" placeholder="Escriba aquí su respuesta (opcional)"></textarea></div>'+
+    '</div>'+
+
+    '<div class="bloqueCriterioValFEM" data-pregunta="p4">'+
+    '<p>😊 ¿Qué tan satisfecho(a) se encuentra con el instrumento utilizado para recoger la información y conocer la percepción de la comunidad educativa sobre el Foro Educativo Institucional?</p>'+
+    '<div class="corazonesValFEM" role="radiogroup" aria-label="Pregunta 4">'+
+    '<button type="button" class="corazonValFEM" data-valor="1">🤍</button><button type="button" class="corazonValFEM" data-valor="2">🤍</button><button type="button" class="corazonValFEM" data-valor="3">🤍</button><button type="button" class="corazonValFEM" data-valor="4">🤍</button><button type="button" class="corazonValFEM" data-valor="5">🤍</button>'+
+    '</div>'+
+    '<div class="mejoraValFEM" data-mejora-de="p4"><label for="mejoraP4ValFEM">😔 ¿Nos dice brevemente cómo podría mejorar esto para el FEM 2027?</label><textarea id="mejoraP4ValFEM" rows="2" placeholder="Escriba aquí su respuesta (opcional)"></textarea></div>'+
+    '</div>'+
+
+    '<p class="resultadoValFEM" id="resultadoValFEM"></p>'+
+
+    '<div class="abiertaValFEM" id="abiertaValFEM">'+
+    '<label for="p5ValFEM" id="p5LabelValFEM"></label>'+
+    '<textarea id="p5ValFEM" rows="4" placeholder="Escriba aquí su respuesta (opcional)"></textarea>'+
+    '</div>'+
+
+    '<button type="button" id="btnEnviarValFEM">Enviar valoración</button>'+
+    '<p id="estadoValFEM"></p>'+
+    '</div>'+
+    '</div>'+
+
+    '<script>'+
+    'var idForo='+JSON.stringify(idForo)+';'+
+    'var ieTitulo='+JSON.stringify(ieTitulo)+';'+
+    'var puntajes={p1:0,p2:0,p3:0,p4:0};'+
+
+    'function actualizarResultado(){'+
+    'var resultado=document.getElementById("resultadoValFEM");'+
+    'var abierta=document.getElementById("abiertaValFEM");'+
+    'var label=document.getElementById("p5LabelValFEM");'+
+    'if(!puntajes.p1||!puntajes.p2||!puntajes.p3||!puntajes.p4){ resultado.style.display="none"; abierta.style.display="none"; return; }'+
+    'var nota=(puntajes.p1+puntajes.p2+puntajes.p3+puntajes.p4)/4;'+
+    'var pregunta;'+
+    'if(nota<3){ pregunta="😭 ¡Debemos hacerlo mejor! ¿Qué sugerencias, recomendaciones o propuestas tienen para fortalecer la organización y desarrollo del Foro Educativo Institucional 2027?"; }'+
+    'else if(nota<=4){ pregunta="😬 ¡Pasamos raspados! ¿Quieren decirnos qué funcionó bien para la IE "+ieTitulo+" y qué pudo haber sido mejor para fortalecer la organización y desarrollo del Foro Educativo Institucional 2027?"; }'+
+    'else{ pregunta="🎉 ¡Bravo, gracias por el reconocimiento! ¿Quieren decirnos qué hicimos bien para la IE "+ieTitulo+" para merecer el reconocimiento de ustedes? Y de paso también pueden decirnos cómo mejorar para fortalecer la organización y desarrollo del Foro Educativo Institucional 2027."; }'+
+    'resultado.textContent="Nuestra nota fue de: "+nota.toFixed(1)+" / 5.0";'+
+    'resultado.style.display="block";'+
+    'label.textContent=pregunta;'+
+    'abierta.style.display="block";'+
+    '}'+
+
+    'Array.prototype.slice.call(document.querySelectorAll(".bloqueCriterioValFEM[data-pregunta]")).forEach(function(bloque){'+
+    'var pregunta=bloque.dataset.pregunta;'+
+    'var corazones=Array.prototype.slice.call(bloque.querySelectorAll(".corazonValFEM"));'+
+    'var bloqueMejora=document.querySelector(".mejoraValFEM[data-mejora-de=\\""+pregunta+"\\"]");'+
+    'corazones.forEach(function(btn){'+
+    'btn.addEventListener("click",function(){'+
+    'var valor=Number(this.dataset.valor);'+
+    'puntajes[pregunta]=valor;'+
+    'corazones.forEach(function(b){ var v=Number(b.dataset.valor); b.textContent=v<=valor?"❤️":"🤍"; });'+
+    'if(bloqueMejora) bloqueMejora.style.display=(valor<=2)?"block":"none";'+
+    'actualizarResultado();'+
+    '});'+
+    '});'+
+    '});'+
+
+    'document.getElementById("btnEnviarValFEM").addEventListener("click",function(){'+
+    'var btn=this, estado=document.getElementById("estadoValFEM");'+
+    'if(!puntajes.p1||!puntajes.p2||!puntajes.p3||!puntajes.p4){ estado.textContent="Seleccione de 1 a 5 corazones en las cuatro preguntas antes de enviar."; return; }'+
+    'btn.disabled=true; btn.textContent="Enviando…"; estado.textContent="Guardando…";'+
+    'var respuestas={'+
+    'p1:puntajes.p1, p2:puntajes.p2, p3:puntajes.p3, p4:puntajes.p4,'+
+    'p5:document.getElementById("p5ValFEM").value||"",'+
+    'mejoraP1:document.getElementById("mejoraP1ValFEM").value||"",'+
+    'mejoraP2:document.getElementById("mejoraP2ValFEM").value||"",'+
+    'mejoraP3:document.getElementById("mejoraP3ValFEM").value||"",'+
+    'mejoraP4:document.getElementById("mejoraP4ValFEM").value||""'+
+    '};'+
+    'google.script.run.withSuccessHandler(function(res){'+
+    'if(res&&res.ok){'+
+    'document.querySelector(".cuerpoValoracionFEM").innerHTML="<p>✅ "+(res.yaEnviada?"La valoración de la IE "+ieTitulo+" ya había sido registrada.":"¡Gracias! Quedó registrada la Valoración del Foro Educativo de la IE "+ieTitulo+".")+"</p><p>Con esto el proceso queda <strong>formalmente cerrado</strong> para su institución. Recibirán un correo de confirmación de recepción de sus respuestas.</p>";'+
+    '}else{'+
+    'btn.disabled=false; btn.textContent="Enviar valoración"; estado.textContent=(res&&res.mensaje)||"No fue posible guardar la valoración.";'+
+    '}'+
+    '}).withFailureHandler(function(err){'+
+    'btn.disabled=false; btn.textContent="Enviar valoración"; estado.textContent="No fue posible guardar la valoración: "+(err.message||err);'+
+    '}).guardarValoracionYConfirmarFEM(idForo,respuestas);'+
+    '});'+
+    '</script>'+
+    '</body></html>';
+
+  return HtmlService.createHtmlOutput(html)
+    .setTitle(tituloPagina+" — FEM 2026")
+    .addMetaTag("viewport","width=device-width, initial-scale=1");
+}
+
+/*
+ * Guarda la Valoración y, si quedó guardada con éxito (no era ya una
+ * duplicada), envía de una vez el correo de comprobante de
+ * participación — en un solo viaje al servidor, para que
+ * paginaValoracionFEM_ (independiente del resto del formulario) no
+ * tenga que reconstruir toda la Caracterización guardada solo para
+ * poder pedir ese correo por separado. El envío del comprobante
+ * nunca debe tumbar el guardado ya exitoso de la valoración.
+ */
+function guardarValoracionYConfirmarFEM(idForo, respuestas){
+  const resultado=guardarValoracionFEM(idForo, respuestas);
+  if(resultado && resultado.ok && !resultado.yaEnviada){
+    try{
+      const datosGuardados=obtenerDatosGuardadosPorIdForo_(idForo);
+      if(datosGuardados) enviarComprobanteParticipacionFEM(idForo, datosGuardados);
+    }catch(errorComprobante){
+      Logger.log("No fue posible enviar el comprobante de participación tras la Valoración: "+errorComprobante.message);
+    }
+  }
+  return resultado;
+}
+
 
 function subirEvidenciasFEM(idForo,fotoData,fotoName,fotoMime,datos){
   const acceso=obtenerAccesoPorIdForo_(idForo); if(!acceso)throw new Error("ID_FORO no autorizado."); const folder=crearCarpetaIE_(datos.institucion||acceso.ie);
@@ -7459,7 +7722,7 @@ function esErrorCuotaCorreoAgotada_(error){
  * lugares distintos.
  */
 function construirCorreoInformeFEM_(datosCorreo){
-  const ie=datosCorreo.ie, ieSinPrefijo=datosCorreo.ieSinPrefijo, logoIEHtmlCorreo=datosCorreo.logoIEHtmlCorreo;
+  const ie=datosCorreo.ie, ieSinPrefijo=datosCorreo.ieSinPrefijo, logoIEUrlCorreo=datosCorreo.logoIEUrlCorreo;
   const linkDescarga=datosCorreo.linkDescarga, linkCarpeta=datosCorreo.linkCarpeta, linkValoracion=datosCorreo.linkValoracion;
   const valoracionYaCompletada=datosCorreo.valoracionYaCompletada;
 
@@ -7467,13 +7730,16 @@ function construirCorreoInformeFEM_(datosCorreo){
   // agradece en vez de volver a pedirla; si el enlace personalizado
   // de acceso no está disponible por algún motivo, se omite el
   // párrafo entero en vez de mostrar un enlace vacío/roto.
-  let parrafoValoracion="", parrafoValoracionHtml="";
+  let parrafoValoracion="", cajaValoracionHtml="";
   if(valoracionYaCompletada){
     parrafoValoracion="Adicionalmente, agradecemos que ya hayan diligenciado la Valoración del Foro — con eso queda formalmente cerrado el proceso del Foro Educativo Institucional para su institución.";
-    parrafoValoracionHtml="<p>Adicionalmente, agradecemos que ya hayan diligenciado la <strong>Valoración del Foro</strong> — con eso queda formalmente cerrado el proceso del Foro Educativo Institucional para su institución.</p>";
+    cajaValoracionHtml="<div style=\"background:#F7FAF7;border-left:6px solid #0B6A44;border-radius:10px;padding:14px 18px;margin:0 0 22px;\"><p style=\"font-size:14px;color:#333333;margin:0;\">✅ Ya diligenciaron la <strong>Valoración del Foro</strong> — con eso queda formalmente cerrado el proceso para su institución. ¡Gracias!</p></div>";
   }else if(linkValoracion){
     parrafoValoracion="Para dar cierre formal al Foro Educativo Institucional, los invitamos a diligenciar la Valoración del Foro desde el siguiente enlace:\n"+linkValoracion;
-    parrafoValoracionHtml="<p>Para dar <strong>cierre formal</strong> al Foro Educativo Institucional, los invitamos a diligenciar la <a href=\""+linkValoracion+"\">Valoración del Foro</a>.</p>";
+    cajaValoracionHtml="<div style=\"background:#FFF8E1;border-left:6px solid #F4B400;border-radius:10px;padding:16px 20px;margin:0 0 22px;text-align:center;\">"+
+      "<p style=\"font-size:13px;color:#7A5B00;margin:0 0 12px;\">💬 Para dar <strong>cierre formal</strong> al Foro, falta su Valoración.</p>"+
+      "<a href=\""+linkValoracion+"\" target=\"_blank\" style=\"display:inline-block;background:#0B6A44;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:14px;padding:12px 22px;border-radius:10px;\">Diligenciar la Valoración del Foro</a>"+
+      "</div>";
   }
 
   // Igual que con la Valoración: si por algún motivo no se pudo
@@ -7482,8 +7748,8 @@ function construirCorreoInformeFEM_(datosCorreo){
   const parrafoCarpeta=linkCarpeta
     ? "Todos los materiales de su institución (informe, fotografía de la jornada y demás evidencias) están disponibles en la carpeta de Drive de la IE:\n"+linkCarpeta
     : "";
-  const parrafoCarpetaHtml=linkCarpeta
-    ? "<p>Todos los materiales de su institución (informe, fotografía de la jornada y demás evidencias) están disponibles en la <a href=\""+linkCarpeta+"\">carpeta de Drive de la IE</a>.</p>"
+  const filaCarpetaHtml=linkCarpeta
+    ? "<p style=\"font-size:13px;color:#4A4A4A;margin:0 0 22px;\">📁 Todos los materiales de su institución (informe, fotografía de la jornada y demás evidencias) están en la <a href=\""+linkCarpeta+"\" style=\"color:#0B6A44;font-weight:700;\">carpeta de Drive de la IE</a>.</p>"
     : "";
 
   const subject="Reporte de Informe IE "+ie;
@@ -7497,18 +7763,102 @@ function construirCorreoInformeFEM_(datosCorreo){
     "Agradecemos especialmente la disposición de la comunidad educativa para participar en este ejercicio de diálogo, reflexión y construcción colectiva orientado al fortalecimiento de la educación en nuestro municipio.\n\n"+
     "Secretaría de Educación de Neiva\nForo Educativo Institucional – Neiva 2026\n\“Escuela Viva: Voces que construyen territorio\”";
 
-  const htmlBody=logoIEHtmlCorreo+
-    "<p>Apreciados(as) integrantes de la comunidad educativa de la Institución Educativa <strong>"+ieSinPrefijo+"</strong>:</p>"+
-    "<p>Reciban un cordial saludo de la Secretaría de Educación de Neiva.</p>"+
-    "<p>Agradecemos a la Institución Educativa por su participación y por el tiempo dedicado al desarrollo del <strong>Foro Educativo Institucional – Neiva 2026</strong>, así como por los aportes, reflexiones y propuestas construidas colectivamente durante la jornada.</p>"+
-    "<p>Adjuntamos la <strong>última versión</strong> del Informe Ejecutivo del Foro Educativo Institucional – Neiva 2026, que reúne la caracterización institucional, la participación registrada y las respuestas definitivas construidas durante las tres sesiones de trabajo.</p>"+
-    "<p><a href=\""+linkDescarga+"\">Descargar la última versión del informe</a></p>"+
-    parrafoCarpetaHtml+
-    parrafoValoracionHtml+
-    "<p>Agradecemos especialmente la disposición de la comunidad educativa para participar en este ejercicio de diálogo, reflexión y construcción colectiva orientado al fortalecimiento de la educación en nuestro municipio.</p>"+
-    "<p><strong>Secretaría de Educación de Neiva</strong><br>Foro Educativo Institucional – Neiva 2026<br>“Escuela Viva: Voces que construyen territorio”</p>";
+  /*
+   * Mismo lenguaje visual (tarjeta blanca redondeada, encabezado
+   * verde institucional, caja de acento amarillo, botón verde,
+   * pie de página) que construirCorreoAccesoIE_ — el correo del
+   * código de acceso — para que todos los correos del Foro se vean
+   * como parte del mismo producto.
+   */
+  const htmlBody=
+    "<div style=\"background:#F7F8FA;padding:28px 12px;font-family:Arial,Helvetica,sans-serif;\">"+
+    "<div style=\"max-width:520px;margin:0 auto;background:#FFFFFF;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.10);\">"+
+    "<div style=\"background:#0B6A44;padding:26px 28px;text-align:center;\">"+
+    (logoIEUrlCorreo ? "<img src=\""+logoIEUrlCorreo+"\" alt=\"Logo de la institución educativa\" style=\"display:block;max-width:56px;max-height:56px;margin:0 auto 10px;border-radius:8px;\">" : "")+
+    "<div style=\"color:#FFFFFF;font-size:20px;font-weight:700;\">📄 Informe Ejecutivo del Foro</div>"+
+    "<div style=\"color:#CFE8DC;font-size:14px;margin-top:2px;\">Neiva 2026</div>"+
+    "</div>"+
+    "<div style=\"padding:28px 28px 8px;\">"+
+    "<p style=\"font-size:16px;color:#333333;margin:0 0 14px;\">Estimada comunidad educativa de la Institución Educativa <strong>"+ieSinPrefijo+"</strong>:</p>"+
+    "<p style=\"font-size:15px;color:#4A4A4A;line-height:1.6;margin:0 0 22px;\">Agradecemos su participación y el tiempo dedicado al desarrollo del <strong>Foro Educativo Institucional – Neiva 2026</strong>, así como los aportes, reflexiones y propuestas construidas colectivamente durante la jornada.</p>"+
+    "<div style=\"text-align:center;margin:0 0 22px;\">"+
+    "<a href=\""+linkDescarga+"\" target=\"_blank\" style=\"display:inline-block;background:#0B6A44;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:15px;padding:14px 26px;border-radius:10px;\">Descargar la última versión del informe</a>"+
+    "</div>"+
+    filaCarpetaHtml+
+    cajaValoracionHtml+
+    "<p style=\"font-size:13px;color:#888888;margin:0 0 24px;\">Agradecemos especialmente la disposición de la comunidad educativa para participar en este ejercicio de diálogo, reflexión y construcción colectiva orientado al fortalecimiento de la educación en nuestro municipio.</p>"+
+    "</div>"+
+    "<div style=\"background:#F7F8FA;padding:18px 28px;text-align:center;border-top:1px solid #E5E7EA;\">"+
+    "<p style=\"font-size:13px;color:#0B6A44;font-weight:700;margin:0;\">Secretaría de Educación de Neiva</p>"+
+    "<p style=\"font-size:12px;color:#888888;margin:4px 0 0;font-style:italic;\">“Escuela Viva: Voces que construyen territorio”</p>"+
+    "</div>"+
+    "</div>"+
+    "</div>";
 
   return {subject:subject, body:body, htmlBody:htmlBody};
+}
+
+/*
+ * Recuerda a la IE (correo institucional) y a la persona responsable
+ * del envío del informe que falta diligenciar la Valoración del Foro
+ * — el "cierre formal" del proceso — con el enlace a la página
+ * pública e independiente paginaValoracionFEM_ (?valoracion=ID_FORO,
+ * la misma para cualquiera que la abra, sin restricción de
+ * responsable principal). Se omite por completo si ya existe una
+ * valoración registrada (no se manda un recordatorio de algo que ya
+ * se hizo) o si no hay enlace de Valoración disponible. Se llama
+ * DESPUÉS de que el correo del informe ya salió bien — un error acá
+ * solo se registra en el log, nunca debe tumbar ese envío.
+ */
+function enviarRecordatorioValoracionFEM_(idForo, ie, ieSinPrefijo, logoIEUrlCorreo, destinatario, responsable, linkValoracion){
+  if(!linkValoracion) return;
+  if(obtenerValoracionPorIdForo_(idForo)) return;
+
+  const asunto="💬 Valoración del Foro Educativo Institucional — Para las instituciones";
+  const cuerpoTexto=
+    "Secretaría de Educación de Neiva\n\n"+
+    "Estimada comunidad educativa de la Institución Educativa "+ieSinPrefijo+":\n\n"+
+    "Para dar cierre formal al Foro Educativo Institucional – Neiva 2026, falta diligenciar la Valoración del Foro de su institución.\n\n"+
+    "Puede hacerlo desde este enlace, disponible para cualquier integrante de la comunidad educativa que haya participado en la organización:\n"+linkValoracion+"\n\n"+
+    "Recibirán un correo de confirmación de recepción de sus respuestas en cuanto finalicen la valoración.\n\n"+
+    "Secretaría de Educación de Neiva\nForo Educativo Institucional – Neiva 2026\n\“Escuela Viva: Voces que construyen territorio\”";
+
+  const cuerpoHTML=
+    "<div style=\"background:#F7F8FA;padding:28px 12px;font-family:Arial,Helvetica,sans-serif;\">"+
+    "<div style=\"max-width:520px;margin:0 auto;background:#FFFFFF;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.10);\">"+
+    "<div style=\"background:#0B6A44;padding:26px 28px;text-align:center;\">"+
+    (logoIEUrlCorreo ? "<img src=\""+logoIEUrlCorreo+"\" alt=\"Logo de la institución educativa\" style=\"display:block;max-width:56px;max-height:56px;margin:0 auto 10px;border-radius:8px;\">" : "")+
+    "<div style=\"font-size:34px;line-height:1;margin-bottom:6px;\">💬</div>"+
+    "<div style=\"color:#FFFFFF;font-size:19px;font-weight:700;\">Valoración del Foro Educativo Institucional</div>"+
+    "<div style=\"color:#CFE8DC;font-size:13px;margin-top:2px;\">Para las instituciones</div>"+
+    "</div>"+
+    "<div style=\"padding:28px;\">"+
+    "<p style=\"font-size:16px;color:#333333;margin:0 0 14px;\">Estimada comunidad educativa de la Institución Educativa <strong>"+ieSinPrefijo+"</strong>:</p>"+
+    "<p style=\"font-size:15px;color:#4A4A4A;line-height:1.6;margin:0 0 22px;\">Para dar <strong>cierre formal</strong> al Foro Educativo Institucional – Neiva 2026, falta diligenciar la Valoración del Foro de su institución.</p>"+
+    "<div style=\"text-align:center;margin:0 0 22px;\">"+
+    "<a href=\""+linkValoracion+"\" target=\"_blank\" style=\"display:inline-block;background:#0B6A44;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:15px;padding:14px 26px;border-radius:10px;\">Diligenciar la Valoración del Foro</a>"+
+    "</div>"+
+    "<div style=\"background:#F7F8FA;border:1px dashed #C7CDD1;border-radius:10px;padding:10px 14px;margin:0 0 22px;text-align:center;\">"+
+    "<p style=\"font-size:11px;font-weight:700;color:#888888;text-transform:uppercase;letter-spacing:.4px;margin:0 0 4px;\">También puede copiar este enlace</p>"+
+    "<p style=\"font-size:12px;color:#0B6A44;word-break:break-all;margin:0;\">"+linkValoracion+"</p>"+
+    "</div>"+
+    "<p style=\"font-size:13px;color:#888888;margin:0;\">Puede diligenciarla cualquier integrante de la comunidad educativa que haya participado en la organización — recibirán un correo de confirmación de recepción de sus respuestas en cuanto finalicen la valoración.</p>"+
+    "</div>"+
+    "<div style=\"background:#F7F8FA;padding:18px 28px;text-align:center;border-top:1px solid #E5E7EA;\">"+
+    "<p style=\"font-size:13px;color:#0B6A44;font-weight:700;margin:0;\">Secretaría de Educación de Neiva</p>"+
+    "<p style=\"font-size:12px;color:#888888;margin:4px 0 0;font-style:italic;\">“Escuela Viva: Voces que construyen territorio”</p>"+
+    "</div>"+
+    "</div>"+
+    "</div>";
+
+  // A la IE y, si es un correo distinto, también a quien envió el
+  // informe — un solo correo con ambos destinatarios en "to".
+  const destinatarios=[destinatario];
+  if(responsable && responsable.toLowerCase()!==destinatario.toLowerCase()) destinatarios.push(responsable);
+
+  GmailApp.sendEmail(destinatarios.join(","), asunto, cuerpoTexto, {
+    htmlBody:cuerpoHTML, from:REMITENTE_FEM, name:"Secretaría de Educación de Neiva"
+  });
 }
 
 function enviarInformeFEM(idForo,datos,pdfId){
@@ -7533,7 +7883,7 @@ function enviarInformeFEM(idForo,datos,pdfId){
     linkValoracion=acceso.mapa.URL_ACCESO ? String(acceso.hoja.getRange(acceso.fila,acceso.mapa.URL_ACCESO).getValue()||"").trim() : "";
     valoracionYaCompletada=!!obtenerValoracionPorIdForo_(idForo);
   }catch(errorValoracionCorreo){ Logger.log("No fue posible calcular el estado de la Valoración del Foro para el correo: "+errorValoracionCorreo.message); }
-  const correo=construirCorreoInformeFEM_({ie:ie,ieSinPrefijo:ieSinPrefijo,logoIEHtmlCorreo:logoIEHtmlCorreo,linkDescarga:linkDescarga,linkCarpeta:linkCarpeta,linkValoracion:linkValoracion,valoracionYaCompletada:valoracionYaCompletada});
+  const correo=construirCorreoInformeFEM_({ie:ie,ieSinPrefijo:ieSinPrefijo,logoIEUrlCorreo:logoIEUrlCorreo,linkDescarga:linkDescarga,linkCarpeta:linkCarpeta,linkValoracion:linkValoracion,valoracionYaCompletada:valoracionYaCompletada});
   const subject=correo.subject, body=correo.body; const to=destinatario; const cc=COPIAS_INFORME_FEM.filter(Boolean).join(",");
 
   /*
@@ -7567,6 +7917,15 @@ function enviarInformeFEM(idForo,datos,pdfId){
       diferido:true,
       mensaje:"Se alcanzó el límite diario de envíos de correo. El informe ya quedó generado y disponible para descargar; se enviará automáticamente al correo de la institución entre el 28 de agosto y el 4 de septiembre de 2026."
     };
+  }
+
+  // Recordatorio de la Valoración del Foro (cierre formal), a la IE y
+  // a quien envió el informe — se omite solo si ya se diligenció.
+  // Nunca debe tumbar el envío del informe, que ya salió bien.
+  try{
+    enviarRecordatorioValoracionFEM_(idForo, ie, ieSinPrefijo, logoIEUrlCorreo, destinatario, responsable, linkValoracion);
+  }catch(errorRecordatorioValoracion){
+    Logger.log("No fue posible enviar el recordatorio de Valoración del Foro: "+errorRecordatorioValoracion.message);
   }
 
   /*
@@ -7624,6 +7983,29 @@ function finalizarFormularioFEM(idForo,tokenSesion,dispositivoId,pdfId){
  *****************************************************/
 const HOJA_VALORACION_FEM = "Valoración FEMI2026";
 
+/*
+ * Heurística simple para descartar un tecleo al azar en la pregunta
+ * abierta de la Valoración (P5): un texto en español real tiene
+ * varias palabras y una proporción de vocales/consonantes dentro de
+ * un rango razonable — un tecleo al azar ("asdkjaslkd") o un mismo
+ * carácter repetido ("aaaaaa") cae fuera de ese rango. No es (ni
+ * pretende ser) un detector perfecto de sentido — es, a propósito,
+ * una regla simple y barata de mantener.
+ */
+function textoTieneSentidoFEM_(texto){
+  const limpio=String(texto||"").trim();
+  if(!limpio) return true; // vacío es válido: la pregunta es opcional
+  const palabras=limpio.split(/\s+/).filter(Boolean);
+  if(palabras.length<3) return false;
+  const letras=(limpio.match(/[a-zA-ZáéíóúñÁÉÍÓÚÑ]/g)||[]).length;
+  if(letras<8) return false;
+  const vocales=(limpio.match(/[aeiouáéíóúAEIOUÁÉÍÓÚ]/g)||[]).length;
+  const proporcionVocales=vocales/letras;
+  if(proporcionVocales<0.15||proporcionVocales>0.75) return false;
+  if(palabras.some(function(p){ return /^(.)\1{3,}$/.test(p); })) return false;
+  return true;
+}
+
 function asegurarHojaValoracionFEM_(){
   const ss=abrirSpreadsheet_();
   let hoja=ss.getSheetByName(HOJA_VALORACION_FEM);
@@ -7653,6 +8035,13 @@ function guardarValoracionFEM(idForo, respuestas){
       if(!(puntajes[i]>=1 && puntajes[i]<=5)){
         return {ok:false, mensaje:"Las 4 primeras preguntas deben calificarse de 1 a 5 corazones."};
       }
+    }
+
+    // Pregunta abierta (P5): opcional, pero si se escribió algo debe
+    // parecer texto real (varias palabras con vocales/consonantes),
+    // no un tecleo al azar ("asdkjaslkd", "aaaaaa", etc.).
+    if(String(respuestas.p5||"").trim() && !textoTieneSentidoFEM_(respuestas.p5)){
+      return {ok:false, mensaje:"Por favor escriba la respuesta abierta con palabras completas (no se guardó un texto sin sentido)."};
     }
 
     /*

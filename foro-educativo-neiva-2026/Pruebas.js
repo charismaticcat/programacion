@@ -4476,7 +4476,6 @@ function enviarCorreoPruebaInformeFEM(nombreIE){
   const ie = datosGuardados.institucion || acceso.ie;
   const ieSinPrefijo = nombreIESinPrefijoInstitucional_(ie);
   const logoIEUrlCorreo = urlPublicaLogoDrive_(obtenerLogoIdPorNombreIE_(ie));
-  const logoIEHtmlCorreo = logoIEUrlCorreo ? ("<div style=\"text-align:center;margin:0 0 18px;\"><img src=\""+logoIEUrlCorreo+"\" alt=\"Logo de la institución educativa\" style=\"max-width:56px;max-height:56px;border-radius:8px;\"></div>") : "";
 
   const file = DriveApp.getFileById(pdfId);
   const linkDescarga = file.getUrl();
@@ -4486,7 +4485,7 @@ function enviarCorreoPruebaInformeFEM(nombreIE){
   const valoracionYaCompletada = !!obtenerValoracionPorIdForo_(idForo);
 
   const correo = construirCorreoInformeFEM_({
-    ie:ie, ieSinPrefijo:ieSinPrefijo, logoIEHtmlCorreo:logoIEHtmlCorreo,
+    ie:ie, ieSinPrefijo:ieSinPrefijo, logoIEUrlCorreo:logoIEUrlCorreo,
     linkDescarga:linkDescarga, linkCarpeta:linkCarpeta, linkValoracion:linkValoracion,
     valoracionYaCompletada:valoracionYaCompletada
   });
