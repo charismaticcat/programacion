@@ -4482,12 +4482,13 @@ function enviarCorreoPruebaInformeFEM(nombreIE){
   const folderIE = crearCarpetaIE_(ie);
   const linkCarpeta = folderIE.getUrl();
   const linkValoracion = acceso.mapa.URL_ACCESO ? String(acceso.hoja.getRange(acceso.fila,acceso.mapa.URL_ACCESO).getValue()||"").trim() : "";
+  const codigoAcceso = acceso.mapa.CODIGO_ACCESO ? String(acceso.hoja.getRange(acceso.fila,acceso.mapa.CODIGO_ACCESO).getValue()||"").trim() : "";
   const valoracionYaCompletada = !!obtenerValoracionPorIdForo_(idForo);
 
   const correo = construirCorreoInformeFEM_({
     ie:ie, ieSinPrefijo:ieSinPrefijo, logoIEUrlCorreo:logoIEUrlCorreo,
     linkDescarga:linkDescarga, linkCarpeta:linkCarpeta, linkValoracion:linkValoracion,
-    valoracionYaCompletada:valoracionYaCompletada
+    valoracionYaCompletada:valoracionYaCompletada, codigoAcceso:codigoAcceso
   });
 
   const avisoPrueba="<p style=\"background:#FFF3CD;color:#664D03;padding:8px 12px;border-radius:6px;\"><strong>⚠ Correo de PRUEBA</strong> — contenido real de "+ie+", enviado únicamente a jhonefrainsanchez@gmail.com para revisión. No se envió a la institución.</p>";
@@ -4561,12 +4562,13 @@ function enviarRecordatoriosValoracionPendientesFEM(){
       const destinatario=String(c.correoIE?.valor||(mapa.EMAIL_IE?fila[mapa.EMAIL_IE-1]:"")||"").trim();
       const responsable=String(c.correo?.valor||"").trim();
       const linkValoracion=mapa.URL_ACCESO ? String(fila[mapa.URL_ACCESO-1]||"").trim() : "";
+      const codigoAcceso=mapa.CODIGO_ACCESO ? String(fila[mapa.CODIGO_ACCESO-1]||"").trim() : "";
 
       if(!destinatario){ resultado.omitidosSinCorreo.push(nombreIE); continue; }
       if(!linkValoracion){ resultado.fallidos.push({ie:nombreIE, motivo:"Sin URL_ACCESO registrada."}); continue; }
 
       const logoIEUrlCorreo=urlPublicaLogoDrive_(obtenerLogoIdPorNombreIE_(ie));
-      enviarRecordatorioValoracionFEM_(idForo, ie, ieSinPrefijo, logoIEUrlCorreo, destinatario, responsable, linkValoracion);
+      enviarRecordatorioValoracionFEM_(idForo, ie, ieSinPrefijo, logoIEUrlCorreo, destinatario, responsable, linkValoracion, codigoAcceso);
       resultado.enviados.push(nombreIE);
     }catch(error){
       if(esErrorCuotaCorreoAgotada_(error)){
@@ -4628,4 +4630,64 @@ function enviarCorreoPruebaInformeFEMSinValoracion(){
   }
 
   throw new Error("No se encontró ninguna IE con informe generado y sin Valoración pendiente — todas las que ya tienen informe también ya valoraron.");
+}
+
+/*
+ * Envía el correo de RECORDATORIO de la Valoración del Foro (el que
+ * llega a la IE y al responsable con el enlace personalizado y el
+ * código de ingreso — ver construirCorreoRecordatorioValoracionFEM_/
+ * enviarRecordatorioValoracionFEM_ en Código.js) como PRUEBA a
+ * jhonefrainsanchez@gmail.com, usando los datos reales de una IE que
+ * ya tenga informe generado pero SIN Valoración todavía. Si no se
+ * indica una IE, busca sola la primera que cumpla esa condición
+ * (igual que enviarCorreoPruebaInformeFEMSinValoracion). Nunca envía
+ * nada a la institución real.
+ *
+ * Uso: desde el editor de Apps Script, seleccionar esta función y
+ * presionar "Ejecutar".
+ */
+function enviarCorreoPruebaRecordatorioValoracionFEM(nombreIE){
+  const hoja=asegurarColumnasAccesosIE_();
+  const mapa=mapaHoja_(hoja);
+
+  if(!nombreIE){
+    const ultimaFila=hoja.getLastRow();
+    if(ultimaFila<2) throw new Error("AccesosIE no tiene filas.");
+    const valores=hoja.getRange(2,1,ultimaFila-1,hoja.getLastColumn()).getDisplayValues();
+    for(let i=0;i<valores.length;i++){
+      const fila=valores[i];
+      const nombreCandidato=String(fila[mapa.IE-1]||"").trim();
+      const idForoCandidato=String(fila[mapa.ID_FORO-1]||"").trim();
+      if(!nombreCandidato||!idForoCandidato) continue;
+      const pdfIdCandidato=mapa.ID_PDF_INFORME ? String(fila[mapa.ID_PDF_INFORME-1]||"").trim() : "";
+      if(!pdfIdCandidato) continue;
+      if(obtenerValoracionPorIdForo_(idForoCandidato)) continue;
+      nombreIE=nombreCandidato;
+      break;
+    }
+    if(!nombreIE) throw new Error("No se encontró ninguna IE con informe generado y sin Valoración pendiente.");
+  }
+
+  const idForo=buscarIdForoPorNombreIE_(nombreIE);
+  const acceso=obtenerAccesoPorIdForoRaw_(idForo);
+  if(!acceso) throw new Error("No se encontró el acceso de "+nombreIE+" (ID_FORO "+idForo+").");
+
+  const linkValoracion=acceso.mapa.URL_ACCESO ? String(acceso.hoja.getRange(acceso.fila,acceso.mapa.URL_ACCESO).getValue()||"").trim() : "";
+  if(!linkValoracion) throw new Error(nombreIE+" no tiene URL_ACCESO registrada.");
+  const codigoAcceso=acceso.mapa.CODIGO_ACCESO ? String(acceso.hoja.getRange(acceso.fila,acceso.mapa.CODIGO_ACCESO).getValue()||"").trim() : "";
+
+  const ie=acceso.ie||nombreIE;
+  const ieSinPrefijo=nombreIESinPrefijoInstitucional_(ie);
+  const logoIEUrlCorreo=urlPublicaLogoDrive_(obtenerLogoIdPorNombreIE_(ie));
+
+  const correo=construirCorreoRecordatorioValoracionFEM_(ieSinPrefijo, logoIEUrlCorreo, linkValoracion, codigoAcceso);
+  const avisoPrueba="<p style=\"background:#FFF3CD;color:#664D03;padding:8px 12px;border-radius:6px;\"><strong>Correo de PRUEBA</strong> — contenido real de "+ie+", enviado únicamente a jhonefrainsanchez@gmail.com para revisión. No se envió a la institución.</p>";
+
+  GmailApp.sendEmail("jhonefrainsanchez@gmail.com", "[PRUEBA] "+correo.asunto, correo.cuerpoTexto, {
+    htmlBody: avisoPrueba+correo.cuerpoHTML,
+    from: REMITENTE_FEM,
+    name: "Secretaría de Educación de Neiva (PRUEBA)"
+  });
+
+  Logger.log("Correo de prueba del recordatorio de Valoración (con código de ingreso "+(codigoAcceso||"—")+") enviado a jhonefrainsanchez@gmail.com, con los datos de "+ie+".");
 }

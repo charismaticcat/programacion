@@ -7724,21 +7724,26 @@ function esErrorCuotaCorreoAgotada_(error){
 function construirCorreoInformeFEM_(datosCorreo){
   const ie=datosCorreo.ie, ieSinPrefijo=datosCorreo.ieSinPrefijo, logoIEUrlCorreo=datosCorreo.logoIEUrlCorreo;
   const linkDescarga=datosCorreo.linkDescarga, linkCarpeta=datosCorreo.linkCarpeta, linkValoracion=datosCorreo.linkValoracion;
-  const valoracionYaCompletada=datosCorreo.valoracionYaCompletada;
+  const valoracionYaCompletada=datosCorreo.valoracionYaCompletada, codigoAcceso=datosCorreo.codigoAcceso;
 
   // "Cierre formal" del Foro: si la Valoración ya se diligenció, se
   // agradece en vez de volver a pedirla; si el enlace personalizado
   // de acceso no está disponible por algún motivo, se omite el
-  // párrafo entero en vez de mostrar un enlace vacío/roto.
+  // párrafo entero en vez de mostrar un enlace vacío/roto. Se incluye
+  // también el código de ingreso de la IE (columna CODIGO_ACCESO de
+  // AccesosIE) junto con el enlace, por si lo necesitan para volver a
+  // entrar al instrumento.
   let parrafoValoracion="", cajaValoracionHtml="";
   if(valoracionYaCompletada){
     parrafoValoracion="Adicionalmente, agradecemos que ya hayan diligenciado la Valoración del Foro — con eso queda formalmente cerrado el proceso del Foro Educativo Institucional para su institución.";
     cajaValoracionHtml="<div style=\"background:#F7FAF7;border-left:6px solid #0B6A44;border-radius:10px;padding:14px 18px;margin:0 0 22px;\"><p style=\"font-size:14px;color:#333333;margin:0;\">Ya diligenciaron la <strong>Valoración del Foro</strong> — con eso queda formalmente cerrado el proceso para su institución. ¡Gracias!</p></div>";
   }else if(linkValoracion){
-    parrafoValoracion="Para dar cierre formal al Foro Educativo Institucional, los invitamos a diligenciar la Valoración del Foro desde el siguiente enlace:\n"+linkValoracion;
+    parrafoValoracion="Para dar cierre formal al Foro Educativo Institucional, los invitamos a diligenciar la Valoración del Foro desde el siguiente enlace:\n"+linkValoracion+
+      (codigoAcceso?"\nCódigo de ingreso de su institución: "+codigoAcceso:"");
     cajaValoracionHtml="<div style=\"background:#FFF8E1;border-left:6px solid #F4B400;border-radius:10px;padding:16px 20px;margin:0 0 22px;text-align:center;\">"+
       "<p style=\"font-size:13px;color:#7A5B00;margin:0 0 12px;\">Para dar <strong>cierre formal</strong> al Foro, falta su Valoración.</p>"+
       "<a href=\""+linkValoracion+"\" target=\"_blank\" style=\"display:inline-block;background:#0B6A44;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:14px;padding:12px 22px;border-radius:10px;\">Diligenciar la Valoración del Foro</a>"+
+      (codigoAcceso?"<p style=\"font-size:12px;color:#7A5B00;margin:12px 0 0;\">Código de ingreso de su institución: <strong>"+codigoAcceso+"</strong></p>":"")+
       "</div>";
   }
 
@@ -7799,27 +7804,20 @@ function construirCorreoInformeFEM_(datosCorreo){
 }
 
 /*
- * Recuerda a la IE (correo institucional) y a la persona responsable
- * del envío del informe que falta diligenciar la Valoración del Foro
- * — el "cierre formal" del proceso — con el enlace a la página
- * pública e independiente paginaValoracionFEM_ (?valoracion=ID_FORO,
- * la misma para cualquiera que la abra, sin restricción de
- * responsable principal). Se omite por completo si ya existe una
- * valoración registrada (no se manda un recordatorio de algo que ya
- * se hizo) o si no hay enlace de Valoración disponible. Se llama
- * DESPUÉS de que el correo del informe ya salió bien — un error acá
- * solo se registra en el log, nunca debe tumbar ese envío.
+ * Arma el asunto/cuerpo/cuerpo HTML del recordatorio de la
+ * Valoración del Foro — separado de enviarRecordatorioValoracionFEM_
+ * (que además decide A QUIÉN enviarlo) para poder reutilizarlo
+ * también en un envío de PRUEBA (ver enviarCorreoPruebaRecordatorioValoracionFEM
+ * en Pruebas.js) sin duplicar el armado del mensaje.
  */
-function enviarRecordatorioValoracionFEM_(idForo, ie, ieSinPrefijo, logoIEUrlCorreo, destinatario, responsable, linkValoracion){
-  if(!linkValoracion) return;
-  if(obtenerValoracionPorIdForo_(idForo)) return;
-
+function construirCorreoRecordatorioValoracionFEM_(ieSinPrefijo, logoIEUrlCorreo, linkValoracion, codigoAcceso){
   const asunto="Valoración del Foro Educativo Institucional — Para las instituciones";
   const cuerpoTexto=
     "Secretaría de Educación de Neiva\n\n"+
     "Estimada comunidad educativa de la Institución Educativa "+ieSinPrefijo+":\n\n"+
     "Para dar cierre formal al Foro Educativo Institucional – Neiva 2026, falta diligenciar la Valoración del Foro de su institución.\n\n"+
-    "Puede hacerlo desde este enlace, disponible para cualquier integrante de la comunidad educativa que haya participado en la organización:\n"+linkValoracion+"\n\n"+
+    "Puede hacerlo desde este enlace, disponible para cualquier integrante de la comunidad educativa que haya participado en la organización:\n"+linkValoracion+
+    (codigoAcceso?"\nCódigo de ingreso de su institución: "+codigoAcceso:"")+"\n\n"+
     "Recibirán un correo de confirmación de recepción de sus respuestas en cuanto finalicen la valoración.\n\n"+
     "Secretaría de Educación de Neiva\nForo Educativo Institucional – Neiva 2026\n\“Escuela Viva: Voces que construyen territorio\”";
 
@@ -7837,6 +7835,7 @@ function enviarRecordatorioValoracionFEM_(idForo, ie, ieSinPrefijo, logoIEUrlCor
     "<div style=\"text-align:center;margin:0 0 22px;\">"+
     "<a href=\""+linkValoracion+"\" target=\"_blank\" style=\"display:inline-block;background:#0B6A44;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:15px;padding:14px 26px;border-radius:10px;\">Diligenciar la Valoración del Foro</a>"+
     "</div>"+
+    (codigoAcceso?"<div style=\"background:#FFF8E1;border-left:6px solid #F4B400;border-radius:10px;padding:14px 18px;margin:0 0 22px;text-align:center;\"><p style=\"font-size:12px;font-weight:700;color:#0B6A44;text-transform:uppercase;letter-spacing:.5px;margin:0 0 4px;\">Código de ingreso de su institución</p><p style=\"font-size:22px;font-weight:700;letter-spacing:4px;color:#0B6A44;margin:0;\">"+codigoAcceso+"</p></div>":"")+
     "<div style=\"background:#F7F8FA;border:1px dashed #C7CDD1;border-radius:10px;padding:10px 14px;margin:0 0 22px;text-align:center;\">"+
     "<p style=\"font-size:11px;font-weight:700;color:#888888;text-transform:uppercase;letter-spacing:.4px;margin:0 0 4px;\">También puede copiar este enlace</p>"+
     "<p style=\"font-size:12px;color:#0B6A44;word-break:break-all;margin:0;\">"+linkValoracion+"</p>"+
@@ -7850,13 +7849,35 @@ function enviarRecordatorioValoracionFEM_(idForo, ie, ieSinPrefijo, logoIEUrlCor
     "</div>"+
     "</div>";
 
+  return {asunto:asunto, cuerpoTexto:cuerpoTexto, cuerpoHTML:cuerpoHTML};
+}
+
+/*
+ * Recuerda a la IE (correo institucional) y a la persona responsable
+ * del envío del informe que falta diligenciar la Valoración del Foro
+ * — el "cierre formal" del proceso — con el enlace a la página
+ * pública e independiente paginaValoracionFEM_ (?valoracion=ID_FORO,
+ * la misma para cualquiera que la abra, sin restricción de
+ * responsable principal), y el código de ingreso de la IE. Se omite
+ * por completo si ya existe una valoración registrada (no se manda
+ * un recordatorio de algo que ya se hizo) o si no hay enlace de
+ * Valoración disponible. Se llama DESPUÉS de que el correo del
+ * informe ya salió bien — un error acá solo se registra en el log,
+ * nunca debe tumbar ese envío.
+ */
+function enviarRecordatorioValoracionFEM_(idForo, ie, ieSinPrefijo, logoIEUrlCorreo, destinatario, responsable, linkValoracion, codigoAcceso){
+  if(!linkValoracion) return;
+  if(obtenerValoracionPorIdForo_(idForo)) return;
+
+  const correo=construirCorreoRecordatorioValoracionFEM_(ieSinPrefijo, logoIEUrlCorreo, linkValoracion, codigoAcceso);
+
   // A la IE y, si es un correo distinto, también a quien envió el
   // informe — un solo correo con ambos destinatarios en "to".
   const destinatarios=[destinatario];
   if(responsable && responsable.toLowerCase()!==destinatario.toLowerCase()) destinatarios.push(responsable);
 
-  GmailApp.sendEmail(destinatarios.join(","), asunto, cuerpoTexto, {
-    htmlBody:cuerpoHTML, from:REMITENTE_FEM, name:"Secretaría de Educación de Neiva"
+  GmailApp.sendEmail(destinatarios.join(","), correo.asunto, correo.cuerpoTexto, {
+    htmlBody:correo.cuerpoHTML, from:REMITENTE_FEM, name:"Secretaría de Educación de Neiva"
   });
 }
 
@@ -7871,7 +7892,7 @@ function enviarInformeFEM(idForo,datos,pdfId){
    * (construirCorreoInformeFEM_ ya omite el párrafo correspondiente
    * si el enlace queda vacío).
    */
-  let linkCarpeta="", linkValoracion="", valoracionYaCompletada=false;
+  let linkCarpeta="", linkValoracion="", valoracionYaCompletada=false, codigoAcceso="";
   try{
     const folderIE=crearCarpetaIE_(ie); hacerPublicoSiEsPosible_(folderIE); linkCarpeta=folderIE.getUrl();
   }catch(errorCarpetaIE){ Logger.log("No fue posible obtener el enlace de la carpeta de la IE para el correo: "+errorCarpetaIE.message); }
@@ -7879,10 +7900,13 @@ function enviarInformeFEM(idForo,datos,pdfId){
     // Enlace personalizado y permanente de acceso de la IE (columna
     // URL_ACCESO de AccesosIE) — se reutiliza para invitar al "cierre
     // formal" (Valoración del Foro), en vez de armar un enlace nuevo.
+    // El código de ingreso (CODIGO_ACCESO) se incluye junto con el
+    // enlace, por si lo necesitan para volver a entrar al instrumento.
     linkValoracion=acceso.mapa.URL_ACCESO ? String(acceso.hoja.getRange(acceso.fila,acceso.mapa.URL_ACCESO).getValue()||"").trim() : "";
+    codigoAcceso=acceso.mapa.CODIGO_ACCESO ? String(acceso.hoja.getRange(acceso.fila,acceso.mapa.CODIGO_ACCESO).getValue()||"").trim() : "";
     valoracionYaCompletada=!!obtenerValoracionPorIdForo_(idForo);
   }catch(errorValoracionCorreo){ Logger.log("No fue posible calcular el estado de la Valoración del Foro para el correo: "+errorValoracionCorreo.message); }
-  const correo=construirCorreoInformeFEM_({ie:ie,ieSinPrefijo:ieSinPrefijo,logoIEUrlCorreo:logoIEUrlCorreo,linkDescarga:linkDescarga,linkCarpeta:linkCarpeta,linkValoracion:linkValoracion,valoracionYaCompletada:valoracionYaCompletada});
+  const correo=construirCorreoInformeFEM_({ie:ie,ieSinPrefijo:ieSinPrefijo,logoIEUrlCorreo:logoIEUrlCorreo,linkDescarga:linkDescarga,linkCarpeta:linkCarpeta,linkValoracion:linkValoracion,valoracionYaCompletada:valoracionYaCompletada,codigoAcceso:codigoAcceso});
   const subject=correo.subject, body=correo.body; const to=destinatario; const cc=COPIAS_INFORME_FEM.filter(Boolean).join(",");
 
   /*
@@ -7922,7 +7946,7 @@ function enviarInformeFEM(idForo,datos,pdfId){
   // a quien envió el informe — se omite solo si ya se diligenció.
   // Nunca debe tumbar el envío del informe, que ya salió bien.
   try{
-    enviarRecordatorioValoracionFEM_(idForo, ie, ieSinPrefijo, logoIEUrlCorreo, destinatario, responsable, linkValoracion);
+    enviarRecordatorioValoracionFEM_(idForo, ie, ieSinPrefijo, logoIEUrlCorreo, destinatario, responsable, linkValoracion, codigoAcceso);
   }catch(errorRecordatorioValoracion){
     Logger.log("No fue posible enviar el recordatorio de Valoración del Foro: "+errorRecordatorioValoracion.message);
   }
