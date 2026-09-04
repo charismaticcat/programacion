@@ -4590,3 +4590,42 @@ function enviarRecordatoriosValoracionPendientesFEM(){
 
   return resultado;
 }
+
+/*
+ * Busca automáticamente una IE con informe ya generado pero que
+ * TODAVÍA NO tenga Valoración registrada, y le corre
+ * enviarCorreoPruebaInformeFEM() con esa IE — para ver, en un caso
+ * real, cómo se ve la caja "falta su Valoración" (con el botón para
+ * diligenciarla) en vez de la de "ya diligenciaron la Valoración".
+ * El correo sigue yendo únicamente a jhonefrainsanchez@gmail.com,
+ * nunca a la institución real.
+ *
+ * Uso: desde el editor de Apps Script, seleccionar esta función y
+ * presionar "Ejecutar". Qué IE se usó queda en "Ver registros de
+ * ejecución".
+ */
+function enviarCorreoPruebaInformeFEMSinValoracion(){
+  const hoja=asegurarColumnasAccesosIE_();
+  const mapa=mapaHoja_(hoja);
+  const ultimaFila=hoja.getLastRow();
+  if(ultimaFila<2) throw new Error("AccesosIE no tiene filas.");
+
+  const valores=hoja.getRange(2,1,ultimaFila-1,hoja.getLastColumn()).getDisplayValues();
+
+  for(let i=0;i<valores.length;i++){
+    const fila=valores[i];
+    const nombreIE=String(fila[mapa.IE-1]||"").trim();
+    const idForo=String(fila[mapa.ID_FORO-1]||"").trim();
+    if(!nombreIE||!idForo) continue;
+
+    const pdfId=mapa.ID_PDF_INFORME ? String(fila[mapa.ID_PDF_INFORME-1]||"").trim() : "";
+    if(!pdfId) continue; // sin informe generado todavía
+
+    if(obtenerValoracionPorIdForo_(idForo)) continue; // ya valoró, seguir buscando
+
+    Logger.log("IE usada para la prueba (con informe, sin Valoración todavía): "+nombreIE);
+    return enviarCorreoPruebaInformeFEM(nombreIE);
+  }
+
+  throw new Error("No se encontró ninguna IE con informe generado y sin Valoración pendiente — todas las que ya tienen informe también ya valoraron.");
+}
