@@ -5120,7 +5120,7 @@ function asegurarColumnasAccesosIE_(){
   const ss=abrirSpreadsheet_();
   let hoja=ss.getSheetByName(HOJA_ACCESOS);
   if(!hoja) hoja=ss.insertSheet(HOJA_ACCESOS);
-  const requeridas=["ID_ACCESO","IE","DANE","CODIGO_ACCESO","TOKEN","URL_ACCESO","ID_FORO","ESTADO","TOKEN_SESION","DISPOSITIVO_ID","FECHA_GENERACION","FECHA_PRIMER_ACCESO","ULTIMA_ACTIVIDAD","FECHA_ENVIO","EMAIL_IE","EMAIL_RESPONSABLE","TIPO","S1_ENVIADA","S2_ENVIADA","S3_ENVIADA","ID_INFORME","ID_PDF_INFORME","LOGO_ID","HABILITAR_DESDE","ENVIADO_POR"];
+  const requeridas=["ID_ACCESO","IE","DANE","CODIGO_ACCESO","TOKEN","URL_ACCESO","ID_FORO","ESTADO","TOKEN_SESION","DISPOSITIVO_ID","FECHA_GENERACION","FECHA_PRIMER_ACCESO","ULTIMA_ACTIVIDAD","FECHA_ENVIO","EMAIL_IE","EMAIL_RESPONSABLE","TIPO","S1_ENVIADA","S2_ENVIADA","S3_ENVIADA","ID_INFORME","ID_PDF_INFORME","LOGO_ID","HABILITAR_DESDE","ENVIADO_POR","FECHA_ENVIO_CORREO_INFORME"];
   const last=hoja.getLastColumn();
   const existentes=last?hoja.getRange(1,1,1,last).getValues()[0].map(String):[];
   if(!last){hoja.getRange(1,1,1,requeridas.length).setValues([requeridas]);}
@@ -7910,6 +7910,11 @@ function obtenerPdfInformeMasRecienteFEM_(folder, nombreArchivoBase, pdfIdRespal
 }
 
 function enviarInformeFEM(idForo,datos,pdfId){
+  // asegurarColumnasAccesosIE_() debe ejecutarse ANTES de leer la fila
+  // (obtenerAccesoPorIdForoRaw_ lee el encabezado directo de la hoja),
+  // para que la columna FECHA_ENVIO_CORREO_INFORME exista y quede
+  // incluida en acceso.mapa la primera vez que se llama esta función.
+  asegurarColumnasAccesosIE_();
   const acceso=obtenerAccesoPorIdForoRaw_(idForo); if(!acceso)throw new Error("ID_FORO no autorizado."); const c=datos.campos||{}; const ie=datos.institucion||acceso.ie; const ieSinPrefijo=nombreIESinPrefijoInstitucional_(ie); const logoIEUrlCorreo=urlPublicaLogoDrive_(obtenerLogoIdPorNombreIE_(ie)); const logoIEHtmlCorreo=logoIEUrlCorreo?("<div style=\"text-align:center;margin:0 0 18px;\"><img src=\""+logoIEUrlCorreo+"\" alt=\"Logo de la institución educativa\" style=\"max-width:56px;max-height:56px;border-radius:8px;\"></div>"):""; const destinatario=String(c.correoIE?.valor||acceso.email||"").trim(); const responsable=String(c.correo?.valor||"").trim(); if(!destinatario)throw new Error("La institución no tiene correo institucional registrado."); const aliases=GmailApp.getAliases().map(x=>x.toLowerCase()); const cuenta=Session.getEffectiveUser().getEmail().toLowerCase(); if(cuenta!==REMITENTE_FEM&&aliases.indexOf(REMITENTE_FEM)===-1)throw new Error("La cuenta de Apps Script no puede enviar como "+REMITENTE_FEM+". Configure esa cuenta o un alias."); const file=obtenerPdfInformeMasRecienteFEM_(crearCarpetaIE_(ie), "Informe Ejecutivo - "+ie+" FEM 2026", pdfId); hacerPublicoSiEsPosible_(file); const linkDescarga=file.getUrl();
   /*
    * Carpeta de la IE en Drive (compartida "cualquiera con el enlace
@@ -7968,6 +7973,21 @@ function enviarInformeFEM(idForo,datos,pdfId){
       diferido:true,
       mensaje:"Se alcanzó el límite diario de envíos de correo. El informe ya quedó generado y disponible para descargar; se enviará automáticamente al correo de la institución entre el 28 de agosto y el 4 de septiembre de 2026."
     };
+  }
+
+  /*
+   * Registro real de "correo del informe enviado con éxito" — es
+   * DISTINTO de FECHA_ENVIO (que ya se usa para la fecha de envío
+   * DEFINITIVO del formulario, ver finalizarFormularioFEM y
+   * enviarForoDefinitivo). Sin esto no había ninguna forma de auditar
+   * qué IE realmente recibieron el correo por la vía normal (solo se
+   * podía ver la cola de diferidos por cuota agotada, que no es lo
+   * mismo). Nunca debe tumbar el envío, que ya salió bien.
+   */
+  try{
+    if(acceso.mapa.FECHA_ENVIO_CORREO_INFORME) acceso.hoja.getRange(acceso.fila,acceso.mapa.FECHA_ENVIO_CORREO_INFORME).setValue(new Date());
+  }catch(errorRegistroEnvioCorreo){
+    Logger.log("No fue posible registrar FECHA_ENVIO_CORREO_INFORME: "+errorRegistroEnvioCorreo.message);
   }
 
   // Recordatorio de la Valoración del Foro (cierre formal), a la IE y

@@ -4338,6 +4338,69 @@ function reintentarEnviosInformeDiferidosFEM(){
 
 
 /*
+ * DIAGNÓSTICO REAL de "¿ya a todas las IE les llegó el correo del
+ * informe?" — reintentarEnviosInformeDiferidosFEM() en 0/0 SOLO dice
+ * que la cola de diferidos por cuota agotada está vacía; eso NO es lo
+ * mismo que "todas recibieron el correo", porque:
+ *   1) las IE cuyo correo salió bien a la primera nunca pasan por esa
+ *      cola (no hay nada que reintentar), y
+ *   2) un error de envío que NO sea por cuota agotada se relanza
+ *      (throw) y no queda registrado en ninguna parte persistente.
+ * Esta función sí compara, IE por IE, quién tiene informe generado
+ * (ID_PDF_INFORME) contra quién tiene registrada la fecha real de
+ * envío exitoso del correo (columna FECHA_ENVIO_CORREO_INFORME,
+ * agregada para esto — no reutiliza FECHA_ENVIO, que ya significa
+ * "fecha de envío definitivo del formulario").
+ * Nota: informes generados ANTES de agregar esta columna no van a
+ * tener FECHA_ENVIO_CORREO_INFORME aunque su correo sí se haya
+ * enviado — para esos casos, esta función solo puede decir "sin
+ * registro", no "sin enviar"; conviene revisar el buzón de la IE o
+ * volver a llamar a enviarInformeFEM antes de darlos por no enviados.
+ */
+function diagnosticarCorreosInformeFEMPendientes(){
+  const hoja=asegurarColumnasAccesosIE_();
+  const mapa=mapaHoja_(hoja);
+  const ultimaFila=hoja.getLastRow();
+  const resultado={conInformeYCorreoConfirmado:[],conInformeSinRegistroDeCorreo:[],sinInformeAun:[]};
+
+  if(ultimaFila<2){
+    Logger.log("AccesosIE no tiene filas.");
+    return resultado;
+  }
+
+  const valores=hoja.getRange(2,1,ultimaFila-1,hoja.getLastColumn()).getDisplayValues();
+
+  for(let i=0;i<valores.length;i++){
+    const fila=valores[i];
+    const nombreIE=String(fila[mapa.IE-1]||"").trim();
+    if(!nombreIE) continue;
+
+    const pdfId=mapa.ID_PDF_INFORME ? String(fila[mapa.ID_PDF_INFORME-1]||"").trim() : "";
+    if(!pdfId){ resultado.sinInformeAun.push(nombreIE); continue; }
+
+    const fechaEnvioCorreo=mapa.FECHA_ENVIO_CORREO_INFORME ? String(fila[mapa.FECHA_ENVIO_CORREO_INFORME-1]||"").trim() : "";
+    if(fechaEnvioCorreo){
+      resultado.conInformeYCorreoConfirmado.push(nombreIE+" ("+fechaEnvioCorreo+")");
+    }else{
+      resultado.conInformeSinRegistroDeCorreo.push(nombreIE);
+    }
+  }
+
+  Logger.log("========================================");
+  Logger.log("DIAGNÓSTICO — CORREOS DE INFORME FEM");
+  Logger.log("Con informe y correo CONFIRMADO ("+resultado.conInformeYCorreoConfirmado.length+"): "+JSON.stringify(resultado.conInformeYCorreoConfirmado));
+  Logger.log("Con informe pero SIN registro de correo enviado ("+resultado.conInformeSinRegistroDeCorreo.length+"): "+JSON.stringify(resultado.conInformeSinRegistroDeCorreo));
+  Logger.log("Todavía SIN informe generado ("+resultado.sinInformeAun.length+"): "+JSON.stringify(resultado.sinInformeAun));
+  Logger.log("========================================");
+  if(resultado.conInformeSinRegistroDeCorreo.length){
+    Logger.log("Para las IE 'SIN registro de correo enviado' listadas arriba: si su informe se generó ANTES de este diagnóstico, puede que el correo sí se haya enviado pero sin quedar registrado (columna nueva). Revise el buzón de esa IE, o si tiene dudas, vuelva a llamar a enviarInformeFEM para esa IE.");
+  }
+
+  return resultado;
+}
+
+
+/*
  * Regenera el Doc/PDF del informe ejecutivo de UNA IE ya en
  * producción, a partir de sus datos YA GUARDADOS (Caracterización,
  * Sesiones 1-3, asistencia QR) — sin volver a llamar
