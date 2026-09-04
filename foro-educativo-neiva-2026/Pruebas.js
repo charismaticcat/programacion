@@ -4401,6 +4401,85 @@ function diagnosticarCorreosInformeFEMPendientes(){
 
 
 /*
+ * RELLENO RETROACTIVO de FECHA_ENVIO_CORREO_INFORME para los informes
+ * que se enviaron ANTES de que esa columna existiera (por eso salen
+ * "sin registro" en diagnosticarCorreosInformeFEMPendientes aunque su
+ * correo sí haya salido). En vez de adivinar, esta función busca en
+ * la bandeja de ENVIADOS de la propia cuenta remitente (fuente de la
+ * verdad real, no una suposición) un correo cuyo asunto sea EXACTO al
+ * que arma construirCorreoInformeFEM_ ("Reporte de Informe IE "+ie) y,
+ * si lo encuentra, registra la fecha real en que se envió.
+ *
+ * Solo toca IE con ID_PDF_INFORME ya generado y
+ * FECHA_ENVIO_CORREO_INFORME todavía vacía — nunca sobrescribe un
+ * registro que ya exista, y nunca envía ningún correo nuevo.
+ */
+function backfillFechaEnvioCorreoInformeDesdeGmailFEM(){
+  const hoja=asegurarColumnasAccesosIE_();
+  const mapa=mapaHoja_(hoja);
+  const ultimaFila=hoja.getLastRow();
+  const resultado={confirmadosPorGmail:[],sinRastroEnGmail:[],omitidosSinInforme:[],omitidosYaRegistrados:[]};
+
+  if(ultimaFila<2){
+    Logger.log("AccesosIE no tiene filas.");
+    return resultado;
+  }
+  if(!mapa.FECHA_ENVIO_CORREO_INFORME){
+    throw new Error("La columna FECHA_ENVIO_CORREO_INFORME no existe todavía en AccesosIE.");
+  }
+
+  const valores=hoja.getRange(2,1,ultimaFila-1,hoja.getLastColumn()).getDisplayValues();
+
+  for(let i=0;i<valores.length;i++){
+    const fila=valores[i];
+    const filaHoja=i+2;
+    const nombreIE=String(fila[mapa.IE-1]||"").trim();
+    if(!nombreIE) continue;
+
+    const pdfId=mapa.ID_PDF_INFORME ? String(fila[mapa.ID_PDF_INFORME-1]||"").trim() : "";
+    if(!pdfId){ resultado.omitidosSinInforme.push(nombreIE); continue; }
+
+    const yaRegistrado=String(fila[mapa.FECHA_ENVIO_CORREO_INFORME-1]||"").trim();
+    if(yaRegistrado){ resultado.omitidosYaRegistrados.push(nombreIE); continue; }
+
+    const asuntoEsperado="Reporte de Informe IE "+nombreIE;
+    try{
+      const hilos=GmailApp.search('in:sent subject:"'+asuntoEsperado.replace(/"/g,'\\"')+'"', 0, 5);
+      let fechaMasReciente=null;
+      hilos.forEach(function(hilo){
+        hilo.getMessages().forEach(function(msj){
+          if(msj.getSubject()!==asuntoEsperado) return;
+          const fecha=msj.getDate();
+          if(!fechaMasReciente || fecha.getTime()>fechaMasReciente.getTime()) fechaMasReciente=fecha;
+        });
+      });
+      if(fechaMasReciente){
+        hoja.getRange(filaHoja, mapa.FECHA_ENVIO_CORREO_INFORME).setValue(fechaMasReciente);
+        resultado.confirmadosPorGmail.push(nombreIE+" ("+fechaMasReciente+")");
+      }else{
+        resultado.sinRastroEnGmail.push(nombreIE);
+      }
+    }catch(errorBusqueda){
+      resultado.sinRastroEnGmail.push(nombreIE+" (error de búsqueda: "+errorBusqueda.message+")");
+    }
+  }
+
+  Logger.log("========================================");
+  Logger.log("RELLENO RETROACTIVO — FECHA_ENVIO_CORREO_INFORME DESDE GMAIL");
+  Logger.log("Confirmados en Enviados, registrados ahora ("+resultado.confirmadosPorGmail.length+"): "+JSON.stringify(resultado.confirmadosPorGmail));
+  Logger.log("SIN rastro en Enviados — revisar manualmente ("+resultado.sinRastroEnGmail.length+"): "+JSON.stringify(resultado.sinRastroEnGmail));
+  Logger.log("Omitidos, ya tenían registro ("+resultado.omitidosYaRegistrados.length+"): "+JSON.stringify(resultado.omitidosYaRegistrados));
+  Logger.log("Omitidos, sin informe generado ("+resultado.omitidosSinInforme.length+"): "+JSON.stringify(resultado.omitidosSinInforme));
+  Logger.log("========================================");
+  if(resultado.sinRastroEnGmail.length){
+    Logger.log("Las IE de 'SIN rastro en Enviados' son las que de verdad hay que revisar con cuidado: no aparece ningún correo con ese asunto exacto en Enviados de "+REMITENTE_FEM+". Puede ser que el asunto haya cambiado con el tiempo, o que el correo realmente nunca haya salido — para estas conviene volver a llamar a enviarInformeFEM.");
+  }
+
+  return resultado;
+}
+
+
+/*
  * Regenera el Doc/PDF del informe ejecutivo de UNA IE ya en
  * producción, a partir de sus datos YA GUARDADOS (Caracterización,
  * Sesiones 1-3, asistencia QR) — sin volver a llamar
