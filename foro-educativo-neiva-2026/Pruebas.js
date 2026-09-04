@@ -4501,3 +4501,92 @@ function enviarCorreoPruebaInformeFEM(nombreIE){
 
   Logger.log("Correo de prueba del informe (con enlace a la última versión, a la carpeta de Drive y a la Valoración del Foro) enviado a jhonefrainsanchez@gmail.com, con los datos de "+ie+".");
 }
+
+/*
+ * Envía el recordatorio de la Valoración del Foro (ver
+ * enviarRecordatorioValoracionFEM_ en Código.js) a TODAS las IE que
+ * ya tengan su informe generado y NO hayan diligenciado todavía la
+ * Valoración — de aquí en adelante ese recordatorio ya sale solo,
+ * automáticamente, cada vez que se envía el informe (ver
+ * enviarInformeFEM), pero las IE que ya habían recibido su informe
+ * ANTES de esa mejora no llegaron a recibirlo. Esta función es para
+ * ponerse al día una sola vez con esas IE ya enviadas.
+ *
+ * VALIDACIÓN EXPLÍCITA (a pedido expreso): antes de enviar, se
+ * confirma con obtenerValoracionPorIdForo_ que esa IE en particular
+ * TODAVÍA NO tiene una valoración registrada — a quien ya la
+ * diligenció no le vuelve a llegar el recordatorio.
+ *
+ * Se detiene (sin marcar como fallidas las que faltan) si se agota
+ * la cuota diaria de correo — puede volver a ejecutarse al día
+ * siguiente para las que quedaron pendientes, sin duplicar los
+ * correos ya enviados.
+ *
+ * Uso: desde el editor de Apps Script, seleccionar esta función y
+ * presionar "Ejecutar". El resultado (enviados/omitidos/fallidos)
+ * queda en "Ver registros de ejecución".
+ */
+function enviarRecordatoriosValoracionPendientesFEM(){
+  const hoja=asegurarColumnasAccesosIE_();
+  const mapa=mapaHoja_(hoja);
+  const ultimaFila=hoja.getLastRow();
+  const resultado={enviados:[],omitidosYaValorados:[],omitidosSinInforme:[],omitidosSinCorreo:[],fallidos:[],cuotaAgotada:false};
+
+  if(ultimaFila<2){
+    Logger.log("AccesosIE no tiene filas.");
+    return resultado;
+  }
+
+  const valores=hoja.getRange(2,1,ultimaFila-1,hoja.getLastColumn()).getDisplayValues();
+
+  for(let i=0;i<valores.length;i++){
+    if(resultado.cuotaAgotada) break;
+
+    const fila=valores[i];
+    const nombreIE=String(fila[mapa.IE-1]||"").trim();
+    const idForo=String(fila[mapa.ID_FORO-1]||"").trim();
+    if(!nombreIE || !idForo) continue;
+
+    const pdfId=mapa.ID_PDF_INFORME ? String(fila[mapa.ID_PDF_INFORME-1]||"").trim() : "";
+    if(!pdfId){ resultado.omitidosSinInforme.push(nombreIE); continue; }
+
+    // Validación explícita: nunca a quien ya diligenció la valoración.
+    if(obtenerValoracionPorIdForo_(idForo)){ resultado.omitidosYaValorados.push(nombreIE); continue; }
+
+    try{
+      const datosGuardados=obtenerDatosGuardadosPorIdForo_(idForo);
+      const c=datosGuardados?.campos||{};
+      const ie=datosGuardados?.institucion||nombreIE;
+      const ieSinPrefijo=nombreIESinPrefijoInstitucional_(ie);
+      const destinatario=String(c.correoIE?.valor||(mapa.EMAIL_IE?fila[mapa.EMAIL_IE-1]:"")||"").trim();
+      const responsable=String(c.correo?.valor||"").trim();
+      const linkValoracion=mapa.URL_ACCESO ? String(fila[mapa.URL_ACCESO-1]||"").trim() : "";
+
+      if(!destinatario){ resultado.omitidosSinCorreo.push(nombreIE); continue; }
+      if(!linkValoracion){ resultado.fallidos.push({ie:nombreIE, motivo:"Sin URL_ACCESO registrada."}); continue; }
+
+      const logoIEUrlCorreo=urlPublicaLogoDrive_(obtenerLogoIdPorNombreIE_(ie));
+      enviarRecordatorioValoracionFEM_(idForo, ie, ieSinPrefijo, logoIEUrlCorreo, destinatario, responsable, linkValoracion);
+      resultado.enviados.push(nombreIE);
+    }catch(error){
+      if(esErrorCuotaCorreoAgotada_(error)){
+        resultado.cuotaAgotada=true;
+        Logger.log("Cuota de correo agotada — se detiene el envío masivo de recordatorios. Vuelva a ejecutar esta función mañana para las IE que quedaron pendientes.");
+        break;
+      }
+      resultado.fallidos.push({ie:nombreIE, motivo:error.message});
+    }
+  }
+
+  Logger.log("========================================");
+  Logger.log("RECORDATORIOS DE VALORACIÓN — RESULTADO");
+  Logger.log("Enviados ("+resultado.enviados.length+"): "+JSON.stringify(resultado.enviados));
+  Logger.log("Omitidos, ya valoraron ("+resultado.omitidosYaValorados.length+"): "+JSON.stringify(resultado.omitidosYaValorados));
+  Logger.log("Omitidos, sin informe generado ("+resultado.omitidosSinInforme.length+"): "+JSON.stringify(resultado.omitidosSinInforme));
+  Logger.log("Omitidos, sin correo institucional ("+resultado.omitidosSinCorreo.length+"): "+JSON.stringify(resultado.omitidosSinCorreo));
+  Logger.log("Fallidos ("+resultado.fallidos.length+"): "+JSON.stringify(resultado.fallidos));
+  if(resultado.cuotaAgotada) Logger.log("Se detuvo por cuota de correo agotada — vuelva a ejecutar mañana.");
+  Logger.log("========================================");
+
+  return resultado;
+}
