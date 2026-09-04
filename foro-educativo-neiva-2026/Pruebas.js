@@ -4711,6 +4711,8 @@ function enviarCorreoPruebaRecordatorioValoracionFEM(nombreIE){
  * "Ejecutar".
  */
 function corregirRectorYRegenerarInformeFEM(nombreIE, nombreRectorCorrecto){
+  nombreIE = nombreIE || "INSTITUTO TÉCNICO IPC ANDRÉS ROSA";
+  nombreRectorCorrecto = nombreRectorCorrecto || "Jorge Luis Polania Vargas";
   const idForo=buscarIdForoPorNombreIE_(nombreIE);
 
   const hoja=abrirSpreadsheet_().getSheetByName(HOJA_AVANCES);
