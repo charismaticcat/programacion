@@ -4363,28 +4363,39 @@ function reintentarEnviosInformeDiferidosFEM(){
  * "Ejecutar". El resultado (con el docUrl/pdfUrl nuevos) queda en
  * "Ver registros de ejecución".
  */
-function regenerarInformeFEMPorIE(nombreIE){
-  nombreIE = nombreIE || "EL LIMONAR";
+/*
+ * Ubica el ID_FORO de una IE por su nombre exacto (mayúsculas/
+ * minúsculas no importan) en AccesosIE. Compartido por
+ * regenerarInformeFEMPorIE y enviarCorreoPruebaInformeFEM para no
+ * duplicar la misma búsqueda.
+ */
+function buscarIdForoPorNombreIE_(nombreIE){
   const hoja = asegurarColumnasAccesosIE_();
   const mapa = mapaHoja_(hoja);
   const ultimaFila = hoja.getLastRow();
   if(ultimaFila < 2) throw new Error("AccesosIE no tiene filas.");
-
   const valores = hoja.getRange(2, 1, ultimaFila - 1, hoja.getLastColumn()).getDisplayValues();
   const fila = valores.find(function(f){
     return String(f[mapa.IE-1]||"").trim().toUpperCase() === String(nombreIE).trim().toUpperCase();
   });
   if(!fila) throw new Error("No existe \""+nombreIE+"\" en AccesosIE.");
+  return String(fila[mapa.ID_FORO-1]||"").trim();
+}
 
-  const idForo = String(fila[mapa.ID_FORO-1]||"").trim();
+function regenerarInformeFEMPorIE(nombreIE){
+  nombreIE = nombreIE || "EL LIMONAR";
+  const idForo = buscarIdForoPorNombreIE_(nombreIE);
+  const acceso = obtenerAccesoPorIdForoRaw_(idForo);
+  if(!acceso) throw new Error("No se encontró el acceso de "+nombreIE+" (ID_FORO "+idForo+").");
+
   const datosGuardados = obtenerDatosGuardadosPorIdForo_(idForo);
   if(!datosGuardados) throw new Error("No hay datos guardados para "+nombreIE+" (ID_FORO "+idForo+").");
   datosGuardados.idForo = idForo;
 
   // IDs del Doc/PDF viejos, ANTES de regenerar, para poder mandarlos
   // a la papelera después (solo si la regeneración sale bien).
-  const idDocViejo = mapa.ID_INFORME ? String(fila[mapa.ID_INFORME-1]||"").trim() : "";
-  const idPdfViejo = mapa.ID_PDF_INFORME ? String(fila[mapa.ID_PDF_INFORME-1]||"").trim() : "";
+  const idDocViejo = acceso.mapa.ID_INFORME ? String(acceso.hoja.getRange(acceso.fila,acceso.mapa.ID_INFORME).getValue()||"").trim() : "";
+  const idPdfViejo = acceso.mapa.ID_PDF_INFORME ? String(acceso.hoja.getRange(acceso.fila,acceso.mapa.ID_PDF_INFORME).getValue()||"").trim() : "";
 
   const informe = generarInformeFEM(idForo, datosGuardados);
 
@@ -4429,4 +4440,65 @@ function autorizarServicioAvanzadoDocs(){
   }finally{
     try{ DriveApp.getFileById(doc.getId()).setTrashed(true); }catch(e){}
   }
+}
+
+/*
+ * Envía el correo del informe (con los 3 agregados nuevos: enlace a
+ * la ÚLTIMA VERSIÓN del informe, enlace a la CARPETA de la IE en
+ * Drive, y el enlace de cierre de la VALORACIÓN DEL FORO) como
+ * PRUEBA a jhonefrainsanchez@gmail.com — nunca a la institución real.
+ * Reutiliza construirCorreoInformeFEM_ (Código.js), el mismo armado
+ * que usa enviarInformeFEM tanto para el envío inmediato como para
+ * el reintento diferido, así que lo que se ve acá es EXACTAMENTE lo
+ * que le llegaría a una IE real.
+ *
+ * Usa los datos YA GUARDADOS de una IE que ya tenga su informe
+ * generado (por defecto, "EL LIMONAR"); no envía nada a su correo
+ * institucional ni al responsable — el asunto queda marcado
+ * "[PRUEBA]" y el cuerpo lleva un aviso adicional en amarillo.
+ *
+ * Uso: desde el editor de Apps Script, seleccionar esta función y
+ * presionar "Ejecutar".
+ */
+function enviarCorreoPruebaInformeFEM(nombreIE){
+  nombreIE = nombreIE || "EL LIMONAR";
+  const idForo = buscarIdForoPorNombreIE_(nombreIE);
+  const acceso = obtenerAccesoPorIdForoRaw_(idForo);
+  if(!acceso) throw new Error("No se encontró el acceso de "+nombreIE+" (ID_FORO "+idForo+").");
+
+  const pdfId = acceso.mapa.ID_PDF_INFORME ? String(acceso.hoja.getRange(acceso.fila,acceso.mapa.ID_PDF_INFORME).getValue()||"").trim() : "";
+  if(!pdfId) throw new Error(nombreIE+" todavía no tiene un informe generado (ID_PDF_INFORME vacío). Genere o regenere su informe primero (ver regenerarInformeFEMPorIE).");
+
+  const datosGuardados = obtenerDatosGuardadosPorIdForo_(idForo);
+  if(!datosGuardados) throw new Error("No hay datos guardados para "+nombreIE+" (ID_FORO "+idForo+").");
+  datosGuardados.idForo = idForo;
+
+  const ie = datosGuardados.institucion || acceso.ie;
+  const ieSinPrefijo = nombreIESinPrefijoInstitucional_(ie);
+  const logoIEUrlCorreo = urlPublicaLogoDrive_(obtenerLogoIdPorNombreIE_(ie));
+  const logoIEHtmlCorreo = logoIEUrlCorreo ? ("<div style=\"text-align:center;margin:0 0 18px;\"><img src=\""+logoIEUrlCorreo+"\" alt=\"Logo de la institución educativa\" style=\"max-width:56px;max-height:56px;border-radius:8px;\"></div>") : "";
+
+  const file = DriveApp.getFileById(pdfId);
+  const linkDescarga = file.getUrl();
+  const folderIE = crearCarpetaIE_(ie);
+  const linkCarpeta = folderIE.getUrl();
+  const linkValoracion = acceso.mapa.URL_ACCESO ? String(acceso.hoja.getRange(acceso.fila,acceso.mapa.URL_ACCESO).getValue()||"").trim() : "";
+  const valoracionYaCompletada = !!obtenerValoracionPorIdForo_(idForo);
+
+  const correo = construirCorreoInformeFEM_({
+    ie:ie, ieSinPrefijo:ieSinPrefijo, logoIEHtmlCorreo:logoIEHtmlCorreo,
+    linkDescarga:linkDescarga, linkCarpeta:linkCarpeta, linkValoracion:linkValoracion,
+    valoracionYaCompletada:valoracionYaCompletada
+  });
+
+  const avisoPrueba="<p style=\"background:#FFF3CD;color:#664D03;padding:8px 12px;border-radius:6px;\"><strong>⚠ Correo de PRUEBA</strong> — contenido real de "+ie+", enviado únicamente a jhonefrainsanchez@gmail.com para revisión. No se envió a la institución.</p>";
+
+  GmailApp.sendEmail("jhonefrainsanchez@gmail.com", "[PRUEBA] "+correo.subject, correo.body, {
+    htmlBody: avisoPrueba+correo.htmlBody,
+    from: REMITENTE_FEM,
+    name: "Secretaría de Educación de Neiva (PRUEBA)",
+    attachments: [file.getBlob()]
+  });
+
+  Logger.log("Correo de prueba del informe (con enlace a la última versión, a la carpeta de Drive y a la Valoración del Foro) enviado a jhonefrainsanchez@gmail.com, con los datos de "+ie+".");
 }

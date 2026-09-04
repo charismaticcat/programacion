@@ -7449,8 +7449,92 @@ function esErrorCuotaCorreoAgotada_(error){
   return /demasiadas veces|too many times|quota/.test(msg);
 }
 
+/*
+ * Arma el asunto/cuerpo/cuerpo HTML del correo institucional del
+ * informe — usado tanto por el envío inmediato como por el reintento
+ * diferido (enviarInformeFEM es la MISMA función en los dos casos,
+ * ver esErrorCuotaCorreoAgotada_/reintentarEnviosInformeDiferidosFEM),
+ * y también por el envío de PRUEBA (enviarCorreoPruebaInformeFEM en
+ * Pruebas.js), para no duplicar el armado del mensaje en tres
+ * lugares distintos.
+ */
+function construirCorreoInformeFEM_(datosCorreo){
+  const ie=datosCorreo.ie, ieSinPrefijo=datosCorreo.ieSinPrefijo, logoIEHtmlCorreo=datosCorreo.logoIEHtmlCorreo;
+  const linkDescarga=datosCorreo.linkDescarga, linkCarpeta=datosCorreo.linkCarpeta, linkValoracion=datosCorreo.linkValoracion;
+  const valoracionYaCompletada=datosCorreo.valoracionYaCompletada;
+
+  // "Cierre formal" del Foro: si la Valoración ya se diligenció, se
+  // agradece en vez de volver a pedirla; si el enlace personalizado
+  // de acceso no está disponible por algún motivo, se omite el
+  // párrafo entero en vez de mostrar un enlace vacío/roto.
+  let parrafoValoracion="", parrafoValoracionHtml="";
+  if(valoracionYaCompletada){
+    parrafoValoracion="Adicionalmente, agradecemos que ya hayan diligenciado la Valoración del Foro — con eso queda formalmente cerrado el proceso del Foro Educativo Institucional para su institución.";
+    parrafoValoracionHtml="<p>Adicionalmente, agradecemos que ya hayan diligenciado la <strong>Valoración del Foro</strong> — con eso queda formalmente cerrado el proceso del Foro Educativo Institucional para su institución.</p>";
+  }else if(linkValoracion){
+    parrafoValoracion="Para dar cierre formal al Foro Educativo Institucional, los invitamos a diligenciar la Valoración del Foro desde el siguiente enlace:\n"+linkValoracion;
+    parrafoValoracionHtml="<p>Para dar <strong>cierre formal</strong> al Foro Educativo Institucional, los invitamos a diligenciar la <a href=\""+linkValoracion+"\">Valoración del Foro</a>.</p>";
+  }
+
+  // Igual que con la Valoración: si por algún motivo no se pudo
+  // obtener el enlace de la carpeta, se omite el párrafo entero en
+  // vez de mostrar un enlace vacío/roto.
+  const parrafoCarpeta=linkCarpeta
+    ? "Todos los materiales de su institución (informe, fotografía de la jornada y demás evidencias) están disponibles en la carpeta de Drive de la IE:\n"+linkCarpeta
+    : "";
+  const parrafoCarpetaHtml=linkCarpeta
+    ? "<p>Todos los materiales de su institución (informe, fotografía de la jornada y demás evidencias) están disponibles en la <a href=\""+linkCarpeta+"\">carpeta de Drive de la IE</a>.</p>"
+    : "";
+
+  const subject="Reporte de Informe IE "+ie;
+  const body="Apreciados(as) integrantes de la comunidad educativa de la Institución Educativa "+ieSinPrefijo+":\n\n"+
+    "Reciban un cordial saludo de la Secretaría de Educación de Neiva.\n\n"+
+    "Agradecemos a la Institución Educativa por su participación y por el tiempo dedicado al desarrollo del Foro Educativo Institucional – Neiva 2026, así como por los aportes, reflexiones y propuestas construidas colectivamente durante la jornada.\n\n"+
+    "Adjuntamos la última versión del Informe Ejecutivo del Foro Educativo Institucional – Neiva 2026, que reúne la caracterización institucional, la participación registrada y las respuestas definitivas construidas durante las tres sesiones de trabajo.\n\n"+
+    "También puede descargar la última versión del informe desde este enlace:\n"+linkDescarga+
+    (parrafoCarpeta?"\n\n"+parrafoCarpeta:"")+
+    (parrafoValoracion?"\n\n"+parrafoValoracion:"")+"\n\n"+
+    "Agradecemos especialmente la disposición de la comunidad educativa para participar en este ejercicio de diálogo, reflexión y construcción colectiva orientado al fortalecimiento de la educación en nuestro municipio.\n\n"+
+    "Secretaría de Educación de Neiva\nForo Educativo Institucional – Neiva 2026\n\“Escuela Viva: Voces que construyen territorio\”";
+
+  const htmlBody=logoIEHtmlCorreo+
+    "<p>Apreciados(as) integrantes de la comunidad educativa de la Institución Educativa <strong>"+ieSinPrefijo+"</strong>:</p>"+
+    "<p>Reciban un cordial saludo de la Secretaría de Educación de Neiva.</p>"+
+    "<p>Agradecemos a la Institución Educativa por su participación y por el tiempo dedicado al desarrollo del <strong>Foro Educativo Institucional – Neiva 2026</strong>, así como por los aportes, reflexiones y propuestas construidas colectivamente durante la jornada.</p>"+
+    "<p>Adjuntamos la <strong>última versión</strong> del Informe Ejecutivo del Foro Educativo Institucional – Neiva 2026, que reúne la caracterización institucional, la participación registrada y las respuestas definitivas construidas durante las tres sesiones de trabajo.</p>"+
+    "<p><a href=\""+linkDescarga+"\">Descargar la última versión del informe</a></p>"+
+    parrafoCarpetaHtml+
+    parrafoValoracionHtml+
+    "<p>Agradecemos especialmente la disposición de la comunidad educativa para participar en este ejercicio de diálogo, reflexión y construcción colectiva orientado al fortalecimiento de la educación en nuestro municipio.</p>"+
+    "<p><strong>Secretaría de Educación de Neiva</strong><br>Foro Educativo Institucional – Neiva 2026<br>“Escuela Viva: Voces que construyen territorio”</p>";
+
+  return {subject:subject, body:body, htmlBody:htmlBody};
+}
+
 function enviarInformeFEM(idForo,datos,pdfId){
-  const acceso=obtenerAccesoPorIdForoRaw_(idForo); if(!acceso)throw new Error("ID_FORO no autorizado."); const c=datos.campos||{}; const ie=datos.institucion||acceso.ie; const ieSinPrefijo=nombreIESinPrefijoInstitucional_(ie); const logoIEUrlCorreo=urlPublicaLogoDrive_(obtenerLogoIdPorNombreIE_(ie)); const logoIEHtmlCorreo=logoIEUrlCorreo?("<div style=\"text-align:center;margin:0 0 18px;\"><img src=\""+logoIEUrlCorreo+"\" alt=\"Logo de la institución educativa\" style=\"max-width:56px;max-height:56px;border-radius:8px;\"></div>"):""; const destinatario=String(c.correoIE?.valor||acceso.email||"").trim(); const responsable=String(c.correo?.valor||"").trim(); if(!destinatario)throw new Error("La institución no tiene correo institucional registrado."); const aliases=GmailApp.getAliases().map(x=>x.toLowerCase()); const cuenta=Session.getEffectiveUser().getEmail().toLowerCase(); if(cuenta!==REMITENTE_FEM&&aliases.indexOf(REMITENTE_FEM)===-1)throw new Error("La cuenta de Apps Script no puede enviar como "+REMITENTE_FEM+". Configure esa cuenta o un alias."); const file=DriveApp.getFileById(pdfId); hacerPublicoSiEsPosible_(file); const linkDescarga=file.getUrl(); const subject="Reporte de Informe IE "+ie; const body="Apreciados(as) integrantes de la comunidad educativa de la Institución Educativa "+ieSinPrefijo+":\n\nReciban un cordial saludo de la Secretaría de Educación de Neiva.\n\nAgradecemos a la Institución Educativa por su participación y por el tiempo dedicado al desarrollo del Foro Educativo Institucional – Neiva 2026, así como por los aportes, reflexiones y propuestas construidas colectivamente durante la jornada.\n\nAdjuntamos el Informe Ejecutivo del Foro Educativo Institucional – Neiva 2026, que reúne la caracterización institucional, la participación registrada y las respuestas definitivas construidas durante las tres sesiones de trabajo.\n\nTambién puede descargarlo desde este enlace:\n"+linkDescarga+"\n\nAgradecemos especialmente la disposición de la comunidad educativa para participar en este ejercicio de diálogo, reflexión y construcción colectiva orientado al fortalecimiento de la educación en nuestro municipio.\n\nSecretaría de Educación de Neiva\nForo Educativo Institucional – Neiva 2026\n\“Escuela Viva: Voces que construyen territorio\”"; const to=destinatario; const cc=COPIAS_INFORME_FEM.filter(Boolean).join(",");
+  const acceso=obtenerAccesoPorIdForoRaw_(idForo); if(!acceso)throw new Error("ID_FORO no autorizado."); const c=datos.campos||{}; const ie=datos.institucion||acceso.ie; const ieSinPrefijo=nombreIESinPrefijoInstitucional_(ie); const logoIEUrlCorreo=urlPublicaLogoDrive_(obtenerLogoIdPorNombreIE_(ie)); const logoIEHtmlCorreo=logoIEUrlCorreo?("<div style=\"text-align:center;margin:0 0 18px;\"><img src=\""+logoIEUrlCorreo+"\" alt=\"Logo de la institución educativa\" style=\"max-width:56px;max-height:56px;border-radius:8px;\"></div>"):""; const destinatario=String(c.correoIE?.valor||acceso.email||"").trim(); const responsable=String(c.correo?.valor||"").trim(); if(!destinatario)throw new Error("La institución no tiene correo institucional registrado."); const aliases=GmailApp.getAliases().map(x=>x.toLowerCase()); const cuenta=Session.getEffectiveUser().getEmail().toLowerCase(); if(cuenta!==REMITENTE_FEM&&aliases.indexOf(REMITENTE_FEM)===-1)throw new Error("La cuenta de Apps Script no puede enviar como "+REMITENTE_FEM+". Configure esa cuenta o un alias."); const file=DriveApp.getFileById(pdfId); hacerPublicoSiEsPosible_(file); const linkDescarga=file.getUrl();
+  /*
+   * Carpeta de la IE en Drive (compartida "cualquiera con el enlace
+   * puede ver", igual que el PDF y la fotografía) y enlace de cierre
+   * de la Valoración del Foro: son un AGREGADO al correo, nunca algo
+   * que deba impedir el envío del informe si fallan por cualquier
+   * motivo — de ahí el try/catch con valores por defecto en blanco
+   * (construirCorreoInformeFEM_ ya omite el párrafo correspondiente
+   * si el enlace queda vacío).
+   */
+  let linkCarpeta="", linkValoracion="", valoracionYaCompletada=false;
+  try{
+    const folderIE=crearCarpetaIE_(ie); hacerPublicoSiEsPosible_(folderIE); linkCarpeta=folderIE.getUrl();
+  }catch(errorCarpetaIE){ Logger.log("No fue posible obtener el enlace de la carpeta de la IE para el correo: "+errorCarpetaIE.message); }
+  try{
+    // Enlace personalizado y permanente de acceso de la IE (columna
+    // URL_ACCESO de AccesosIE) — se reutiliza para invitar al "cierre
+    // formal" (Valoración del Foro), en vez de armar un enlace nuevo.
+    linkValoracion=acceso.mapa.URL_ACCESO ? String(acceso.hoja.getRange(acceso.fila,acceso.mapa.URL_ACCESO).getValue()||"").trim() : "";
+    valoracionYaCompletada=!!obtenerValoracionPorIdForo_(idForo);
+  }catch(errorValoracionCorreo){ Logger.log("No fue posible calcular el estado de la Valoración del Foro para el correo: "+errorValoracionCorreo.message); }
+  const correo=construirCorreoInformeFEM_({ie:ie,ieSinPrefijo:ieSinPrefijo,logoIEHtmlCorreo:logoIEHtmlCorreo,linkDescarga:linkDescarga,linkCarpeta:linkCarpeta,linkValoracion:linkValoracion,valoracionYaCompletada:valoracionYaCompletada});
+  const subject=correo.subject, body=correo.body; const to=destinatario; const cc=COPIAS_INFORME_FEM.filter(Boolean).join(",");
 
   /*
    * BUG CRÍTICO EN VIVO (2026-08-28, ~100 IE enviando el mismo día):
@@ -7468,7 +7552,7 @@ function enviarInformeFEM(idForo,datos,pdfId){
    */
   let cuotaAgotada=false;
   try{
-    GmailApp.sendEmail(to,subject,body,{htmlBody:logoIEHtmlCorreo+"<p>Apreciados(as) integrantes de la comunidad educativa de la Institución Educativa <strong>"+ieSinPrefijo+"</strong>:</p><p>Reciban un cordial saludo de la Secretaría de Educación de Neiva.</p><p>Agradecemos a la Institución Educativa por su participación y por el tiempo dedicado al desarrollo del <strong>Foro Educativo Institucional – Neiva 2026</strong>, así como por los aportes, reflexiones y propuestas construidas colectivamente durante la jornada.</p><p>Adjuntamos el <strong>Informe Ejecutivo del Foro Educativo Institucional – Neiva 2026</strong>, que reúne la caracterización institucional, la participación registrada y las respuestas definitivas construidas durante las tres sesiones de trabajo.</p><p><a href=\""+linkDescarga+"\">Descargar el informe aquí</a></p><p>Agradecemos especialmente la disposición de la comunidad educativa para participar en este ejercicio de diálogo, reflexión y construcción colectiva orientado al fortalecimiento de la educación en nuestro municipio.</p><p><strong>Secretaría de Educación de Neiva</strong><br>Foro Educativo Institucional – Neiva 2026<br>“Escuela Viva: Voces que construyen territorio”</p>",cc:cc,from:REMITENTE_FEM,name:"Secretaría de Educación de Neiva",attachments:[file.getBlob()]});
+    GmailApp.sendEmail(to,subject,body,{htmlBody:correo.htmlBody,cc:cc,from:REMITENTE_FEM,name:"Secretaría de Educación de Neiva",attachments:[file.getBlob()]});
   }catch(errorEnvio){
     if(!esErrorCuotaCorreoAgotada_(errorEnvio)) throw errorEnvio;
     cuotaAgotada=true;
