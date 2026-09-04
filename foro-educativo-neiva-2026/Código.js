@@ -7881,8 +7881,36 @@ function enviarRecordatorioValoracionFEM_(idForo, ie, ieSinPrefijo, logoIEUrlCor
   });
 }
 
+/*
+ * BUG CORREGIDO: si la carpeta de la IE terminó con más de un PDF del
+ * informe (por ejemplo, una regeneración cuyo paso de mandar a la
+ * papelera el archivo viejo falló, o dos generaciones separadas), el
+ * correo del informe debe adjuntar SIEMPRE el más reciente por fecha
+ * y hora de creación — nunca varios adjuntos ni, por error, uno
+ * viejo. Se buscan por nombre en la carpeta de la IE; si no se
+ * encuentra ninguno (o la búsqueda falla por cualquier motivo), se
+ * usa el ID ya conocido como respaldo.
+ */
+function obtenerPdfInformeMasRecienteFEM_(folder, nombreArchivoBase, pdfIdRespaldo){
+  try{
+    const candidatos=[];
+    const it=folder.getFilesByType(MimeType.PDF);
+    while(it.hasNext()){
+      const f=it.next();
+      if(String(f.getName()||"").indexOf(nombreArchivoBase)===0) candidatos.push(f);
+    }
+    if(candidatos.length){
+      candidatos.sort(function(a,b){ return b.getDateCreated().getTime()-a.getDateCreated().getTime(); });
+      return candidatos[0];
+    }
+  }catch(errorBusquedaPdf){
+    Logger.log("No fue posible buscar el PDF más reciente del informe en la carpeta de la IE: "+errorBusquedaPdf.message);
+  }
+  return DriveApp.getFileById(pdfIdRespaldo);
+}
+
 function enviarInformeFEM(idForo,datos,pdfId){
-  const acceso=obtenerAccesoPorIdForoRaw_(idForo); if(!acceso)throw new Error("ID_FORO no autorizado."); const c=datos.campos||{}; const ie=datos.institucion||acceso.ie; const ieSinPrefijo=nombreIESinPrefijoInstitucional_(ie); const logoIEUrlCorreo=urlPublicaLogoDrive_(obtenerLogoIdPorNombreIE_(ie)); const logoIEHtmlCorreo=logoIEUrlCorreo?("<div style=\"text-align:center;margin:0 0 18px;\"><img src=\""+logoIEUrlCorreo+"\" alt=\"Logo de la institución educativa\" style=\"max-width:56px;max-height:56px;border-radius:8px;\"></div>"):""; const destinatario=String(c.correoIE?.valor||acceso.email||"").trim(); const responsable=String(c.correo?.valor||"").trim(); if(!destinatario)throw new Error("La institución no tiene correo institucional registrado."); const aliases=GmailApp.getAliases().map(x=>x.toLowerCase()); const cuenta=Session.getEffectiveUser().getEmail().toLowerCase(); if(cuenta!==REMITENTE_FEM&&aliases.indexOf(REMITENTE_FEM)===-1)throw new Error("La cuenta de Apps Script no puede enviar como "+REMITENTE_FEM+". Configure esa cuenta o un alias."); const file=DriveApp.getFileById(pdfId); hacerPublicoSiEsPosible_(file); const linkDescarga=file.getUrl();
+  const acceso=obtenerAccesoPorIdForoRaw_(idForo); if(!acceso)throw new Error("ID_FORO no autorizado."); const c=datos.campos||{}; const ie=datos.institucion||acceso.ie; const ieSinPrefijo=nombreIESinPrefijoInstitucional_(ie); const logoIEUrlCorreo=urlPublicaLogoDrive_(obtenerLogoIdPorNombreIE_(ie)); const logoIEHtmlCorreo=logoIEUrlCorreo?("<div style=\"text-align:center;margin:0 0 18px;\"><img src=\""+logoIEUrlCorreo+"\" alt=\"Logo de la institución educativa\" style=\"max-width:56px;max-height:56px;border-radius:8px;\"></div>"):""; const destinatario=String(c.correoIE?.valor||acceso.email||"").trim(); const responsable=String(c.correo?.valor||"").trim(); if(!destinatario)throw new Error("La institución no tiene correo institucional registrado."); const aliases=GmailApp.getAliases().map(x=>x.toLowerCase()); const cuenta=Session.getEffectiveUser().getEmail().toLowerCase(); if(cuenta!==REMITENTE_FEM&&aliases.indexOf(REMITENTE_FEM)===-1)throw new Error("La cuenta de Apps Script no puede enviar como "+REMITENTE_FEM+". Configure esa cuenta o un alias."); const file=obtenerPdfInformeMasRecienteFEM_(crearCarpetaIE_(ie), "Informe Ejecutivo - "+ie+" FEM 2026", pdfId); hacerPublicoSiEsPosible_(file); const linkDescarga=file.getUrl();
   /*
    * Carpeta de la IE en Drive (compartida "cualquiera con el enlace
    * puede ver", igual que el PDF y la fotografía) y enlace de cierre

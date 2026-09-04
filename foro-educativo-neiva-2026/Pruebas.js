@@ -4691,3 +4691,44 @@ function enviarCorreoPruebaRecordatorioValoracionFEM(nombreIE){
 
   Logger.log("Correo de prueba del recordatorio de Valoración (con código de ingreso "+(codigoAcceso||"—")+") enviado a jhonefrainsanchez@gmail.com, con los datos de "+ie+".");
 }
+
+/*
+ * Corrige el nombre del rector(a) guardado para una IE (en
+ * Caracterización, campos.rector.valor) y regenera de una vez su
+ * informe con el valor corregido. El nombre del rector aparece en
+ * DOS lugares del informe — la tabla de Caracterización y la firma
+ * "Rector(a)" al final — y ambos toman ese mismo dato guardado, así
+ * que corregirlo ahí y regenerar es lo único que hace falta para que
+ * el cambio se refleje en todo el documento.
+ *
+ * El nombre de la IE debe ser EXACTO (mayúsculas/minúsculas no
+ * importan) al que aparece en la columna IE de AccesosIE — si no
+ * coincide, falla con un error claro en vez de tocar la IE
+ * equivocada.
+ *
+ * Uso: desde el editor de Apps Script, seleccionar esta función,
+ * ajustar nombreIE/nombreRectorCorrecto si hace falta y presionar
+ * "Ejecutar".
+ */
+function corregirRectorYRegenerarInformeFEM(nombreIE, nombreRectorCorrecto){
+  const idForo=buscarIdForoPorNombreIE_(nombreIE);
+
+  const hoja=abrirSpreadsheet_().getSheetByName(HOJA_AVANCES);
+  if(!hoja) throw new Error("No se encontró la hoja "+HOJA_AVANCES+".");
+  const mapa=mapaHoja_(hoja);
+  const fila=buscarFilaPorIdForo_(hoja, idForo, mapa);
+  if(fila<0) throw new Error("No hay datos guardados en "+HOJA_AVANCES+" para "+nombreIE+" (ID_FORO "+idForo+").");
+
+  const raw=hoja.getRange(fila, mapa.DATOS).getValue();
+  if(!raw) throw new Error("La fila de "+nombreIE+" en "+HOJA_AVANCES+" no tiene datos guardados (columna DATOS vacía).");
+
+  const datos=JSON.parse(raw);
+  datos.campos=datos.campos||{};
+  const nombreAnterior=datos.campos.rector?.valor||"(vacío)";
+  datos.campos.rector=Object.assign({}, datos.campos.rector, {valor:String(nombreRectorCorrecto||"").trim()});
+  hoja.getRange(fila, mapa.DATOS).setValue(JSON.stringify(datos));
+
+  Logger.log("Rector(a) de "+nombreIE+" corregido: \""+nombreAnterior+"\" -> \""+datos.campos.rector.valor+"\". Regenerando informe...");
+
+  return regenerarInformeFEMPorIE(nombreIE);
+}
