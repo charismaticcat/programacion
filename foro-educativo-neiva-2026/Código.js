@@ -7733,11 +7733,11 @@ function construirCorreoInformeFEM_(datosCorreo){
   let parrafoValoracion="", cajaValoracionHtml="";
   if(valoracionYaCompletada){
     parrafoValoracion="Adicionalmente, agradecemos que ya hayan diligenciado la Valoración del Foro — con eso queda formalmente cerrado el proceso del Foro Educativo Institucional para su institución.";
-    cajaValoracionHtml="<div style=\"background:#F7FAF7;border-left:6px solid #0B6A44;border-radius:10px;padding:14px 18px;margin:0 0 22px;\"><p style=\"font-size:14px;color:#333333;margin:0;\">✅ Ya diligenciaron la <strong>Valoración del Foro</strong> — con eso queda formalmente cerrado el proceso para su institución. ¡Gracias!</p></div>";
+    cajaValoracionHtml="<div style=\"background:#F7FAF7;border-left:6px solid #0B6A44;border-radius:10px;padding:14px 18px;margin:0 0 22px;\"><p style=\"font-size:14px;color:#333333;margin:0;\">Ya diligenciaron la <strong>Valoración del Foro</strong> — con eso queda formalmente cerrado el proceso para su institución. ¡Gracias!</p></div>";
   }else if(linkValoracion){
     parrafoValoracion="Para dar cierre formal al Foro Educativo Institucional, los invitamos a diligenciar la Valoración del Foro desde el siguiente enlace:\n"+linkValoracion;
     cajaValoracionHtml="<div style=\"background:#FFF8E1;border-left:6px solid #F4B400;border-radius:10px;padding:16px 20px;margin:0 0 22px;text-align:center;\">"+
-      "<p style=\"font-size:13px;color:#7A5B00;margin:0 0 12px;\">💬 Para dar <strong>cierre formal</strong> al Foro, falta su Valoración.</p>"+
+      "<p style=\"font-size:13px;color:#7A5B00;margin:0 0 12px;\">Para dar <strong>cierre formal</strong> al Foro, falta su Valoración.</p>"+
       "<a href=\""+linkValoracion+"\" target=\"_blank\" style=\"display:inline-block;background:#0B6A44;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:14px;padding:12px 22px;border-radius:10px;\">Diligenciar la Valoración del Foro</a>"+
       "</div>";
   }
@@ -7749,7 +7749,7 @@ function construirCorreoInformeFEM_(datosCorreo){
     ? "Todos los materiales de su institución (informe, fotografía de la jornada y demás evidencias) están disponibles en la carpeta de Drive de la IE:\n"+linkCarpeta
     : "";
   const filaCarpetaHtml=linkCarpeta
-    ? "<p style=\"font-size:13px;color:#4A4A4A;margin:0 0 22px;\">📁 Todos los materiales de su institución (informe, fotografía de la jornada y demás evidencias) están en la <a href=\""+linkCarpeta+"\" style=\"color:#0B6A44;font-weight:700;\">carpeta de Drive de la IE</a>.</p>"
+    ? "<p style=\"font-size:13px;color:#4A4A4A;margin:0 0 22px;\">Todos los materiales de su institución (informe, fotografía de la jornada y demás evidencias) están en la <a href=\""+linkCarpeta+"\" style=\"color:#0B6A44;font-weight:700;\">carpeta de Drive de la IE</a>.</p>"
     : "";
 
   const subject="Reporte de Informe IE "+ie;
@@ -7775,7 +7775,7 @@ function construirCorreoInformeFEM_(datosCorreo){
     "<div style=\"max-width:520px;margin:0 auto;background:#FFFFFF;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.10);\">"+
     "<div style=\"background:#0B6A44;padding:26px 28px;text-align:center;\">"+
     (logoIEUrlCorreo ? "<img src=\""+logoIEUrlCorreo+"\" alt=\"Logo de la institución educativa\" style=\"display:block;max-width:56px;max-height:56px;margin:0 auto 10px;border-radius:8px;\">" : "")+
-    "<div style=\"color:#FFFFFF;font-size:20px;font-weight:700;\">📄 Informe Ejecutivo del Foro</div>"+
+    "<div style=\"color:#FFFFFF;font-size:20px;font-weight:700;\">Informe Ejecutivo del Foro</div>"+
     "<div style=\"color:#CFE8DC;font-size:14px;margin-top:2px;\">Neiva 2026</div>"+
     "</div>"+
     "<div style=\"padding:28px 28px 8px;\">"+
@@ -7814,7 +7814,7 @@ function enviarRecordatorioValoracionFEM_(idForo, ie, ieSinPrefijo, logoIEUrlCor
   if(!linkValoracion) return;
   if(obtenerValoracionPorIdForo_(idForo)) return;
 
-  const asunto="💬 Valoración del Foro Educativo Institucional — Para las instituciones";
+  const asunto="Valoración del Foro Educativo Institucional — Para las instituciones";
   const cuerpoTexto=
     "Secretaría de Educación de Neiva\n\n"+
     "Estimada comunidad educativa de la Institución Educativa "+ieSinPrefijo+":\n\n"+
@@ -7828,7 +7828,6 @@ function enviarRecordatorioValoracionFEM_(idForo, ie, ieSinPrefijo, logoIEUrlCor
     "<div style=\"max-width:520px;margin:0 auto;background:#FFFFFF;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.10);\">"+
     "<div style=\"background:#0B6A44;padding:26px 28px;text-align:center;\">"+
     (logoIEUrlCorreo ? "<img src=\""+logoIEUrlCorreo+"\" alt=\"Logo de la institución educativa\" style=\"display:block;max-width:56px;max-height:56px;margin:0 auto 10px;border-radius:8px;\">" : "")+
-    "<div style=\"font-size:34px;line-height:1;margin-bottom:6px;\">💬</div>"+
     "<div style=\"color:#FFFFFF;font-size:19px;font-weight:700;\">Valoración del Foro Educativo Institucional</div>"+
     "<div style=\"color:#CFE8DC;font-size:13px;margin-top:2px;\">Para las instituciones</div>"+
     "</div>"+
