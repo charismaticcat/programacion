@@ -5779,3 +5779,68 @@ function restaurarAvancesForoDesdeAnalisisFEM(){
 
   return resultado;
 }
+
+/*
+ * CORRECCIÓN 2026-09-05 (AsistenciaQR): al revisar la hoja real con
+ * más cuidado se confirmó que los datos SÍ estaban ahí — el problema
+ * no era una pérdida de datos, sino que la hoja tenía varias decenas
+ * de filas completamente en blanco justo después del encabezado, y
+ * las respuestas reales empezaban mucho más abajo. Con el encabezado
+ * seguido de tantas filas vacías, la hoja se ve exactamente igual a
+ * "no hay nadie registrado" tanto a simple vista como con lecturas
+ * automatizadas — de ahí la confusión (mía y del reporte inicial).
+ * NO hace falta correr restaurarAsistenciaQRDesdeRespaldo() para
+ * este caso: los registros nunca se perdieron.
+ *
+ * Esta función deja la hoja como se espera que se vea:
+ *   1) Corrige ID_FORO en blanco cuando la IE de esa fila sí se puede
+ *      identificar sin ambigüedad (una sola celda editada por error a
+ *      mano puede dejar una firma "huérfana" que ya no se reconoce
+ *      como la misma persona si vuelve a firmar más adelante).
+ *   2) Elimina las filas completamente en blanco, para que las
+ *      respuestas reales queden justo debajo del encabezado.
+ * Nunca toca una fila que tenga cualquier dato, ni siquiera para
+ * completar columnas vacías sueltas — solo actúa sobre ID_FORO en
+ * blanco (punto 1) y filas 100% vacías (punto 2).
+ *
+ * Uso: desde el editor de Apps Script, seleccionar esta función y
+ * presionar "Ejecutar".
+ */
+function limpiarAsistenciaQR(){
+  const hoja=asegurarHojaAsistenciaQR_();
+  const mapa=mapaHoja_(hoja);
+  const ultimaFila=hoja.getLastRow();
+  const resultado={filasEnBlancoEliminadas:0, idForoCorregidos:[]};
+  if(ultimaFila<2){ Logger.log("AsistenciaQR no tiene filas."); return resultado; }
+
+  const numCols=hoja.getLastColumn();
+  const valores=hoja.getRange(2,1,ultimaFila-1,numCols).getDisplayValues();
+
+  if(mapa.ID_FORO && mapa.IE){
+    for(let i=0;i<valores.length;i++){
+      if(String(valores[i][mapa.ID_FORO-1]||"").trim()) continue;
+      const ie=String(valores[i][mapa.IE-1]||"").trim();
+      if(!ie) continue;
+      try{
+        const idForoCorrecto=buscarIdForoPorNombreIE_(ie);
+        hoja.getRange(i+2, mapa.ID_FORO).setValue(idForoCorrecto);
+        resultado.idForoCorregidos.push(ie+" (fila "+(i+2)+")");
+      }catch(error){
+        Logger.log("No se pudo corregir el ID_FORO en blanco de \""+ie+"\" (fila "+(i+2)+"): "+error.message);
+      }
+    }
+  }
+
+  for(let i=valores.length-1;i>=0;i--){
+    const filaVacia=valores[i].every(function(celda){ return String(celda||"").trim()===""; });
+    if(filaVacia){ hoja.deleteRow(i+2); resultado.filasEnBlancoEliminadas++; }
+  }
+
+  Logger.log("========================================");
+  Logger.log("LIMPIEZA DE ASISTENCIAQR — RESULTADO");
+  Logger.log("Filas en blanco eliminadas: "+resultado.filasEnBlancoEliminadas);
+  Logger.log("ID_FORO corregidos: "+JSON.stringify(resultado.idForoCorregidos));
+  Logger.log("========================================");
+
+  return resultado;
+}
