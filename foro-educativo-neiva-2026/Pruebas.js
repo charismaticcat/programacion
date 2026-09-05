@@ -5616,3 +5616,166 @@ function restaurarAsistenciaQRDesdeRespaldo(){
 
   return {restauradas:resumenPorIE, omitidas:omitidasPorIE};
 }
+
+/*****************************************************
+ * RESTAURACIÓN DE AvancesForo — INCIDENTE 2026-09-05 (continuación)
+ *
+ * Además de AsistenciaQR, se confirmó que la hoja AvancesForo del
+ * spreadsheet principal perdió las filas de TODAS las IE reales que
+ * ya habían enviado su Foro definitivamente antes de cierto momento
+ * (quedaron solo las que ya tenían fila por haber enviado después).
+ * Sin esa fila, obtenerDatosGuardadosPorIdForo_ no encuentra nada
+ * para esas IE — lo cual rompe regenerarInformeFEMPorIE,
+ * compilarRespuestasPorGrupoFEM (ya tiene su propio respaldo desde
+ * v130) y cualquier otra función que dependa de sus respuestas.
+ *
+ * Esta función restaura, para cada IE real con ID_PDF_INFORME
+ * generado que NO tenga ya una fila en AvancesForo, una fila
+ * reconstruida a partir de la copia que sí sigue intacta en
+ * "Análisis FEM 2026" (hoja "Respuestas Totales" — sus columnas son
+ * las MISMAS de AvancesForo, excepto DATOS, así que se copian
+ * directo) más lo que se puede recuperar de otras hojas que nunca se
+ * tocaron:
+ *   - Sesiones 1/2/3 (S1_P1...S3_P4): copiadas tal cual (ya vienen en
+ *     el mismo formato {"valor":...,"tipo":...} que usa DATOS).
+ *   - Participación (PART_RECTOR...PART_OTROS): reconstruida como
+ *     campos.participantesX.
+ *   - Grupo de trabajo: recalculado con obtenerGrupoRealDeIEFEM_.
+ *   - Correo institucional y del responsable: de AccesosIE
+ *     (EMAIL_IE/EMAIL_RESPONSABLE), que nunca se vio afectado.
+ *   - Rector(a): del directorio oficial ("Oficiales"), como mejor
+ *     aproximación disponible — OJO: si a alguna IE se le corrigió el
+ *     nombre del rector manualmente (como se hizo antes con
+ *     Instituto Técnico IPC Andrés Rosa) y esa corrección nunca se
+ *     reflejó en "Oficiales", esta restauración trae el nombre
+ *     ANTERIOR, no el corregido; conviene revisarlo después.
+ *
+ * NO se pueden recuperar (quedan simplemente ausentes en campos, no
+ * inventados): cargo y nombre de quien envió el formulario, la
+ * fotografía de evidencia, la URL del PDF de asistencia (si aplicaba)
+ * y el método de asistencia elegido. Regenerar el informe de una IE
+ * restaurada por esta función va a mostrar esos datos en blanco.
+ *
+ * NUNCA sobrescribe una fila que ya exista en AvancesForo — solo
+ * agrega las que de verdad faltan. Idempotente: si se vuelve a
+ * ejecutar, las ya restauradas se omiten (ya tienen fila).
+ *
+ * Uso: desde el editor de Apps Script, seleccionar esta función y
+ * presionar "Ejecutar". El resultado (qué se restauró, qué quedó sin
+ * poder recuperarse) queda en "Ver registros de ejecución".
+ *****************************************************/
+function restaurarAvancesForoDesdeAnalisisFEM(){
+  const hojaDestino=abrirSpreadsheet_().getSheetByName(HOJA_AVANCES);
+  if(!hojaDestino) throw new Error("No se encontró la hoja "+HOJA_AVANCES+".");
+  const mapaDestino=mapaHoja_(hojaDestino);
+
+  const ss=obtenerSpreadsheetAnalisisFEM_();
+  const hojaOrigen=ss.getSheetByName(HOJA_ANALISIS_TOTALES);
+  if(!hojaOrigen||hojaOrigen.getLastRow()<2) throw new Error("No hay datos en \""+HOJA_ANALISIS_TOTALES+"\" para restaurar.");
+  const mapaOrigen=mapaHoja_(hojaOrigen);
+  const filasOrigen=hojaOrigen.getRange(2,1,hojaOrigen.getLastRow()-1,hojaOrigen.getLastColumn()).getDisplayValues();
+
+  // IE que YA tienen fila en AvancesForo -- nunca se tocan.
+  const yaPresentes=new Set();
+  const ultimaFilaDestino=hojaDestino.getLastRow();
+  if(ultimaFilaDestino>=2 && mapaDestino.ID_FORO){
+    hojaDestino.getRange(2,mapaDestino.ID_FORO,ultimaFilaDestino-1,1).getDisplayValues()
+      .forEach(function(f){ if(f[0]) yaPresentes.add(String(f[0]).trim()); });
+  }
+
+  // AccesosIE (correo institucional y del responsable) y el
+  // directorio oficial (rector) -- ninguna de las dos se vio afectada
+  // por el incidente.
+  const hojaAccesos=asegurarColumnasAccesosIE_();
+  const mapaAccesos=mapaHoja_(hojaAccesos);
+  const filasAccesos=hojaAccesos.getLastRow()>=2
+    ? hojaAccesos.getRange(2,1,hojaAccesos.getLastRow()-1,hojaAccesos.getLastColumn()).getDisplayValues()
+    : [];
+  function accesoDe_(ie){
+    for(let i=0;i<filasAccesos.length;i++){
+      if(String(filasAccesos[i][mapaAccesos.IE-1]||"").trim().toUpperCase()===String(ie).trim().toUpperCase()) return filasAccesos[i];
+    }
+    return null;
+  }
+  const institucionesOficiales=obtenerInstituciones();
+
+  const NOMBRES_CAMPO_SESION_={
+    S1_P1:"respuestaSesion1", S1_P2:"respuestaSesion1Pregunta2",
+    S2_P1:"respuestaSesion2Pregunta1",
+    S2_P2_ACCION_1:"respuestaSesion2Pregunta2Accion1", S2_P2_ACCION_2:"respuestaSesion2Pregunta2Accion2",
+    S2_P2_ACCION_3:"respuestaSesion2Pregunta2Accion3", S2_P2_ACCION_4:"respuestaSesion2Pregunta2Accion4",
+    S2_P2_ACCION_5:"respuestaSesion2Pregunta2Accion5",
+    S2_P3:"respuestaSesion2Pregunta3", S2_P4:"respuestaSesion2Pregunta4", S2_P5:"respuestaSesion2Pregunta5",
+    S3_P1:"respuestaSesion3Pregunta1",
+    S3_P2_ACCION_1:"respuestaSesion3Pregunta2Accion1", S3_P2_ACCION_2:"respuestaSesion3Pregunta2Accion2",
+    S3_P2_ACCION_3:"respuestaSesion3Pregunta2Accion3", S3_P2_ACCION_4:"respuestaSesion3Pregunta2Accion4",
+    S3_P2_ACCION_5:"respuestaSesion3Pregunta2Accion5",
+    S3_P3:"respuestaSesion3Pregunta3", S3_P4:"respuestaSesion3Pregunta4"
+  };
+
+  const resultado={restauradas:[], omitidasYaPresentes:[]};
+  const filasNuevas=[];
+
+  filasOrigen.forEach(function(fila){
+    const idForo=mapaOrigen.ID_FORO ? String(fila[mapaOrigen.ID_FORO-1]||"").trim() : "";
+    const institucion=mapaOrigen.INSTITUCION ? String(fila[mapaOrigen.INSTITUCION-1]||"").trim() : "";
+    if(!idForo || !institucion) return;
+    if(yaPresentes.has(idForo)){ resultado.omitidasYaPresentes.push(institucion); return; }
+
+    function val_(col){ return mapaOrigen[col] ? fila[mapaOrigen[col]-1] : ""; }
+
+    const campos={};
+    Object.keys(NOMBRES_CAMPO_SESION_).forEach(function(col){
+      const crudo=val_(col);
+      if(!crudo) return;
+      try{ campos[NOMBRES_CAMPO_SESION_[col]]=JSON.parse(crudo); }
+      catch(errorParseo){ campos[NOMBRES_CAMPO_SESION_[col]]={valor:String(crudo),tipo:"textarea"}; }
+    });
+    ROLES_PARTICIPACION_ANALISIS_.forEach(function(id,i){
+      const n=Number(val_(COLUMNAS_PARTICIPACION_ANALISIS_[i])||0);
+      if(n) campos["participantes"+id]={valor:n,tipo:"number"};
+    });
+    const grupo=obtenerGrupoRealDeIEFEM_(institucion, idForo);
+    if(grupo) campos.grupo={valor:grupo,tipo:"hidden"};
+
+    const acceso=accesoDe_(institucion);
+    if(acceso){
+      const correoIE=mapaAccesos.EMAIL_IE ? String(acceso[mapaAccesos.EMAIL_IE-1]||"").trim() : "";
+      const correoResp=mapaAccesos.EMAIL_RESPONSABLE ? String(acceso[mapaAccesos.EMAIL_RESPONSABLE-1]||"").trim() : "";
+      if(correoIE) campos.correoIE={valor:correoIE,tipo:"email"};
+      if(correoResp) campos.correo={valor:correoResp,tipo:"email"};
+    }
+    const oficial=buscarInstitucionOficial_(institucionesOficiales, institucion);
+    const rectorOficial=oficial?.datos?.rector ? String(oficial.datos.rector).trim() : "";
+    if(rectorOficial) campos.rector={valor:rectorOficial,tipo:"text"};
+
+    const dane=val_("DANE");
+    const datosReconstruidos={idForo:idForo, institucion:institucion, dane:dane, campos:campos};
+
+    const filaSalida={};
+    Object.keys(mapaOrigen).forEach(function(k){
+      if(k==="DATOS") return;
+      if(mapaDestino[k]) filaSalida[k]=fila[mapaOrigen[k]-1];
+    });
+    filaSalida.DATOS=JSON.stringify(datosReconstruidos);
+
+    const filaCompleta=new Array(hojaDestino.getLastColumn()).fill("");
+    Object.keys(filaSalida).forEach(function(k){ if(mapaDestino[k]) filaCompleta[mapaDestino[k]-1]=filaSalida[k]; });
+    filasNuevas.push(filaCompleta);
+    resultado.restauradas.push(institucion);
+  });
+
+  if(filasNuevas.length){
+    hojaDestino.getRange(hojaDestino.getLastRow()+1,1,filasNuevas.length,hojaDestino.getLastColumn()).setValues(filasNuevas);
+  }
+
+  Logger.log("========================================");
+  Logger.log("RESTAURACIÓN DE AVANCESFORO DESDE ANÁLISIS FEM — RESULTADO");
+  Logger.log("Filas restauradas ("+resultado.restauradas.length+"): "+JSON.stringify(resultado.restauradas));
+  if(resultado.omitidasYaPresentes.length) Logger.log("Ya tenían fila, omitidas: "+JSON.stringify(resultado.omitidasYaPresentes));
+  Logger.log("Campos que NO se pudieron recuperar en las filas restauradas (quedan ausentes, no inventados): cargo, nombre de quien envió el formulario, evidencia fotográfica, URL del PDF de asistencia, método de asistencia.");
+  Logger.log("El rector(a) restaurado viene del directorio oficial \"Oficiales\" -- si a alguna de estas IE se le había corregido el nombre del rector manualmente, esa corrección NO quedó reflejada aquí y conviene revisarla.");
+  Logger.log("========================================");
+
+  return resultado;
+}
