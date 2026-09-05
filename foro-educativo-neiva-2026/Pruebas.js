@@ -5183,14 +5183,28 @@ function organizarInformesPorGrupoFEM(){
 
 /*
  * 2) Un Google Doc editable POR GRUPO que compila, con un título por
- * IE (orden alfabético) y debajo sus respuestas, las Sesiones 1/2/3
- * de todas las IE del grupo que ya tengan datos guardados. Se deja en
- * la raíz de la carpeta del grupo (no dentro de ninguna de las dos
- * subcarpetas: es un documento nuevo que sintetiza el grupo completo,
- * distinto de los informes individuales que ya se copian a "Informes
- * editables de grupo GN" con organizarInformesPorGrupoFEM). Si ya
- * existe un documento con el mismo nombre de una ejecución anterior,
- * se reemplaza (papelera) para dejar siempre la versión más reciente.
+ * IE (orden alfabético, con su logo al lado cuando existe) y debajo
+ * sus respuestas, las Sesiones 1/2/3 de todas las IE del grupo. Se
+ * deja en la raíz de la carpeta del grupo (no dentro de ninguna de
+ * las dos subcarpetas: es un documento aparte que sintetiza el grupo
+ * completo, distinto de los informes individuales que ya se copian a
+ * "Informes editables de grupo GN" con organizarInformesPorGrupoFEM).
+ *
+ * NUNCA crea un documento nuevo si ya existe uno con el mismo nombre
+ * en la carpeta del grupo: lo REESCRIBE completo en el mismo archivo
+ * (mismo ID/enlace) — así el enlace que ya se compartió no cambia de
+ * una ejecución a la siguiente. Solo la primera vez, si no existe
+ * ninguno todavía, se crea.
+ *
+ * INCIDENTE 2026-09-05: la hoja AvancesForo perdió las filas de la
+ * mayoría de las IE que ya habían enviado su Foro (por eso antes solo
+ * aparecían 1-2 IE por grupo en el compilado). Para no dejar a esas
+ * IE fuera del documento, si obtenerDatosGuardadosPorIdForo_ no
+ * encuentra nada para una IE se recurre al respaldo que sí sigue
+ * intacto en "Análisis FEM 2026" (ver
+ * obtenerRespuestasSesionesDesdeAnalisisFEM_ en Código.js). Solo si
+ * NINGUNA de las dos fuentes tiene datos, esa IE queda fuera (listada
+ * en "sinDatos").
  *
  * Uso: desde el editor de Apps Script, seleccionar esta función y
  * presionar "Ejecutar".
@@ -5201,31 +5215,60 @@ function compilarRespuestasPorGrupoFEM(){
 
   GRUPOS_FEM_ORDEN_.forEach(function(g){
     const miembros=(grupos[g]||[]).slice().sort(function(a,b){ return a.nombreIE.localeCompare(b.nombreIE,"es"); });
-    const listaConDatos=[], sinDatos=[];
+    const listaConSesiones=[], sinDatos=[], recuperadosDeRespaldo=[];
 
     miembros.forEach(function(m){
+      let sesiones=null, deRespaldo=false;
       try{
         const datos=obtenerDatosGuardadosPorIdForo_(m.idForo);
-        if(datos) listaConDatos.push({nombreIE:m.nombreIE, datos:datos});
-        else sinDatos.push(m.nombreIE);
-      }catch(error){ sinDatos.push(m.nombreIE); }
+        if(datos) sesiones=obtenerRespuestasSesionesParaCompilado_(datos);
+      }catch(error){ Logger.log("Sesiones en vivo de "+m.nombreIE+": "+error.message); }
+
+      if(!sesiones){
+        try{
+          sesiones=obtenerRespuestasSesionesDesdeAnalisisFEM_(m.idForo);
+          if(sesiones) deRespaldo=true;
+        }catch(error){ Logger.log("Sesiones de respaldo de "+m.nombreIE+": "+error.message); }
+      }
+
+      if(!sesiones){ sinDatos.push(m.nombreIE); return; }
+
+      let logoBlob=null;
+      try{
+        const logoId=obtenerLogoIdPorNombreIE_(m.nombreIE);
+        if(logoId) logoBlob=DriveApp.getFileById(logoId).getBlob();
+      }catch(error){ Logger.log("Logo de "+m.nombreIE+" para el compilado: "+error.message); }
+
+      listaConSesiones.push({nombreIE:m.nombreIE, sesiones:sesiones, logoBlob:logoBlob});
+      if(deRespaldo) recuperadosDeRespaldo.push(m.nombreIE);
     });
 
-    if(!listaConDatos.length){
-      resultado[g]={omitido:"Ninguna IE del grupo tiene datos guardados todavía.", sinDatos:sinDatos};
+    if(!listaConSesiones.length){
+      resultado[g]={omitido:"Ninguna IE del grupo tiene datos guardados todavía (ni en vivo ni en el respaldo).", sinDatos:sinDatos};
       return;
     }
 
     const carpetas=crearEstructuraCarpetasGrupoFEM_(g);
     const nombreDoc="Respuestas Compiladas - Grupo "+g+" FEM 2026";
-    const existentes=carpetas.grupoFolder.getFilesByName(nombreDoc);
-    while(existentes.hasNext()) existentes.next().setTrashed(true);
+    const existentesIt=carpetas.grupoFolder.getFilesByName(nombreDoc);
+    const archivoExistente=existentesIt.hasNext() ? existentesIt.next() : null;
+    // Por si quedó más de una copia de una ejecución vieja (de antes
+    // de que esta función actualizara el mismo archivo en vez de
+    // crear uno nuevo cada vez): se deja solo la más reciente.
+    while(existentesIt.hasNext()) existentesIt.next().setTrashed(true);
 
-    const archivoDoc=generarDocumentoCompiladoGrupoFEM_(g, listaConDatos);
-    carpetas.grupoFolder.addFile(archivoDoc);
-    try{ DriveApp.getRootFolder().removeFile(archivoDoc); }catch(e){}
+    const archivoDoc=generarDocumentoCompiladoGrupoFEM_(g, listaConSesiones, archivoExistente?archivoExistente.getId():null);
+    if(!archivoExistente){
+      carpetas.grupoFolder.addFile(archivoDoc);
+      try{ DriveApp.getRootFolder().removeFile(archivoDoc); }catch(e){}
+    }
 
-    resultado[g]={documento:archivoDoc.getUrl(), ieIncluidas:listaConDatos.map(function(x){return x.nombreIE;}), sinDatos:sinDatos};
+    resultado[g]={
+      documento:archivoDoc.getUrl(),
+      ieIncluidas:listaConSesiones.map(function(x){return x.nombreIE;}),
+      recuperadosDeRespaldoDeAnalisisFEM:recuperadosDeRespaldo,
+      sinDatos:sinDatos
+    };
   });
 
   Logger.log("========================================");

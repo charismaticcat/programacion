@@ -8881,6 +8881,66 @@ function obtenerRespuestasSesionesParaCompilado_(datos){
 }
 
 /*
+ * INCIDENTE 2026-09-05: se detectó que la hoja AvancesForo del
+ * spreadsheet principal perdió las filas de la mayoría de las IE que
+ * ya habían enviado su Foro definitivamente (quedaron solo las que
+ * todavía no tienen informe) — por eso obtenerDatosGuardadosPorIdForo_
+ * ya no encuentra sus datos. Esta función es un RESPALDO: reconstruye
+ * las mismas Sesiones 1/2/3 (mismas preguntas exactas que
+ * obtenerRespuestasSesionesParaCompilado_) a partir de la copia que
+ * SÍ sigue intacta en el documento de análisis aparte ("Análisis FEM
+ * 2026", hoja "Respuestas Totales" — ver
+ * actualizarAnalisisFEMIndividual_), cuyas columnas S1_P1, S1_P2,
+ * S2_P1... guardan el mismo JSON {"valor":"...", "tipo":"..."} que
+ * cada campo de la respuesta original. Devuelve null si esa IE
+ * tampoco aparece ahí (no hay ningún respaldo posible).
+ */
+function obtenerRespuestasSesionesDesdeAnalisisFEM_(idForo){
+  function extraerValor_(crudo){
+    if(!crudo) return "";
+    try{ const obj=JSON.parse(crudo); return (obj&&obj.valor!==undefined) ? String(obj.valor||"") : String(crudo); }
+    catch(errorJSON){ return String(crudo); }
+  }
+  let ss;
+  try{ ss=obtenerSpreadsheetAnalisisFEM_(); }catch(errorSS){ Logger.log("obtenerRespuestasSesionesDesdeAnalisisFEM_: "+errorSS.message); return null; }
+  const sh=ss.getSheetByName(HOJA_ANALISIS_TOTALES);
+  if(!sh||sh.getLastRow()<2) return null;
+  const m=mapaHoja_(sh);
+  if(!m.ID_FORO) return null;
+  const filas=sh.getRange(2,1,sh.getLastRow()-1,sh.getLastColumn()).getDisplayValues();
+  let fila=null;
+  for(let i=0;i<filas.length;i++){
+    if(String(filas[i][m.ID_FORO-1]||"").trim()===String(idForo||"").trim()){ fila=filas[i]; break; }
+  }
+  if(!fila) return null;
+
+  function val(col){ return m[col] ? extraerValor_(fila[m[col]-1]) : ""; }
+  function filasAccionesRespaldo_(etiqueta, columnas){
+    return columnas.map(function(col,i){ return [etiqueta+" — Acción "+(i+1), val(col)]; }).filter(function(f,i){ return i<3||f[1]; });
+  }
+
+  return [
+    {n:"Sesión 1",items:[
+      ["Pregunta orientadora: ¿Cómo hemos avanzado, desde nuestra institución educativa, en el logro de los retos y propósitos planteados en el FEM2025?", val("S1_P1")],
+      ["Pregunta 2: ¿Cómo hemos avanzado, desde nuestra institución educativa, en la implementación de los nuevos grados del nivel de preescolar (jardín, prejardín)?", val("S1_P2")]
+    ]},
+    {n:"Sesión 2",items:[
+      ["Pregunta 1: ¿Consideran que los currículos actuales que se desarrollan en las instituciones educativas son pertinentes con sus realidades territoriales (sociales, culturales, productivas)? ¿Por qué?", val("S2_P1")],
+      ...filasAccionesRespaldo_("Pregunta 2",["S2_P2_ACCION_1","S2_P2_ACCION_2","S2_P2_ACCION_3","S2_P2_ACCION_4","S2_P2_ACCION_5"]),
+      ["Pregunta 3: ¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar estas acciones?", val("S2_P3")],
+      ["Pregunta 4: ¿Cómo se están articulando estos equipos de trabajo para lograr currículos más pertinentes territorialmente?", val("S2_P4")],
+      ["Pregunta 5: ¿Qué mecanismos de seguimiento se están implementando para que dichas acciones se cumplan?", val("S2_P5")]
+    ]},
+    {n:"Sesión 3",items:[
+      ["Pregunta 1: ¿Consideran que la toma de decisiones en las instituciones educativas actualmente es participativa y democrática? ¿Por qué?", val("S3_P1")],
+      ...filasAccionesRespaldo_("Pregunta 2",["S3_P2_ACCION_1","S3_P2_ACCION_2","S3_P2_ACCION_3","S3_P2_ACCION_4","S3_P2_ACCION_5"]),
+      ["Equipos de trabajo: ¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar las estrategias y mecanismos de participación escolar?", val("S3_P3")],
+      ["Mecanismos de seguimiento: ¿Qué mecanismos de seguimiento se están implementando para garantizar las acciones encaminadas a promover gobiernos educativos democráticos?", val("S3_P4")]
+    ]}
+  ];
+}
+
+/*
  * Obtiene la subcarpeta "nombre" dentro de "padre", creándola si
  * todavía no existe — mismo patrón "obtener o crear" de
  * crearCarpetaIE_, pero genérico para cualquier carpeta padre/nombre.
@@ -8911,17 +8971,27 @@ function crearEstructuraCarpetasGrupoFEM_(grupo){
 /*
  * Documento de Word (Google Doc) editable que COMPILA las respuestas
  * de las Sesiones 1/2/3 de todas las IE de un grupo: un título por IE
- * (en el orden ya dado en listaIEsConDatos) y debajo, sus preguntas y
+ * (con su logo al lado, cuando existe) y debajo, sus preguntas y
  * respuestas — mismas preguntas exactas que en el informe individual
  * (ver obtenerRespuestasSesionesParaCompilado_). Es un documento
- * NUEVO y separado de los informes individuales de cada IE (que ya
- * van, cada uno completo, a la carpeta "Informes editables de grupo
- * GN" — ver organizarInformesPorGrupoFEM en Pruebas.js): este solo
- * reúne, para lectura rápida por grupo, las respuestas de la agenda.
+ * separado de los informes individuales de cada IE (que ya van, cada
+ * uno completo, a la carpeta "Informes editables de grupo GN" — ver
+ * organizarInformesPorGrupoFEM en Pruebas.js): este solo reúne, para
+ * lectura rápida por grupo, las respuestas de la agenda.
+ *
+ * listaIEsConSesiones: [{nombreIE, sesiones, logoBlob}], con
+ * "sesiones" ya calculadas por quien llama (en vivo o de respaldo —
+ * ver obtenerRespuestasSesionesDesdeAnalisisFEM_) y "logoBlob" el
+ * Blob del logo de la IE, o null si no tiene.
+ *
+ * idDocExistente: si se pasa, se reescribe ESE MISMO documento (se
+ * limpia el cuerpo y se reconstruye completo) en vez de crear uno
+ * nuevo — así el enlace que ya se compartió del compilado de un grupo
+ * nunca cambia entre una ejecución y la siguiente.
  */
-function generarDocumentoCompiladoGrupoFEM_(grupo, listaIEsConDatos){
+function generarDocumentoCompiladoGrupoFEM_(grupo, listaIEsConSesiones, idDocExistente){
   const VERDE=COLOR_VERDE_DOC, GRIS_TEXTO=COLOR_GRIS_TEXTO_DOC, AMARILLO=COLOR_AMARILLO_DOC;
-  const doc=DocumentApp.create("Respuestas Compiladas - Grupo "+grupo+" FEM 2026");
+  const doc=idDocExistente ? DocumentApp.openById(idDocExistente) : DocumentApp.create("Respuestas Compiladas - Grupo "+grupo+" FEM 2026");
   const body=doc.getBody();
   body.clear();
 
@@ -8947,13 +9017,20 @@ function generarDocumentoCompiladoGrupoFEM_(grupo, listaIEsConDatos){
     return t;
   }
 
-  listaIEsConDatos.forEach(function(item, indice){
+  listaIEsConSesiones.forEach(function(item, indice){
     if(indice>0) body.appendPageBreak();
-    const tituloIE=body.appendParagraph(item.nombreIE);
+    const tituloIE=body.appendParagraph("");
     tituloIE.setHeading(DocumentApp.ParagraphHeading.HEADING1);
-    tituloIE.editAsText().setBold(true).setForegroundColor(VERDE);
-    const sesiones=obtenerRespuestasSesionesParaCompilado_(item.datos);
-    sesiones.forEach(function(s){
+    if(item.logoBlob){
+      try{
+        const img=tituloIE.appendInlineImage(item.logoBlob);
+        const altoMax=26, anchoOriginal=img.getWidth(), altoOriginal=img.getHeight();
+        if(altoOriginal>altoMax){ img.setHeight(altoMax); img.setWidth(Math.round(anchoOriginal*altoMax/altoOriginal)); }
+      }catch(errorLogo){ Logger.log("No fue posible insertar el logo de "+item.nombreIE+" en el compilado del grupo "+grupo+": "+errorLogo.message); }
+    }
+    const rangoTituloIE=tituloIE.appendText((item.logoBlob?"  ":"")+item.nombreIE);
+    rangoTituloIE.setBold(true).setForegroundColor(VERDE);
+    item.sesiones.forEach(function(s){
       const subtituloSesion=body.appendParagraph(s.n);
       subtituloSesion.setHeading(DocumentApp.ParagraphHeading.HEADING2);
       subtituloSesion.editAsText().setBold(true).setForegroundColor(VERDE);
