@@ -9439,3 +9439,173 @@ function generarDocumentoAnalisisGrupoFEM_(grupo, analisis, idDocExistente){
   doc.saveAndClose();
   return DriveApp.getFileById(doc.getId());
 }
+
+/*
+ * Documento de SÍNTESIS GRUPAL (Google Doc editable) de UN grupo de
+ * trabajo (G1-G6). A diferencia de generarDocumentoCompiladoGrupoFEM_
+ * (que reproduce las respuestas IE por IE) y de
+ * generarDocumentoAnalisisGrupoFEM_ (fortalezas/debilidades por edad,
+ * a partir de la asistencia QR), este documento presenta, pregunta
+ * por pregunta, UN análisis GLOBAL que sintetiza los elementos en
+ * común entre todas las IE del grupo, cerrando cada pregunta con un
+ * párrafo "Particularidades coyunturales de las I.E". Las preguntas
+ * de respuesta abierta se redactan con un enfoque descriptivo
+ * cualitativo tipo revista indexada; las de selección múltiple
+ * (equipos de trabajo / mecanismos de seguimiento de las Sesiones 2 y
+ * 3) con un enfoque mixto: gráfico + tabla de número y porcentaje de
+ * IE que seleccionaron cada opción común, más un párrafo cualitativo.
+ *
+ * La prosa de "comun"/"particularidades" de cada pregunta, y las
+ * tallas de las preguntas mixtas, no se calculan de forma mecánica —
+ * hace falta leer las respuestas reales de cada IE del grupo y
+ * redactar el análisis — por lo que datosGrupo.secciones se arma a
+ * mano una vez por grupo (ver DATOS_SINTESIS_GRUPO_1_FEM_ y
+ * generarInformeSintesisGrupo1FEM en Pruebas.js, como referencia para
+ * los Grupos 2-6).
+ *
+ * datosGrupo: {
+ *   grupo, tituloInforme, instituciones:[...], responsableInforme,
+ *   fechaPresentacion,
+ *   secciones:[{sesion, pregunta, enunciado, tipo:"cualitativo"|"mixto",
+ *               comun, particularidades, tally:[{opcion,count}], totalIE}],
+ *   conclusiones, firmaFuncionarioSEM, responsableConsolidado,
+ *   cargoResponsable, fechaFirma
+ * }
+ *
+ * idDocExistente: mismo criterio que los otros documentos de grupo —
+ * si se pasa, se reescribe el mismo archivo (mismo enlace) en vez de
+ * crear uno nuevo.
+ */
+function generarInformeSintesisGrupoFEM_(datosGrupo, idDocExistente){
+  const VERDE=COLOR_VERDE_DOC, GRIS_TEXTO=COLOR_GRIS_TEXTO_DOC, AMARILLO=COLOR_AMARILLO_DOC;
+  const doc=idDocExistente ? DocumentApp.openById(idDocExistente) : DocumentApp.create("Informe de Síntesis - Grupo "+datosGrupo.grupo+" FEM 2026");
+  const body=doc.getBody();
+  body.clear();
+
+  function titulo1_(texto){
+    const p=body.appendParagraph(texto);
+    p.setHeading(DocumentApp.ParagraphHeading.HEADING1);
+    p.editAsText().setBold(true).setForegroundColor(VERDE);
+    return p;
+  }
+  function subtitulo_(texto){
+    const p=body.appendParagraph(texto);
+    p.setHeading(DocumentApp.ParagraphHeading.HEADING2);
+    p.editAsText().setBold(true).setForegroundColor(VERDE);
+    return p;
+  }
+  function parrafo_(texto){
+    const p=body.appendParagraph(texto);
+    p.editAsText().setForegroundColor(GRIS_TEXTO);
+    return p;
+  }
+  function porcentaje_(parte,total){ return total>0 ? ((parte/total)*100).toFixed(1)+"%" : "0.0%"; }
+
+  // ---------- PORTADA ----------
+  const tituloDoc=body.appendParagraph(datosGrupo.tituloInforme||("INFORME DE SÍNTESIS GRUPAL — GRUPO "+datosGrupo.grupo));
+  tituloDoc.setHeading(DocumentApp.ParagraphHeading.TITLE);
+  tituloDoc.editAsText().setBold(true).setForegroundColor(VERDE);
+  const subDoc=body.appendParagraph("FEM 2026 “Escuela Viva: Voces que construyen territorio”.\nForo Educativo Institucional — Neiva 2026");
+  subDoc.editAsText().setForegroundColor(GRIS_TEXTO).setItalic(true);
+  body.appendParagraph("");
+
+  function filaPortada_(etiqueta, valor){
+    const p=body.appendParagraph("");
+    p.appendText(etiqueta+": ").setBold(true).setForegroundColor(VERDE);
+    p.appendText(String(valor||"")).setBold(false).setForegroundColor(GRIS_TEXTO);
+  }
+  filaPortada_("Grupo de Instituciones Educativas", datosGrupo.grupo);
+  const pIEs=body.appendParagraph("");
+  pIEs.appendText("Instituciones educativas del grupo:\n").setBold(true).setForegroundColor(VERDE);
+  pIEs.appendText(datosGrupo.instituciones.map(function(n,i){ return (i+1)+". "+n; }).join("\n")).setBold(false).setForegroundColor(GRIS_TEXTO);
+  body.appendParagraph("");
+  filaPortada_("Responsable del informe", datosGrupo.responsableInforme);
+  filaPortada_("Fecha de presentación", datosGrupo.fechaPresentacion);
+  filaPortada_("Lugar", "Neiva, Huila.");
+  body.appendPageBreak();
+
+  // ---------- PRESENTACIÓN METODOLÓGICA ----------
+  titulo1_("Presentación");
+  parrafo_("El presente informe consolida, con un enfoque de síntesis y análisis de carácter académico, las respuestas construidas colectivamente por las instituciones educativas del "+datosGrupo.grupo+" durante las tres sesiones de trabajo del Foro Educativo Institucional — Neiva 2026. A diferencia de un compilado que reproduce las respuestas institución por institución, este documento identifica los elementos comunes entre las instituciones del grupo para cada pregunta orientadora y los presenta como un análisis único de carácter grupal, señalando al final de cada apartado las particularidades coyunturales que distinguieron a alguna institución en particular. Las preguntas de respuesta abierta (Sesión 1, preguntas 1 y 2; Sesión 2, preguntas 1, 2 y 4; Sesión 3, preguntas 1 y 2) se abordan con un enfoque descriptivo cualitativo; las preguntas de selección múltiple sobre equipos de trabajo y mecanismos de seguimiento (Sesión 2, preguntas 3 y 5; Sesión 3, \"Equipos de trabajo\" y \"Mecanismos de seguimiento\") se abordan con un enfoque mixto, combinando la cuantificación —en número y porcentaje de instituciones— de las opciones seleccionadas en común con un párrafo de interpretación cualitativa.");
+  body.appendPageBreak();
+
+  // ---------- SECCIONES POR PREGUNTA ----------
+  let sesionActual="";
+  datosGrupo.secciones.forEach(function(sec){
+    if(sec.sesion!==sesionActual){
+      sesionActual=sec.sesion;
+      titulo1_(sesionActual);
+    }
+    subtitulo_(sec.pregunta+(sec.enunciado?": "+sec.enunciado:""));
+    const pEnfoque=body.appendParagraph("Enfoque: "+(sec.tipo==="mixto"?"mixto (cuantitativo y cualitativo)":"descriptivo cualitativo"));
+    pEnfoque.editAsText().setItalic(true).setFontSize(9).setForegroundColor(GRIS_TEXTO);
+
+    parrafo_(sec.comun);
+
+    if(sec.tipo==="mixto" && sec.tally && sec.tally.length){
+      try{
+        const etiquetas=sec.tally.map(function(t){ return t.opcion; });
+        const valores=sec.tally.map(function(t){ return t.count; });
+        const blob=construirGraficoBarrasHorizontal_(sec.pregunta+" — "+datosGrupo.grupo, etiquetas, valores);
+        body.appendImage(blob).setWidth(500);
+      }catch(errorGrafico){ Logger.log("Gráfico de \""+sec.pregunta+"\" ("+datosGrupo.grupo+"): "+errorGrafico.message); }
+
+      const totalIE=sec.totalIE||datosGrupo.instituciones.length;
+      const tablaTally=body.appendTable();
+      tablaTally.setBorderColor("#CCCCCC");
+      const encabezado=tablaTally.appendTableRow();
+      ["Opción seleccionada en común","N.° de IE","% del grupo"].forEach(function(t){
+        const c=encabezado.appendTableCell(t);
+        c.setBackgroundColor(VERDE);
+        c.getChild(0).asParagraph().editAsText().setBold(true).setForegroundColor("#FFFFFF").setFontSize(9);
+      });
+      sec.tally.forEach(function(t){
+        const fila=tablaTally.appendTableRow();
+        [t.opcion, String(t.count), porcentaje_(t.count, totalIE)].forEach(function(v){
+          const c=fila.appendTableCell(v);
+          c.getChild(0).asParagraph().editAsText().setForegroundColor(GRIS_TEXTO).setFontSize(9);
+        });
+      });
+      body.appendParagraph("");
+    }
+
+    const pPart=body.appendParagraph("Particularidades coyunturales de las I.E");
+    pPart.editAsText().setBold(true).setForegroundColor(AMARILLO).setFontSize(10);
+    parrafo_(sec.particularidades);
+    body.appendParagraph("");
+  });
+
+  // ---------- CONCLUSIONES ----------
+  body.appendPageBreak();
+  titulo1_("Conclusiones del Foro");
+  parrafo_(datosGrupo.conclusiones);
+
+  // ---------- CIERRE: LOGOS Y FIRMAS ----------
+  body.appendParagraph("");
+  const filaLogos=body.appendTable();
+  filaLogos.setBorderColor("#FFFFFF");
+  const rLogos=filaLogos.appendTableRow();
+  const cLogoFem=rLogos.appendTableCell("");
+  cLogoFem.setWidth(150);
+  try{ cLogoFem.getChild(0).asParagraph().appendInlineImage(DriveApp.getFileById(LOGO_ENCABEZADO_ID).getBlob()).setWidth(126).setHeight(70); }
+  catch(errorLogoFem){ Logger.log("Logo del Foro en cierre de síntesis "+datosGrupo.grupo+": "+errorLogoFem.message); }
+  const cLogoSem=rLogos.appendTableCell("");
+  cLogoSem.setWidth(150);
+  try{ cLogoSem.getChild(0).asParagraph().appendInlineImage(DriveApp.getFileById(LOGO_PIE_ID).getBlob()).setWidth(100).setHeight(50); }
+  catch(errorLogoSem){ Logger.log("Logo de la SEM en cierre de síntesis "+datosGrupo.grupo+": "+errorLogoSem.message); }
+
+  body.appendParagraph("");
+  function lineaFirma_(texto, negrilla){
+    const p=body.appendParagraph(String(texto||""));
+    p.editAsText().setForegroundColor(GRIS_TEXTO);
+    if(negrilla) p.editAsText().setBold(true);
+    return p;
+  }
+  lineaFirma_(datosGrupo.firmaFuncionarioSEM, true);
+  lineaFirma_(datosGrupo.responsableConsolidado, true);
+  lineaFirma_(datosGrupo.cargoResponsable, false);
+  lineaFirma_(datosGrupo.fechaFirma, false);
+
+  doc.saveAndClose();
+  return DriveApp.getFileById(doc.getId());
+}

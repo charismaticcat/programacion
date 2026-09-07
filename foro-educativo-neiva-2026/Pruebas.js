@@ -6030,3 +6030,224 @@ function generarDocumentosAnalisisPorGrupoFEM(){
 
   return resultado;
 }
+
+/*
+ * INFORME DE SÍNTESIS GRUPAL — GRUPO 1 (muestra completa a revisar
+ * antes de replicar a G2-G6).
+ *
+ * A diferencia de todo lo anterior en este archivo, esta prosa NO se
+ * calcula a partir de datos en vivo: se redactó a mano, leyendo
+ * directamente el Doc editable ya generado y enviado de cada una de
+ * las 6 IE del Grupo 1 (AIPECITO, CHAPINERO, I.E. CLARETIANO GUSTAVO
+ * TORRES PARRA, INEM JULIAM MOTTA SALAS, LICEO DE SANTA LIBRADA,
+ * PROMOCION SOCIAL), tal como se pidió expresamente: encontrar los
+ * elementos en común entre las 6 IE para cada pregunta y señalar,
+ * aparte, las particularidades de una sola IE. Las tallas de las 4
+ * preguntas de selección múltiple (Sesión 2 P3/P5, Sesión 3 "Equipos
+ * de trabajo"/"Mecanismos de seguimiento") se contaron a mano, opción
+ * por opción, sobre el texto real seleccionado por cada una de las 6
+ * IE.
+ *
+ * PENDIENTE A COMPLETAR MANUALMENTE por la SEM antes de enviar/firmar
+ * el informe (no hay fuente de datos para esto en el sistema): el
+ * nombre de quien consolida el informe, su cargo, y el nombre del
+ * funcionario o funcionaria de la SEM Neiva a cargo — quedan como
+ * texto entre corchetes, editable directamente en el Doc generado.
+ *
+ * A la fecha de redacción (7 de septiembre de 2026), ninguna de las 6
+ * IE del Grupo 1 había registrado su Valoración formal del Foro
+ * (todas sus fichas ejecutivas dicen literalmente "La institución
+ * educativa aún no ha registrado la valoración de esta jornada"), por
+ * lo que las conclusiones NO inventan una valoración: lo dicen
+ * explícitamente y usan, como única referencia real disponible, la
+ * percepción de fortalezas/oportunidades registrada por firma QR en
+ * el Liceo de Santa Librada (única IE del grupo con asistencia QR).
+ */
+const DATOS_SINTESIS_GRUPO_1_FEM_ = {
+  grupo: "G1",
+  tituloInforme: "Informe de Síntesis Grupal — Elementos Comunes y Particularidades Institucionales",
+  instituciones: [
+    "AIPECITO",
+    "CHAPINERO",
+    "I.E. CLARETIANO GUSTAVO TORRES PARRA",
+    "INEM JULIAM MOTTA SALAS",
+    "LICEO DE SANTA LIBRADA",
+    "PROMOCION SOCIAL"
+  ],
+  responsableInforme: "[Nombre de quien consolida el informe de síntesis del Grupo 1 — SEM Neiva]",
+  fechaPresentacion: "7 de septiembre de 2026",
+  secciones: [
+    {
+      sesion: "SESIÓN 1",
+      pregunta: "Pregunta orientadora",
+      enunciado: "¿Cómo hemos avanzado, desde nuestra institución educativa, en el logro de los retos y propósitos planteados en el FEM2025?",
+      tipo: "cualitativo",
+      comun: "Las seis instituciones educativas del Grupo 1 (AIPECITO, Chapinero, I.E. Claretiano Gustavo Torres Parra, INEM Juliam Motta Salas, Liceo de Santa Librada y Promoción Social) coinciden en reconocer avances sustantivos hacia una educación más pertinente y contextualizada, materializados principalmente en el fortalecimiento de proyectos pedagógicos transversales, experiencias significativas y estrategias de articulación con el territorio (huertas escolares, PRAE, alianzas con el SENA, proyectos productivos agrícolas y culturales). Un segundo eje común es el avance en el reconocimiento del contexto socioeconómico y territorial de los estudiantes como insumo para flexibilizar las prácticas pedagógicas, sea mediante caracterizaciones diagnósticas (Claretiano), la contextualización curricular hacia dinámicas productivas regionales (AIPECITO, INEM) o el fortalecimiento de los hilos conductores institucionales (Promoción Social). No obstante, el análisis conjunto revela que estos avances se ven sistemáticamente limitados por un tercer elemento compartido: la persistencia de dificultades estructurales de infraestructura, dotación y conectividad —deterioro de instalaciones (AIPECITO), brechas tecnológicas (INEM)— que, según señalan las mesas de trabajo, condicionan la capacidad real de sostener y profundizar los avances pedagógicos alcanzados. De igual manera, se identifica de forma recurrente la necesidad de fortalecer la participación efectiva de las familias y la comunidad educativa como condición para consolidar los logros obtenidos y dar continuidad a los procesos iniciados desde el FEM2025.",
+      particularidades: "La IE Chapinero, única institución de carácter rural dentro del grupo, señaló como obstáculo específico la alta rotación del personal docente y la ausencia de acompañamiento presencial de la Secretaría de Educación al sector rural, factores que —a diferencia de lo expresado por las demás instituciones del grupo— condicionan la continuidad institucional de las experiencias significativas, al quedar ligadas al docente que las lidera y no a una política de sistematización institucional. Por su parte, el Liceo de Santa Librada planteó una particularidad de tipo administrativo poco común en el grupo: no contar con una población estudiantil propia, lo que exige gestionar ante el ente territorial garantías de sostenibilidad y transporte escolar para estudiantes provenientes de otras comunas."
+    },
+    {
+      sesion: "SESIÓN 1",
+      pregunta: "Pregunta 2",
+      enunciado: "¿Cómo hemos avanzado, desde nuestra institución educativa, en la implementación de los nuevos grados del nivel de preescolar (jardín, prejardín)?",
+      tipo: "cualitativo",
+      comun: "En las seis instituciones se observa un patrón común de implementación parcial y asimétrica entre los grados de jardín y prejardín: el grado jardín registra avances más consolidados —incorporación de nuevos grupos (Claretiano), vinculación de sedes adicionales (AIPECITO), aulas específicas con acompañamiento docente (INEM, Chapinero)—, mientras que la apertura de prejardín se mantiene, en la generalidad del grupo, como un reto pendiente. Dos factores explicativos se repiten transversalmente: de un lado, una demanda de matrícula insuficiente para habilitar la apertura de nuevos grupos (Liceo de Santa Librada, INEM); de otro, limitaciones de infraestructura y disponibilidad de aulas adecuadas para la primera infancia (Liceo de Santa Librada, Chapinero). En el plano pedagógico coincide, igualmente, la apuesta por currículos y prácticas centradas en el desarrollo integral, el juego, el arte y la exploración del entorno (AIPECITO, Claretiano, Promoción Social), con un tránsito declarado desde modelos organizados por dimensiones del desarrollo hacia enfoques por propósitos y valoraciones cualitativas del aprendizaje infantil.",
+      particularidades: "La IE Chapinero constituye una particularidad clara dentro del grupo al señalar que las condiciones viales de sus sedes rurales dificultan la movilización de niños y niñas de temprana edad hacia la escuela, un obstáculo de tipo geográfico-territorial no mencionado por ninguna de las otras cinco instituciones, de carácter urbano o periurbano. El INEM Juliam Motta Salas, por su parte, identificó una causa específica de baja demanda de prejardín no reportada por las demás IE: la competencia de los hogares comunitarios (CDI), que retienen a las familias por los beneficios complementarios que allí reciben, dificultando la transición oportuna de esa población hacia la oferta oficial."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 1",
+      enunciado: "¿Consideran que los currículos actuales que se desarrollan en las instituciones educativas son pertinentes con sus realidades territoriales (sociales, culturales, productivas)? ¿Por qué?",
+      tipo: "cualitativo",
+      comun: "Existe consenso entre las seis instituciones del grupo en calificar la pertinencia curricular como parcial: los currículos institucionales se reconocen alineados con los lineamientos del Ministerio de Educación Nacional, pero insuficientemente contextualizados frente a las realidades sociales, culturales y productivas de cada territorio. Es recurrente la idea de que la escuela \"forma en el territorio, pero no siempre desde el territorio\" (expresión explícita del Liceo de Santa Librada, compartida en sustancia por INEM, Claretiano y Promoción Social), señalando como vacíos comunes la escasa incorporación de saberes ancestrales y culturales, la limitada articulación con las dinámicas productivas locales y la persistencia de un enfoque curricular más estandarizado que situado. Como condición asociada a esta pertinencia parcial, varias instituciones (Claretiano, AIPECITO) vinculan explícitamente la calidad de los aprendizajes con las condiciones materiales e institucionales —infraestructura, conectividad, servicios básicos— que inciden directamente en la posibilidad de desarrollar un currículo realmente contextualizado.",
+      particularidades: "La IE Chapinero presenta una particularidad relevante para el grupo al circunscribir la pertinencia territorial casi exclusivamente a la dinámica del cultivo del café, señalando que la ausencia de flexibilización curricular durante la época de cosecha incrementa el ausentismo escolar, una tensión entre calendario productivo agrícola y calendario escolar no reportada por ninguna otra institución del grupo. AIPECITO, por su parte, se distingue por describir una experiencia curricular concreta y ya consolidada de articulación entre matemáticas y proyectos productivos agrícolas en alianza con el SENA, mientras las demás instituciones describen la pertinencia productiva de manera más general o aspiracional."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 2",
+      enunciado: "¿Qué acciones se han implementado para lograr currículos más pertinentes al territorio?",
+      tipo: "cualitativo",
+      comun: "Al observar de manera conjunta las acciones reportadas por las seis instituciones, se configuran tres líneas de trabajo comunes al grupo. La primera es la actualización y ajuste permanente de mallas curriculares y planes de área con enfoque de pertinencia territorial, presente explícitamente en INEM (actualización curricular por competencias), Chapinero (ajuste de mallas y plan de estudios) y Claretiano (espacios de reflexión y revisión curricular por niveles). La segunda es la incorporación de metodologías activas y experiencias pedagógicas contextualizadas —salidas pedagógicas, proyectos de aula, uso de recursos tecnológicos y espacios institucionales como escenarios de aprendizaje—, reportada de forma prácticamente unánime (AIPECITO, INEM, Claretiano, Promoción Social). La tercera es el fortalecimiento de proyectos transversales que vinculan saberes ambientales, culturales y productivos del territorio: educación ambiental y manejo de residuos (AIPECITO), integración de saberes ancestrales y agricultura escolar (INEM), identidad huilense y patrimonio cultural (Promoción Social), intensificación de inglés y ferias de ciencia (Claretiano). En conjunto, estas acciones evidencian una apuesta institucional compartida por transformar el currículo desde la vía de los proyectos transversales y las metodologías activas, más que desde una reforma estructural del plan de estudios.",
+      particularidades: "El INEM Juliam Motta Salas es la única institución del grupo que reporta una articulación formal y diversificada con el SENA para el desarrollo de modalidades técnicas (turismo, software, agropecuaria, emprendimiento) como estrategia curricular estructurada; aunque AIPECITO también menciona al SENA, lo hace en referencia a un proyecto puntual y no a una articulación por modalidades técnicas. La IE Chapinero, por su parte, es la única en asociar explícitamente el fortalecimiento curricular con la infraestructura tecnológica institucional en el marco de la jornada única, una acción no reportada por las demás instituciones del grupo."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 3",
+      enunciado: "¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar estas acciones?",
+      tipo: "mixto",
+      totalIE: 6,
+      tally: [
+        {opcion: "Consejo Académico", count: 6},
+        {opcion: "Consejo Directivo", count: 6},
+        {opcion: "Consejo de Padres de Familia", count: 6},
+        {opcion: "Comités de área", count: 5},
+        {opcion: "Consejo Estudiantil", count: 4},
+        {opcion: "Personero(a) Estudiantil", count: 4},
+        {opcion: "Comisión de Evaluación y Promoción", count: 4},
+        {opcion: "Equipo de Autoevaluación Institucional", count: 4}
+      ],
+      comun: "El análisis cuantitativo de las seis instituciones del grupo muestra que el Consejo Académico, el Consejo Directivo y el Consejo de Padres de Familia son los equipos de trabajo institucional que el 100% de las IE del Grupo 1 identifican como responsables de liderar las acciones hacia currículos más pertinentes. Con un nivel de adopción también mayoritario (5 de 6 instituciones, 83,3%) aparecen los comités de área, y con presencia en 4 de las 6 instituciones (66,7%) se ubican el Consejo Estudiantil, el/la Personero(a) Estudiantil, la Comisión de Evaluación y Promoción y el Equipo de Autoevaluación Institucional. Este patrón evidencia que el grupo recurre de manera prioritaria a las instancias de gobierno escolar de carácter reglamentario y a la participación de las familias como base estructural para liderar la pertinencia curricular, mientras que instancias más especializadas de evaluación institucional, aunque relevantes, no alcanzan aún una adopción unánime en el grupo.",
+      particularidades: "AIPECITO es la única institución del grupo en no reportar la conformación del Consejo Estudiantil ni de la figura de Personero(a) Estudiantil como equipos vinculados a esta pregunta, apoyándose en cambio en un Comité de Convivencia Escolar (opción \"Otro\" seleccionada únicamente por esta institución). El Liceo de Santa Librada, por su parte, es la única IE del grupo en reportar equipos de trabajo de carácter cultural y deportivo (grupos de rajaleñas, banda marcial, grupos deportivos, comité de riesgos y desastres escolares) como parte de su estructura de equipos, una particularidad que no se repite en ninguna otra institución del grupo."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 4",
+      enunciado: "¿Cómo se están articulando estos equipos de trabajo para lograr currículos más pertinentes territorialmente?",
+      tipo: "cualitativo",
+      comun: "Las seis instituciones coinciden en que la articulación entre equipos de trabajo institucional se apoya principalmente en espacios ya existentes —reuniones de área, Consejo Académico, jornadas pedagógicas y proyectos transversales— más que en mecanismos formales de coordinación creados para este fin específico. De manera igualmente compartida, se reconoce que dicha articulación es todavía incipiente o insuficiente: el Liceo de Santa Librada señala que los espacios de diálogo son \"limitados\" y que persiste \"falta de compromiso\" de algunos actores; el INEM concluye que \"no existe una articulación efectiva\" y que el trabajo se realiza \"de manera aislada por asignaturas\"; Claretiano plantea la necesidad de \"fortalecer la coordinación institucional\"; y Promoción Social describe una articulación que, aunque existente a través de reuniones y proyectos, requiere superar el trabajo fragmentado. AIPECITO matiza este panorama al destacar el papel del liderazgo directivo cercano y la participación incluyente de familias y estudiantes como catalizadores de una mejor articulación.",
+      particularidades: "La IE Chapinero constituye la particularidad más marcada del grupo en esta pregunta: a diferencia de las demás instituciones, que describen limitaciones puntuales dentro de una articulación que de todas formas ocurre, Chapinero señala la falta de trabajo en equipo y de transferencia del conocimiento entre docentes como la debilidad institucional central identificada por su propia nueva dirección, un diagnóstico autocrítico de mayor calado que no tiene equivalente explícito en las otras cinco instituciones del grupo."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 5",
+      enunciado: "¿Qué mecanismos de seguimiento se están implementando para que dichas acciones se cumplan?",
+      tipo: "mixto",
+      totalIE: 6,
+      tally: [
+        {opcion: "Autoevaluación institucional anual", count: 5},
+        {opcion: "Consejo Académico", count: 4},
+        {opcion: "Análisis de resultados de Pruebas Saber e ICFES", count: 4},
+        {opcion: "Comités de área o núcleos de formación", count: 4},
+        {opcion: "Actas de reunión de área", count: 4},
+        {opcion: "Plataformas de gestión académica (JIGRA)", count: 4},
+        {opcion: "Comparación histórica de resultados internos y externos", count: 3},
+        {opcion: "Articulación con el PEI", count: 3},
+        {opcion: "Tasa de deserción/reprobación por asignatura", count: 3}
+      ],
+      comun: "En cuanto a los mecanismos de seguimiento a las acciones curriculares, el elemento más ampliamente compartido por el grupo es la autoevaluación institucional anual, seleccionada por 5 de las 6 instituciones (83,3%). Con una adopción del 66,7% (4 de 6 IE) se ubican el Consejo Académico, el análisis de resultados de Pruebas Saber e ICFES, los comités de área o núcleos de formación, las actas de reunión de área y las plataformas de gestión académica (JIGRA); y con una adopción del 50% (3 de 6 IE), la comparación histórica de resultados internos y externos, la articulación con el PEI y la tasa de deserción o reprobación por asignatura. Este patrón revela que el seguimiento al cumplimiento de las acciones curriculares del grupo se apoya mayoritariamente en instrumentos internos de evaluación institucional y en el análisis de resultados académicos externos, más que en mecanismos de seguimiento comunitario o de participación de las familias en dicho seguimiento.",
+      particularidades: "AIPECITO constituye la particularidad más marcada de esta pregunta en todo el grupo: es la única institución que no seleccionó ninguno de los mecanismos de seguimiento del catálogo institucional, reportando en su lugar, exclusivamente, dos mecanismos externos y comunitarios poco convencionales para esta pregunta (el propio Foro Educativo Institucional y la Junta de Acción Comunal), lo que sugiere un mecanismo de seguimiento de tipo comunitario-territorial distinto al del resto del grupo. La IE Chapinero, por su parte, reportó un único mecanismo (autoevaluación institucional anual), el nivel de selección más bajo del grupo, lo que puede sugerir que sus mecanismos de seguimiento curricular están aún en una etapa incipiente de formalización."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Pregunta 1",
+      enunciado: "¿Consideran que la toma de decisiones en las instituciones educativas actualmente es participativa y democrática? ¿Por qué?",
+      tipo: "cualitativo",
+      comun: "Existe una coincidencia sustancial entre las seis instituciones del grupo: todas reconocen la existencia de estructuras formales de gobierno escolar (Consejo Directivo, Consejo Académico, Consejo Estudiantil, Personero, Contralor) que en principio garantizan cauces democráticos, pero todas —sin excepción— matizan esa existencia formal señalando límites concretos a la participación real. Se repite la idea de una democracia \"más formal que vivida\" (expresión textual del INEM, compartida en sustancia por Claretiano, Promoción Social y Chapinero): las reuniones tienden a ser informativas más que deliberativas (Liceo de Santa Librada), las decisiones continúan centralizadas en el Consejo Académico o en los directivos (INEM, Promoción Social), y persisten bajos niveles de incidencia efectiva de estudiantes y familias más allá de la elección de representantes. La escasa participación de las familias, explicada en términos de timidez, desinterés, falta de tiempo o desconocimiento de funciones (AIPECITO, INEM, Promoción Social), constituye igualmente un obstáculo transversal identificado por el grupo para consolidar una democracia escolar plenamente incidente.",
+      particularidades: "AIPECITO se distingue del resto del grupo por reportar un resultado concreto y tangible de participación comunitaria efectiva —proyectos de señalización y demarcación vial en la sede, surgidos de iniciativas directas de la comunidad—, mientras que las demás instituciones describen la participación fundamentalmente en términos de estructuras y limitaciones, sin un logro equivalente atribuible directamente a la incidencia comunitaria en la toma de decisiones."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Pregunta 2",
+      enunciado: "¿Qué acciones se están implementando para canalizar y fortalecer la participación de la comunidad educativa?",
+      tipo: "cualitativo",
+      comun: "El análisis conjunto de las acciones reportadas por las seis instituciones evidencia tres estrategias comunes de fortalecimiento de la participación escolar. La primera es el fortalecimiento de los procesos electorales y de representación del Gobierno Escolar (elección de representantes por salón y jornada, personeros, contralores), presente en AIPECITO, Liceo de Santa Librada, INEM, Claretiano y Promoción Social. La segunda es la diversificación de canales de comunicación institucional hacia la comunidad —circulares informativas (Liceo de Santa Librada), medios digitales e institucionales (INEM, AIPECITO)— orientada a visibilizar procesos y necesidades y a estrechar la relación entre la institución y sus públicos. La tercera es la apertura de espacios formales de diálogo y acompañamiento a las familias, como las escuelas de padres o de familia (Claretiano, Promoción Social) y las reuniones de rendición de cuentas o seguimiento (Liceo de Santa Librada, INEM). En conjunto, estas acciones muestran una apuesta compartida por ampliar los canales de representación y comunicación, más que por transformar de fondo los mecanismos de deliberación institucional.",
+      particularidades: "El INEM Juliam Motta Salas es la única institución del grupo en reportar un canal de comunicación audiovisual propio (\"Inemitas TV\") como estrategia de divulgación institucional y acercamiento a la comunidad, particularidad no replicada por ninguna otra IE del grupo. La IE Chapinero, por su parte, reportó de manera única un \"plan padrino\" liderado por docentes de sedes veredales, orientado a fortalecer la permanencia y motivación de los estudiantes mediante acompañamiento personalizado, estrategia sin equivalente explícito en las demás instituciones."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Equipos de trabajo",
+      enunciado: "¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar las estrategias y mecanismos de participación escolar?",
+      tipo: "mixto",
+      totalIE: 6,
+      tally: [
+        {opcion: "Consejo Directivo", count: 6},
+        {opcion: "Consejo de Padres de Familia", count: 6},
+        {opcion: "Comité Escolar de Convivencia", count: 6},
+        {opcion: "Consejo Académico", count: 5},
+        {opcion: "Gobierno Escolar", count: 5},
+        {opcion: "Consejo Estudiantil", count: 5},
+        {opcion: "Personero Estudiantil", count: 5},
+        {opcion: "Contralor Estudiantil", count: 5},
+        {opcion: "Comité de Calidad / Equipo de Gestión Institucional", count: 4},
+        {opcion: "Comisión de Evaluación y Promoción", count: 3}
+      ],
+      comun: "Para el liderazgo de las estrategias y mecanismos de participación escolar, el Consejo Directivo, el Consejo de Padres de Familia y el Comité Escolar de Convivencia son los equipos que el 100% de las instituciones del grupo reportan haber conformado. Con una adopción del 83,3% (5 de 6 IE) se ubican el Consejo Académico, el Gobierno Escolar en su conjunto, el Consejo Estudiantil, el/la Personero(a) Estudiantil y el/la Contralor(a) Estudiantil; y con una adopción del 66,7% (4 de 6 IE), el Comité de Calidad o Equipo de Gestión Institucional. Este patrón evidencia una estructura de gobierno escolar ampliamente consolidada y homogénea en el grupo, en la que las instancias de representación estudiantil alcanzan un nivel de adopción casi unánime, superior incluso al observado en los equipos de trabajo curricular de la Sesión 2.",
+      particularidades: "AIPECITO es, nuevamente, la institución que marca la particularidad más notable del grupo: es la única que no reporta el Gobierno Escolar como tal, ni el Consejo Estudiantil, la Personería ni la Contraloría Estudiantil entre sus equipos de participación, apoyándose en cambio en comités alternativos y específicos —un Comité de Veeduría del PAE y comités de Gestión del Riesgo y Medio Ambiente, ambos exclusivos de esta institución dentro del grupo—, lo que sugiere una estructura de participación escolar organizada de manera distinta a la del resto de instituciones del Grupo 1, con énfasis en la veeduría de programas específicos más que en la representación estudiantil clásica."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Mecanismos de seguimiento",
+      enunciado: "¿Qué mecanismos de seguimiento se están implementando para garantizar las acciones encaminadas a promover gobiernos educativos democráticos?",
+      tipo: "mixto",
+      totalIE: 6,
+      tally: [
+        {opcion: "Autoevaluación institucional anual (Guía 34 – MEN)", count: 5},
+        {opcion: "Plan de Mejoramiento Institucional (PMI)", count: 5},
+        {opcion: "Elecciones estudiantiles", count: 5},
+        {opcion: "Elección de docentes para consejo directivo", count: 5},
+        {opcion: "Elección de docentes para consejo académico", count: 4},
+        {opcion: "Reuniones periódicas con entes de gobierno escolar", count: 4},
+        {opcion: "Informes de gestión del Consejo Directivo", count: 4},
+        {opcion: "Actualización y ajuste permanente del PEI", count: 3},
+        {opcion: "Seguimiento periódico al Plan de Mejoramiento", count: 3}
+      ],
+      comun: "En relación con los mecanismos de seguimiento a las acciones que promueven gobiernos educativos democráticos, la autoevaluación institucional anual (Guía 34 del MEN), el Plan de Mejoramiento Institucional, las elecciones estudiantiles y la elección de docentes para el Consejo Directivo son los mecanismos más ampliamente compartidos por el grupo, cada uno reportado por 5 de las 6 instituciones (83,3%). Con una adopción del 66,7% (4 de 6 IE) se encuentran la elección de docentes para el Consejo Académico, las reuniones periódicas con los distintos entes de gobierno escolar y los informes de gestión del Consejo Directivo. Este patrón muestra que el seguimiento a la democracia escolar en el grupo se sustenta, sobre todo, en los procesos electorales reglamentarios y en los instrumentos institucionales de autoevaluación y mejoramiento continuo dispuestos por la normativa del Ministerio de Educación Nacional, más que en mecanismos de participación comunitaria de base creados específicamente para este fin.",
+      particularidades: "AIPECITO vuelve a constituir la particularidad más marcada del grupo en esta pregunta: es la única institución que no seleccionó ninguno de los mecanismos reglamentarios del catálogo, reportando en su lugar, de manera exclusiva, seis mecanismos de seguimiento propios de corte comunitario-territorial (sistematicidad y registro de acuerdos, diversificación de canales informativos en el territorio, mecanismos de consulta y diagnóstico, seguimiento a la transparencia y rendición de cuentas, estrategias de asistencia e involucramiento constante, y reafirmación del Gobierno Escolar), consolidando un patrón consistente a lo largo de las cuatro preguntas mixtas: mientras las demás cinco instituciones del grupo anclan su seguimiento en instrumentos normativos e institucionales estandarizados, AIPECITO construye respuestas propias fuera del catálogo sugerido, lo que amerita un acompañamiento específico de la Secretaría de Educación para verificar si ello refleja una práctica real distinta o una dificultad para reconocerse en las categorías estándar propuestas."
+    }
+  ],
+  conclusiones: "El análisis conjunto de las tres sesiones de trabajo del Grupo 1 permite concluir que las seis instituciones educativas comparten una trayectoria similar: avances reales y verificables en la contextualización curricular, el fortalecimiento de la educación inicial y la consolidación de estructuras de gobierno escolar, que conviven con retos comunes en materia de infraestructura, participación efectiva de las familias y articulación real —más allá de lo formal— entre los distintos equipos de trabajo institucional. Un hallazgo transversal relevante es el patrón particular de la IE AIPECITO, que en las cuatro preguntas de selección múltiple analizadas respondió de manera consistente por fuera del catálogo estándar de opciones, apoyándose en mecanismos y equipos de corte comunitario-territorial; esta recurrencia amerita un seguimiento específico por parte de la Secretaría de Educación Municipal para determinar si corresponde a una práctica institucional genuinamente distinta o a una dificultad de esa institución para reconocerse en las categorías propuestas por el instrumento. En cuanto a la valoración general del Foro, a la fecha de consolidación de este informe ninguna de las seis instituciones del grupo ha registrado formalmente su valoración de la jornada (preguntas de valoración y comentarios/sugerencias), por lo cual no es posible incorporar aquí un balance cuantitativo de percepción ni comentarios o sugerencias institucionales sobre el desarrollo del Foro; se recomienda a la Secretaría de Educación gestionar el diligenciamiento pendiente de este instrumento con las seis instituciones del grupo para completar el ciclo de retroalimentación previsto por el Foro Educativo Institucional. Como única referencia disponible de percepción sobre el Foro, procedente de la asistencia registrada por código QR, la comunidad educativa del Liceo de Santa Librada valoró como principales fortalezas el trabajo colaborativo entre docentes, la participación activa de los estudiantes y la existencia de experiencias exitosas replicables, señalando como oportunidades de mejoramiento la baja participación de estudiantes y familias, las brechas de aprendizaje entre grados y sedes, y el bajo logro de aprendizajes fundamentales — percepción que resulta coherente con los hallazgos cualitativos identificados en las tres sesiones del presente informe para el conjunto del grupo.",
+  firmaFuncionarioSEM: "[Nombre del funcionario o funcionaria de la SEM Neiva a cargo]",
+  responsableConsolidado: "[Nombre de quien consolida el Informe Consolidado]",
+  cargoResponsable: "[Cargo]",
+  fechaFirma: "7 de septiembre de 2026"
+};
+
+/*
+ * Genera (o reescribe, si ya existe) el Informe de Síntesis Grupal del
+ * Grupo 1, dejándolo en la raíz de la carpeta "Grupo G1" (mismo
+ * criterio de idempotencia que compilarRespuestasPorGrupoFEM y
+ * generarDocumentosAnalisisPorGrupoFEM: nunca duplica el archivo).
+ *
+ * Uso: desde el editor de Apps Script, seleccionar esta función y
+ * presionar "Ejecutar". El enlace del documento queda en "Ver
+ * registros de ejecución".
+ */
+function generarInformeSintesisGrupo1FEM(){
+  const carpetas=crearEstructuraCarpetasGrupoFEM_("G1");
+  const nombreDoc="Informe de Síntesis - Grupo G1 FEM 2026";
+  const existentesIt=carpetas.grupoFolder.getFilesByName(nombreDoc);
+  const archivoExistente=existentesIt.hasNext() ? existentesIt.next() : null;
+  while(existentesIt.hasNext()) existentesIt.next().setTrashed(true);
+
+  const archivoDoc=generarInformeSintesisGrupoFEM_(DATOS_SINTESIS_GRUPO_1_FEM_, archivoExistente?archivoExistente.getId():null);
+  if(!archivoExistente){
+    carpetas.grupoFolder.addFile(archivoDoc);
+    try{ DriveApp.getRootFolder().removeFile(archivoDoc); }catch(e){}
+  }
+
+  Logger.log("========================================");
+  Logger.log("INFORME DE SÍNTESIS — GRUPO 1 — RESULTADO");
+  Logger.log("Documento: "+archivoDoc.getUrl());
+  Logger.log("========================================");
+
+  return archivoDoc.getUrl();
+}
