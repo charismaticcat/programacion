@@ -5198,13 +5198,21 @@ function organizarInformesPorGrupoFEM(){
  *
  * INCIDENTE 2026-09-05: la hoja AvancesForo perdió las filas de la
  * mayoría de las IE que ya habían enviado su Foro (por eso antes solo
- * aparecían 1-2 IE por grupo en el compilado). Para no dejar a esas
- * IE fuera del documento, si obtenerDatosGuardadosPorIdForo_ no
- * encuentra nada para una IE se recurre al respaldo que sí sigue
- * intacto en "Análisis FEM 2026" (ver
- * obtenerRespuestasSesionesDesdeAnalisisFEM_ en Código.js). Solo si
- * NINGUNA de las dos fuentes tiene datos, esa IE queda fuera (listada
- * en "sinDatos").
+ * aparecían 1-2 IE por grupo en el compilado) y, aparte, se confirmó
+ * que la Sesión 3 (S3_P1/P3/P4) NUNCA quedó bien reflejada en
+ * "Análisis FEM 2026" para NINGUNA IE — está en blanco ahí aunque el
+ * Doc real de cada IE sí tenga las respuestas completas. Por eso,
+ * para las Sesiones 1/2/3 esta función usa como fuente PRINCIPAL el
+ * propio Doc editable ya generado de cada IE (ver
+ * extraerSesionesDesdeDocEditableFEM_ en Código.js — es exactamente
+ * lo que se envió, la fuente más confiable que existe), y solo si esa
+ * IE no tiene Doc todavía recurre a los datos en vivo de AvancesForo
+ * y, en último caso, al respaldo de "Análisis FEM 2026" (que sigue
+ * sirviendo para Sesión 1 y 2). La Sesión Propia/4 (opcional) se toma
+ * de los datos en vivo cuando existen — si una IE la llenó pero su
+ * fila de AvancesForo no se pudo recuperar, no hay forma de traerla
+ * de vuelta y simplemente no aparece para esa IE, igual que para
+ * quienes nunca la llenaron.
  *
  * Uso: desde el editor de Apps Script, seleccionar esta función y
  * presionar "Ejecutar".
@@ -5218,20 +5226,34 @@ function compilarRespuestasPorGrupoFEM(){
     const listaConSesiones=[], sinDatos=[], recuperadosDeRespaldo=[];
 
     miembros.forEach(function(m){
-      let sesiones=null, deRespaldo=false;
+      let sesiones=null, fuente="";
       try{
-        const datos=obtenerDatosGuardadosPorIdForo_(m.idForo);
-        if(datos) sesiones=obtenerRespuestasSesionesParaCompilado_(datos);
-      }catch(error){ Logger.log("Sesiones en vivo de "+m.nombreIE+": "+error.message); }
+        sesiones=extraerSesionesDesdeDocEditableFEM_(m.nombreIE);
+        if(sesiones) fuente="doc";
+      }catch(error){ Logger.log("Sesiones desde el Doc editable de "+m.nombreIE+": "+error.message); }
+
+      let datosVivos=null;
+      try{ datosVivos=obtenerDatosGuardadosPorIdForo_(m.idForo); }
+      catch(error){ Logger.log("Datos guardados de "+m.nombreIE+": "+error.message); }
+
+      if(!sesiones && datosVivos){ sesiones=obtenerRespuestasSesionesParaCompilado_(datosVivos); fuente="vivo"; }
 
       if(!sesiones){
         try{
           sesiones=obtenerRespuestasSesionesDesdeAnalisisFEM_(m.idForo);
-          if(sesiones) deRespaldo=true;
+          if(sesiones) fuente="respaldo";
         }catch(error){ Logger.log("Sesiones de respaldo de "+m.nombreIE+": "+error.message); }
       }
 
       if(!sesiones){ sinDatos.push(m.nombreIE); return; }
+
+      let sesionPropia=null;
+      if(datosVivos){
+        try{
+          const sp=obtenerSesionPropia_(datosVivos);
+          if(sp.tieneContenido) sesionPropia=sp;
+        }catch(error){ Logger.log("Sesión Propia de "+m.nombreIE+": "+error.message); }
+      }
 
       let logoBlob=null;
       try{
@@ -5239,8 +5261,8 @@ function compilarRespuestasPorGrupoFEM(){
         if(logoId) logoBlob=DriveApp.getFileById(logoId).getBlob();
       }catch(error){ Logger.log("Logo de "+m.nombreIE+" para el compilado: "+error.message); }
 
-      listaConSesiones.push({nombreIE:m.nombreIE, sesiones:sesiones, logoBlob:logoBlob});
-      if(deRespaldo) recuperadosDeRespaldo.push(m.nombreIE);
+      listaConSesiones.push({nombreIE:m.nombreIE, sesiones:sesiones, sesionPropia:sesionPropia, logoBlob:logoBlob});
+      if(fuente==="respaldo") recuperadosDeRespaldo.push(m.nombreIE);
     });
 
     if(!listaConSesiones.length){

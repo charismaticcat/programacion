@@ -8969,6 +8969,94 @@ function crearEstructuraCarpetasGrupoFEM_(grupo){
 }
 
 /*
+ * INCIDENTE 2026-09-05 (continuación): se confirmó, comparando contra
+ * el propio Doc ya generado y enviado de varias IE, que las Sesión 3
+ * (S3_P1, S3_P3, S3_P4) NUNCA quedaron bien reflejadas en "Análisis
+ * FEM 2026" — están en blanco ahí para TODAS las IE, aunque el Doc
+ * real de cada una sí tiene las respuestas completas. Por eso
+ * obtenerRespuestasSesionesDesdeAnalisisFEM_ no sirve para la Sesión
+ * 3 (y restaurarAvancesForoDesdeAnalisisFEM_ tampoco pudo traerla).
+ *
+ * Esta función lee las respuestas DIRECTO del Doc editable YA
+ * GENERADO de la IE (la fuente más confiable que existe: es
+ * exactamente lo que se envió) — busca los títulos "2.1 SESIÓN 1",
+ * "2.2 SESIÓN 2" y "2.3 SESIÓN 3" tal como los escribe
+ * generarInformeFEM, y extrae la tabla de pregunta/respuesta que
+ * sigue a cada uno. Si hay más de una copia del Doc en la carpeta de
+ * editables (de regeneraciones anteriores), usa la más reciente.
+ * Devuelve null si no encuentra el Doc o ninguna de las tres
+ * secciones.
+ */
+function extraerSesionesDesdeDocEditableFEM_(nombreIE){
+  const nombreDoc="Informe Ejecutivo - "+nombreIE+" FEM 2026";
+  let carpeta;
+  try{ carpeta=DriveApp.getFolderById(DRIVE_CARPETA_EDITABLES_FEM_ID); }
+  catch(errorCarpeta){ return null; }
+
+  const it=carpeta.getFilesByName(nombreDoc);
+  const candidatos=[];
+  while(it.hasNext()) candidatos.push(it.next());
+  if(!candidatos.length) return null;
+  // Más reciente primero -- pero si esa copia resulta ser un intento
+  // de regeneración fallido/incompleto (sin ninguna de las tres
+  // secciones), se prueba con la siguiente más reciente en vez de
+  // rendirse: ya se ha visto más de una copia del mismo Doc en esta
+  // carpeta por regeneraciones anteriores.
+  candidatos.sort(function(a,b){ return b.getDateCreated().getTime()-a.getDateCreated().getTime(); });
+
+  function normalizar(t){ return String(t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().trim(); }
+
+  function buscarTablaTrasEncabezado_(body, numChildren, textoEncabezado){
+    let indiceEncabezado=-1;
+    for(let i=0;i<numChildren;i++){
+      const hijo=body.getChild(i);
+      if(hijo.getType()!==DocumentApp.ElementType.PARAGRAPH) continue;
+      if(normalizar(hijo.asParagraph().getText())===textoEncabezado){ indiceEncabezado=i; break; }
+    }
+    if(indiceEncabezado===-1) return null;
+    for(let i=indiceEncabezado+1;i<numChildren;i++){
+      const hijo=body.getChild(i);
+      if(hijo.getType()===DocumentApp.ElementType.TABLE) return hijo.asTable();
+      if(hijo.getType()===DocumentApp.ElementType.PARAGRAPH){
+        const heading=hijo.asParagraph().getHeading();
+        if(heading===DocumentApp.ParagraphHeading.HEADING1||heading===DocumentApp.ParagraphHeading.HEADING2) return null;
+      }
+    }
+    return null;
+  }
+
+  function filasDeTabla_(tabla){
+    const filas=[];
+    for(let f=0;f<tabla.getNumRows();f++){
+      const fila=tabla.getRow(f);
+      const celda=fila.getNumCells()>1 ? fila.getCell(1) : fila.getCell(0);
+      const pregunta=celda.getNumChildren()>0 ? celda.getChild(0).asParagraph().getText() : "";
+      const respuestaCruda=celda.getNumChildren()>1 ? celda.getChild(1).asParagraph().getText() : "";
+      filas.push([pregunta, respuestaCruda==="—" ? "" : respuestaCruda]);
+    }
+    return filas;
+  }
+
+  const marcadores=[["Sesión 1","2.1 SESION 1"],["Sesión 2","2.2 SESION 2"],["Sesión 3","2.3 SESION 3"]];
+
+  for(let c=0;c<candidatos.length;c++){
+    let body;
+    try{ body=DocumentApp.openById(candidatos[c].getId()).getBody(); }
+    catch(errorDoc){ continue; }
+    const numChildren=body.getNumChildren();
+
+    const resultado=[];
+    marcadores.forEach(function(par){
+      const tabla=buscarTablaTrasEncabezado_(body, numChildren, par[1]);
+      if(tabla) resultado.push({n:par[0], items:filasDeTabla_(tabla)});
+    });
+    if(resultado.length) return resultado;
+  }
+
+  return null;
+}
+
+/*
  * Documento de Word (Google Doc) editable que COMPILA las respuestas
  * de las Sesiones 1/2/3 de todas las IE de un grupo: un título por IE
  * (con su logo al lado, cuando existe) y debajo, sus preguntas y
@@ -9036,6 +9124,24 @@ function generarDocumentoCompiladoGrupoFEM_(grupo, listaIEsConSesiones, idDocExi
       subtituloSesion.editAsText().setBold(true).setForegroundColor(VERDE);
       tablaClaveValorGrupo_(s.items);
     });
+
+    // Sesión Propia / 4 (opcional): solo si la IE la llenó.
+    if(item.sesionPropia){
+      const subtituloPropia=body.appendParagraph("Sesión Propia creada por la IE "+item.nombreIE);
+      subtituloPropia.setHeading(DocumentApp.ParagraphHeading.HEADING2);
+      subtituloPropia.editAsText().setBold(true).setForegroundColor(VERDE);
+      const filasPropia=[];
+      if(item.sesionPropia.titulo) filasPropia.push(["Título de la sesión", item.sesionPropia.titulo]);
+      if(item.sesionPropia.objetivo) filasPropia.push(["Objetivo de la sesión", item.sesionPropia.objetivo]);
+      item.sesionPropia.lineas.forEach(function(linea, li){
+        (linea.preguntas||[]).forEach(function(pregunta, pi){
+          if(!String(pregunta?.texto||"").trim()) return;
+          const etiquetaLinea="Línea "+(li+1)+(linea.titulo?" ("+linea.titulo+")":"")+" — Pregunta "+(pi+1)+": "+pregunta.texto;
+          filasPropia.push([etiquetaLinea, pregunta.respuesta||""]);
+        });
+      });
+      if(filasPropia.length) tablaClaveValorGrupo_(filasPropia);
+    }
   });
 
   doc.saveAndClose();
