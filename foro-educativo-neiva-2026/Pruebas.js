@@ -5217,6 +5217,48 @@ function organizarInformesPorGrupoFEM(){
  * Uso: desde el editor de Apps Script, seleccionar esta función y
  * presionar "Ejecutar".
  */
+/*
+ * Resuelve las Sesiones 1/2/3 (y la Sesión Propia/4, si la llenó) de
+ * UNA IE, probando en orden: el Doc editable ya generado (fuente más
+ * confiable — ver extraerSesionesDesdeDocEditableFEM_), los datos en
+ * vivo de AvancesForo, y como último recurso el respaldo de "Análisis
+ * FEM 2026" (bueno solo para Sesión 1/2). Compartida entre
+ * compilarRespuestasPorGrupoFEM y generarDocumentosAnalisisPorGrupoFEM
+ * para no resolver esto de dos formas distintas.
+ * Devuelve {sesiones, sesionPropia, fuente} — sesiones es null si
+ * ninguna fuente tuvo nada.
+ */
+function resolverSesionesIEFEM_(m){
+  let sesiones=null, fuente="";
+  try{
+    sesiones=extraerSesionesDesdeDocEditableFEM_(m.nombreIE);
+    if(sesiones) fuente="doc";
+  }catch(error){ Logger.log("Sesiones desde el Doc editable de "+m.nombreIE+": "+error.message); }
+
+  let datosVivos=null;
+  try{ datosVivos=obtenerDatosGuardadosPorIdForo_(m.idForo); }
+  catch(error){ Logger.log("Datos guardados de "+m.nombreIE+": "+error.message); }
+
+  if(!sesiones && datosVivos){ sesiones=obtenerRespuestasSesionesParaCompilado_(datosVivos); fuente="vivo"; }
+
+  if(!sesiones){
+    try{
+      sesiones=obtenerRespuestasSesionesDesdeAnalisisFEM_(m.idForo);
+      if(sesiones) fuente="respaldo";
+    }catch(error){ Logger.log("Sesiones de respaldo de "+m.nombreIE+": "+error.message); }
+  }
+
+  let sesionPropia=null;
+  if(datosVivos){
+    try{
+      const sp=obtenerSesionPropia_(datosVivos);
+      if(sp.tieneContenido) sesionPropia=sp;
+    }catch(error){ Logger.log("Sesión Propia de "+m.nombreIE+": "+error.message); }
+  }
+
+  return {sesiones:sesiones, sesionPropia:sesionPropia, fuente:fuente};
+}
+
 function compilarRespuestasPorGrupoFEM(){
   const grupos=mapaGruposFEM_();
   const resultado={};
@@ -5226,34 +5268,10 @@ function compilarRespuestasPorGrupoFEM(){
     const listaConSesiones=[], sinDatos=[], recuperadosDeRespaldo=[];
 
     miembros.forEach(function(m){
-      let sesiones=null, fuente="";
-      try{
-        sesiones=extraerSesionesDesdeDocEditableFEM_(m.nombreIE);
-        if(sesiones) fuente="doc";
-      }catch(error){ Logger.log("Sesiones desde el Doc editable de "+m.nombreIE+": "+error.message); }
-
-      let datosVivos=null;
-      try{ datosVivos=obtenerDatosGuardadosPorIdForo_(m.idForo); }
-      catch(error){ Logger.log("Datos guardados de "+m.nombreIE+": "+error.message); }
-
-      if(!sesiones && datosVivos){ sesiones=obtenerRespuestasSesionesParaCompilado_(datosVivos); fuente="vivo"; }
-
-      if(!sesiones){
-        try{
-          sesiones=obtenerRespuestasSesionesDesdeAnalisisFEM_(m.idForo);
-          if(sesiones) fuente="respaldo";
-        }catch(error){ Logger.log("Sesiones de respaldo de "+m.nombreIE+": "+error.message); }
-      }
+      const resuelto=resolverSesionesIEFEM_(m);
+      const sesiones=resuelto.sesiones, sesionPropia=resuelto.sesionPropia, fuente=resuelto.fuente;
 
       if(!sesiones){ sinDatos.push(m.nombreIE); return; }
-
-      let sesionPropia=null;
-      if(datosVivos){
-        try{
-          const sp=obtenerSesionPropia_(datosVivos);
-          if(sp.tieneContenido) sesionPropia=sp;
-        }catch(error){ Logger.log("Sesión Propia de "+m.nombreIE+": "+error.message); }
-      }
 
       let logoBlob=null;
       try{
@@ -5911,11 +5929,24 @@ function limpiarAsistenciaQR(){
 }
 
 /*
- * 4) Un Google Doc de ANÁLISIS por grupo (G1-G6), con las 9 secciones
- * pedidas: IE del grupo, participación por rol, edad de los
- * participantes, fortalezas/debilidades generales (gráfico + texto),
- * lo mismo por grupo de edad, y el comparativo entre grupos de edad
- * (ver generarDocumentoAnalisisGrupoFEM_ en Código.js). Se deja en la
+ * 4) Un Google Doc de ANÁLISIS por grupo (G1-G6). Tiene dos modos,
+ * elegidos automáticamente según si el grupo tiene asistencia por
+ * código QR registrada en al menos una de sus IE:
+ *
+ *   - CON asistencia QR: las 9 secciones pedidas (IE del grupo,
+ *     participación, edad, fortalezas/debilidades general y por
+ *     grupo de edad, comparativo) — dejando explícito, antes de la
+ *     sección 3, cuáles IE del grupo son las que sí registraron
+ *     asistencia por QR (las demás del grupo simplemente no aportan
+ *     datos de percepción, pero sí de participación/caracterización).
+ *   - SIN asistencia QR suficiente (ninguna IE del grupo firmó por
+ *     QR): en vez de las secciones 3-9 (que quedarían vacías), un
+ *     resumen de las respuestas de las Sesiones 1-4 de cada IE y de
+ *     su Valoración del Foro, con gráfico y descripción en texto de
+ *     las calificaciones (preguntas de selección múltiple 1-5) de
+ *     cada IE que ya valoró.
+ *
+ * Ver generarDocumentoAnalisisGrupoFEM_ en Código.js. Se deja en la
  * raíz de la carpeta del grupo, junto al documento de "Respuestas
  * Compiladas". Igual que ese, NUNCA crea un documento nuevo si ya
  * existe uno con el mismo nombre: lo reescribe en el mismo archivo.
@@ -5932,24 +5963,42 @@ function generarDocumentosAnalisisPorGrupoFEM(){
 
     const conteoPorRol=ROLES_PARTICIPACION_ANALISIS_.map(function(){ return 0; });
     let asistentesGrupo=[];
+    const ieConQR=[];
     miembros.forEach(function(m){
       try{
         const datos=obtenerDatosGuardadosPorIdForo_(m.idForo);
         const c=(datos&&datos.campos)||{};
         ROLES_PARTICIPACION_ANALISIS_.forEach(function(id,i){ conteoPorRol[i]+=Number(c["participantes"+id]?.valor||0); });
       }catch(error){ Logger.log("Participación de "+m.nombreIE+" para análisis de grupo "+g+": "+error.message); }
-      try{ asistentesGrupo=asistentesGrupo.concat(obtenerAsistentesQR_(m.idForo)); }
-      catch(error){ Logger.log("Asistentes QR de "+m.nombreIE+" para análisis de grupo "+g+": "+error.message); }
+      try{
+        const asistentesIE=obtenerAsistentesQR_(m.idForo);
+        if(asistentesIE.length){ ieConQR.push(m.nombreIE); asistentesGrupo=asistentesGrupo.concat(asistentesIE); }
+      }catch(error){ Logger.log("Asistentes QR de "+m.nombreIE+" para análisis de grupo "+g+": "+error.message); }
     });
 
     const totalParticipantes=conteoPorRol.reduce(function(a,b){return a+b;},0);
     const porRol=ETIQUETAS_PARTICIPACION_ANALISIS_.map(function(etiqueta,i){ return {etiqueta:etiqueta, total:conteoPorRol[i]}; });
 
+    // Sin asistencia QR en ninguna IE del grupo: se arma en su lugar
+    // el resumen de respuestas (Sesiones 1-4) y valoración por IE.
+    let resumenIEs=null;
+    if(!asistentesGrupo.length){
+      resumenIEs=miembros.map(function(m){
+        const resuelto=resolverSesionesIEFEM_(m);
+        let valoracion=null;
+        try{ valoracion=obtenerValoracionPorIdForo_(m.idForo); }
+        catch(error){ Logger.log("Valoración de "+m.nombreIE+" para análisis de grupo "+g+": "+error.message); }
+        return {nombreIE:m.nombreIE, sesiones:resuelto.sesiones, sesionPropia:resuelto.sesionPropia, valoracion:valoracion};
+      });
+    }
+
     const analisis={
       miembros:miembros.map(function(m){return m.nombreIE;}),
       porRol:porRol,
       totalParticipantes:totalParticipantes,
-      asistentesGrupo:asistentesGrupo
+      asistentesGrupo:asistentesGrupo,
+      ieConQR:ieConQR,
+      resumenIEs:resumenIEs
     };
 
     const carpetas=crearEstructuraCarpetasGrupoFEM_(g);
@@ -5964,7 +6013,14 @@ function generarDocumentosAnalisisPorGrupoFEM(){
       try{ DriveApp.getRootFolder().removeFile(archivoDoc); }catch(e){}
     }
 
-    resultado[g]={documento:archivoDoc.getUrl(), ieIncluidas:analisis.miembros, totalParticipantes:totalParticipantes, totalAsistentesQR:asistentesGrupo.length};
+    resultado[g]={
+      documento:archivoDoc.getUrl(),
+      ieIncluidas:analisis.miembros,
+      totalParticipantes:totalParticipantes,
+      totalAsistentesQR:asistentesGrupo.length,
+      ieConQR:ieConQR,
+      modo:asistentesGrupo.length?"percepcion_qr":"resumen_respuestas_valoracion"
+    };
   });
 
   Logger.log("========================================");
