@@ -6654,3 +6654,210 @@ function generarInformeSintesisGrupo3FEM(){
 
   return archivoDoc.getUrl();
 }
+
+/*
+ * INFORME DE SÍNTESIS GRUPAL — GRUPO 4.
+ *
+ * Mismo criterio que los Grupos 1, 2 y 3: prosa redactada a mano leyendo
+ * directamente el Doc editable ya generado de cada IE del grupo, y
+ * tallas de las 4 preguntas mixtas contadas a mano sobre las opciones
+ * realmente seleccionadas.
+ *
+ * PARTICULARIDAD DE ESTE GRUPO: de las 6 IE del catálogo (José Eustasio
+ * Rivera, Atanasio Girardot, Misael Pastrana Borrero, Humberto Tafur
+ * Charry, Enrique Olaya Herrera, Roberto Durán Alvira), HUMBERTO TAFUR
+ * CHARRY NO HABÍA ENVIADO SU INFORME EJECUTIVO a la fecha de redacción
+ * (7 de septiembre de 2026) — solo existen en Drive el PDF de asistencia
+ * y la foto del evento, ningún "Informe Ejecutivo". Por eso el análisis
+ * de las 11 preguntas y las conclusiones se basan en las 5 IE restantes
+ * (denominador 5, no 6), y la portada lista las 6 IE del grupo pero las
+ * conclusiones señalan expresamente la ausencia de esta institución.
+ *
+ * De esas 5 IE, solo José Eustasio Rivera había registrado su Valoración
+ * del Foro (4.5/5) a la fecha de redacción.
+ */
+const DATOS_SINTESIS_GRUPO_4_FEM_ = {
+  grupo: "G4",
+  tituloInforme: "Informe de Síntesis Grupal — Elementos Comunes y Particularidades Institucionales",
+  instituciones: [
+    "JOSE EUSTASIO RIVERA",
+    "ATANASIO GIRARDOT",
+    "MISAEL PASTRANA BORRERO",
+    "HUMBERTO TAFUR CHARRY",
+    "ENRIQUE OLAYA HERRERA",
+    "ROBERTO DURAN ALVIRA"
+  ],
+  responsableInforme: "[Nombre de quien consolida el informe de síntesis del Grupo 4 — SEM Neiva]",
+  fechaPresentacion: "7 de septiembre de 2026",
+  secciones: [
+    {
+      sesion: "SESIÓN 1",
+      pregunta: "Pregunta orientadora",
+      enunciado: "¿Cómo hemos avanzado, desde nuestra institución educativa, en el logro de los retos y propósitos planteados en el FEM2025?",
+      tipo: "cualitativo",
+      comun: "Cuatro de las cinco instituciones del Grupo 4 que remitieron su informe (José Eustasio Rivera, Atanasio Girardot, Misael Pastrana Borrero y Enrique Olaya Herrera) coinciden en describir su avance frente al FEM2025 como parcial y desigual, con logros reales pero todavía insuficientemente sistematizados: José Eustasio Rivera señala como reto pendiente \"consolidar un trabajo metodológico articulado y sistemático\"; Enrique Olaya Herrera reconoce \"debilidades en los procesos de sistematización\" de la información y las experiencias pedagógicas; y Misael Pastrana Borrero describe un avance \"paulatino y desigual entre instituciones, en la medida en que cada una lo determina según las condiciones y los recursos con que cuenta\". Dentro de este patrón compartido, la educación incluyente aparece como el eje de avance más consistente del grupo: José Eustasio Rivera destaca la formalización de los planes PIAR y el DUA, Atanasio Girardot reporta el aumento de población diversa y una actitud docente positiva hacia la inclusión, y Misael Pastrana Borrero resalta el incremento de estudiantes con PIAR sistematizados a tiempo. Como contraste notable dentro del propio grupo, Roberto Durán Alvira reporta el nivel de avance más alto y consolidado, estimando en cerca del 80% el cumplimiento de las metas del FEM2025 gracias a su macroproyecto institucional \"Cultivando saberes y conexiones rurales\".",
+      particularidades: "Roberto Durán Alvira presenta la particularidad más marcada del grupo en esta pregunta al ser la única institución en cuantificar explícitamente su nivel de cumplimiento (80% de las metas), y la única en describir un macroproyecto institucional propio y nombrado que articula la totalidad de sus estrategias con la vocación agropecuaria del corregimiento de Vegalarga. Atanasio Girardot, por su parte, es la única institución en señalar de manera explícita problemáticas de consumo de sustancias psicoactivas y presencia de pandillas entre sus estudiantes como factor asociado al bajo rendimiento y la desmotivación."
+    },
+    {
+      sesion: "SESIÓN 1",
+      pregunta: "Pregunta 2",
+      enunciado: "¿Cómo hemos avanzado, desde nuestra institución educativa, en la implementación de los nuevos grados del nivel de preescolar (jardín, prejardín)?",
+      tipo: "cualitativo",
+      comun: "Cuatro de las cinco instituciones del grupo (José Eustasio Rivera, Atanasio Girardot, Enrique Olaya Herrera y Roberto Durán Alvira) ya tienen en funcionamiento el grado jardín, mientras que Misael Pastrana Borrero es la única en reconocer que, pese a fortalecer el grado de transición mediante recursos para material didáctico y la reducción de su cobertura a 25 estudiantes por aula, no logró avances concretos en la creación de nuevos grados de jardín o prejardín por falta de infraestructura y de personal docente suficiente. Entre las cuatro instituciones que sí ofrecen jardín, existe una coincidencia notable en que el prejardín específicamente enfrenta una barrera de demanda estructural: José Eustasio Rivera, Atanasio Girardot y Enrique Olaya Herrera señalan, en términos casi idénticos, que las familias prefieren los hogares comunitarios o centros de cuidado del ICBF y del sector privado, que ofrecen alimentación y jornada completa que la oferta escolar no puede igualar, lo que explica la baja matrícula o la inactividad de este nivel. Finalmente, incluso donde el nivel ya opera, persisten limitaciones de infraestructura: baterías sanitarias pendientes en José Eustasio Rivera, obras físicas incompletas en Atanasio Girardot, un aula por adecuar en Enrique Olaya Herrera, y hacinamiento y ausencia de zonas de recreación en Roberto Durán Alvira.",
+      particularidades: "Roberto Durán Alvira presenta la particularidad más contextual del grupo en esta pregunta, al señalar que los vehículos de transporte escolar disponibles \"no cumplen con las condiciones de seguridad para el transporte de los estudiantes de primera infancia\" en su zona rural, una barrera de movilidad específica no reportada por ninguna otra institución. Misael Pastrana Borrero, por su parte, es la única institución del grupo en admitir con total transparencia que, en la práctica, no logró implementar ningún grado nuevo de preescolar durante el periodo, limitándose a fortalecer el nivel ya existente de transición."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 1",
+      enunciado: "¿Consideran que los currículos actuales que se desarrollan en las instituciones educativas son pertinentes con sus realidades territoriales (sociales, culturales, productivas)? ¿Por qué?",
+      tipo: "cualitativo",
+      comun: "Tres de las cinco instituciones del grupo (José Eustasio Rivera, Misael Pastrana Borrero y Roberto Durán Alvira) consideran que sus currículos sí son pertinentes con las realidades territoriales, mientras que Atanasio Girardot y Enrique Olaya Herrera matizan esa pertinencia como parcial, señalando retos más profundos de articulación. Pese a esta diferencia de énfasis, existe una coincidencia sustancial en dos estrategias: la articulación con el SENA como vía de pertinencia técnico-laboral, presente en José Eustasio Rivera (asistencia administrativa e inglés), Atanasio Girardot (Enfermería, Sistemas, Contabilidad, AIPI) y Roberto Durán Alvira (competencias agropecuarias); y el fortalecimiento de cátedras y proyectos transversales —Alegría de Leer y Cátedra de Paz en José Eustasio Rivera, las cátedras de paz, afrocolombianidad y socioemocionalidad en Misael Pastrana Borrero, y el macroproyecto \"Cultivando saberes y conexiones rurales\" en Roberto Durán Alvira— como mecanismo central de contextualización curricular.",
+      particularidades: "Enrique Olaya Herrera se distingue del resto del grupo por abordar la pregunta desde una reflexión conceptual sobre el territorio —entendido explícitamente como \"un escenario donde confluyen la historia, la cultura, las prácticas sociales, los conocimientos ancestrales, las dinámicas productivas, las necesidades y las expectativas de las comunidades\"— sin describir avances curriculares concretos ya materializados, a diferencia de las demás instituciones. Atanasio Girardot, por su parte, es la única institución en señalar explícitamente falencias en los planes de evacuación y gestión del riesgo ante emergencias reales como un vacío de pertinencia curricular."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 2",
+      enunciado: "¿Qué acciones se han implementado para lograr currículos más pertinentes al territorio?",
+      tipo: "cualitativo",
+      comun: "Las cinco instituciones del grupo coinciden en reportar el fortalecimiento de centros de interés y proyectos pedagógicos transversales como la acción más ampliamente compartida para lograr currículos más pertinentes: el PRAE y la estrategia Alegría de Leer en José Eustasio Rivera, los Centros de Interés y la Peña Cultural en Atanasio Girardot, los proyectos de aula articulados con las cátedras transversales en Misael Pastrana Borrero, los centros de interés propios y nombrados —\"La magia de la palabra hablada\", \"Ser, Soñar y Lograr\"— en Enrique Olaya Herrera, y los proyectos pedagógicos productivos en huertas y emprendimientos agrícolas de Roberto Durán Alvira. Como segunda línea compartida por tres de las cinco instituciones, la articulación con el SENA aparece como estrategia concreta de pertinencia técnico-laboral en José Eustasio Rivera, Enrique Olaya Herrera y Roberto Durán Alvira, mientras que la revisión y actualización periódica del PEI es reportada explícitamente por José Eustasio Rivera, Misael Pastrana Borrero y Enrique Olaya Herrera como mecanismo formal que acompaña estas acciones.",
+      particularidades: "Atanasio Girardot presenta la particularidad más diversificada del grupo en esta pregunta, al vincular sus acciones curriculares con un conjunto amplio de eventos culturales y deportivos propios —la Peña Cultural, el Festival de la Fruta y la Verdura, la celebración de la Huilensidad y los Juegos SUPÉRATE— y con una alianza explícita con la Policía Antinarcóticos para la prevención, un componente de seguridad no mencionado por ninguna otra institución del grupo. Roberto Durán Alvira, por su parte, es la única institución en fundamentar sus acciones curriculares en un diagnóstico ambiental de campo mediante salidas pedagógicas a fincas de la región, articulando explícitamente café, ganadería y negocios verdes como ejes productivos del territorio."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 3",
+      enunciado: "¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar estas acciones?",
+      tipo: "mixto",
+      totalIE: 5,
+      tally: [
+        {opcion: "Comités de área", count: 5},
+        {opcion: "Consejo Académico", count: 4},
+        {opcion: "Comisión de Evaluación y Promoción", count: 4},
+        {opcion: "Equipo de Gestión Académica", count: 4},
+        {opcion: "Equipo de Educación Inclusiva / NEE", count: 3}
+      ],
+      comun: "Los comités de área son el único equipo de trabajo que las cinco instituciones del grupo, sin excepción, reportan haber conformado para esta pregunta. Con una adopción del 80% (4 de 5 IE) se ubican el Consejo Académico, la Comisión de Evaluación y Promoción y el Equipo de Gestión Académica; y con una adopción del 60% (3 de 5 IE), el Equipo de Educación Inclusiva o NEE. Este patrón muestra una base compartida relativamente sólida en torno a las instancias curriculares y de evaluación más reglamentarias, sobre la cual cada institución construye una estructura adicional propia y de complejidad muy variable.",
+      particularidades: "José Eustasio Rivera y Roberto Durán Alvira son, con diferencia, las instituciones con la estructura de equipos más extensa y diferenciada del grupo —trece equipos reglamentarios cada una, incluyendo divisiones por nivel educativo (preescolar, primaria, secundaria y media) y equipos especializados como Sistematización de la Información y Seguimiento a Egresados—, mientras que Atanasio Girardot presenta, en el extremo opuesto, la selección más reducida de todo el grupo, con apenas tres equipos reportados y sin ninguna instancia de gobierno escolar reglamentario (Consejo Directivo, Consejo Estudiantil) para esta pregunta."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 4",
+      enunciado: "¿Cómo se están articulando estos equipos de trabajo para lograr currículos más pertinentes territorialmente?",
+      tipo: "cualitativo",
+      comun: "Tres de las cinco instituciones del grupo (José Eustasio Rivera, Misael Pastrana Borrero y Enrique Olaya Herrera) describen mecanismos de articulación curricular ya en funcionamiento, apoyados en reuniones periódicas de comités de área y equipos de gestión que canalizan las propuestas hacia su aprobación institucional. Las otras dos instituciones, en cambio, reconocen abiertamente que esta articulación es todavía insuficiente: Roberto Durán Alvira admite la \"necesidad de superar el funcionamiento aislado mediante la concertación de un cronograma unificado\", y Atanasio Girardot llega más lejos al señalar que \"durante el año 2026 no se ha convocado el Consejo Académico ni otras instancias del gobierno escolar\", dejando la reflexión curricular en manos exclusivas de comités de área y equipos específicos. Esta polarización —entre instituciones con mecanismos consolidados y otras con vacíos institucionales explícitos en la convocatoria de sus propias instancias reglamentarias— es más marcada en el Grupo 4 que en los grupos analizados previamente.",
+      particularidades: "Atanasio Girardot constituye el hallazgo más crítico de esta pregunta en todo el grupo, al admitir la ausencia de convocatoria del Consejo Académico durante todo el año escolar, un vacío de gobierno curricular no reportado por ninguna otra institución en ningún grupo analizado hasta ahora. Enrique Olaya Herrera, por su parte, es la única institución en vincular explícitamente su articulación curricular con proyectos culturales nombrados (Batuta, la Revista Huellas) como parte de su estructura de equipos."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 5",
+      enunciado: "¿Qué mecanismos de seguimiento se están implementando para que dichas acciones se cumplan?",
+      tipo: "mixto",
+      totalIE: 5,
+      tally: [
+        {opcion: "Comités de área o núcleos de formación", count: 5},
+        {opcion: "Tasa de deserción/reprobación por asignatura", count: 5},
+        {opcion: "Autoevaluación institucional anual", count: 5},
+        {opcion: "Reportes al MEN / Planes de Mejoramiento Institucional", count: 5},
+        {opcion: "Análisis de resultados de Pruebas Saber e ICFES", count: 4},
+        {opcion: "Consejo Académico", count: 4},
+        {opcion: "Articulación con el PEI", count: 4},
+        {opcion: "Actas de reunión de área", count: 4},
+        {opcion: "Plataformas de gestión académica (JIGRA)", count: 4},
+        {opcion: "Visitas de las Secretarías de Educación", count: 4}
+      ],
+      comun: "Los mecanismos de seguimiento curricular alcanzan, en el Grupo 4, el nivel de consenso más alto observado hasta ahora entre los grupos analizados: los comités de área, la tasa de deserción o reprobación por asignatura, la autoevaluación institucional anual y los reportes al MEN mediante el Plan de Mejoramiento Institucional son adoptados por las cinco instituciones, sin excepción. Con una adopción del 80% (4 de 5 IE) se ubican además el análisis de resultados de Pruebas Saber e ICFES, el Consejo Académico, la articulación con el PEI, las actas de reunión de área, las plataformas de gestión académica JIGRA y las visitas de las Secretarías de Educación. Este patrón evidencia que, más allá de las diferencias en la profundidad curricular reportadas en preguntas anteriores, el grupo comparte un aparato de seguimiento y rendición de cuentas particularmente robusto y estandarizado.",
+      particularidades: "Roberto Durán Alvira presenta, con dieciséis mecanismos reportados, el catálogo de seguimiento más extenso y diversificado de todo el grupo, siendo la única institución en incluir la evaluación por matriz DOFA como herramienta formal de análisis institucional. Atanasio Girardot, en el extremo opuesto, es la institución con el catálogo más reducido (seis mecanismos), sin reportar Consejo Académico, articulación con el PEI, actas de reunión de área ni plataformas JIGRA, una discrepancia que resulta coherente con su selección igualmente reducida de equipos de trabajo en la pregunta anterior."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Pregunta 1",
+      enunciado: "¿Consideran que la toma de decisiones en las instituciones educativas actualmente es participativa y democrática? ¿Por qué?",
+      tipo: "cualitativo",
+      comun: "Las cinco instituciones del grupo coinciden en reconocer la existencia de estructuras formales de gobierno escolar amparadas en la Ley 115, y las cinco matizan esa existencia formal señalando límites concretos a la participación real. Este patrón es particularmente marcado en tres instituciones —Atanasio Girardot, Misael Pastrana Borrero y Enrique Olaya Herrera—, que describen la participación como predominantemente pasiva, autocrática o meramente administrativa: Atanasio Girardot reporta que el Consejo Directivo y el Consejo Académico solo se han convocado una vez en todo el año; Misael Pastrana Borrero señala que los órganos del gobierno escolar \"suelen cumplir un papel más pasivo que activo\"; y Enrique Olaya Herrera observa que los espacios formales \"a menudo se limitan a cumplir requisitos administrativos\", con estudiantes que no participan en la construcción curricular \"por falta de interés\" y una ausencia total de padres de familia el día del propio Foro. La baja participación de las familias es, además, un obstáculo mencionado explícitamente por cuatro de las cinco instituciones (José Eustasio Rivera, Misael Pastrana Borrero, Enrique Olaya Herrera y Roberto Durán Alvira).",
+      particularidades: "Enrique Olaya Herrera presenta la constatación más directa y singular del grupo en esta pregunta, al registrar en su propio informe que \"el día de hoy no contamos con la participación de los padres de familia en el foro\", una ausencia total documentada explícitamente que ninguna otra institución del grupo reporta en estos términos. Atanasio Girardot, por su parte, es la única institución en señalar que los estudiantes de educación inicial no participan en absoluto en los procesos de elección o democracia escolar, una precisión etaria no formulada por las demás instituciones."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Pregunta 2",
+      enunciado: "¿Qué acciones se están implementando para canalizar y fortalecer la participación de la comunidad educativa?",
+      tipo: "cualitativo",
+      comun: "Cuatro de las cinco instituciones del grupo (José Eustasio Rivera, Atanasio Girardot, Misael Pastrana Borrero y Roberto Durán Alvira) coinciden en reportar el fortalecimiento de los órganos del Gobierno Escolar —consejos, personería, contraloría— como acción central para canalizar la participación, mientras que Enrique Olaya Herrera concentra sus acciones, en cambio, en el proceso participativo de actualización del PEI con asesoría externa de la Fundación Terpel. Una segunda línea, igualmente compartida por cuatro de las cinco instituciones (Atanasio Girardot, Misael Pastrana Borrero, Enrique Olaya Herrera y Roberto Durán Alvira), es el fortalecimiento de canales de comunicación —páginas web, redes sociales, WhatsApp y medios digitales— como estrategia explícita para superar barreras de participación, ya sea de desinformación (Atanasio Girardot) o geográficas en zonas rurales apartadas (Roberto Durán Alvira).",
+      particularidades: "José Eustasio Rivera es la única institución del grupo en reportar una veeduría comunitaria formalizada y nombrada —el comité de acompañamiento de padres de familia, liderado por el Comité de Ciencias Sociales, que hace seguimiento directo a la gestión, licitación y construcción de la infraestructura de la sede Ciudad Jardín—, una figura de control social con un objeto de vigilancia concreto sin equivalente en las demás instituciones. Atanasio Girardot, por su parte, es la única institución en vincular su fortalecimiento de la participación con alianzas externas nombradas de carácter social y universitario (Jóvenes Pacíficos de Ecopetrol y capacitaciones en resolución de conflictos con la Universidad Surcolombiana)."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Equipos de trabajo",
+      enunciado: "¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar las estrategias y mecanismos de participación escolar?",
+      tipo: "mixto",
+      totalIE: 5,
+      tally: [
+        {opcion: "Gobierno Escolar", count: 5},
+        {opcion: "Consejo Estudiantil", count: 5},
+        {opcion: "Comisión de Evaluación y Promoción", count: 5},
+        {opcion: "Comité de Calidad / Equipo de Gestión Institucional", count: 5},
+        {opcion: "Consejo Directivo", count: 4},
+        {opcion: "Consejo Académico", count: 4},
+        {opcion: "Personero(a) Estudiantil", count: 4},
+        {opcion: "Contralor(a) Estudiantil", count: 4},
+        {opcion: "Consejo de Padres de Familia", count: 4},
+        {opcion: "Comité Escolar de Convivencia", count: 4}
+      ],
+      comun: "El Gobierno Escolar en su conjunto, el Consejo Estudiantil, la Comisión de Evaluación y Promoción y el Comité de Calidad o Equipo de Gestión Institucional son los cuatro equipos que las cinco instituciones del grupo, sin excepción, reportan haber conformado para las estrategias de participación escolar. Con una adopción del 80% (4 de 5 IE) se ubican el Consejo Directivo, el Consejo Académico, el/la Personero(a) y Contralor(a) Estudiantil, el Consejo de Padres de Familia y el Comité Escolar de Convivencia. Este patrón revela una estructura de gobierno escolar altamente homogénea entre cuatro de las cinco instituciones, con Atanasio Girardot como la única excepción sistemática en casi todo el catálogo reglamentario.",
+      particularidades: "Atanasio Girardot constituye, con notable diferencia, la particularidad más marcada del grupo en esta pregunta: es la única institución que no reporta Consejo Directivo, Consejo Académico, Personero(a) ni Contralor(a) Estudiantil, Consejo de Padres de Familia ni Comité Escolar de Convivencia, seleccionando apenas cuatro equipos del catálogo y complementando con una opción \"Otro\" (comités de área) sin mayor desarrollo — una estructura de participación considerablemente más débil que la de las demás instituciones del grupo. Roberto Durán Alvira, por su parte, es la única institución en incluir el Comité de Alimentación Escolar (CAE) como equipo adicional de participación, vinculando la veeduría del PAE con la estructura de gobierno escolar."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Mecanismos de seguimiento",
+      enunciado: "¿Qué mecanismos de seguimiento se están implementando para garantizar las acciones encaminadas a promover gobiernos educativos democráticos?",
+      tipo: "mixto",
+      totalIE: 5,
+      tally: [
+        {opcion: "Autoevaluación institucional anual (Guía 34 – MEN)", count: 5},
+        {opcion: "Plan de Mejoramiento Institucional (PMI)", count: 5},
+        {opcion: "Reuniones periódicas con entes de gobierno escolar", count: 4},
+        {opcion: "Elecciones estudiantiles", count: 4},
+        {opcion: "Elección de docentes para consejo directivo", count: 4},
+        {opcion: "Elección de docentes para consejo académico", count: 4},
+        {opcion: "Seguimiento periódico al Plan de Mejoramiento", count: 4},
+        {opcion: "Actualización y ajuste permanente del PEI", count: 4},
+        {opcion: "Informes de gestión del Consejo Directivo", count: 4},
+        {opcion: "Verificación del funcionamiento del Gobierno Escolar por la Secretaría de Educación", count: 4}
+      ],
+      comun: "La autoevaluación institucional anual y el Plan de Mejoramiento Institucional son los dos mecanismos de seguimiento que las cinco instituciones del grupo, sin excepción, reportan haber implementado. Con una adopción del 80% (4 de 5 IE) se ubica prácticamente la totalidad del resto del catálogo reglamentario: las reuniones periódicas con entes de gobierno escolar, las elecciones estudiantiles, la elección de docentes para los consejos directivo y académico, el seguimiento periódico al PMI, la actualización del PEI, los informes de gestión del Consejo Directivo y la verificación externa por parte de la Secretaría de Educación. Este patrón confirma, en paralelo con la pregunta análoga de equipos de trabajo, que Atanasio Girardot es sistemáticamente la única institución que se aparta del comportamiento homogéneo del resto del grupo.",
+      particularidades: "Atanasio Girardot constituye, de nuevo, el hallazgo más crítico de esta pregunta en todo el grupo: además de seleccionar solo dos mecanismos del catálogo estándar, admite explícitamente en su respuesta \"Otro\" que \"no existen mecanismos formales, instrumentos consolidados o un seguimiento riguroso tras la etapa inicial de votación y conformación del gobierno escolar\", una confesión de vacío institucional en el seguimiento democrático que resulta coherente con su también escasa convocatoria del Consejo Académico reportada en la Sesión 2. Roberto Durán Alvira, por su parte, es la única institución en complementar el catálogo estándar con mecanismos propios de rendición pública de cuentas y de encuesta y buzón de sugerencias."
+    }
+  ],
+  conclusiones: "El análisis conjunto de las tres sesiones de trabajo del Grupo 4 permite concluir que, entre las cinco instituciones que remitieron su Informe Ejecutivo (José Eustasio Rivera, Atanasio Girardot, Misael Pastrana Borrero, Enrique Olaya Herrera y Roberto Durán Alvira), existe una trayectoria compartida de avances parciales y desiguales hacia los propósitos del FEM2025, con la educación incluyente y el fortalecimiento de proyectos pedagógicos transversales como los ejes de progreso más consistentes, y con la baja participación real de las familias y los estudiantes —más allá de la existencia formal de estructuras de gobierno escolar— como el obstáculo más recurrente del grupo. Dos hallazgos particulares ameritan atención específica de la Secretaría de Educación Municipal: la IE Atanasio Girardot, que reconoció explícitamente no haber convocado su Consejo Académico durante todo el año escolar 2026 y admitió no contar con mecanismos formales de seguimiento a la democracia escolar más allá de la votación inicial, presentando de manera sistemática la estructura de participación más débil de todo el grupo; y la IE Roberto Durán Alvira, cuyo macroproyecto institucional \"Cultivando saberes y conexiones rurales\" reporta el nivel de avance más alto y consolidado del grupo frente a los retos del FEM2025, con cerca del 80% de cumplimiento estimado. En cuanto a la valoración general del Foro, de las cinco instituciones con informe remitido, únicamente José Eustasio Rivera registró formalmente su valoración de la jornada, con un promedio de 4,5 sobre 5,0 (diálogo y reflexión 5,0, participación 4,0, ideas y propuestas 5,0, satisfacción con el instrumento 4,0), acompañado de sugerencias sobre el fortalecimiento de la planeación logística y los recursos para el FEM 2027; las cuatro instituciones restantes (Atanasio Girardot, Misael Pastrana Borrero, Enrique Olaya Herrera y Roberto Durán Alvira) aún no han registrado su valoración. Finalmente, la IE Humberto Tafur Charry, sexta institución del grupo, únicamente registró la asistencia y la evidencia fotográfica de la jornada, sin haber generado ni enviado su Informe Ejecutivo a la fecha de consolidación de este documento; se recomienda a la Secretaría de Educación gestionar de manera prioritaria el diligenciamiento pendiente de este informe con dicha institución.",
+  proyectoNombre: "[Nombre de quien consolida el Informe Consolidado]",
+  proyectoCargo: "[Cargo]",
+  fechaRealizacion: "7 de septiembre de 2026"
+};
+
+/*
+ * Genera (o reescribe, si ya existe) el Informe de Síntesis Grupal del
+ * Grupo 4, dejándolo en la raíz de la carpeta "Grupo G4" (mismo
+ * criterio de idempotencia que el resto de documentos de grupo).
+ *
+ * Uso: desde el editor de Apps Script, seleccionar esta función y
+ * presionar "Ejecutar". El enlace del documento queda en "Ver
+ * registros de ejecución".
+ */
+function generarInformeSintesisGrupo4FEM(){
+  const carpetas=crearEstructuraCarpetasGrupoFEM_("G4");
+  const nombreDoc="Informe de Síntesis - Grupo G4 FEM 2026";
+  const existentesIt=carpetas.grupoFolder.getFilesByName(nombreDoc);
+  const archivoExistente=existentesIt.hasNext() ? existentesIt.next() : null;
+  while(existentesIt.hasNext()) existentesIt.next().setTrashed(true);
+
+  const archivoDoc=generarInformeSintesisGrupoFEM_(DATOS_SINTESIS_GRUPO_4_FEM_, archivoExistente?archivoExistente.getId():null);
+  if(!archivoExistente){
+    carpetas.grupoFolder.addFile(archivoDoc);
+    try{ DriveApp.getRootFolder().removeFile(archivoDoc); }catch(e){}
+  }
+
+  Logger.log("========================================");
+  Logger.log("INFORME DE SÍNTESIS — GRUPO 4 — RESULTADO");
+  Logger.log("Documento: "+archivoDoc.getUrl());
+  Logger.log("========================================");
+
+  return archivoDoc.getUrl();
+}
