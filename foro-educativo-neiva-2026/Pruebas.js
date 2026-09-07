@@ -7061,3 +7061,201 @@ function generarInformeSintesisGrupo5FEM(){
 
   return archivoDoc.getUrl();
 }
+
+/*
+ * INFORME DE SÍNTESIS GRUPAL — GRUPO 6.
+ *
+ * Mismo criterio que los grupos anteriores: prosa redactada a mano
+ * leyendo directamente el Doc editable ya generado de cada IE del
+ * grupo, y tallas de las 4 preguntas mixtas contadas a mano sobre las
+ * opciones realmente seleccionadas.
+ *
+ * Las 6 IE del catálogo (Oliverio Lara Borrero, Agustín Codazzi, El
+ * Limonar, Rodrigo Lara Bonilla, El Caguán, San Luis Beltrán) SÍ habían
+ * remitido su Informe Ejecutivo a la fecha de redacción (7 de
+ * septiembre de 2026), por lo que el denominador de las 4 preguntas
+ * mixtas es 6.
+ *
+ * De esas 6 IE, El Limonar (4.8/5) y Rodrigo Lara Bonilla (4.8/5)
+ * habían registrado su Valoración del Foro a la fecha de redacción.
+ */
+const DATOS_SINTESIS_GRUPO_6_FEM_ = {
+  grupo: "G6",
+  tituloInforme: "Informe de Síntesis Grupal — Elementos Comunes y Particularidades Institucionales",
+  instituciones: [
+    "OLIVERIO LARA BORRERO",
+    "AGUSTIN CODAZZI",
+    "EL LIMONAR",
+    "RODRIGO LARA BONILLA",
+    "EL CAGUAN",
+    "SAN LUIS BELTRAN"
+  ],
+  responsableInforme: "[Nombre de quien consolida el informe de síntesis del Grupo 6 — SEM Neiva]",
+  fechaPresentacion: "7 de septiembre de 2026",
+  secciones: [
+    {
+      sesion: "SESIÓN 1",
+      pregunta: "Pregunta orientadora",
+      enunciado: "¿Cómo hemos avanzado, desde nuestra institución educativa, en el logro de los retos y propósitos planteados en el FEM2025?",
+      tipo: "cualitativo",
+      comun: "Las seis instituciones del Grupo 6 (Oliverio Lara Borrero, Agustín Codazzi, El Limonar, Rodrigo Lara Bonilla, El Caguán y San Luis Beltrán) coinciden en reportar avances en la contextualización de sus prácticas y proyectos pedagógicos: los centros de interés PILEO y los Desafíos CRESE en Oliverio Lara Borrero, el fortalecimiento curricular y la articulación con el SENA en Agustín Codazzi, la ampliación de la educación inicial en El Limonar, el Proyecto Ambiental Escolar y la atención inclusiva mediante PIAR en Rodrigo Lara Bonilla, los proyectos de turismo, emprendimiento y gastronomía local en El Caguán, y la huerta escolar y el PRAE en San Luis Beltrán. De manera igualmente compartida, cuatro de las seis instituciones (Agustín Codazzi, Rodrigo Lara Bonilla, El Caguán y San Luis Beltrán) identifican las limitaciones de infraestructura y de recursos económicos como el obstáculo estructural más persistente para sostener estos avances en el tiempo, mientras que tres instituciones (Oliverio Lara Borrero, Agustín Codazzi y San Luis Beltrán) señalan de manera explícita la necesidad de fortalecer la articulación y el compromiso de las familias como condición para consolidarlos.",
+      particularidades: "El Caguán presenta la particularidad más crítica del grupo en esta pregunta, al señalar la inestabilidad de la figura de la rectoría como un factor que ha afectado directamente la continuidad de procesos institucionales clave —la eficiencia en el manejo de recursos, la toma de decisiones y el seguimiento de las acciones propuestas—, un problema de gobernanza institucional no reportado por ninguna otra institución del grupo. El Limonar, por su parte, es la única institución en fundamentar sus avances explícitamente en el marco normativo de la educación inicial —el Documento N.° 20 del MEN, el artículo 5 de la Ley 115 de 1994 y los propósitos del MEN de 2014— como referente estructurante de su quehacer pedagógico."
+    },
+    {
+      sesion: "SESIÓN 1",
+      pregunta: "Pregunta 2",
+      enunciado: "¿Cómo hemos avanzado, desde nuestra institución educativa, en la implementación de los nuevos grados del nivel de preescolar (jardín, prejardín)?",
+      tipo: "cualitativo",
+      comun: "Cuatro de las seis instituciones del grupo (Oliverio Lara Borrero, Agustín Codazzi, El Limonar y Rodrigo Lara Bonilla) ya tienen en funcionamiento el grado jardín, con distintos niveles de consolidación del prejardín, mientras que las otras dos presentan las situaciones más críticas del grupo en esta pregunta: El Caguán reconoce no haber logrado ningún avance en la implementación de jardín o prejardín por falta de infraestructura, espacios, materiales y mobiliario adecuados; y San Luis Beltrán reporta que, pese a haber gestionado una docente específica para estos grados, no logró alcanzar la matrícula mínima necesaria para sostener la iniciativa, atribuyendo esta situación, en parte, a que muchas familias prefieren mantener a sus hijos en los hogares de bienestar familiar por los beneficios de alimentación que estos ofrecen. Entre las cuatro instituciones que sí operan el nivel, persiste la limitación de infraestructura y dotación: Oliverio Lara Borrero necesita continuar adecuando y dotando los espacios ya abiertos, Agustín Codazzi señala la sede Emayá como prioritaria, y Rodrigo Lara Bonilla reconoce \"grandes vacíos en dotación de material didáctico especializado\" pese a haber ampliado su cobertura.",
+      particularidades: "El Caguán aporta a este informe el relato más ilustrativo de todos los grupos analizados sobre las consecuencias concretas de la falta de infraestructura: una docente asignada inicialmente a prejardín y jardín en la sede principal tuvo que ser reasignada a otra sede sin el grado de transición y sin infraestructura adecuada, donde finalmente se adecuó \"un salón improvisado\" para atender a sus estudiantes. El Limonar, por su parte, es la única institución del grupo en describir con precisión técnica su modelo pedagógico de educación inicial —Aprendizaje Significativo con enfoque humanista, organizado en cuatro periodos académicos articulados por hilos conductores—, un nivel de formalización curricular no replicado por las demás instituciones."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 1",
+      enunciado: "¿Consideran que los currículos actuales que se desarrollan en las instituciones educativas son pertinentes con sus realidades territoriales (sociales, culturales, productivas)? ¿Por qué?",
+      tipo: "cualitativo",
+      comun: "Cinco de las seis instituciones del grupo (Oliverio Lara Borrero, Agustín Codazzi, El Limonar, Rodrigo Lara Bonilla y El Caguán) coinciden en describir su currículo como pertinente de manera parcial o en proceso de consolidación, mientras que San Luis Beltrán plantea la pregunta en términos distintos, condicionando la pertinencia curricular a una participación más activa y real de toda la comunidad educativa más que a un juicio directo sobre los contenidos. Como elemento compartido, tres instituciones fundamentan su pertinencia en proyectos culturales o identitarios propios y nombrados: el San Pedrito y el proyecto Palabrerío en Oliverio Lara Borrero, la experiencia etnoeducativa de la sede La Gabriela —con población indígena, en concordancia con el Decreto 804 de 1995— en El Caguán, y el proyecto Lectuvalores en El Limonar. El Caguán es, de las seis, la única institución que afirma sin matices que su currículo sí es pertinente con la realidad del territorio, respaldando esa afirmación con ejemplos concretos y nombrados de dos de sus sedes.",
+      particularidades: "El Caguán presenta la particularidad etnoeducativa más singular de todo el grupo, al describir cómo su sede La Gabriela, con población indígena, desarrolla procesos educativos que reconocen su identidad y sus saberes propios en concordancia con el Decreto 804 de 1995, una dimensión de pertinencia étnica no reportada por ninguna otra institución del grupo. Rodrigo Lara Bonilla, por su parte, es la única institución en fundamentar su pertinencia curricular en una oferta de especialización técnica nombrada y diferenciada —Turismo y Diseño Gráfico— articulada con la intensificación en inglés."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 2",
+      enunciado: "¿Qué acciones se han implementado para lograr currículos más pertinentes al territorio?",
+      tipo: "cualitativo",
+      comun: "Cinco de las seis instituciones del grupo (Oliverio Lara Borrero, Agustín Codazzi, El Limonar, Rodrigo Lara Bonilla y El Caguán) coinciden en reportar la revisión y actualización periódica de los planes de área y de estudio —generalmente durante la semana institucional de inicio de año— como la acción central para lograr currículos más pertinentes, mientras que San Luis Beltrán concentra sus acciones, en cambio, en el fortalecimiento de los espacios de participación de la comunidad como vía indirecta hacia la pertinencia curricular. Como segunda línea compartida por cuatro de las seis instituciones, el fortalecimiento de proyectos pedagógicos transversales e interdisciplinarios aparece de manera explícita en Oliverio Lara Borrero (Oliverio TV, Palabrerío, PILEO), Agustín Codazzi, El Limonar (proyectos transversales, Lectuvalores) y Rodrigo Lara Bonilla (liderazgo en sostenibilidad ambiental desde Ciencias Naturales).",
+      particularidades: "El Caguán es la única institución del grupo en fundamentar explícitamente una de sus acciones curriculares en el principio de la libertad de cátedra, señalando que \"en la práctica cotidiana y bajo la figura de la libertad de cátedra, cada docente adecua los contenidos y competencias a las necesidades del aula\", una autonomía docente individual formulada en estos términos por ninguna otra institución del grupo. Oliverio Lara Borrero, por su parte, es la única institución en vincular explícitamente su transformación curricular con un canal de comunicación audiovisual propio y nombrado (Oliverio TV) como estrategia pedagógica."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 3",
+      enunciado: "¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar estas acciones?",
+      tipo: "mixto",
+      totalIE: 6,
+      tally: [
+        {opcion: "Consejo Académico", count: 6},
+        {opcion: "Comisión de Evaluación y Promoción", count: 6},
+        {opcion: "Comités de área", count: 5},
+        {opcion: "Consejo Directivo", count: 5},
+        {opcion: "Consejo Estudiantil", count: 5},
+        {opcion: "Personero(a) Estudiantil", count: 5},
+        {opcion: "Equipo de Preescolar", count: 4},
+        {opcion: "Consejo de Padres de Familia", count: 4}
+      ],
+      comun: "El Consejo Académico y la Comisión de Evaluación y Promoción son los dos equipos de trabajo que las seis instituciones del grupo, sin excepción, reportan haber conformado para esta pregunta. Con una adopción del 83,3% (5 de 6 IE) se ubican los comités de área, el Consejo Directivo, el Consejo Estudiantil y el/la Personero(a) Estudiantil; y con una adopción del 66,7% (4 de 6 IE), el Equipo de Preescolar y el Consejo de Padres de Familia. Este patrón muestra una base reglamentaria muy sólida y ampliamente compartida por casi todo el grupo, con Rodrigo Lara Bonilla como la única excepción sistemática en la mayoría del catálogo.",
+      particularidades: "El Limonar presenta, con quince equipos reportados, la estructura más extensa y diferenciada del grupo, incluyendo un Equipo de Seguimiento a Egresados sin equivalente en ninguna otra institución. Rodrigo Lara Bonilla, en el extremo opuesto, es la institución con la selección más reducida del grupo —apenas cinco equipos—, sin reportar Consejo Directivo, comités de área, Consejo Estudiantil ni Personero(a) Estudiantil para esta pregunta, una discrepancia notable frente al resto del grupo."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 4",
+      enunciado: "¿Cómo se están articulando estos equipos de trabajo para lograr currículos más pertinentes territorialmente?",
+      tipo: "cualitativo",
+      comun: "Las seis instituciones del grupo coinciden en describir la articulación entre sus equipos de trabajo mediante reuniones periódicas, comités de área y el Consejo Académico como instancia orientadora central, apoyada en actas, circulares y agendas de planeación. Agustín Codazzi es la única institución del grupo en formular una autocrítica explícita sobre esta articulación, reconociendo que \"aún existe cierta fragmentación\" y que se requiere \"fortalecer una planeación común y mayor coordinación entre proyectos, áreas, comités y estamentos\", mientras que las demás instituciones describen sus mecanismos en términos más consolidados.",
+      particularidades: "El Caguán es la única institución del grupo en explicar que sus equipos de área se conforman \"teniendo en cuenta los perfiles y fortalezas de los maestros\", un criterio de conformación basado en talento individual docente no mencionado por ninguna otra institución. Oliverio Lara Borrero, por su parte, es la única institución en nombrar una Red de Aprendizaje (RIA) específica para preescolar y primaria como parte de su estructura de articulación curricular."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 5",
+      enunciado: "¿Qué mecanismos de seguimiento se están implementando para que dichas acciones se cumplan?",
+      tipo: "mixto",
+      totalIE: 6,
+      tally: [
+        {opcion: "Consejo Académico", count: 6},
+        {opcion: "Comités de área o núcleos de formación", count: 6},
+        {opcion: "Análisis de resultados de Pruebas Saber e ICFES", count: 5},
+        {opcion: "Autoevaluación institucional anual", count: 5},
+        {opcion: "Articulación con el PEI", count: 4},
+        {opcion: "Actas de reunión de área", count: 4},
+        {opcion: "Reportes al MEN / Planes de Mejoramiento Institucional", count: 4}
+      ],
+      comun: "El Consejo Académico y los comités de área son los dos mecanismos de seguimiento que las seis instituciones del grupo, sin excepción, reportan haber implementado. Con una adopción del 83,3% (5 de 6 IE) se ubican el análisis de resultados de Pruebas Saber e ICFES y la autoevaluación institucional anual; y con una adopción del 66,7% (4 de 6 IE), la articulación con el PEI, las actas de reunión de área y los reportes al MEN mediante el PMI. Este patrón confirma un núcleo de seguimiento razonablemente homogéneo en el grupo, con Rodrigo Lara Bonilla como la institución que reporta el catálogo más reducido.",
+      particularidades: "El Limonar presenta, con catorce mecanismos reportados, el catálogo de seguimiento más extenso del grupo, siendo la única institución en incluir la evaluación por matriz DOFA como herramienta formal. San Luis Beltrán, por su parte, es la única institución del grupo en reportar los propios Foros Educativos Municipales como mecanismo adicional de seguimiento curricular, vinculando explícitamente el ejercicio del FEM con su seguimiento institucional interno."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Pregunta 1",
+      enunciado: "¿Consideran que la toma de decisiones en las instituciones educativas actualmente es participativa y democrática? ¿Por qué?",
+      tipo: "cualitativo",
+      comun: "Las seis instituciones del grupo coinciden en reconocer la existencia de estructuras formales de gobierno escolar democrático. Cuatro de ellas —Oliverio Lara Borrero, Agustín Codazzi, Rodrigo Lara Bonilla y San Luis Beltrán— matizan esa existencia formal señalando una brecha explícita entre los mecanismos disponibles y su incidencia real: Oliverio Lara Borrero observa que \"frecuentemente las decisiones se comunican cuando ya han sido tomadas, reduciendo el margen para la concertación\"; Rodrigo Lara Bonilla reconoce \"notable apatía y ausencia de compromiso en la asistencia a los estamentos institucionales\"; y San Luis Beltrán reporta una \"percepción dividida entre las mesas de trabajo\", con la mayoría concluyendo que la participación sigue siendo \"limitada e incompleta\". El Limonar y El Caguán, en cambio, describen su ejercicio democrático en términos más consolidados y sin una autocrítica equivalente, aunque ambas reconocen aspectos puntuales por fortalecer, como la comunicación institucional oficial señalada por El Caguán.",
+      particularidades: "San Luis Beltrán es la única institución del grupo en documentar explícitamente una \"percepción dividida entre las mesas de trabajo\" sobre esta misma pregunta, evidenciando que el desacuerdo sobre el estado de la democracia escolar no se da solo entre instituciones sino también al interior de una misma comunidad educativa. Oliverio Lara Borrero, por su parte, es la única institución en formular de manera explícita la distinción conceptual entre \"escuchar\" y \"tener capacidad de incidir y decidir\" como el núcleo del reto democrático pendiente."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Pregunta 2",
+      enunciado: "¿Qué acciones se están implementando para canalizar y fortalecer la participación de la comunidad educativa?",
+      tipo: "cualitativo",
+      comun: "Cinco de las seis instituciones del grupo (Oliverio Lara Borrero, Agustín Codazzi, Rodrigo Lara Bonilla, El Caguán y San Luis Beltrán) coinciden en reportar el fortalecimiento del Gobierno Escolar y de sus procesos electorales como acción central para canalizar la participación, mientras que El Limonar concentra sus acciones, en cambio, en la Escuela de Padres y en un conjunto notable de convenios interinstitucionales externos (UIS, San Jorge, Comfamiliar, Alive, Banco de la República, SENA). Como segunda línea compartida por cuatro de las seis instituciones (Agustín Codazzi, El Limonar, El Caguán y San Luis Beltrán), el diálogo directo con las familias mediante la Escuela de Padres y los espacios de entrega de informes académicos aparece como estrategia concreta de vinculación familiar.",
+      particularidades: "El Limonar presenta la particularidad más singular del grupo en esta pregunta, al fundamentar su fortalecimiento de la participación en una red de alianzas interinstitucionales excepcionalmente amplia y diversa —que incluye una universidad (UIS), una entidad de salud (San Jorge), una caja de compensación (Comfamiliar), el Banco de la República y el SENA—, un nivel de articulación externa nombrada muy superior al de cualquier otra institución del grupo. Oliverio Lara Borrero, por su parte, es la única institución en proyectar la creación de una \"escuela de liderazgo\" propia como estrategia futura para el fortalecimiento de habilidades democráticas estudiantiles."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Equipos de trabajo",
+      enunciado: "¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar las estrategias y mecanismos de participación escolar?",
+      tipo: "mixto",
+      totalIE: 6,
+      tally: [
+        {opcion: "Consejo de Padres de Familia", count: 6},
+        {opcion: "Comisión de Evaluación y Promoción", count: 6},
+        {opcion: "Gobierno Escolar", count: 5},
+        {opcion: "Consejo Directivo", count: 5},
+        {opcion: "Consejo Académico", count: 5},
+        {opcion: "Personero(a) Estudiantil", count: 5},
+        {opcion: "Contralor(a) Estudiantil", count: 5},
+        {opcion: "Comité Escolar de Convivencia", count: 5}
+      ],
+      comun: "El Consejo de Padres de Familia y la Comisión de Evaluación y Promoción son los dos equipos que las seis instituciones del grupo, sin excepción, reportan haber conformado para las estrategias de participación escolar. Con una adopción del 83,3% (5 de 6 IE) se ubican el Gobierno Escolar en su conjunto, el Consejo Directivo, el Consejo Académico, el/la Personero(a) y Contralor(a) Estudiantil, y el Comité Escolar de Convivencia. Este patrón muestra una estructura de gobierno escolar homogénea entre cinco de las seis instituciones, con El Caguán como la única excepción marcada del grupo.",
+      particularidades: "El Caguán constituye, con notable diferencia, la particularidad más marcada del grupo en esta pregunta: es la única institución que selecciona apenas dos equipos del catálogo reglamentario, complementando con dos opciones \"Otro\" que ni siquiera especifica, pese a que el texto cualitativo de su propio informe describe una estructura de participación considerablemente más rica y articulada —incluyendo comités de proyectos transversales y Escuela de Padres— que no llegó a reflejarse en las casillas seleccionadas, una inconsistencia entre la narrativa y el catálogo marcado que no se observa en las demás instituciones del grupo."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Mecanismos de seguimiento",
+      enunciado: "¿Qué mecanismos de seguimiento se están implementando para garantizar las acciones encaminadas a promover gobiernos educativos democráticos?",
+      tipo: "mixto",
+      totalIE: 6,
+      tally: [
+        {opcion: "Reuniones periódicas con entes de gobierno escolar", count: 6},
+        {opcion: "Elecciones estudiantiles", count: 5},
+        {opcion: "Elección de docentes para consejo directivo", count: 5},
+        {opcion: "Autoevaluación institucional anual (Guía 34 – MEN)", count: 5},
+        {opcion: "Plan de Mejoramiento Institucional (PMI)", count: 5},
+        {opcion: "Actualización y ajuste permanente del PEI", count: 5},
+        {opcion: "Elección de docentes para consejo académico", count: 4}
+      ],
+      comun: "Las reuniones periódicas con los distintos entes de gobierno escolar constituyen el único mecanismo de seguimiento que las seis instituciones del grupo, sin excepción, reportan haber implementado. Con una adopción del 83,3% (5 de 6 IE) se ubican las elecciones estudiantiles, la elección de docentes para el consejo directivo, la autoevaluación institucional anual, el Plan de Mejoramiento Institucional y la actualización permanente del PEI. Este patrón confirma, en paralelo con la pregunta análoga de equipos de trabajo, que El Caguán es sistemáticamente la institución que más se aparta del comportamiento homogéneo del resto del grupo.",
+      particularidades: "El Caguán presenta, de nuevo, el catálogo más reducido y menos formalizado del grupo, describiendo en cambio en su respuesta cualitativa un conjunto rico de mecanismos propios —Personería, Contraloría, Consejo Estudiantil, Consejo Directivo y Académico, acompañamiento directo de la Secretaría de Educación mediante mesas de concertación, y \"mecanismos de control ciudadano directo\" ejercidos por padres y estudiantes mediante asambleas y pronunciamientos públicos—, una descripción de veeduría comunitaria activa sin equivalente en ninguna otra institución del grupo, aunque no reflejada en el catálogo estándar de casillas marcadas. El Limonar, por su parte, es la única institución en reportar el seguimiento al componente de Cultura Institucional y Clima Escolar como mecanismo explícito."
+    }
+  ],
+  conclusiones: "El análisis conjunto de las tres sesiones de trabajo del Grupo 6 permite concluir que las seis instituciones educativas (Oliverio Lara Borrero, Agustín Codazzi, El Limonar, Rodrigo Lara Bonilla, El Caguán y San Luis Beltrán) comparten una trayectoria de fortalecimiento de proyectos pedagógicos contextualizados y una estructura de gobierno escolar razonablemente homogénea, sustentada de manera universal en el Consejo de Padres de Familia, la Comisión de Evaluación y Promoción y las reuniones periódicas con los entes de gobierno escolar, junto con retos comunes en materia de infraestructura, dotación y participación real de las familias más allá de la existencia formal de espacios democráticos. Tres hallazgos particulares merecen atención específica de la Secretaría de Educación Municipal: la inestabilidad de la rectoría reportada por El Caguán como factor que ha afectado la continuidad de sus procesos institucionales, incluyendo el manejo de recursos y el seguimiento de acciones; la experiencia relatada por la misma institución de una docente de primera infancia reasignada por falta de infraestructura hasta terminar atendiendo a sus estudiantes en un \"salón improvisado\"; y el caso de San Luis Beltrán, donde el esfuerzo por abrir prejardín y jardín no logró sostenerse por falta de matrícula suficiente, en parte por la competencia de los hogares de bienestar familiar. En cuanto a la valoración general del Foro, de las seis instituciones del grupo, El Limonar y Rodrigo Lara Bonilla registraron formalmente su valoración de la jornada, ambas con 4,8 sobre 5,0; las cuatro instituciones restantes (Oliverio Lara Borrero, Agustín Codazzi, El Caguán y San Luis Beltrán) aún no habían registrado su valoración a la fecha de consolidación de este informe. Se recomienda a la Secretaría de Educación gestionar el diligenciamiento pendiente de este instrumento con las cuatro instituciones señaladas, y dar seguimiento prioritario a la situación de gobernanza institucional reportada por El Caguán.",
+  proyectoNombre: "[Nombre de quien consolida el Informe Consolidado]",
+  proyectoCargo: "[Cargo]",
+  fechaRealizacion: "7 de septiembre de 2026"
+};
+
+/*
+ * Genera (o reescribe, si ya existe) el Informe de Síntesis Grupal del
+ * Grupo 6, dejándolo en la raíz de la carpeta "Grupo G6" (mismo
+ * criterio de idempotencia que el resto de documentos de grupo).
+ *
+ * Uso: desde el editor de Apps Script, seleccionar esta función y
+ * presionar "Ejecutar". El enlace del documento queda en "Ver
+ * registros de ejecución".
+ */
+function generarInformeSintesisGrupo6FEM(){
+  const carpetas=crearEstructuraCarpetasGrupoFEM_("G6");
+  const nombreDoc="Informe de Síntesis - Grupo G6 FEM 2026";
+  const existentesIt=carpetas.grupoFolder.getFilesByName(nombreDoc);
+  const archivoExistente=existentesIt.hasNext() ? existentesIt.next() : null;
+  while(existentesIt.hasNext()) existentesIt.next().setTrashed(true);
+
+  const archivoDoc=generarInformeSintesisGrupoFEM_(DATOS_SINTESIS_GRUPO_6_FEM_, archivoExistente?archivoExistente.getId():null);
+  if(!archivoExistente){
+    carpetas.grupoFolder.addFile(archivoDoc);
+    try{ DriveApp.getRootFolder().removeFile(archivoDoc); }catch(e){}
+  }
+
+  Logger.log("========================================");
+  Logger.log("INFORME DE SÍNTESIS — GRUPO 6 — RESULTADO");
+  Logger.log("Documento: "+archivoDoc.getUrl());
+  Logger.log("========================================");
+
+  return archivoDoc.getUrl();
+}
