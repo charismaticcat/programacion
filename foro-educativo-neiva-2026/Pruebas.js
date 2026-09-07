@@ -6861,3 +6861,203 @@ function generarInformeSintesisGrupo4FEM(){
 
   return archivoDoc.getUrl();
 }
+
+/*
+ * INFORME DE SÍNTESIS GRUPAL — GRUPO 5.
+ *
+ * Mismo criterio que los grupos anteriores: prosa redactada a mano
+ * leyendo directamente el Doc editable ya generado de cada IE del
+ * grupo, y tallas de las 4 preguntas mixtas contadas a mano sobre las
+ * opciones realmente seleccionadas.
+ *
+ * Las 6 IE del catálogo (Santa Teresa, Escuela Normal Superior,
+ * Instituto Técnico IPC Andrés Rosa, Juan de Cabrera, Jairo Morera
+ * Lizcano, San Antonio de Anaconia) SÍ habían remitido su Informe
+ * Ejecutivo a la fecha de redacción (7 de septiembre de 2026), por lo
+ * que el denominador de las 4 preguntas mixtas es 6.
+ *
+ * De esas 6 IE, la Escuela Normal Superior (5.0/5) y el Instituto
+ * Técnico IPC Andrés Rosa (4.8/5) habían registrado su Valoración del
+ * Foro a la fecha de redacción.
+ */
+const DATOS_SINTESIS_GRUPO_5_FEM_ = {
+  grupo: "G5",
+  tituloInforme: "Informe de Síntesis Grupal — Elementos Comunes y Particularidades Institucionales",
+  instituciones: [
+    "SANTA TERESA",
+    "ESCUELA NORMAL SUPERIOR",
+    "INSTITUTO TECNICO IPC ANDRES ROSA",
+    "JUAN DE CABRERA",
+    "JAIRO MORERA LIZCANO",
+    "SAN ANTONIO DE ANACONIA"
+  ],
+  responsableInforme: "[Nombre de quien consolida el informe de síntesis del Grupo 5 — SEM Neiva]",
+  fechaPresentacion: "7 de septiembre de 2026",
+  secciones: [
+    {
+      sesion: "SESIÓN 1",
+      pregunta: "Pregunta orientadora",
+      enunciado: "¿Cómo hemos avanzado, desde nuestra institución educativa, en el logro de los retos y propósitos planteados en el FEM2025?",
+      tipo: "cualitativo",
+      comun: "Las seis instituciones del Grupo 5 (Santa Teresa, Escuela Normal Superior, Instituto Técnico IPC Andrés Rosa, Juan de Cabrera, Jairo Morera Lizcano y San Antonio de Anaconia) coinciden en reportar avances sostenidos en la contextualización curricular mediante proyectos pedagógicos propios y transversales: el macroproyecto \"Amémonos y Creceremos\" y las estrategias Líder en Mí y Mentes PRO en Santa Teresa, los Proyectos Pedagógicos de Aula (PPA) en la Escuela Normal Superior, las áreas integradas y los centros de interés en el Instituto Técnico IPC Andrés Rosa, la reestructuración curricular hacia el modelo constructivista en Juan de Cabrera, el PRAE y la feria de emprendimiento en Jairo Morera Lizcano, y la implementación progresiva de la educación inicial en San Antonio de Anaconia. De manera igualmente compartida, cuatro de las seis instituciones (Escuela Normal Superior, Instituto Técnico IPC Andrés Rosa, Juan de Cabrera y Jairo Morera Lizcano) identifican limitaciones de infraestructura, conectividad y personal de apoyo especializado como el obstáculo estructural más persistente para consolidar estos avances, particularmente agudo en las sedes rurales de la Escuela Normal Superior y en la sede Guillermo Liévano de Jairo Morera Lizcano.",
+      particularidades: "Jairo Morera Lizcano presenta la particularidad más crítica del grupo en esta pregunta, al describir un deterioro tecnológico explícito —laboratorios inexistentes, tablets obsoletas y conectividad nula en una de sus sedes— que frena directamente la innovación pedagógica pese al esfuerzo docente, y al reconocer que el Programa de Alimentación Escolar opera de forma parcial por carecer de ración para la jornada única y de transporte escolar. San Antonio de Anaconia, por su parte, es la única institución en sustentar sus avances con testimonios directos y nombrados de la comunidad educativa —como el de la madre comunitaria Neyla Olaya—, evidenciando la transformación de la atención a la primera infancia desde la perspectiva de sus propias beneficiarias."
+    },
+    {
+      sesion: "SESIÓN 1",
+      pregunta: "Pregunta 2",
+      enunciado: "¿Cómo hemos avanzado, desde nuestra institución educativa, en la implementación de los nuevos grados del nivel de preescolar (jardín, prejardín)?",
+      tipo: "cualitativo",
+      comun: "Cinco de las seis instituciones del grupo (Santa Teresa, Escuela Normal Superior, Instituto Técnico IPC Andrés Rosa, Jairo Morera Lizcano y San Antonio de Anaconia) ya tienen en funcionamiento el grado jardín, con distintos niveles de consolidación del prejardín, mientras que Juan de Cabrera es la única institución del grupo que reconoce no haber logrado la implementación efectiva de ninguno de los dos grados pese a haber realizado la oferta correspondiente, atribuyendo esta situación a que las familias prefieren mantener a los niños en hogares infantiles o programas de bienestar familiar, lo que impide alcanzar el cupo mínimo requerido. Entre las instituciones que sí operan el nivel, existe una coincidencia notable en que la infraestructura, la dotación y el personal formado siguen siendo insuficientes: Santa Teresa señala la necesidad de fortalecer infraestructura, dotación y formación docente; la Escuela Normal Superior reconoce condiciones diferenciadas entre sedes, con aulas multigrado y personal inestable en las sedes rurales; y Jairo Morera Lizcano denuncia el incumplimiento del gobierno en el envío de materiales pedagógicos y riesgos estructurales críticos, como accesos exclusivamente por escaleras que comprometen la seguridad de los niños más pequeños.",
+      particularidades: "El Instituto Técnico IPC Andrés Rosa aporta el hallazgo demográfico más singular del grupo en esta pregunta, al identificar una disminución en la tasa de natalidad del sector como factor que ha reducido la matrícula y la conformación de grupos de preescolar, una dinámica poblacional —y no de infraestructura o de política institucional— que ninguna otra institución del grupo reporta como causa de estancamiento. Jairo Morera Lizcano, por su parte, es la única institución en documentar un riesgo de seguridad física concreto y crítico —accesos limitados exclusivamente por escaleras en el aula de primera infancia— derivado de la falta de adecuación de espacios."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 1",
+      enunciado: "¿Consideran que los currículos actuales que se desarrollan en las instituciones educativas son pertinentes con sus realidades territoriales (sociales, culturales, productivas)? ¿Por qué?",
+      tipo: "cualitativo",
+      comun: "El Grupo 5 presenta la valoración más dividida observada hasta ahora sobre la pertinencia curricular: Santa Teresa, el Instituto Técnico IPC Andrés Rosa y Juan de Cabrera afirman explícitamente que sus currículos sí son pertinentes con las realidades territoriales, la Escuela Normal Superior y San Antonio de Anaconia describen avances importantes que aún requieren consolidación, y Jairo Morera Lizcano llega a la conclusión opuesta, afirmando sin matices que \"el currículo no es pertinente con la realidad territorial\". Pese a esta divergencia de conclusión, las seis instituciones coinciden en identificar la misma tensión de fondo: la presión de los referentes curriculares y las pruebas estandarizadas nacionales frente a las particularidades sociales, culturales y productivas locales. San Antonio de Anaconia advierte sobre \"una concepción curricular homogénea, en la que se espera que todos los estudiantes desarrollen contenidos y aprendizajes similares, independientemente de su contexto\"; Jairo Morera Lizcano denuncia que \"el sistema tiende a medir a los estudiantes como cifras e indicadores, ignorando sus contextos\"; y el Instituto Técnico IPC Andrés Rosa reconoce la necesidad de \"superar progresivamente una planeación rígida\".",
+      particularidades: "Jairo Morera Lizcano constituye el hallazgo más contundente del grupo en esta pregunta al ser la única institución, entre todos los grupos analizados hasta ahora, en concluir de manera explícita y sin matices que su currículo no es pertinente con la realidad territorial, atribuyendo la sostenibilidad de la enseñanza contextualizada casi enteramente a la vocación individual del cuerpo docente más que a una política institucional o estatal. La Escuela Normal Superior, por su parte, es la única institución del grupo en fundamentar su pertinencia curricular en la atención simultánea a una diversidad poblacional excepcionalmente amplia —sedes rurales, contextos urbanos vulnerables, comunidad sorda y oyente, y el Programa de Formación Complementaria— dentro de una misma institución."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 2",
+      enunciado: "¿Qué acciones se han implementado para lograr currículos más pertinentes al territorio?",
+      tipo: "cualitativo",
+      comun: "Las seis instituciones del grupo coinciden en reportar el fortalecimiento de proyectos pedagógicos contextualizados como la acción central para lograr currículos más pertinentes, bajo denominaciones propias en cada caso: los macroproyectos y estrategias de Santa Teresa (Amémonos y Creceremos, Líder en Mí, Guardianes de la Naturaleza), los Proyectos Pedagógicos de Aula de la Escuela Normal Superior, los centros de interés del Instituto Técnico IPC Andrés Rosa, la transversalización de proyectos (PRAE, educación vial, emprendimiento) en Juan de Cabrera, el PRAE y los proyectos culturales de Jairo Morera Lizcano, y la formación integral mediante centros de interés de San Antonio de Anaconia. Como segunda línea compartida por cuatro de las seis instituciones, el diagnóstico o la caracterización sistemática del contexto y de la población estudiantil —explícitos en la Escuela Normal Superior, el Instituto Técnico IPC Andrés Rosa, Juan de Cabrera y Jairo Morera Lizcano— aparece como el punto de partida metodológico que orienta los ajustes curriculares posteriores.",
+      particularidades: "La Escuela Normal Superior es la única institución del grupo en reportar un espacio de socialización interinstitucional propio y nombrado —el \"Foro Escuela de Vida\"— que le permite comparar y compartir experiencias curriculares entre sus distintas sedes, una estrategia de intercambio horizontal sin equivalente en las demás instituciones. San Antonio de Anaconia, por su parte, es la única institución en enfatizar de manera explícita la interdisciplinariedad como principio articulador transversal de todas sus acciones curriculares."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 3",
+      enunciado: "¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar estas acciones?",
+      tipo: "mixto",
+      totalIE: 6,
+      tally: [
+        {opcion: "Consejo Académico", count: 6},
+        {opcion: "Comités de área", count: 6},
+        {opcion: "Consejo Directivo", count: 5},
+        {opcion: "Equipo de Preescolar", count: 5},
+        {opcion: "Consejo Estudiantil", count: 4},
+        {opcion: "Personero(a) Estudiantil", count: 4}
+      ],
+      comun: "El Consejo Académico y los comités de área son los dos equipos de trabajo que las seis instituciones del grupo, sin excepción, reportan haber conformado para esta pregunta. Con una adopción del 83,3% (5 de 6 IE) se ubican el Consejo Directivo y el Equipo de Preescolar; y con una adopción del 66,7% (4 de 6 IE), el Consejo Estudiantil y el/la Personero(a) Estudiantil. Este patrón muestra una base reglamentaria sólida y ampliamente compartida, sobre la cual algunas instituciones del grupo —notablemente el Instituto Técnico IPC Andrés Rosa— construyen estructuras adicionales considerablemente más extensas y especializadas.",
+      particularidades: "El Instituto Técnico IPC Andrés Rosa presenta, con amplio margen, la estructura de equipos más extensa y diversificada de todo el grupo, reportando cerca de veinte equipos distintos —incluyendo una Mesa de Diálogo Currículo-Comunidad, un Comité Curricular Institucional, un Equipo de Sistematización de la Información y un Equipo del Proyecto Ambientes de Aprendizaje Colaborativos con la Universidad Surcolombiana—, una complejidad organizativa muy superior a la de cualquier otra institución analizada hasta ahora en todos los grupos. Jairo Morera Lizcano, en el extremo opuesto, es la institución con la selección más reducida del grupo, con apenas dos equipos del catálogo estándar (Consejo Académico y comités de área) complementados por referencias a la articulación con el SENA y a un comité de seguimiento a la inclusión."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 4",
+      enunciado: "¿Cómo se están articulando estos equipos de trabajo para lograr currículos más pertinentes territorialmente?",
+      tipo: "cualitativo",
+      comun: "Las seis instituciones del grupo coinciden en que la articulación entre equipos de trabajo se canaliza mediante reuniones periódicas, comités de área y jornadas de planeación institucional, en las que se comparten diagnósticos y se construyen propuestas curriculares de manera colaborativa. Tres de las seis instituciones —Santa Teresa, la Escuela Normal Superior y Jairo Morera Lizcano— matizan esta descripción reconociendo limitaciones concretas: Santa Teresa admite que \"algunas articulaciones son ocasionales\"; la Escuela Normal Superior señala que \"persisten dificultades de tiempo, espacios y coordinación\"; y Jairo Morera Lizcano advierte que \"faltan espacios, tiempos e itinerarios institucionales permanentes para la comunicación, socialización e integración efectiva entre estamentos\". El Instituto Técnico IPC Andrés Rosa, Juan de Cabrera y San Antonio de Anaconia, en cambio, describen sus mecanismos de articulación en términos más consolidados, sin formular una autocrítica equivalente.",
+      particularidades: "Santa Teresa es la única institución del grupo en vincular explícitamente la articulación curricular con la participación estudiantil en espacios externos de liderazgo y voluntariado como aporte de \"una mirada territorial y comunitaria\" al proceso, una fuente de insumos curriculares desde fuera del cuerpo docente no reportada por las demás instituciones. Jairo Morera Lizcano, por su parte, es la única institución en nombrar explícitamente sus proyectos transversales de articulación (PRAE, Eduderechos) como vehículos concretos alineados con el Plan de Mejoramiento Institucional."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 5",
+      enunciado: "¿Qué mecanismos de seguimiento se están implementando para que dichas acciones se cumplan?",
+      tipo: "mixto",
+      totalIE: 6,
+      tally: [
+        {opcion: "Análisis de resultados de Pruebas Saber e ICFES", count: 6},
+        {opcion: "Autoevaluación institucional anual", count: 6},
+        {opcion: "Actas de reunión de área", count: 6},
+        {opcion: "Consejo Académico", count: 5},
+        {opcion: "Comités de área o núcleos de formación", count: 4},
+        {opcion: "Reportes al MEN / Planes de Mejoramiento Institucional", count: 4},
+        {opcion: "Comparación histórica de resultados internos y externos", count: 4},
+        {opcion: "Plataformas de gestión académica (JIGRA)", count: 4}
+      ],
+      comun: "El análisis de resultados de Pruebas Saber e ICFES, la autoevaluación institucional anual y las actas de reunión de área son los tres mecanismos de seguimiento que las seis instituciones del grupo, sin excepción, reportan haber implementado. Con una adopción del 83,3% (5 de 6 IE) se ubica el Consejo Académico; y con una adopción del 66,7% (4 de 6 IE), los comités de área, los reportes al MEN mediante el PMI, la comparación histórica de resultados y las plataformas de gestión académica JIGRA. Este patrón confirma a las pruebas estandarizadas y a la autoevaluación anual como el núcleo verdaderamente universal del seguimiento curricular en el Grupo 5, sobre el cual cada institución agrega herramientas propias de complejidad muy desigual.",
+      particularidades: "El Instituto Técnico IPC Andrés Rosa presenta, con diecinueve mecanismos reportados, el catálogo de seguimiento más extenso de todos los grupos analizados hasta ahora, siendo la única institución en incluir de manera simultánea una auditoría curricular inicial frente a los DBA, una evaluación por matriz DOFA y mesas de calidad educativa territoriales. Jairo Morera Lizcano, en el extremo opuesto, presenta el catálogo más reducido del grupo con apenas cuatro mecanismos, sin reportar Consejo Académico ni comités de área pese a haberlos incluido como equipos de trabajo en la pregunta anterior, una inconsistencia entre la estructura declarada y su seguimiento efectivo que no se observa en las demás instituciones."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Pregunta 1",
+      enunciado: "¿Consideran que la toma de decisiones en las instituciones educativas actualmente es participativa y democrática? ¿Por qué?",
+      tipo: "cualitativo",
+      comun: "Las seis instituciones del grupo coinciden en reconocer la existencia de una estructura formal de gobierno escolar democrático —Consejo Directivo, Consejo Académico, Consejo Estudiantil, Consejo de Padres— y las seis matizan esa existencia formal señalando límites a su incidencia real. Cuatro de las seis instituciones (Santa Teresa, Instituto Técnico IPC Andrés Rosa, Juan de Cabrera y Jairo Morera Lizcano) coinciden, además, en identificar una percepción de centralización de las decisiones en los equipos directivos o de gestión: Santa Teresa reconoce que las decisiones administrativas \"pueden concentrarse en los equipos directivos\"; Juan de Cabrera señala que \"algunas decisiones se toman de manera impositiva por parte de directivos docentes o del equipo de gestión\"; y Jairo Morera Lizcano concluye que \"predomina la autoridad directiva o de un grupo reducido, relegando la incidencia real del resto de la comunidad\". San Antonio de Anaconia, por su parte, plantea el reto en términos ligeramente distintos, centrando su preocupación no en quién decide sino en que las decisiones democráticas se vuelvan visibles y tangibles para la comunidad, más allá del papel y las reuniones a puerta cerrada.",
+      particularidades: "La Escuela Normal Superior introduce la reflexión conceptual más elaborada del grupo sobre la naturaleza de la democracia escolar, entendiéndola explícitamente no solo como \"votación o delegación\" sino como \"posibilidad de deliberar, expresar perspectivas, construir acuerdos y participar en asuntos institucionales\", y es la única institución en señalar de manera específica el débil acompañamiento institucional a las figuras de personero y contralor estudiantil. San Antonio de Anaconia, por su parte, es la única institución del grupo en formular el reto de la participación democrática en términos de visibilidad pública de sus resultados, más que de ampliación de los espacios formales existentes."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Pregunta 2",
+      enunciado: "¿Qué acciones se están implementando para canalizar y fortalecer la participación de la comunidad educativa?",
+      tipo: "cualitativo",
+      comun: "Cinco de las seis instituciones del grupo (Santa Teresa, Escuela Normal Superior, Instituto Técnico IPC Andrés Rosa, Juan de Cabrera y Jairo Morera Lizcano) coinciden en reportar el fortalecimiento del Gobierno Escolar y de la Escuela de Padres como acción central para canalizar la participación de la comunidad educativa, mientras que San Antonio de Anaconia concentra sus acciones en herramientas de transparencia y co-construcción más innovadoras. Dos instituciones del grupo —Santa Teresa y Jairo Morera Lizcano— se distinguen además por vincular su fortalecimiento de la participación con alianzas interinstitucionales externas de carácter gubernamental y social: Santa Teresa articula a sus estudiantes con el Concejo Municipal, la Asamblea Departamental, la Secretaría de Movilidad y la organización juvenil COSUR; y Jairo Morera Lizcano establece alianzas con Ciudad Limpia, el Ejército, el ICBF, la Personería, el Inder Neiva y la Contraloría.",
+      particularidades: "San Antonio de Anaconia presenta, con diferencia, las acciones más innovadoras y específicamente democráticas de todo el grupo: mesas comunitarias de co-creación del PEI, jornadas de rendición pública de cuentas pedagógicas, murales y boletines informativos comunitarios, y presupuestos participativos escolares, un conjunto de herramientas de transparencia y participación directa sin equivalente en ninguna otra institución analizada hasta ahora en ningún grupo. La Escuela Normal Superior, por su parte, es la única institución en fundamentar su estrategia de participación en los Proyectos Pedagógicos de Aula como mecanismo que vincula a estudiantes y familias como actores que \"investigan, aportan, validan y transforman\", en lugar de instancias tradicionales de representación."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Equipos de trabajo",
+      enunciado: "¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar las estrategias y mecanismos de participación escolar?",
+      tipo: "mixto",
+      totalIE: 6,
+      tally: [
+        {opcion: "Gobierno Escolar", count: 6},
+        {opcion: "Consejo Directivo", count: 6},
+        {opcion: "Consejo Académico", count: 6},
+        {opcion: "Consejo Estudiantil", count: 6},
+        {opcion: "Comité Escolar de Convivencia", count: 6},
+        {opcion: "Personero(a) Estudiantil", count: 5},
+        {opcion: "Consejo de Padres de Familia", count: 4},
+        {opcion: "Contralor(a) Estudiantil", count: 4},
+        {opcion: "Comisión de Evaluación y Promoción", count: 4}
+      ],
+      comun: "El Grupo 5 presenta el nivel de consenso más alto observado en esta pregunta entre todos los grupos analizados: el Gobierno Escolar en su conjunto, el Consejo Directivo, el Consejo Académico, el Consejo Estudiantil y el Comité Escolar de Convivencia son adoptados por las seis instituciones, sin excepción. Con una adopción del 83,3% (5 de 6 IE) se ubica el/la Personero(a) Estudiantil; y con una adopción del 66,7% (4 de 6 IE), el Consejo de Padres de Familia, el/la Contralor(a) Estudiantil y la Comisión de Evaluación y Promoción. Este patrón confirma al Grupo 5 como el de estructura de gobierno escolar más homogénea de todos los grupos analizados hasta el momento.",
+      particularidades: "El Instituto Técnico IPC Andrés Rosa vuelve a presentar, como en la pregunta análoga de la Sesión 2, la estructura de equipos más extensa del grupo, complementando el catálogo reglamentario con seis opciones \"Otro\" adicionales, entre ellas una Mesa de Diálogo Currículo-Comunidad y un Comité Curricular Institucional. Jairo Morera Lizcano, en el extremo opuesto, es la única institución del grupo que no reporta ni Personero(a) ni Contralor(a) Estudiantil entre sus equipos de participación, apoyándose en cambio en el acompañamiento de orientación escolar y en un proyecto de democracia propio."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Mecanismos de seguimiento",
+      enunciado: "¿Qué mecanismos de seguimiento se están implementando para garantizar las acciones encaminadas a promover gobiernos educativos democráticos?",
+      tipo: "mixto",
+      totalIE: 6,
+      tally: [
+        {opcion: "Autoevaluación institucional anual (Guía 34 – MEN)", count: 6},
+        {opcion: "Reuniones periódicas con entes de gobierno escolar", count: 5},
+        {opcion: "Elecciones estudiantiles", count: 5},
+        {opcion: "Elección de docentes para consejo directivo", count: 4},
+        {opcion: "Elección de docentes para consejo académico", count: 4},
+        {opcion: "Plan de Mejoramiento Institucional (PMI)", count: 4},
+        {opcion: "Actualización y ajuste permanente del PEI", count: 4},
+        {opcion: "Valoración por instancias del Gobierno Escolar", count: 4}
+      ],
+      comun: "La autoevaluación institucional anual es el único mecanismo de seguimiento que las seis instituciones del grupo, sin excepción, reportan haber implementado para garantizar los gobiernos educativos democráticos. Con una adopción del 83,3% (5 de 6 IE) se ubican las reuniones periódicas con entes de gobierno escolar y las elecciones estudiantiles; y con una adopción del 66,7% (4 de 6 IE), la elección de docentes para los consejos directivo y académico, el Plan de Mejoramiento Institucional, la actualización del PEI y la valoración por instancias del Gobierno Escolar. Este patrón muestra un núcleo de seguimiento razonablemente homogéneo, aunque con más variación que la observada en la pregunta análoga de equipos de trabajo.",
+      particularidades: "Santa Teresa y Jairo Morera Lizcano son las dos instituciones del grupo que más se apartan del catálogo estándar de mecanismos, complementando su selección reducida con descripciones propias extensas en la opción \"Otro\": Santa Teresa detalla actas de reuniones, cronogramas, planes de acción, registros de participación y una estrategia nombrada de \"Gobierno Alterno\" sin equivalente en ninguna otra institución del grupo; y Jairo Morera Lizcano vincula su seguimiento con un \"Proyecto de Eduderechos\" propio. El Instituto Técnico IPC Andrés Rosa y San Antonio de Anaconia, por su parte, son las únicas instituciones en reportar el seguimiento al componente de Cultura Institucional y Clima Escolar como mecanismo explícito."
+    }
+  ],
+  conclusiones: "El análisis conjunto de las tres sesiones de trabajo del Grupo 5 permite concluir que las seis instituciones educativas (Santa Teresa, Escuela Normal Superior, Instituto Técnico IPC Andrés Rosa, Juan de Cabrera, Jairo Morera Lizcano y San Antonio de Anaconia) comparten una trayectoria de fortalecimiento de proyectos pedagógicos contextualizados y una estructura de gobierno escolar particularmente homogénea y consolidada —con el Gobierno Escolar, sus tres consejos principales y el Comité Escolar de Convivencia adoptados por la totalidad del grupo—, junto con una tensión de fondo, compartida por las seis instituciones aunque resuelta de manera distinta en cada una, entre los referentes curriculares nacionales y las particularidades sociales, culturales y productivas del territorio. Esta tensión llevó al Grupo 5 a presentar la valoración más dividida sobre la pertinencia curricular observada hasta ahora: mientras tres instituciones (Santa Teresa, Instituto Técnico IPC Andrés Rosa y Juan de Cabrera) afirman que sus currículos sí son pertinentes, Jairo Morera Lizcano concluye lo contrario de manera explícita, y ninguna otra institución en ningún grupo analizado había llegado a esa conclusión. Dos hallazgos particulares merecen destacarse: la disminución de la tasa de natalidad reportada por el Instituto Técnico IPC Andrés Rosa como causa de la contracción de su oferta de preescolar, un fenómeno demográfico y no institucional; y el conjunto de herramientas de participación directa y transparencia —mesas de co-creación del PEI, rendición pública de cuentas, presupuestos participativos escolares— reportado por San Antonio de Anaconia, sin equivalente en ninguna otra institución analizada. En cuanto a la valoración general del Foro, de las seis instituciones del grupo, la Escuela Normal Superior y el Instituto Técnico IPC Andrés Rosa registraron formalmente su valoración de la jornada, con calificaciones de 5,0/5,0 y 4,8/5,0 respectivamente; las cuatro instituciones restantes (Santa Teresa, Juan de Cabrera, Jairo Morera Lizcano y San Antonio de Anaconia) aún no habían registrado su valoración a la fecha de consolidación de este informe. Se recomienda a la Secretaría de Educación gestionar el diligenciamiento pendiente de este instrumento con las cuatro instituciones señaladas, y dar seguimiento particular a las condiciones de infraestructura tecnológica reportadas por Jairo Morera Lizcano.",
+  proyectoNombre: "[Nombre de quien consolida el Informe Consolidado]",
+  proyectoCargo: "[Cargo]",
+  fechaRealizacion: "7 de septiembre de 2026"
+};
+
+/*
+ * Genera (o reescribe, si ya existe) el Informe de Síntesis Grupal del
+ * Grupo 5, dejándolo en la raíz de la carpeta "Grupo G5" (mismo
+ * criterio de idempotencia que el resto de documentos de grupo).
+ *
+ * Uso: desde el editor de Apps Script, seleccionar esta función y
+ * presionar "Ejecutar". El enlace del documento queda en "Ver
+ * registros de ejecución".
+ */
+function generarInformeSintesisGrupo5FEM(){
+  const carpetas=crearEstructuraCarpetasGrupoFEM_("G5");
+  const nombreDoc="Informe de Síntesis - Grupo G5 FEM 2026";
+  const existentesIt=carpetas.grupoFolder.getFilesByName(nombreDoc);
+  const archivoExistente=existentesIt.hasNext() ? existentesIt.next() : null;
+  while(existentesIt.hasNext()) existentesIt.next().setTrashed(true);
+
+  const archivoDoc=generarInformeSintesisGrupoFEM_(DATOS_SINTESIS_GRUPO_5_FEM_, archivoExistente?archivoExistente.getId():null);
+  if(!archivoExistente){
+    carpetas.grupoFolder.addFile(archivoDoc);
+    try{ DriveApp.getRootFolder().removeFile(archivoDoc); }catch(e){}
+  }
+
+  Logger.log("========================================");
+  Logger.log("INFORME DE SÍNTESIS — GRUPO 5 — RESULTADO");
+  Logger.log("Documento: "+archivoDoc.getUrl());
+  Logger.log("========================================");
+
+  return archivoDoc.getUrl();
+}
