@@ -6454,3 +6454,203 @@ function generarInformeSintesisGrupo2FEM(){
 
   return archivoDoc.getUrl();
 }
+
+/*
+ * INFORME DE SÍNTESIS GRUPAL — GRUPO 3.
+ *
+ * Mismo criterio que los Grupos 1 y 2: prosa redactada a mano leyendo
+ * directamente el Doc editable ya generado de cada IE del grupo, y
+ * tallas de las 4 preguntas mixtas contadas a mano sobre las opciones
+ * realmente seleccionadas.
+ *
+ * A diferencia del Grupo 2, las 6 IE del catálogo (Técnico Superior,
+ * Departamental Tierra de Promisión, Santa Librada, Ricardo Borrero
+ * Álvarez, Ángel María Paredes, Ceinar) SÍ habían remitido su Informe
+ * Ejecutivo a la fecha de redacción (7 de septiembre de 2026), por lo
+ * que el denominador de las 4 preguntas mixtas es 6 (no 5).
+ *
+ * De esas 6 IE, solo Departamental Tierra de Promisión había registrado
+ * su Valoración del Foro (5.0/5 en los 4 criterios) a la fecha de
+ * redacción.
+ */
+const DATOS_SINTESIS_GRUPO_3_FEM_ = {
+  grupo: "G3",
+  tituloInforme: "Informe de Síntesis Grupal — Elementos Comunes y Particularidades Institucionales",
+  instituciones: [
+    "TECNICO SUPERIOR",
+    "DEPARTAMENTAL TIERRA DE PROMISION",
+    "SANTA LIBRADA",
+    "RICARDO BORRERO ALVAREZ",
+    "ANGEL MARIA PAREDES",
+    "CEINAR"
+  ],
+  responsableInforme: "[Nombre de quien consolida el informe de síntesis del Grupo 3 — SEM Neiva]",
+  fechaPresentacion: "7 de septiembre de 2026",
+  secciones: [
+    {
+      sesion: "SESIÓN 1",
+      pregunta: "Pregunta orientadora",
+      enunciado: "¿Cómo hemos avanzado, desde nuestra institución educativa, en el logro de los retos y propósitos planteados en el FEM2025?",
+      tipo: "cualitativo",
+      comun: "Las seis instituciones del Grupo 3 (Técnico Superior, Departamental Tierra de Promisión, Santa Librada, Ricardo Borrero Álvarez, Ángel María Paredes y Ceinar) coinciden en reportar avances significativos en la contextualización curricular y el fortalecimiento de proyectos pedagógicos e institucionales propios: la articulación con el SENA y universidades en Técnico Superior y Tierra de Promisión, los centros de interés y proyectos tecnológicos y ambientales de Santa Librada (CI-LEO, MakeCode, robótica, ECOTURO, PRAE), la flexibilización curricular mediante DUA y PIAR en Ricardo Borrero Álvarez, la consolidación de la educación inicial y el énfasis en emprendimiento en Ángel María Paredes, y el hilo conductor institucional articulado a CEINARTE en Ceinar. De manera igualmente compartida, las seis instituciones identifican las limitaciones de infraestructura, dotación, conectividad y recursos tecnológicos como el obstáculo estructural más persistente para consolidar estos avances —desde el bloque pendiente de demolición en Técnico Superior hasta la ausencia de computadores y conectividad en Tierra de Promisión—, y coinciden en señalar la necesidad de fortalecer la corresponsabilidad y la participación permanente de las familias en los procesos formativos.",
+      particularidades: "Ricardo Borrero Álvarez presenta la particularidad más vívida del grupo en esta pregunta: describe problemáticas de salubridad concretas —una infestación de palomas que deteriora cielos rasos y bebederos en las sedes Oriente y Central— y un descontento comunitario explícito con la calidad del Programa de Alimentación Escolar y la cobertura del transporte escolar, junto con preocupaciones de seguridad por riñas y microtráfico, un nivel de detalle sobre condiciones materiales adversas no replicado por ninguna otra institución del grupo. Ceinar, por su parte, es la única institución en reportar una estrategia cultural-comunitaria propia y nombrada —la \"Cumbre para el liderazgo por la paz, el arte y la cultura\"— que vincula a la organización comunal y a la secretaría de gobierno municipal en la discusión sobre el papel de la educación."
+    },
+    {
+      sesion: "SESIÓN 1",
+      pregunta: "Pregunta 2",
+      enunciado: "¿Cómo hemos avanzado, desde nuestra institución educativa, en la implementación de los nuevos grados del nivel de preescolar (jardín, prejardín)?",
+      tipo: "cualitativo",
+      comun: "Las seis instituciones del grupo coinciden en reportar la implementación ya en marcha del grado jardín, con distintos niveles de consolidación del prejardín: Tierra de Promisión y Ricardo Borrero Álvarez cuentan con oferta integrada de varios grupos y sedes, mientras que Santa Librada, Ángel María Paredes y Técnico Superior reportan avances más recientes y Ceinar enfrenta la cobertura más baja del grupo. Pese a esta implementación generalizada, existe una coincidencia notable en que la infraestructura y la dotación continúan siendo insuficientes incluso donde el nivel ya opera: Técnico Superior señala la necesidad de adecuar baterías sanitarias y mobiliario, Santa Librada reconoce que las limitaciones de infraestructura condicionan la ampliación de la oferta, y Ricardo Borrero Álvarez identifica la urgencia de renovar una red eléctrica obsoleta. El hallazgo cuantitativo más contundente del grupo en esta pregunta proviene de Ángel María Paredes, donde apenas el 27,1% de los consultados en su ejercicio interno de consulta considera que los recursos disponibles son suficientes y oportunos, frente a un 51% que los califica de insuficientes o parcialmente suficientes.",
+      particularidades: "Ceinar constituye la particularidad más marcada del grupo en esta pregunta: a diferencia de las demás instituciones, que describen una demanda de matrícula creciente o estable, Ceinar identifica una desventaja competitiva estructural frente a los Centros de Desarrollo Infantil (CDI) del sector, que ofrecen alimentación y permanencia más prolongada con apoyo de un equipo interdisciplinar del que la institución carece, lo que explica la ausencia de solicitudes de cupo para prejardín. Ricardo Borrero Álvarez, por su parte, es la única institución en señalar explícitamente el tránsito normativo de la evaluación por Derechos Básicos de Aprendizaje (DBA) hacia propósitos de desarrollo como un cambio que obligó a una reestructuración curricular profunda del nivel preescolar durante 2026."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 1",
+      enunciado: "¿Consideran que los currículos actuales que se desarrollan en las instituciones educativas son pertinentes con sus realidades territoriales (sociales, culturales, productivas)? ¿Por qué?",
+      tipo: "cualitativo",
+      comun: "Las seis instituciones del grupo coinciden en calificar la pertinencia curricular como un proceso en construcción, con avances reales pero todavía dependientes, en varios casos, de iniciativas puntuales más que de una transformación institucional sistemática: Santa Librada reconoce que muchas experiencias \"dependen principalmente de la iniciativa de determinados docentes\"; Ricardo Borrero Álvarez advierte sobre una \"estructura curricular fragmentada y rígida por asignaturas disciplinares tradicionales\"; y Ángel María Paredes señala como reto pendiente \"la articulación entre áreas\" pese a que el 77,1% de sus consultados considera pertinente el currículo actual. Como segundo elemento compartido, las seis instituciones recurren a alianzas externas —con el SENA (Técnico Superior, Ricardo Borrero Álvarez), con universidades regionales (Universidad de Navarra y Universidad Surcolombiana) o con actores privados como la Fundación Terpel (Ceinar, a través del programa Escuelas que Aprenden)— como estrategia central para fortalecer la pertinencia curricular frente a las dinámicas sociales y productivas del territorio.",
+      particularidades: "Ricardo Borrero Álvarez introduce una particularidad relevante para el grupo al vincular explícitamente su reflexión curricular con la atención a una \"comunidad estudiantil flotante\", una condición de movilidad poblacional no mencionada por ninguna otra institución del grupo. Técnico Superior, por su parte, es la única institución en fundamentar su pertinencia curricular en una oferta de nueve especialidades técnicas articuladas con el sector productivo, y la única en mencionar explícitamente la necesidad de incorporar Inteligencia Artificial y tecnologías 4.0 a sus contenidos disciplinares."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 2",
+      enunciado: "¿Qué acciones se han implementado para lograr currículos más pertinentes al territorio?",
+      tipo: "cualitativo",
+      comun: "Al observar de manera conjunta las acciones reportadas por las seis instituciones, la línea de trabajo más ampliamente compartida es el fortalecimiento de proyectos pedagógicos transversales que vinculan los aprendizajes con el territorio: los proyectos de aula anclados en el contexto socioproductivo de Técnico Superior, el Proyecto Ambiental Escolar de Tierra de Promisión, los centros de interés de Santa Librada, los proyectos interdisciplinares de Ricardo Borrero Álvarez, la Feria de Emprendimiento y el PRAE de Ángel María Paredes, y el hilo conductor institucional articulado a CEINARTE en Ceinar. Una segunda línea compartida por cuatro de las seis instituciones es el establecimiento de alianzas externas concretas como mecanismo de contextualización curricular: convenios con el SENA y cuatro universidades en Técnico Superior, la alianza con la Universidad Surcolombiana en Tierra de Promisión, la vinculación de entidades externas especializadas para simulacros de pruebas en Ricardo Borrero Álvarez, y la articulación con la Fundación Terpel a través del programa Escuelas que Aprenden en Ceinar.",
+      particularidades: "Ricardo Borrero Álvarez es la única institución del grupo en reportar una estrategia de asignación de roles a los propios estudiantes —como líderes y guardianes ambientales, de convivencia, de TIC y de rendimiento académico— combinada con espacios de autocapacitación interna del personal docente, una acción de apropiación estudiantil del currículo sin equivalente en las demás instituciones. Técnico Superior, por su parte, es la única institución en vincular explícitamente sus acciones curriculares con un programa de intensificación en inglés como estrategia de flexibilización."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 3",
+      enunciado: "¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar estas acciones?",
+      tipo: "mixto",
+      totalIE: 6,
+      tally: [
+        {opcion: "Consejo Académico", count: 6},
+        {opcion: "Comités de área", count: 6},
+        {opcion: "Consejo Directivo", count: 4},
+        {opcion: "Equipo de Educación Inclusiva / NEE", count: 4},
+        {opcion: "Equipo de Preescolar", count: 3},
+        {opcion: "Consejo Estudiantil", count: 3},
+        {opcion: "Consejo de Padres de Familia", count: 3}
+      ],
+      comun: "El Consejo Académico y los comités de área son los dos equipos de trabajo que las seis instituciones del grupo, sin excepción, identifican como responsables de liderar las acciones hacia currículos más pertinentes territorialmente. Con una adopción del 66,7% (4 de 6 IE) se ubican el Consejo Directivo y el Equipo de Educación Inclusiva o NEE; y con una adopción del 50% (3 de 6 IE), el Equipo de Preescolar, el Consejo Estudiantil y el Consejo de Padres de Familia. Este patrón evidencia una base común muy sólida en torno a las dos instancias más reglamentarias del gobierno curricular, sobre la cual cada institución añade equipos adicionales de acuerdo con su propia estructura organizativa.",
+      particularidades: "Santa Librada es la institución con la estructura de equipos más granular y diferenciada por nivel educativo del grupo, al reportar equipos separados de preescolar, básica primaria y básica secundaria y media, además de un Equipo de Sistematización de la Información sin equivalente en ninguna otra institución. Técnico Superior, en el extremo opuesto, es la única institución que no reporta ninguna instancia de representación estudiantil (Consejo Estudiantil, Personería) entre los equipos de esta pregunta, concentrando su respuesta en tres equipos reglamentarios y un conjunto combinado de \"Equipos Líderes\" de carácter curricular y técnico."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 4",
+      enunciado: "¿Cómo se están articulando estos equipos de trabajo para lograr currículos más pertinentes territorialmente?",
+      tipo: "cualitativo",
+      comun: "Las seis instituciones del grupo coinciden en que la articulación entre equipos de trabajo se canaliza principalmente a través de reuniones periódicas, comités de área y jornadas pedagógicas de planeación institucional, con el Consejo Académico como instancia orientadora central en la mayoría de los casos. Tres de las seis instituciones —Santa Librada, Ricardo Borrero Álvarez y Ángel María Paredes— matizan esta descripción reconociendo que la articulación efectiva sigue siendo un reto: Santa Librada advierte que \"todavía es un reto lograr que esta articulación sea permanente y que no dependa solamente de iniciativas individuales\"; Ricardo Borrero Álvarez señala \"falta de tiempo operativo\" para optimizar el seguimiento; y Ángel María Paredes propone como oportunidad de mejora \"fortalecer la coordinación entre equipos\" y \"consolidar mecanismos de seguimiento con evidencias, indicadores y periodicidad\". Técnico Superior, Tierra de Promisión y Ceinar, en cambio, describen sus mecanismos de articulación en términos más procedimentales, sin formular una autocrítica equivalente.",
+      particularidades: "Ricardo Borrero Álvarez es la única institución del grupo en describir una distribución explícita de roles entre sus equipos de articulación curricular —el Consejo Académico lidera la transformación curricular, los comités de área diseñan las propuestas de aula y las familias aportan insumos territoriales— y en nombrar canales de comunicación digital específicos (WhatsApp) junto a los formales (circulares de rectoría). Técnico Superior, por su parte, es la única institución en mencionar explícitamente reuniones de seguimiento entre la coordinación de convivencia y los representantes estudiantiles como parte de su mecanismo de articulación."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 5",
+      enunciado: "¿Qué mecanismos de seguimiento se están implementando para que dichas acciones se cumplan?",
+      tipo: "mixto",
+      totalIE: 6,
+      tally: [
+        {opcion: "Articulación con el PEI", count: 5},
+        {opcion: "Consejo Académico", count: 4},
+        {opcion: "Comités de área o núcleos de formación", count: 4},
+        {opcion: "Actas de reunión de área", count: 4},
+        {opcion: "Autoevaluación institucional anual", count: 4},
+        {opcion: "Plataformas de gestión académica (JIGRA)", count: 3},
+        {opcion: "Comparación histórica de resultados internos y externos", count: 3}
+      ],
+      comun: "La articulación con el PEI es, en esta pregunta, el mecanismo de seguimiento más ampliamente compartido por el grupo, presente en cinco de las seis instituciones (83,3%). Con una adopción del 66,7% (4 de 6 IE) se ubican el Consejo Académico, los comités de área, las actas de reunión de área y la autoevaluación institucional anual; y con una adopción del 50% (3 de 6 IE), las plataformas de gestión académica JIGRA y la comparación histórica de resultados internos y externos. Este patrón confirma al PEI como el instrumento articulador central del seguimiento curricular en el Grupo 3, complementado de manera desigual por instancias colegiadas y herramientas de análisis de resultados.",
+      particularidades: "Tierra de Promisión y Ceinar son las dos instituciones del grupo que más se apartan del catálogo estándar de mecanismos, respondiendo en su mayoría con opciones \"Otro\" de redacción propia: Tierra de Promisión describe un fortalecimiento académico centrado en pruebas Saber, pensamiento crítico y permanencia escolar, mientras que Ceinar reporta la elaboración de informes de gestión como su mecanismo adicional. Ricardo Borrero Álvarez, por su parte, es la única institución en incluir portafolios docentes y la tasa de deserción o reprobación por asignatura como mecanismos explícitos de seguimiento curricular."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Pregunta 1",
+      enunciado: "¿Consideran que la toma de decisiones en las instituciones educativas actualmente es participativa y democrática? ¿Por qué?",
+      tipo: "cualitativo",
+      comun: "Existe una coincidencia sustancial entre las seis instituciones del grupo: todas afirman que la toma de decisiones cuenta con una estructura formal participativa y democrática, sustentada en el funcionamiento del Consejo Directivo, el Consejo Académico, el Consejo Estudiantil y el Consejo de Padres, y todas matizan esa afirmación señalando límites concretos a la incidencia real. La baja participación de las familias es, con diferencia, el obstáculo más recurrente del grupo, mencionado explícitamente por cinco de las seis instituciones: Tierra de Promisión señala que la participación de los padres \"se limita a la elección de representantes, quienes presentan poca asistencia\"; Santa Librada reconoce \"baja asistencia de padres de familia\"; Ricardo Borrero Álvarez atribuye esto a \"apatía y falta de sentido de pertenencia de algunos acudientes\"; Ángel María Paredes reconoce \"dificultades laborales y familiares que pueden limitar su asistencia\"; y Ceinar admite \"falencias vinculadas a la participación de los padres de familia, específicamente el consejo de padres\". Un segundo elemento compartido, explícito en Ricardo Borrero Álvarez y Ángel María Paredes, es la advertencia de que la participación no debe limitarse a la consulta formal, sino traducirse en una incidencia real sobre las decisiones institucionales.",
+      particularidades: "Ricardo Borrero Álvarez presenta la particularidad más crítica del grupo en esta pregunta, al señalar que las decisiones académicas o administrativas clave \"se centralizan en el Equipo de Gestión sin comunicarse oportunamente a las bases\", una denuncia de opacidad en la comunicación de decisiones no formulada en estos términos por ninguna otra institución. Ceinar, por su parte, es la única institución en mencionar explícitamente la vinculación de veedores externos —en su caso del sector productivo y comunitario a través de la Cumbre— a sus espacios de participación democrática."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Pregunta 2",
+      enunciado: "¿Qué acciones se están implementando para canalizar y fortalecer la participación de la comunidad educativa?",
+      tipo: "cualitativo",
+      comun: "El análisis conjunto de las acciones reportadas por las seis instituciones evidencia dos líneas de trabajo compartidas. La primera es el fortalecimiento de los órganos del Gobierno Escolar como vehículo de participación: Técnico Superior lo denomina explícitamente \"Gobierno Escolar Activo\", Ricardo Borrero Álvarez desarrolla elecciones democráticas de Personero, Contralor y representantes, Ángel María Paredes fortalece sus órganos de representación, y Ceinar acompaña sus propios órganos de participación estudiantil. La segunda línea, presente con particular fuerza en Tierra de Promisión, Técnico Superior y Ceinar, es el establecimiento de alianzas interinstitucionales con entidades gubernamentales, de protección y de educación superior —ICBF, Policía de Infancia, Comisarías de Familia, Defensoría del Pueblo, universidades regionales— orientadas a fortalecer la convivencia, la orientación vocacional y la proyección comunitaria del Foro más allá de los espacios escolares.",
+      particularidades: "Ceinar es la única institución del grupo en reportar un proyecto de proyección territorial con incidencia política explícita —\"La Minga\", que vincula a la institución con el Plan de Ordenamiento Territorial (POT) y con los consejos municipal y consultivo—, una articulación entre participación escolar y agenda pública municipal sin equivalente en las demás instituciones. Tierra de Promisión, por su parte, es la institución que reporta el mayor número de alianzas interinstitucionales de protección y convivencia del grupo (incluyendo Justicia Especial de Paz, Defensoría del Pueblo y Procuraduría), un nivel de articulación interinstitucional notablemente más amplio que el de las demás instituciones."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Equipos de trabajo",
+      enunciado: "¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar las estrategias y mecanismos de participación escolar?",
+      tipo: "mixto",
+      totalIE: 6,
+      tally: [
+        {opcion: "Comité Escolar de Convivencia", count: 6},
+        {opcion: "Comité de Calidad / Equipo de Gestión Institucional", count: 6},
+        {opcion: "Gobierno Escolar", count: 5},
+        {opcion: "Consejo Directivo", count: 5},
+        {opcion: "Consejo Académico", count: 5},
+        {opcion: "Consejo Estudiantil", count: 5},
+        {opcion: "Consejo de Padres de Familia", count: 5},
+        {opcion: "Comisión de Evaluación y Promoción", count: 5},
+        {opcion: "Personero(a) Estudiantil", count: 4},
+        {opcion: "Contralor(a) Estudiantil", count: 4}
+      ],
+      comun: "El Comité Escolar de Convivencia y el Comité de Calidad o Equipo de Gestión Institucional son los dos equipos que las seis instituciones del grupo, sin excepción, reportan haber conformado para liderar las estrategias de participación escolar. Con una adopción del 83,3% (5 de 6 IE) se ubican el Gobierno Escolar en su conjunto, el Consejo Directivo, el Consejo Académico, el Consejo Estudiantil, el Consejo de Padres de Familia y la Comisión de Evaluación y Promoción; y con una adopción del 66,7% (4 de 6 IE), el/la Personero(a) y el/la Contralor(a) Estudiantil. Este patrón evidencia la estructura de gobierno escolar más homogénea y consolidada observada hasta ahora entre los grupos analizados, con una adopción casi universal de la práctica totalidad del catálogo reglamentario.",
+      particularidades: "Ceinar constituye, con diferencia, la particularidad más marcada del grupo en esta pregunta: es la única institución que no reporta el Consejo Directivo, el Consejo Académico, el Consejo Estudiantil ni el Consejo de Padres de Familia entre sus equipos de participación, apoyándose en cambio en una estructura propia de cuatro equipos vinculados a sus proyectos institucionales (entorno y sociedad, proyectos transversales, Escuelas que Aprenden con la Fundación Terpel, y reestructuración del PEI). Tierra de Promisión, por su parte, es la única institución que no reporta Gobierno Escolar como tal ni las figuras de Personero(a) o Contralor(a) Estudiantil, complementando su selección con un Comité de Prevención y Atención del Riesgo exclusivo de esta institución."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Mecanismos de seguimiento",
+      enunciado: "¿Qué mecanismos de seguimiento se están implementando para garantizar las acciones encaminadas a promover gobiernos educativos democráticos?",
+      tipo: "mixto",
+      totalIE: 6,
+      tally: [
+        {opcion: "Reuniones periódicas con entes de gobierno escolar", count: 6},
+        {opcion: "Autoevaluación institucional anual (Guía 34 – MEN)", count: 5},
+        {opcion: "Elecciones estudiantiles", count: 4},
+        {opcion: "Elección de docentes para consejo directivo", count: 4},
+        {opcion: "Elección de docentes para consejo académico", count: 4},
+        {opcion: "Plan de Mejoramiento Institucional (PMI)", count: 4},
+        {opcion: "Actualización y ajuste permanente del PEI", count: 4}
+      ],
+      comun: "Las reuniones periódicas con los distintos entes de gobierno escolar constituyen, en esta pregunta, el único mecanismo de seguimiento que las seis instituciones del grupo, sin excepción, reportan haber implementado. Con una adopción del 83,3% (5 de 6 IE) se ubica la autoevaluación institucional anual; y con una adopción del 66,7% (4 de 6 IE), las elecciones estudiantiles, la elección de docentes para los consejos directivo y académico, el Plan de Mejoramiento Institucional y la actualización permanente del PEI. Este patrón confirma que, al igual que en la pregunta análoga de equipos de trabajo, el Grupo 3 presenta el nivel más alto y homogéneo de adopción de mecanismos reglamentarios observado hasta ahora, con las reuniones de gobierno escolar como práctica verdaderamente universal.",
+      particularidades: "Santa Librada y Tierra de Promisión son las dos instituciones que más se apartan del catálogo estándar: Santa Librada no reporta ninguno de los procesos electorales del catálogo, apoyándose en cambio en la revisión de actas, acuerdos y espacios de diálogo como mecanismo \"Otro\"; y Tierra de Promisión complementa su selección con una descripción propia del ciclo completo de gestión de proyectos institucionales (planeación, programación, ejecución, seguimiento y evaluación) en lugar de los mecanismos normativos de autoevaluación y PMI seleccionados por la mayoría del grupo."
+    }
+  ],
+  conclusiones: "El análisis conjunto de las tres sesiones de trabajo del Grupo 3 permite concluir que las seis instituciones educativas (Técnico Superior, Departamental Tierra de Promisión, Santa Librada, Ricardo Borrero Álvarez, Ángel María Paredes y Ceinar) comparten una trayectoria de avances reales en la contextualización curricular, el fortalecimiento de proyectos pedagógicos propios y una estructura de gobierno escolar particularmente consolidada y homogénea —la más alta adopción de equipos y mecanismos reglamentarios observada hasta ahora entre los grupos analizados—, junto con retos comunes en materia de infraestructura y dotación, y con la baja participación de las familias como el obstáculo más recurrente y explícito de todo el grupo, mencionado por cinco de las seis instituciones. Dos hallazgos particulares merecen destacarse: la denuncia de Ricardo Borrero Álvarez sobre la centralización de decisiones clave en el Equipo de Gestión \"sin comunicarse oportunamente a las bases\", que amerita atención específica; y el dato cuantitativo aportado por Ángel María Paredes, según el cual apenas el 27,1% de su comunidad consultada considera suficientes y oportunos los recursos para la educación inicial, frente a un 51% que los califica de insuficientes o parciales. En cuanto a la valoración general del Foro, de las seis instituciones del grupo, únicamente Tierra de Promisión registró formalmente su valoración de la jornada, con una calificación de 5,0 sobre 5,0 en los cuatro criterios evaluados (diálogo y reflexión, participación, ideas y propuestas, y satisfacción con el instrumento); las cinco instituciones restantes (Técnico Superior, Santa Librada, Ricardo Borrero Álvarez, Ángel María Paredes y Ceinar) aún no habían registrado su valoración ni comentarios o sugerencias a la fecha de consolidación de este informe. Se recomienda a la Secretaría de Educación gestionar el diligenciamiento pendiente de este instrumento con las cinco instituciones señaladas.",
+  proyectoNombre: "[Nombre de quien consolida el Informe Consolidado]",
+  proyectoCargo: "[Cargo]",
+  fechaRealizacion: "7 de septiembre de 2026"
+};
+
+/*
+ * Genera (o reescribe, si ya existe) el Informe de Síntesis Grupal del
+ * Grupo 3, dejándolo en la raíz de la carpeta "Grupo G3" (mismo
+ * criterio de idempotencia que el resto de documentos de grupo).
+ *
+ * Uso: desde el editor de Apps Script, seleccionar esta función y
+ * presionar "Ejecutar". El enlace del documento queda en "Ver
+ * registros de ejecución".
+ */
+function generarInformeSintesisGrupo3FEM(){
+  const carpetas=crearEstructuraCarpetasGrupoFEM_("G3");
+  const nombreDoc="Informe de Síntesis - Grupo G3 FEM 2026";
+  const existentesIt=carpetas.grupoFolder.getFilesByName(nombreDoc);
+  const archivoExistente=existentesIt.hasNext() ? existentesIt.next() : null;
+  while(existentesIt.hasNext()) existentesIt.next().setTrashed(true);
+
+  const archivoDoc=generarInformeSintesisGrupoFEM_(DATOS_SINTESIS_GRUPO_3_FEM_, archivoExistente?archivoExistente.getId():null);
+  if(!archivoExistente){
+    carpetas.grupoFolder.addFile(archivoDoc);
+    try{ DriveApp.getRootFolder().removeFile(archivoDoc); }catch(e){}
+  }
+
+  Logger.log("========================================");
+  Logger.log("INFORME DE SÍNTESIS — GRUPO 3 — RESULTADO");
+  Logger.log("Documento: "+archivoDoc.getUrl());
+  Logger.log("========================================");
+
+  return archivoDoc.getUrl();
+}
