@@ -6215,10 +6215,9 @@ const DATOS_SINTESIS_GRUPO_1_FEM_ = {
     }
   ],
   conclusiones: "El análisis conjunto de las tres sesiones de trabajo del Grupo 1 permite concluir que las seis instituciones educativas comparten una trayectoria similar: avances reales y verificables en la contextualización curricular, el fortalecimiento de la educación inicial y la consolidación de estructuras de gobierno escolar, que conviven con retos comunes en materia de infraestructura, participación efectiva de las familias y articulación real —más allá de lo formal— entre los distintos equipos de trabajo institucional. Un hallazgo transversal relevante es el patrón particular de la IE AIPECITO, que en las cuatro preguntas de selección múltiple analizadas respondió de manera consistente por fuera del catálogo estándar de opciones, apoyándose en mecanismos y equipos de corte comunitario-territorial; esta recurrencia amerita un seguimiento específico por parte de la Secretaría de Educación Municipal para determinar si corresponde a una práctica institucional genuinamente distinta o a una dificultad de esa institución para reconocerse en las categorías propuestas por el instrumento. En cuanto a la valoración general del Foro, a la fecha de consolidación de este informe ninguna de las seis instituciones del grupo ha registrado formalmente su valoración de la jornada (preguntas de valoración y comentarios/sugerencias), por lo cual no es posible incorporar aquí un balance cuantitativo de percepción ni comentarios o sugerencias institucionales sobre el desarrollo del Foro; se recomienda a la Secretaría de Educación gestionar el diligenciamiento pendiente de este instrumento con las seis instituciones del grupo para completar el ciclo de retroalimentación previsto por el Foro Educativo Institucional. Como única referencia disponible de percepción sobre el Foro, procedente de la asistencia registrada por código QR, la comunidad educativa del Liceo de Santa Librada valoró como principales fortalezas el trabajo colaborativo entre docentes, la participación activa de los estudiantes y la existencia de experiencias exitosas replicables, señalando como oportunidades de mejoramiento la baja participación de estudiantes y familias, las brechas de aprendizaje entre grados y sedes, y el bajo logro de aprendizajes fundamentales — percepción que resulta coherente con los hallazgos cualitativos identificados en las tres sesiones del presente informe para el conjunto del grupo.",
-  firmaFuncionarioSEM: "[Nombre del funcionario o funcionaria de la SEM Neiva a cargo]",
-  responsableConsolidado: "[Nombre de quien consolida el Informe Consolidado]",
-  cargoResponsable: "[Cargo]",
-  fechaFirma: "7 de septiembre de 2026"
+  proyectoNombre: "[Nombre de quien consolida el Informe Consolidado]",
+  proyectoCargo: "[Cargo]",
+  fechaRealizacion: "7 de septiembre de 2026"
 };
 
 /*
@@ -6246,6 +6245,210 @@ function generarInformeSintesisGrupo1FEM(){
 
   Logger.log("========================================");
   Logger.log("INFORME DE SÍNTESIS — GRUPO 1 — RESULTADO");
+  Logger.log("Documento: "+archivoDoc.getUrl());
+  Logger.log("========================================");
+
+  return archivoDoc.getUrl();
+}
+
+/*
+ * INFORME DE SÍNTESIS GRUPAL — GRUPO 2.
+ *
+ * Mismo criterio que el Grupo 1: prosa redactada a mano leyendo
+ * directamente el Doc editable ya generado de cada IE del grupo, y
+ * tallas de las 4 preguntas mixtas contadas a mano sobre las opciones
+ * realmente seleccionadas.
+ *
+ * PARTICULARIDAD DE ESTE GRUPO: de las 6 IE del catálogo (MARIA
+ * CRISTINA ARANGO DE PASTRANA., LUIS IGNACIO ANDRADE, GABRIEL GARCIA
+ * MARQUEZ, EDUARDO SANTOS, MARIA AUXILIADORA FORTALECILLAS, JAIRO
+ * MOSQUERA MORENO), MARIA CRISTINA ARANGO DE PASTRANA. NO HABÍA
+ * ENVIADO SU INFORME del Foro a la fecha de redacción (7 de septiembre
+ * de 2026) — solo existe su logo en Drive, ningún "Informe Ejecutivo".
+ * Por eso el análisis de las 11 preguntas y las conclusiones se basan
+ * en las 5 IE restantes (denominador 5, no 6), y la portada lista las
+ * 6 IE del grupo pero las conclusiones señalan expresamente la
+ * ausencia de esta institución.
+ *
+ * De esas 5 IE, solo Fortalecillas había registrado su Valoración del
+ * Foro (5.0/5 en los 4 criterios) a la fecha de redacción.
+ */
+const DATOS_SINTESIS_GRUPO_2_FEM_ = {
+  grupo: "G2",
+  tituloInforme: "Informe de Síntesis Grupal — Elementos Comunes y Particularidades Institucionales",
+  instituciones: [
+    "MARIA CRISTINA ARANGO DE PASTRANA.",
+    "LUIS IGNACIO ANDRADE",
+    "GABRIEL GARCIA MARQUEZ",
+    "EDUARDO SANTOS",
+    "MARIA AUXILIADORA FORTALECILLAS",
+    "JAIRO MOSQUERA MORENO"
+  ],
+  responsableInforme: "[Nombre de quien consolida el informe de síntesis del Grupo 2 — SEM Neiva]",
+  fechaPresentacion: "7 de septiembre de 2026",
+  secciones: [
+    {
+      sesion: "SESIÓN 1",
+      pregunta: "Pregunta orientadora",
+      enunciado: "¿Cómo hemos avanzado, desde nuestra institución educativa, en el logro de los retos y propósitos planteados en el FEM2025?",
+      tipo: "cualitativo",
+      comun: "Las cinco instituciones del Grupo 2 que a la fecha de este informe han remitido su participación en el Foro (Luis Ignacio Andrade, Gabriel García Márquez, Eduardo Santos, María Auxiliadora Fortalecillas y Jairo Mosquera Moreno) coinciden en reportar avances hacia una educación más pertinente y centrada en la formación integral, con énfasis particular en el fortalecimiento de la atención a la primera infancia y el nivel preescolar: la formalización del ciclo II en Fortalecillas, la apertura y ampliación de jardín y prejardín en Jairo Mosquera Moreno y Eduardo Santos, y el compromiso declarado —aunque con avances aún limitados— de Gabriel García Márquez con la estrategia municipal \"Primera Infancia Feliz y Protegida\". Un segundo eje compartido es el fortalecimiento de proyectos pedagógicos, centros de interés y estrategias de flexibilización curricular orientadas a responder a las características de los estudiantes: los Centros de Interés de Fortalecillas, la recontextualización curricular de Luis Ignacio Andrade y las experiencias basadas en el juego y la exploración del territorio de Jairo Mosquera Moreno. No obstante, el análisis conjunto revela un tercer elemento recurrente: las limitaciones de infraestructura, dotación, recursos didácticos y tecnológicos que condicionan la capacidad institucional de materializar plenamente estos avances, señaladas con particular firmeza por Gabriel García Márquez y Eduardo Santos. Finalmente, se identifica de forma transversal la necesidad de fortalecer la participación y la corresponsabilidad de las familias como condición para consolidar los logros alcanzados.",
+      particularidades: "La IE Eduardo Santos se distingue de las demás por expresar de manera explícita su inconformismo frente al que denomina \"abandono\" y la falta de respuesta oportuna de la Secretaría de Educación y la Alcaldía frente a las exigencias institucionales, un señalamiento directo a la administración municipal no formulado en estos términos por ninguna otra institución del grupo. La IE Gabriel García Márquez, por su parte, es la única en vincular explícitamente la seguridad estudiantil en salidas pedagógicas como un requisito institucional que debería formalizarse, y la única en proponer la creación de un comité de alerta temprana para prevenir la deserción escolar."
+    },
+    {
+      sesion: "SESIÓN 1",
+      pregunta: "Pregunta 2",
+      enunciado: "¿Cómo hemos avanzado, desde nuestra institución educativa, en la implementación de los nuevos grados del nivel de preescolar (jardín, prejardín)?",
+      tipo: "cualitativo",
+      comun: "Cuatro de las cinco instituciones del grupo (Luis Ignacio Andrade, Fortalecillas, Jairo Mosquera Moreno y, de manera progresiva, Eduardo Santos) reportan la apertura ya materializada de jardín y, en la mayoría de los casos, también de prejardín, mientras que Gabriel García Márquez es la única institución del grupo en la que esta apertura oficial continúa postergada. Pese a esta diferencia central, existe una coincidencia notable: incluso donde el nivel ya opera, se reconoce la persistencia de limitaciones de infraestructura, dotación y recursos didácticos y tecnológicos —Fortalecillas señala la necesidad de salones propios y mobiliario especializado a mediano plazo, Jairo Mosquera Moreno reclama mayor acompañamiento y dotación de los entes gubernamentales, y Eduardo Santos describe su avance como logrado \"en medio de importantes dificultades\"—, lo que sitúa estas limitaciones materiales como el obstáculo estructural común a todo el grupo, más allá de si el nivel ya se implementó o no. En el plano pedagógico coincide igualmente la apuesta por una educación inicial centrada en el juego, la exploración y la valoración cualitativa del desarrollo infantil, así como la búsqueda de alianzas externas de apoyo, como la articulación de Luis Ignacio Andrade con la Universidad Minuto de Dios para prácticas de primera infancia.",
+      particularidades: "Gabriel García Márquez constituye la particularidad más marcada del grupo en esta pregunta: a diferencia de las otras cuatro instituciones, que ya operan el nivel de jardín, esta institución reconoce de manera transparente que la apertura oficial de prejardín y jardín continúa postergada por limitaciones críticas de infraestructura, y plantea la necesidad de un plan inmediato y progresivo con la Secretaría de Educación. Luis Ignacio Andrade, por su parte, es la única institución en reportar una alianza formal con una institución de educación superior para el desarrollo de prácticas pedagógicas en primera infancia."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 1",
+      enunciado: "¿Consideran que los currículos actuales que se desarrollan en las instituciones educativas son pertinentes con sus realidades territoriales (sociales, culturales, productivas)? ¿Por qué?",
+      tipo: "cualitativo",
+      comun: "Existe consenso entre las cinco instituciones del grupo en calificar la pertinencia curricular como parcial e insuficientemente conectada con las realidades territoriales. Un hallazgo particularmente consistente es la identificación de la presión por los resultados en pruebas estandarizadas —Pruebas Saber, ICFES, DBA— como un factor que limita la flexibilidad curricular necesaria para incorporar el contexto local: Gabriel García Márquez señala que esta presión \"termina uniformando los contenidos\" y relegando la riqueza social y productiva de la región; Jairo Mosquera Moreno indica que la necesidad de responder a lineamientos, estándares y DBA \"valorados mediante pruebas estandarizadas... puede limitar la flexibilidad curricular\"; y Eduardo Santos expresa preocupación porque \"las pruebas nacionales priorizan conocimientos y contenidos y no siempre consideran los procesos ni las particularidades territoriales\". Como segundo elemento común, las cinco instituciones manifiestan la intención de incorporar saberes y dinámicas propias del territorio —la economía local y el patrimonio cultural en Fortalecillas (las achiras, el río, la memoria local), la formación productiva en Eduardo Santos (retomando el proyecto de elaboración de zapatos) y la contextualización social y ambiental en Luis Ignacio Andrade—, aunque reconociendo que estos esfuerzos siguen siendo, en su mayoría, iniciativas puntuales más que una transformación curricular sistemática.",
+      particularidades: "Jairo Mosquera Moreno introduce una particularidad relevante para el grupo al señalar que la brecha de pertinencia territorial es más evidente en instituciones con sedes rurales, población dispersa y aulas multigrado, una condición geográfica específica no mencionada por las demás instituciones del grupo. Gabriel García Márquez, por su parte, es la única institución en vincular explícitamente la baja pertinencia curricular con la deserción escolar, al señalar que los estudiantes enfrentan \"la difícil disyuntiva de abandonar la educación formal para ingresar de forma prematura al mercado laboral\" ante la desconexión entre el currículo y las realidades económicas inmediatas."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 2",
+      enunciado: "¿Qué acciones se han implementado para lograr currículos más pertinentes al territorio?",
+      tipo: "cualitativo",
+      comun: "El análisis conjunto de las acciones reportadas por las cinco instituciones configura dos líneas de trabajo ampliamente compartidas. La primera es la actualización y contextualización de los planes de estudio y contenidos curriculares, presente en las cinco instituciones bajo distintas modalidades: la depuración y priorización de aprendizajes esenciales en Luis Ignacio Andrade, la integración de lecturas y proyectos de vida ligados al entorno en Gabriel García Márquez, la caracterización permanente de la comunidad educativa en Eduardo Santos, la actualización de planes de estudio liderada por el Consejo Académico en Fortalecillas, y la contextualización de aprendizajes a la vida cotidiana en Jairo Mosquera Moreno. La segunda línea común es el fortalecimiento de proyectos pedagógicos transversales e interdisciplinarios —Plan Lector y Cátedra de Paz en Luis Ignacio Andrade, Aprendizaje Basado en Proyectos en Gabriel García Márquez, proyectos ambientales y olimpiadas en Eduardo Santos, proyectos transversales e investigación escolar en Fortalecillas, y centros de interés como semillas de vida y el club de astronomía y arqueología en Jairo Mosquera Moreno—, como vía principal para conectar los aprendizajes con las realidades del territorio sin renunciar a los estándares nacionales.",
+      particularidades: "Fortalecillas y Jairo Mosquera Moreno son las únicas instituciones del grupo en plantear explícitamente el diálogo de saberes con la comunidad como una acción diferenciada —reconociendo a las familias y líderes locales como portadores de conocimiento legítimo (achiras, río y memoria local en Fortalecillas; tradiciones, música y festividades en Jairo Mosquera Moreno)—, mientras que las demás instituciones del grupo no formulan una acción equivalente. Eduardo Santos, por su parte, es la única institución en vincular explícitamente sus acciones curriculares con la prevención del consumo de sustancias psicoactivas y la delincuencia juvenil a través de las olimpiadas deportivas, culturales y académicas."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 3",
+      enunciado: "¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar estas acciones?",
+      tipo: "mixto",
+      totalIE: 5,
+      tally: [
+        {opcion: "Consejo Académico", count: 5},
+        {opcion: "Comités de área", count: 4},
+        {opcion: "Consejo Directivo", count: 4},
+        {opcion: "Comisión de Evaluación y Promoción", count: 4},
+        {opcion: "Consejo Estudiantil", count: 3},
+        {opcion: "Personero(a) Estudiantil", count: 3},
+        {opcion: "Equipo de Gestión Académica", count: 3}
+      ],
+      comun: "El Consejo Académico es el único equipo de trabajo que las cinco instituciones del grupo, sin excepción, identifican como responsable de liderar las acciones hacia currículos más pertinentes. Con una adopción del 80% (4 de 5 IE) se ubican los comités de área, el Consejo Directivo y la Comisión de Evaluación y Promoción; y con una adopción del 60% (3 de 5 IE), el Consejo Estudiantil, el/la Personero(a) Estudiantil y el Equipo de Gestión Académica. Este patrón muestra que, salvo por el Consejo Académico —prácticamente universal—, el grupo presenta una estructura de equipos de trabajo curricular más heterogénea que la observada en otras preguntas mixtas del Foro, con una parte relevante de las instituciones apoyándose en estructuras propias o de carácter más específico en lugar de las instancias reglamentarias estándar.",
+      particularidades: "Gabriel García Márquez es, con diferencia, la institución con menor selección de equipos del catálogo estándar en el grupo: únicamente marcó Consejo Académico y comités de área, complementando con una opción \"Otro\" (Comité de Convivencia Escolar y Áreas de Gestión), sin reportar Consejo Directivo ni ninguna instancia de representación estudiantil para esta pregunta. En el extremo opuesto, Eduardo Santos es la institución que más se aparta del catálogo estándar por la vía contraria: además de seis equipos reglamentarios, reportó diez opciones \"Otro\" de carácter completamente institucional y específico (Mesa Técnica de Inclusión, COPAS, Olimpiadas Escolares, Proyectos de cuidado de Medioambiente, Simulacros de las Pruebas Nacionales —Proyecto PEMSAR—, Caracterización de la Comunidad, entre otros), una proliferación de equipos propios muy superior a la de cualquier otra institución del grupo."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 4",
+      enunciado: "¿Cómo se están articulando estos equipos de trabajo para lograr currículos más pertinentes territorialmente?",
+      tipo: "cualitativo",
+      comun: "Las cinco instituciones del grupo coinciden en que la articulación entre equipos de trabajo se apoya principalmente en el Consejo Académico, los comités de área y los espacios de reunión y planeación institucional, canalizando allí las propuestas curriculares para su análisis y aprobación. De manera igualmente compartida —con la única excepción parcial de Jairo Mosquera Moreno, que describe el proceso en términos más consolidados—, las instituciones reconocen que esta articulación resulta todavía insuficiente: Luis Ignacio Andrade señala la necesidad de \"fortalecer el trabajo colaborativo y construir una visión curricular común\"; Gabriel García Márquez advierte que la planeación \"se enfoca prioritariamente en el cumplimiento de los DBA y en la preparación para las pruebas ICFES, dejando de lado la integración efectiva del enfoque territorial\"; Eduardo Santos plantea como \"fundamental fortalecer el trabajo colectivo para evitar acciones aisladas\"; y Fortalecillas identifica como reto \"optimizar los tiempos de planeación docentes\" y \"garantizar decisiones participativas\". Este patrón sugiere que, en el Grupo 2, la brecha entre la existencia formal de espacios de articulación y su funcionamiento efectivo es un desafío ampliamente compartido.",
+      particularidades: "Jairo Mosquera Moreno se distingue del resto del grupo por describir una articulación curricular apoyada en un número particularmente amplio de proyectos transversales institucionalizados (PRAE, PESCC, Derechos Humanos, Paz y Democracia, Prevención del Riesgo, Estilos de Vida Saludable y Mejoramiento de Logros), una estructura más diversificada que la reportada por las demás instituciones del grupo. Fortalecillas, por su parte, es la única institución en mencionar el diálogo de saberes locales (cultura, achiras, río) como parte explícita de su mecanismo de articulación curricular."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 5",
+      enunciado: "¿Qué mecanismos de seguimiento se están implementando para que dichas acciones se cumplan?",
+      tipo: "mixto",
+      totalIE: 5,
+      tally: [
+        {opcion: "Análisis de resultados de Pruebas Saber e ICFES", count: 3},
+        {opcion: "Consejo Académico", count: 3},
+        {opcion: "Comités de área o núcleos de formación", count: 3},
+        {opcion: "Actas de reunión de área", count: 3},
+        {opcion: "Autoevaluación institucional anual", count: 3},
+        {opcion: "Articulación con el PEI", count: 2},
+        {opcion: "Plataformas de gestión académica (JIGRA)", count: 2}
+      ],
+      comun: "A diferencia de otras preguntas del grupo, en los mecanismos de seguimiento a las acciones curriculares no se observa un elemento adoptado por la totalidad de las instituciones: el análisis de resultados de Pruebas Saber e ICFES, el Consejo Académico, los comités de área o núcleos de formación, las actas de reunión de área y la autoevaluación institucional anual son, cada uno, los mecanismos más compartidos, presentes en 3 de las 5 instituciones (60%). Con una adopción del 40% (2 de 5 IE) se ubican la articulación con el PEI y las plataformas de gestión académica (JIGRA). Este patrón de dispersión —más marcado que en el resto de preguntas mixtas del grupo— refleja que el seguimiento a las acciones curriculares en el Grupo 2 depende todavía, en buena medida, de mecanismos propios de cada institución más que de un conjunto de instrumentos comunes y estandarizados.",
+      particularidades: "Gabriel García Márquez vuelve a ser la institución más alejada del catálogo estándar: solo seleccionó autoevaluación institucional anual y complementó con una opción \"Otro\" describiendo el análisis de la eficiencia académica al finalizar cada período escolar como su único mecanismo adicional. Eduardo Santos, en cambio, seleccionó únicamente actas de reunión de área del catálogo, apoyándose de manera extensa en una respuesta \"Otro\" que describe el seguimiento mediante la revisión de planes de aula y evaluaciones institucionales anuales, y que propone explícitamente extender este seguimiento más allá de los docentes del Decreto 1278 — una observación normativa específica no planteada por ninguna otra institución del grupo."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Pregunta 1",
+      enunciado: "¿Consideran que la toma de decisiones en las instituciones educativas actualmente es participativa y democrática? ¿Por qué?",
+      tipo: "cualitativo",
+      comun: "Existe una coincidencia sustancial entre las cinco instituciones del grupo: todas reconocen la existencia de estructuras formales de gobierno escolar (Consejo Directivo, Consejo Académico, Consejo Estudiantil, Personero, Contralor) amparadas en la Ley 115, que en principio garantizan cauces democráticos, pero todas matizan esa existencia formal señalando que la participación real continúa siendo limitada. Gabriel García Márquez resume esta tensión al señalar que estos espacios operan \"bajo un enfoque instrumental o de cumplimiento meramente normativo\"; Fortalecillas advierte que las decisiones estratégicas \"se concentran en la directiva, relegando la participación a un rol informativo o consultivo\"; y Jairo Mosquera Moreno concluye que la participación \"aún no es plenamente incluyente e incidente\". La baja participación e interés de las familias es señalada de manera recurrente como un obstáculo específico —Luis Ignacio Andrade menciona el \"bajo interés de algunos padres de familia\" y Eduardo Santos observa que \"algunos padres muestran poco interés... y suelen participar los mismos representantes año tras año\"—, mientras que la participación estudiantil, aunque valorada positivamente en cuanto a espacios disponibles, se describe como cohibida en la práctica o limitada a la elección de representantes sin mayor incidencia posterior.",
+      particularidades: "Fortalecillas se distingue del resto del grupo por proponer una ruta metodológica propia y estructurada para avanzar hacia una democracia escolar real —\"Participar para decidir\", de cinco pasos (escuchar, priorizar, tramitar, decidir mediante acuerdos vinculantes y retroalimentar)—, una herramienta de gestión participativa sin equivalente en ninguna otra institución del grupo. Eduardo Santos, por su parte, es la única institución en incorporar explícitamente al sector productivo y empresarial como actor con representación formal en el Consejo Directivo."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Pregunta 2",
+      enunciado: "¿Qué acciones se están implementando para canalizar y fortalecer la participación de la comunidad educativa?",
+      tipo: "cualitativo",
+      comun: "El análisis conjunto de las acciones reportadas por las cinco instituciones evidencia dos estrategias ampliamente compartidas. La primera es la apertura de espacios de diálogo, consulta y encuentro con la comunidad educativa —asambleas comunitarias y escuelas de padres en Luis Ignacio Andrade, mesas territoriales de codiseño y escuelas de familias en Gabriel García Márquez, asambleas y consultas comunitarias mediante encuestas y buzones de sugerencias en Fortalecillas, y espacios de diálogo y escucha en Jairo Mosquera Moreno—, orientada a recoger inquietudes y propuestas más allá de las reuniones estrictamente informativas. La segunda es el fortalecimiento del liderazgo y la representación estudiantil, presente de manera explícita en Gabriel García Márquez (su Semillero de Veedores Estudiantiles), Eduardo Santos (fortalecimiento del liderazgo estudiantil y comunitario) y Jairo Mosquera Moreno (fortalecimiento de la representación a través de Personero, Contralor y Consejo Estudiantil). El fortalecimiento de canales de comunicación institucional —redes sociales y aplicaciones de mensajería— aparece también como una estrategia compartida por Luis Ignacio Andrade y Eduardo Santos.",
+      particularidades: "Gabriel García Márquez presenta la particularidad más singular del grupo en esta pregunta: su Semillero de Veedores Estudiantiles articula explícitamente a la institución con la Personería Municipal para capacitar a sus representantes en veeduría sobre la ejecución del PAE y las compras escolares, una alianza interinstitucional de control social sin equivalente en ninguna otra institución del grupo. Eduardo Santos, por su parte, es la única institución en reportar un sistema de motivación mediante puntos y recompensas dentro del aula como estrategia de participación, y la única en articular sus acciones con un proyecto macro institucional nombrado (\"Soy Constructor de mi Vida\")."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Equipos de trabajo",
+      enunciado: "¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar las estrategias y mecanismos de participación escolar?",
+      tipo: "mixto",
+      totalIE: 5,
+      tally: [
+        {opcion: "Gobierno Escolar", count: 4},
+        {opcion: "Consejo Directivo", count: 4},
+        {opcion: "Consejo Académico", count: 4},
+        {opcion: "Consejo Estudiantil", count: 4},
+        {opcion: "Personero Estudiantil", count: 4},
+        {opcion: "Contralor Estudiantil", count: 3},
+        {opcion: "Consejo de Padres de Familia", count: 4},
+        {opcion: "Comité Escolar de Convivencia", count: 3},
+        {opcion: "Comisión de Evaluación y Promoción", count: 3}
+      ],
+      comun: "Cuatro de las cinco instituciones del grupo (Luis Ignacio Andrade, Gabriel García Márquez, Fortalecillas y Jairo Mosquera Moreno) coinciden en identificar el Gobierno Escolar en su conjunto, el Consejo Directivo, el Consejo Académico, el Consejo Estudiantil, el/la Personero(a) Estudiantil y el Consejo de Padres de Familia como los equipos que lideran las estrategias de participación escolar (80% del grupo en cada caso). Con una adopción del 60% (3 de 5 IE) se ubican el/la Contralor(a) Estudiantil, el Comité Escolar de Convivencia y la Comisión de Evaluación y Promoción. Este patrón replica, con leves variaciones, la estructura de gobierno escolar reglamentaria observada en la pregunta análoga de la Sesión 2, confirmando que las instancias formales de representación estudiantil y de gobierno escolar constituyen el eje común de participación en la mayoría de instituciones del grupo.",
+      particularidades: "Eduardo Santos constituye la particularidad más marcada de esta pregunta en todo el grupo: en lugar de seleccionar opciones del catálogo estándar, describió una estructura propia y extensa en texto libre, detallando responsables específicos por nombre para cada frente (un Comité de Ciencias Sociales encargado del seguimiento al Gobierno Escolar, formación técnica a través del SENA a cargo de una docente nombrada, un equipo de gestión para prácticas pedagógicas con la universidad, y asesorías de orientación vocacional con responsables igualmente identificados), lo que impide comparar directamente su respuesta con el catálogo compartido por el resto del grupo. Gabriel García Márquez, por su parte, es la única institución que no reporta ni Contralor(a) Estudiantil ni Comité Escolar de Convivencia entre sus equipos de participación."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Mecanismos de seguimiento",
+      enunciado: "¿Qué mecanismos de seguimiento se están implementando para garantizar las acciones encaminadas a promover gobiernos educativos democráticos?",
+      tipo: "mixto",
+      totalIE: 5,
+      tally: [
+        {opcion: "Autoevaluación institucional anual (Guía 34 – MEN)", count: 5},
+        {opcion: "Plan de Mejoramiento Institucional (PMI)", count: 4},
+        {opcion: "Seguimiento periódico al Plan de Mejoramiento", count: 4},
+        {opcion: "Reuniones periódicas con entes de gobierno escolar", count: 3},
+        {opcion: "Elecciones estudiantiles", count: 3},
+        {opcion: "Elección de docentes para consejo directivo", count: 3},
+        {opcion: "Elección de docentes para consejo académico", count: 3},
+        {opcion: "Actualización y ajuste permanente del PEI", count: 3}
+      ],
+      comun: "La autoevaluación institucional anual conforme a la Guía 34 del MEN es el único mecanismo de seguimiento que las cinco instituciones del grupo, sin excepción, reportan haber implementado para garantizar las acciones hacia gobiernos educativos democráticos. Con una adopción del 80% (4 de 5 IE) se ubican el Plan de Mejoramiento Institucional y su seguimiento periódico; y con una adopción del 60% (3 de 5 IE), las reuniones periódicas con los entes de gobierno escolar, las elecciones estudiantiles, la elección de docentes para los consejos directivo y académico, y la actualización permanente del PEI. Este patrón muestra que, más allá de la autoevaluación institucional —prácticamente universal en el grupo—, existe una diferenciación real en la solidez de los mecanismos de seguimiento entre las instituciones.",
+      particularidades: "Gabriel García Márquez constituye el hallazgo más relevante de esta pregunta para todo el grupo: además de ser la única institución en seleccionar un único mecanismo del catálogo (autoevaluación institucional anual), reconoce explícitamente en su respuesta que \"no se están implementando acciones de seguimiento para garantizar las acciones encaminadas a promover gobiernos educativos democráticos\", una admisión directa de vacío institucional que amerita atención específica de la Secretaría de Educación. Fortalecillas, en el extremo opuesto, es la institución con el mecanismo de seguimiento más robusto y diversificado del grupo, siendo la única en reportar una verificación externa del funcionamiento del Gobierno Escolar por parte de la propia Secretaría de Educación Municipal."
+    }
+  ],
+  conclusiones: "El análisis conjunto de las tres sesiones de trabajo del Grupo 2 permite concluir que, entre las cinco instituciones que a la fecha de este informe han remitido su participación en el Foro, existe una trayectoria compartida de avances reales en la atención a la primera infancia, el fortalecimiento de proyectos pedagógicos transversales y la consolidación formal de estructuras de gobierno escolar, junto con retos comunes en materia de infraestructura, pertinencia curricular frente a la presión de las pruebas estandarizadas, y participación real —más allá de lo formal— de las familias y los estudiantes. Dos hallazgos particulares merecen seguimiento específico de la Secretaría de Educación Municipal: la IE Gabriel García Márquez, que en la pregunta sobre mecanismos de seguimiento de la Sesión 3 reconoció explícitamente no tener implementadas acciones de seguimiento para garantizar gobiernos educativos democráticos, y cuya apertura de prejardín y jardín sigue postergada por limitaciones de infraestructura; y la IE Eduardo Santos, cuya respuesta a la pregunta sobre equipos de trabajo de la Sesión 3 se apartó completamente del catálogo estándar mediante una descripción propia y detallada de responsables institucionales. En cuanto a la valoración general del Foro, de las cinco instituciones del grupo con informe remitido, únicamente Fortalecillas registró formalmente su valoración de la jornada, con una calificación de 5,0 sobre 5,0 en los cuatro criterios evaluados (diálogo y reflexión, participación, ideas y propuestas, y satisfacción con el instrumento), sin comentarios o sugerencias adicionales registrados; las cuatro instituciones restantes (Luis Ignacio Andrade, Gabriel García Márquez, Eduardo Santos y Jairo Mosquera Moreno) aún no han registrado su valoración, y la IE María Cristina Arango de Pastrana, sexta institución del grupo, no había remitido su informe del Foro a la fecha de consolidación de este documento. Se recomienda a la Secretaría de Educación gestionar tanto el diligenciamiento pendiente de la valoración con las cuatro instituciones señaladas, como el seguimiento a la IE María Cristina Arango de Pastrana para completar la participación del grupo.",
+  proyectoNombre: "[Nombre de quien consolida el Informe Consolidado]",
+  proyectoCargo: "[Cargo]",
+  fechaRealizacion: "7 de septiembre de 2026"
+};
+
+/*
+ * Genera (o reescribe, si ya existe) el Informe de Síntesis Grupal del
+ * Grupo 2, dejándolo en la raíz de la carpeta "Grupo G2" (mismo
+ * criterio de idempotencia que el resto de documentos de grupo).
+ *
+ * Uso: desde el editor de Apps Script, seleccionar esta función y
+ * presionar "Ejecutar". El enlace del documento queda en "Ver
+ * registros de ejecución".
+ */
+function generarInformeSintesisGrupo2FEM(){
+  const carpetas=crearEstructuraCarpetasGrupoFEM_("G2");
+  const nombreDoc="Informe de Síntesis - Grupo G2 FEM 2026";
+  const existentesIt=carpetas.grupoFolder.getFilesByName(nombreDoc);
+  const archivoExistente=existentesIt.hasNext() ? existentesIt.next() : null;
+  while(existentesIt.hasNext()) existentesIt.next().setTrashed(true);
+
+  const archivoDoc=generarInformeSintesisGrupoFEM_(DATOS_SINTESIS_GRUPO_2_FEM_, archivoExistente?archivoExistente.getId():null);
+  if(!archivoExistente){
+    carpetas.grupoFolder.addFile(archivoDoc);
+    try{ DriveApp.getRootFolder().removeFile(archivoDoc); }catch(e){}
+  }
+
+  Logger.log("========================================");
+  Logger.log("INFORME DE SÍNTESIS — GRUPO 2 — RESULTADO");
   Logger.log("Documento: "+archivoDoc.getUrl());
   Logger.log("========================================");
 

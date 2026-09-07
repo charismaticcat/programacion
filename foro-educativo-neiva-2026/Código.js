@@ -91,6 +91,14 @@ const LOGO_PIE_ID = "1Cmx7c3ec2gQCjRc8kcNeUbZt5LiURyD5";
 // plano, sin plantilla) — por eso necesita estar públicamente
 // compartido (ver hacerPublicosLogosGlobales() en Pruebas.js).
 const MARCO_ACCESO_ID = "1qKHFEoq61uBOn1tNusZxXcK8rutIxDAS";
+// Recortes (con fondo transparente, sin el mapa mundi) del marco
+// anterior (MARCO_ACCESO_ID), usados como banda decorativa arriba y
+// abajo de la PORTADA de los informes de síntesis grupal — ver
+// generarInformeSintesisGrupoFEM_. Proporción original 1024:230 y
+// 1024:341 respectivamente; deben insertarse manteniendo esa relación
+// de aspecto para no deformar las curvas.
+const FONDO_SINTESIS_BANDA_SUPERIOR_ID = "113N96SZhqOkZclic-Kf-KKsVhqCGTbfN";
+const FONDO_SINTESIS_BANDA_INFERIOR_ID = "15x2ulbI8iZLUluUxKWkAdcJHjrrP8I7-";
 // Foto del diseñador de la aplicación, mostrada en una insignia fija
 // abajo a la izquierda de cada pantalla (ver .marcaDisenador en
 // CSS.html). Debe estar compartida como "cualquiera con el enlace"
@@ -9468,19 +9476,33 @@ function generarDocumentoAnalisisGrupoFEM_(grupo, analisis, idDocExistente){
  *   fechaPresentacion,
  *   secciones:[{sesion, pregunta, enunciado, tipo:"cualitativo"|"mixto",
  *               comun, particularidades, tally:[{opcion,count}], totalIE}],
- *   conclusiones, firmaFuncionarioSEM, responsableConsolidado,
- *   cargoResponsable, fechaFirma
+ *   conclusiones, proyectoNombre, proyectoCargo, fechaRealizacion
  * }
+ * (el bloque de firmas final es "Revisó: Ronald Polanía Perdomo /
+ * Líder de Calidad Educativa." — fijo, igual para todos los grupos —
+ * seguido de "Proyectó: <proyectoNombre> / <proyectoCargo> /
+ * <fechaRealizacion>", que sí varía por grupo).
+ *
+ * Portada: además del título/grupo/IE/responsable/fecha, lleva una
+ * banda decorativa de ancho completo arriba (FONDO_SINTESIS_BANDA_SUPERIOR_ID)
+ * y otra abajo (FONDO_SINTESIS_BANDA_INFERIOR_ID) — recortes sin el
+ * mapa mundi del marco institucional de la Alcaldía (MARCO_ACCESO_ID) —
+ * y una fila con el logo de cada una de las IE del grupo.
  *
  * idDocExistente: mismo criterio que los otros documentos de grupo —
  * si se pasa, se reescribe el mismo archivo (mismo enlace) en vez de
  * crear uno nuevo.
  */
 function generarInformeSintesisGrupoFEM_(datosGrupo, idDocExistente){
-  const VERDE=COLOR_VERDE_DOC, GRIS_TEXTO=COLOR_GRIS_TEXTO_DOC, AMARILLO=COLOR_AMARILLO_DOC;
+  const VERDE=COLOR_VERDE_DOC, GRIS_TEXTO=COLOR_GRIS_TEXTO_DOC, NEGRO="#000000";
   const doc=idDocExistente ? DocumentApp.openById(idDocExistente) : DocumentApp.create("Informe de Síntesis - Grupo "+datosGrupo.grupo+" FEM 2026");
   const body=doc.getBody();
   body.clear();
+
+  // Ancho útil de la página (Carta, márgenes de 2.54cm/72pt por lado:
+  // 612pt de página - 72pt - 72pt = 468pt) — todas las imágenes de
+  // ancho completo de esta función se dimensionan a este valor.
+  const ANCHO_UTIL=468;
 
   function titulo1_(texto){
     const p=body.appendParagraph(texto);
@@ -9492,21 +9514,46 @@ function generarInformeSintesisGrupoFEM_(datosGrupo, idDocExistente){
     const p=body.appendParagraph(texto);
     p.setHeading(DocumentApp.ParagraphHeading.HEADING2);
     p.editAsText().setBold(true).setForegroundColor(VERDE);
+    p.setSpacingBefore(12).setSpacingAfter(6);
+    return p;
+  }
+  // Etiqueta menor (p.ej. "Enfoque: ..." o "Particularidades
+  // coyunturales de las I.E"): NUNCA negrilla (solo los títulos de
+  // verdad — titulo1_/subtitulo_ — la llevan), siempre en negro, y con
+  // espacio antes/después para separarla claramente del cuerpo de
+  // texto que la rodea.
+  function etiquetaMenor_(texto){
+    const p=body.appendParagraph(texto);
+    p.editAsText().setBold(false).setItalic(false).setForegroundColor(NEGRO);
+    p.setSpacingBefore(10).setSpacingAfter(6);
     return p;
   }
   function parrafo_(texto){
     const p=body.appendParagraph(texto);
     p.editAsText().setForegroundColor(GRIS_TEXTO);
+    p.setAlignment(DocumentApp.HorizontalAlignment.JUSTIFY);
     return p;
   }
   function porcentaje_(parte,total){ return total>0 ? ((parte/total)*100).toFixed(1)+"%" : "0.0%"; }
+  // Inserta una imagen de ancho completo (ANCHO_UTIL) respetando su
+  // proporción original, para no deformarla.
+  function imagenAnchoCompleto_(blob){
+    const img=body.appendImage(blob);
+    const escala=ANCHO_UTIL/img.getWidth();
+    img.setWidth(ANCHO_UTIL);
+    img.setHeight(Math.round(img.getHeight()*escala));
+    return img;
+  }
 
   // ---------- PORTADA ----------
+  try{ imagenAnchoCompleto_(DriveApp.getFileById(FONDO_SINTESIS_BANDA_SUPERIOR_ID).getBlob()); }
+  catch(errorBandaSup){ Logger.log("Banda superior de portada ("+datosGrupo.grupo+"): "+errorBandaSup.message); }
+
   const tituloDoc=body.appendParagraph(datosGrupo.tituloInforme||("INFORME DE SÍNTESIS GRUPAL — GRUPO "+datosGrupo.grupo));
   tituloDoc.setHeading(DocumentApp.ParagraphHeading.TITLE);
   tituloDoc.editAsText().setBold(true).setForegroundColor(VERDE);
   const subDoc=body.appendParagraph("FEM 2026 “Escuela Viva: Voces que construyen territorio”.\nForo Educativo Institucional — Neiva 2026");
-  subDoc.editAsText().setForegroundColor(GRIS_TEXTO).setItalic(true);
+  subDoc.editAsText().setForegroundColor(GRIS_TEXTO).setItalic(false);
   body.appendParagraph("");
 
   function filaPortada_(etiqueta, valor){
@@ -9522,6 +9569,42 @@ function generarInformeSintesisGrupoFEM_(datosGrupo, idDocExistente){
   filaPortada_("Responsable del informe", datosGrupo.responsableInforme);
   filaPortada_("Fecha de presentación", datosGrupo.fechaPresentacion);
   filaPortada_("Lugar", "Neiva, Huila.");
+  body.appendParagraph("");
+
+  // Los 6 (o los que tenga el grupo) logos institucionales, en una
+  // sola fila horizontal que ocupa el ancho útil de la página.
+  const logosIE=datosGrupo.instituciones.map(function(nombreIE){
+    try{
+      const logoId=obtenerLogoIdPorNombreIE_(nombreIE);
+      return logoId ? DriveApp.getFileById(logoId).getBlob() : null;
+    }catch(errorLogoIE){ Logger.log("Logo de "+nombreIE+" en portada de síntesis "+datosGrupo.grupo+": "+errorLogoIE.message); return null; }
+  });
+  if(logosIE.some(function(b){ return b; })){
+    const n=logosIE.length;
+    const anchoCelda=Math.floor(ANCHO_UTIL/n);
+    const tablaLogos=body.appendTable();
+    tablaLogos.setBorderColor("#FFFFFF");
+    const filaLogos=tablaLogos.appendTableRow();
+    logosIE.forEach(function(blob){
+      const celda=filaLogos.appendTableCell("");
+      celda.setWidth(anchoCelda);
+      const pCelda=celda.getChild(0).asParagraph();
+      pCelda.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+      if(blob){
+        try{
+          const img=pCelda.appendInlineImage(blob);
+          const alturaMax=48, anchoOriginal=img.getWidth(), altoOriginal=img.getHeight();
+          let w=anchoOriginal, h=altoOriginal;
+          if(h>alturaMax){ h=alturaMax; w=Math.round(anchoOriginal*alturaMax/altoOriginal); }
+          if(w>anchoCelda-6){ const f=(anchoCelda-6)/w; w=Math.round(w*f); h=Math.round(h*f); }
+          img.setWidth(w).setHeight(h);
+        }catch(errorImgLogo){ Logger.log("Insertar logo en portada de síntesis "+datosGrupo.grupo+": "+errorImgLogo.message); }
+      }
+    });
+  }
+
+  try{ imagenAnchoCompleto_(DriveApp.getFileById(FONDO_SINTESIS_BANDA_INFERIOR_ID).getBlob()); }
+  catch(errorBandaInf){ Logger.log("Banda inferior de portada ("+datosGrupo.grupo+"): "+errorBandaInf.message); }
   body.appendPageBreak();
 
   // ---------- PRESENTACIÓN METODOLÓGICA ----------
@@ -9537,8 +9620,7 @@ function generarInformeSintesisGrupoFEM_(datosGrupo, idDocExistente){
       titulo1_(sesionActual);
     }
     subtitulo_(sec.pregunta+(sec.enunciado?": "+sec.enunciado:""));
-    const pEnfoque=body.appendParagraph("Enfoque: "+(sec.tipo==="mixto"?"mixto (cuantitativo y cualitativo)":"descriptivo cualitativo"));
-    pEnfoque.editAsText().setItalic(true).setFontSize(9).setForegroundColor(GRIS_TEXTO);
+    etiquetaMenor_("Enfoque: "+(sec.tipo==="mixto"?"mixto (cuantitativo y cualitativo)":"descriptivo cualitativo"));
 
     parrafo_(sec.comun);
 
@@ -9569,8 +9651,7 @@ function generarInformeSintesisGrupoFEM_(datosGrupo, idDocExistente){
       body.appendParagraph("");
     }
 
-    const pPart=body.appendParagraph("Particularidades coyunturales de las I.E");
-    pPart.editAsText().setBold(true).setForegroundColor(AMARILLO).setFontSize(10);
+    etiquetaMenor_("Particularidades coyunturales de las I.E");
     parrafo_(sec.particularidades);
     body.appendParagraph("");
   });
@@ -9595,16 +9676,19 @@ function generarInformeSintesisGrupoFEM_(datosGrupo, idDocExistente){
   catch(errorLogoSem){ Logger.log("Logo de la SEM en cierre de síntesis "+datosGrupo.grupo+": "+errorLogoSem.message); }
 
   body.appendParagraph("");
-  function lineaFirma_(texto, negrilla){
+  function lineaFirma_(texto){
     const p=body.appendParagraph(String(texto||""));
-    p.editAsText().setForegroundColor(GRIS_TEXTO);
-    if(negrilla) p.editAsText().setBold(true);
+    p.editAsText().setBold(false).setItalic(false).setForegroundColor(GRIS_TEXTO);
     return p;
   }
-  lineaFirma_(datosGrupo.firmaFuncionarioSEM, true);
-  lineaFirma_(datosGrupo.responsableConsolidado, true);
-  lineaFirma_(datosGrupo.cargoResponsable, false);
-  lineaFirma_(datosGrupo.fechaFirma, false);
+  // Bloque de firmas fijo pedido expresamente: "Revisó" (funcionario(a)
+  // fijo de la SEM) y "Proyectó" (responsable de este informe grupal,
+  // variable por grupo).
+  lineaFirma_("Revisó: Ronald Polanía Perdomo");
+  lineaFirma_("Líder de Calidad Educativa.");
+  lineaFirma_("Proyectó: "+(datosGrupo.proyectoNombre||"[Nombre de quien consolida el Informe Consolidado]"));
+  lineaFirma_(datosGrupo.proyectoCargo||"[Cargo]");
+  lineaFirma_(datosGrupo.fechaRealizacion||"");
 
   doc.saveAndClose();
   return DriveApp.getFileById(doc.getId());
