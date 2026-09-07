@@ -9147,3 +9147,214 @@ function generarDocumentoCompiladoGrupoFEM_(grupo, listaIEsConSesiones, idDocExi
   doc.saveAndClose();
   return DriveApp.getFileById(doc.getId());
 }
+
+/*
+ * Documento de ANÁLISIS (Google Doc editable) de UN grupo de trabajo
+ * (G1-G6), con 9 secciones: 1) IE que lo conforman, 2) número y tipo
+ * de participantes, 3) edad de los participantes, 4-5) fortalezas y
+ * debilidades del grupo en general (gráfico + texto), 6-7) lo mismo
+ * pero desglosado por grupo de edad (niños, adolescentes, adultos),
+ * y 8-9) comparativo entre esos grupos de edad (gráfico + texto).
+ *
+ * "analisis" ya viene calculado por quien llama (generarDocumentosAnalisisPorGrupoFEM
+ * en Pruebas.js): {miembros, porRol, totalParticipantes, asistentesGrupo}.
+ * Reutiliza exactamente las mismas funciones de tally/gráficos/edad
+ * que ya usa el informe individual de cada IE (tallyOpciones_,
+ * categoriaEdad_, calcularDemografiaAsistentes_,
+ * construirGraficoColumnas_/BarrasHorizontal_, top3Texto_), para que
+ * el análisis del grupo hable "el mismo idioma" que los informes.
+ *
+ * idDocExistente: si se pasa, se reescribe ESE MISMO documento en vez
+ * de crear uno nuevo (mismo criterio que generarDocumentoCompiladoGrupoFEM_).
+ */
+function generarDocumentoAnalisisGrupoFEM_(grupo, analisis, idDocExistente){
+  const VERDE=COLOR_VERDE_DOC, GRIS_TEXTO=COLOR_GRIS_TEXTO_DOC, AMARILLO=COLOR_AMARILLO_DOC;
+  const estilos={VERDE:VERDE, GRIS_TEXTO:GRIS_TEXTO};
+  const doc=idDocExistente ? DocumentApp.openById(idDocExistente) : DocumentApp.create("Análisis de Grupo "+grupo+" FEM 2026");
+  const body=doc.getBody();
+  body.clear();
+
+  function titulo1_(texto){
+    const p=body.appendParagraph(texto);
+    p.setHeading(DocumentApp.ParagraphHeading.HEADING1);
+    p.editAsText().setBold(true).setForegroundColor(VERDE);
+    return p;
+  }
+  function subtitulo_(texto){
+    const p=body.appendParagraph(texto);
+    p.setHeading(DocumentApp.ParagraphHeading.HEADING2);
+    p.editAsText().setBold(true).setForegroundColor(VERDE);
+    return p;
+  }
+  function parrafo_(texto){
+    const p=body.appendParagraph(texto);
+    p.editAsText().setForegroundColor(GRIS_TEXTO);
+    return p;
+  }
+  function tabla_(filas){
+    const t=body.appendTable();
+    t.setBorderColor("#FFFFFF"); t.setBorderWidth(6);
+    filas.forEach(function(x){
+      const r=t.appendTableRow();
+      const acento=r.appendTableCell(""); acento.setBackgroundColor(AMARILLO); acento.setWidth(6);
+      const contenido=r.appendTableCell(""); contenido.setBackgroundColor("#FFFFFF");
+      const pTitulo=contenido.getChild(0).asParagraph(); pTitulo.setText(String(x[0]||""));
+      pTitulo.editAsText().setBold(true).setForegroundColor(VERDE).setFontSize(10);
+      const pValor=contenido.appendParagraph(String(x[1]||"—"));
+      pValor.editAsText().setBold(false).setForegroundColor(GRIS_TEXTO).setFontSize(10);
+    });
+    return t;
+  }
+  function porcentaje_(parte,total){ return total>0 ? ((parte/total)*100).toFixed(1)+"%" : "0.0%"; }
+
+  const tituloDoc=body.appendParagraph("ANÁLISIS DE GRUPO — "+grupo);
+  tituloDoc.setHeading(DocumentApp.ParagraphHeading.TITLE);
+  tituloDoc.editAsText().setBold(true).setForegroundColor(VERDE);
+  const subtituloDoc=body.appendParagraph("Foro Educativo Institucional – Neiva 2026");
+  subtituloDoc.editAsText().setForegroundColor(GRIS_TEXTO).setItalic(true);
+  body.appendParagraph("");
+
+  // 1) IE que conforman el grupo.
+  titulo1_("1. Instituciones educativas que conforman el grupo");
+  tabla_(analisis.miembros.length
+    ? analisis.miembros.map(function(ie,i){ return ["IE "+(i+1), ie]; })
+    : [["Sin instituciones", "—"]]);
+
+  // 2) Número y tipo de participantes (según caracterización).
+  titulo1_("2. Número y tipo de participantes");
+  parrafo_("Total de participantes según caracterización institucional: "+analisis.totalParticipantes+".");
+  tabla_(analisis.porRol.map(function(r){ return [r.etiqueta, r.total+" ("+porcentaje_(r.total,analisis.totalParticipantes)+")"]; }));
+
+  // 3) Edad de los participantes (según firmas de asistencia QR).
+  titulo1_("3. Edad de los participantes");
+  const asistentesGrupo=analisis.asistentesGrupo;
+  if(!asistentesGrupo.length){
+    parrafo_("No hay firmas de asistencia por código QR registradas en ninguna IE de este grupo, así que no es posible calcular el perfil de edad ni la percepción del Foro.");
+  }else{
+    const dem=calcularDemografiaAsistentes_(asistentesGrupo);
+    parrafo_(
+      "De los "+asistentesGrupo.length+" asistentes que firmaron por código QR en las IE de este grupo, se registraron "+dem.hombresAdultos+" hombres adultos y "+dem.mujeresAdultas+" mujeres adultas (mayores de 18 años); "+dem.adolescentesHombres+" adolescentes hombres y "+dem.adolescentesMujeres+" adolescentes mujeres (entre los 13 y los 18 años); y "+dem.ninos+" niños y "+dem.ninas+" niñas (entre los 0 y los 12 años)."+
+      (dem.otro?" Adicionalmente, "+dem.otro+" personas seleccionaron la opción \"Prefiero no decirlo\" en la pregunta de sexo.":"")+
+      (dem.noResponde?" "+dem.noResponde+" persona"+(dem.noResponde===1?"":"s")+" eligió la opción \"Prefiero no responder\" en la pregunta de edad.":"")
+    );
+    try{
+      const etiquetasSexo=["Niños","Niñas","Adolesc. hombres","Adolesc. mujeres","Hombres adultos","Mujeres adultas"];
+      const valoresSexo=[dem.ninos,dem.ninas,dem.adolescentesHombres,dem.adolescentesMujeres,dem.hombresAdultos,dem.mujeresAdultas];
+      body.appendImage(construirGraficoColumnas_("Participantes por sexo y edad — Grupo "+grupo,etiquetasSexo,valoresSexo)).setWidth(540);
+    }catch(errorEdad){ Logger.log("Gráfico de edad del grupo "+grupo+": "+errorEdad.message); }
+  }
+
+  const tFGeneral=tallyOpciones_(asistentesGrupo,"fortalezas"), tDGeneral=tallyOpciones_(asistentesGrupo,"dificultades");
+
+  // 4) Gráfico general de fortalezas y debilidades del grupo.
+  titulo1_("4. Fortalezas y debilidades del grupo en general");
+  if(asistentesGrupo.length){
+    agregarGraficoConOtro_(body,estilos,"Fortalezas más votadas — Grupo "+grupo,tFGeneral,
+      asistentesGrupo.map(function(p){return p.fortalezaOtro;}).filter(Boolean));
+    agregarGraficoConOtro_(body,estilos,"Debilidades/oportunidades de mejoramiento más votadas — Grupo "+grupo,tDGeneral,
+      asistentesGrupo.map(function(p){return p.dificultadOtro;}).filter(Boolean));
+  }else{
+    parrafo_("No hay datos de percepción registrados todavía.");
+  }
+
+  // 5) Texto de análisis general.
+  titulo1_("5. Análisis de fortalezas y debilidades del grupo en general");
+  parrafo_(asistentesGrupo.length
+    ? "Los "+asistentesGrupo.length+" participantes de las IE de este grupo que firmaron asistencia por código QR expresaron que las principales fortalezas institucionales identificadas fueron "+top3Texto_(tFGeneral)+", mientras que las principales debilidades u oportunidades de mejoramiento identificadas fueron "+top3Texto_(tDGeneral)+"."
+    : "No hay datos suficientes para un análisis general de este grupo todavía.");
+
+  // Segmentación por grupo de edad, reutilizada en 6, 7, 8 y 9.
+  const brackets=[
+    {clave:"nino", etiqueta:"Niños y niñas (0-12 años)"},
+    {clave:"adolescente", etiqueta:"Adolescentes (13-18 años)"},
+    {clave:"adulto", etiqueta:"Adultos (18+ años)"}
+  ].map(function(b){
+    const personas=asistentesGrupo.filter(function(p){ return categoriaEdad_(p.edad)===b.clave; });
+    return Object.assign({}, b, {
+      personas:personas,
+      tF:tallyOpciones_(personas,"fortalezas"),
+      tD:tallyOpciones_(personas,"dificultades")
+    });
+  });
+
+  // 6) Gráfico por edad de fortalezas y debilidades.
+  titulo1_("6. Fortalezas y debilidades por grupo de edad");
+  const bracketsConDatos=brackets.filter(function(b){ return b.personas.length>0; });
+  if(!bracketsConDatos.length){
+    parrafo_("No hay datos de percepción registrados todavía para ningún grupo de edad.");
+  }else{
+    bracketsConDatos.forEach(function(b){
+      subtitulo_(b.etiqueta+" — "+b.personas.length+" participante"+(b.personas.length===1?"":"s"));
+      agregarGraficoConOtro_(body,estilos,"Fortalezas más votadas — "+b.etiqueta,b.tF,
+        b.personas.map(function(p){return p.fortalezaOtro;}).filter(Boolean));
+      agregarGraficoConOtro_(body,estilos,"Debilidades más votadas — "+b.etiqueta,b.tD,
+        b.personas.map(function(p){return p.dificultadOtro;}).filter(Boolean));
+    });
+  }
+
+  // 7) Texto de análisis por grupo de edad.
+  titulo1_("7. Análisis de fortalezas y debilidades por grupo de edad");
+  if(!bracketsConDatos.length){
+    parrafo_("No hay datos suficientes todavía.");
+  }else{
+    bracketsConDatos.forEach(function(b){
+      parrafo_(
+        "En "+b.etiqueta.toLowerCase()+", los "+b.personas.length+" participantes de este grupo destacaron especialmente "+top3Texto_(b.tF)+
+        ". Como debilidades u oportunidades de mejoramiento, señalaron "+top3Texto_(b.tD)+"."
+      );
+    });
+  }
+
+  // 8) Gráfico comparativo entre grupos de edad.
+  titulo1_("8. Comparativo de percepción entre grupos de edad");
+  if(bracketsConDatos.length>1){
+    const etiquetasComp=bracketsConDatos.map(function(b){ return b.etiqueta; });
+    try{
+      body.appendImage(construirGraficoColumnas_("Total de menciones de fortalezas por grupo de edad",etiquetasComp,
+        bracketsConDatos.map(function(b){ return b.tF.reduce(function(s,x){return s+x.votos;},0); }))).setWidth(540);
+    }catch(errorComp1){ Logger.log("Gráfico comparativo de fortalezas (grupo "+grupo+"): "+errorComp1.message); }
+    try{
+      body.appendImage(construirGraficoColumnas_("Total de menciones de debilidades por grupo de edad",etiquetasComp,
+        bracketsConDatos.map(function(b){ return b.tD.reduce(function(s,x){return s+x.votos;},0); }))).setWidth(540);
+    }catch(errorComp2){ Logger.log("Gráfico comparativo de debilidades (grupo "+grupo+"): "+errorComp2.message); }
+  }else{
+    parrafo_("Se necesita más de un grupo de edad con datos para poder comparar.");
+  }
+
+  // 9) Texto de análisis comparativo entre grupos de edad.
+  titulo1_("9. Análisis comparativo de fortalezas y debilidades según grupos de edad");
+  if(bracketsConDatos.length>1){
+    function top3Opciones_(tally){ return tally.slice(0,3).map(function(x){return x.opcion;}); }
+    function interseccion_(listas){
+      return listas.reduce(function(acc,lista){ return acc.filter(function(o){ return lista.indexOf(o)!==-1; }); });
+    }
+    const topFPorBracket=bracketsConDatos.map(function(b){ return top3Opciones_(b.tF); });
+    const topDPorBracket=bracketsConDatos.map(function(b){ return top3Opciones_(b.tD); });
+    const fortalezasComunes=interseccion_(topFPorBracket).filter(Boolean);
+    const debilidadesComunes=interseccion_(topDPorBracket).filter(Boolean);
+    const resumenParticipacion=bracketsConDatos.map(function(b){ return b.etiqueta+" ("+b.personas.length+")"; }).join(", ");
+
+    parrafo_(
+      "Comparando los grupos de edad con datos suficientes — "+resumenParticipacion+" — "+
+      (fortalezasComunes.length
+        ? "coinciden en valorar como fortaleza común "+fortalezasComunes.map(function(o){return o.replace(/\.$/,"");}).join("; ")+"."
+        : "no se identificó ninguna fortaleza que esté simultáneamente entre las 3 más votadas de todos los grupos de edad, lo que sugiere percepciones distintas según la edad.")
+    );
+    parrafo_(
+      (debilidadesComunes.length
+        ? "En cuanto a las debilidades, coinciden en señalar "+debilidadesComunes.map(function(o){return o.replace(/\.$/,"");}).join("; ")+" como una preocupación compartida entre grupos de edad."
+        : "En cuanto a las debilidades, no se identificó ninguna que esté simultáneamente entre las 3 más votadas de todos los grupos de edad — cada grupo prioriza oportunidades de mejoramiento distintas.")
+    );
+    bracketsConDatos.forEach(function(b){
+      const fPropias=top3Opciones_(b.tF).filter(function(o){ return fortalezasComunes.indexOf(o)===-1; });
+      if(fPropias.length){
+        parrafo_(b.etiqueta+" destaca de forma particular: "+fPropias.map(function(o){return o.replace(/\.$/,"");}).join("; ")+".");
+      }
+    });
+  }else{
+    parrafo_("No hay suficientes grupos de edad con datos para un análisis comparativo todavía.");
+  }
+
+  doc.saveAndClose();
+  return DriveApp.getFileById(doc.getId());
+}

@@ -5449,12 +5449,98 @@ function construirHojaValoracionGrupoFEM_(ss, grupos){
   return sh;
 }
 
+/*
+ * Escribe, a partir de filaActual, el bloque de percepción (texto +
+ * tablas con Votos Y Porcentaje + gráficos) de UNA lista de
+ * asistentes ya combinada — se usa tanto para el bloque "TODAS LAS
+ * IE" (municipal) como para cada uno de los G1-G6. Devuelve la fila
+ * siguiente libre para el próximo bloque.
+ */
+function escribirBloquePercepcionFEM_(sh, filaActual, tituloBloque, asistentes){
+  sh.getRange(filaActual,1).setValue(tituloBloque);
+  sh.getRange(filaActual,1).setFontWeight("bold").setFontSize(11);
+  filaActual+=1;
+
+  if(!asistentes.length){
+    sh.getRange(filaActual,1).setValue("Todavía no hay asistencia registrada por código QR.");
+    return filaActual+3;
+  }
+
+  const tF=tallyOpciones_(asistentes,"fortalezas"), tD=tallyOpciones_(asistentes,"dificultades");
+  const total=asistentes.length;
+  sh.getRange(filaActual,1).setValue(
+    "Los "+total+" participantes que firmaron asistencia por código QR expresaron que las principales fortalezas institucionales identificadas en el Foro fueron "+top3Texto_(tF)+
+    ", mientras que las principales oportunidades de mejoramiento institucional identificadas fueron "+top3Texto_(tD)+"."
+  );
+  sh.getRange(filaActual,1,1,1).setWrap(true);
+  filaActual+=2;
+
+  const filaTablas=filaActual;
+  function filasConPorcentaje_(tally){
+    return tally.map(function(x){ return [x.opcion, x.votos, ((x.votos/total)*100).toFixed(1)+"%"]; });
+  }
+  sh.getRange(filaTablas,1,1,3).setValues([["Fortaleza","Votos","% de asistentes"]]);
+  if(tF.length) sh.getRange(filaTablas+1,1,tF.length,3).setValues(filasConPorcentaje_(tF));
+
+  sh.getRange(filaTablas,5,1,3).setValues([["Oportunidad de mejoramiento","Votos","% de asistentes"]]);
+  if(tD.length) sh.getRange(filaTablas+1,5,tD.length,3).setValues(filasConPorcentaje_(tD));
+
+  // Un gráfico de Votos (número) y uno de Porcentaje, para cada lista
+  // — así queda visible tanto el número como el porcentaje pedido.
+  if(tF.length){
+    const rangoFVotos=sh.getRange(filaTablas,1,tF.length+1,2);
+    sh.insertChart(sh.newChart().setChartType(Charts.ChartType.BAR).addRange(rangoFVotos)
+      .setOption("title","Fortalezas más votadas (número) — "+tituloBloque)
+      .setOption("width",380).setOption("height",Math.max(220,40+tF.length*22))
+      .setPosition(filaTablas,9,0,0).build());
+    // Rango no contiguo (columna 1 + columna 3, la de porcentaje):
+    // dos addRange() en el mismo gráfico se combinan en una sola
+    // tabla de datos, sin necesidad de una columna auxiliar.
+    sh.insertChart(sh.newChart().setChartType(Charts.ChartType.BAR)
+      .addRange(sh.getRange(filaTablas,1,tF.length+1,1))
+      .addRange(sh.getRange(filaTablas,3,tF.length+1,1))
+      .setOption("title","Fortalezas más votadas (% de asistentes) — "+tituloBloque)
+      .setOption("width",380).setOption("height",Math.max(220,40+tF.length*22))
+      .setPosition(filaTablas,14,0,0).build());
+  }
+  if(tD.length){
+    const rangoDVotos=sh.getRange(filaTablas,5,tD.length+1,2);
+    sh.insertChart(sh.newChart().setChartType(Charts.ChartType.BAR).addRange(rangoDVotos)
+      .setOption("title","Oportunidades de mejoramiento más votadas (número) — "+tituloBloque)
+      .setOption("width",380).setOption("height",Math.max(220,40+tD.length*22))
+      .setPosition(filaTablas,19,0,0).build());
+    sh.insertChart(sh.newChart().setChartType(Charts.ChartType.BAR)
+      .addRange(sh.getRange(filaTablas,5,tD.length+1,1))
+      .addRange(sh.getRange(filaTablas,7,tD.length+1,1))
+      .setOption("title","Oportunidades de mejoramiento más votadas (% de asistentes) — "+tituloBloque)
+      .setOption("width",380).setOption("height",Math.max(220,40+tD.length*22))
+      .setPosition(filaTablas,24,0,0).build());
+  }
+
+  const filasTablaMax=Math.max(tF.length,tD.length)+1;
+  const filasChartMax=Math.ceil(Math.max(220,40+Math.max(tF.length,tD.length)*22)/21);
+  return filaTablas+Math.max(filasTablaMax,filasChartMax)+3;
+}
+
 function construirHojaPercepcionGrupoFEM_(ss, grupos){
   const sh=hojaLimpiaGrupoFEM_(ss, "Percepción por Grupo");
-  sh.getRange(1,1).setValue("PERCEPCIÓN DE FORTALEZAS Y OPORTUNIDADES DE MEJORAMIENTO, COMBINADA POR GRUPO — FEM 2026");
+  sh.getRange(1,1).setValue("PERCEPCIÓN DE FORTALEZAS Y OPORTUNIDADES DE MEJORAMIENTO — FEM 2026");
   sh.getRange(1,1).setFontWeight("bold").setFontSize(13);
 
   let filaActual=3;
+
+  // Bloque municipal: TODAS las IE reales combinadas (a partir de
+  // AsistenciaQR completa), a pedido expreso — número Y porcentaje.
+  let asistentesMunicipio=[];
+  GRUPOS_FEM_ORDEN_.concat((grupos.SIN_GRUPO||[]).length?["SIN_GRUPO"]:[]).forEach(function(g){
+    (grupos[g]||[]).forEach(function(m){
+      try{ asistentesMunicipio=asistentesMunicipio.concat(obtenerAsistentesQR_(m.idForo)); }
+      catch(error){ Logger.log("Asistentes QR de "+m.nombreIE+" (municipal): "+error.message); }
+    });
+  });
+  filaActual=escribirBloquePercepcionFEM_(sh, filaActual, "TODAS LAS IE (percepción general municipal, "+asistentesMunicipio.length+" asistentes)", asistentesMunicipio);
+  filaActual+=1;
+
   GRUPOS_FEM_ORDEN_.forEach(function(g){
     const miembros=grupos[g]||[];
     let asistentes=[];
@@ -5462,53 +5548,10 @@ function construirHojaPercepcionGrupoFEM_(ss, grupos){
       try{ asistentes=asistentes.concat(obtenerAsistentesQR_(m.idForo)); }
       catch(error){ Logger.log("Asistentes QR de "+m.nombreIE+" ("+g+"): "+error.message); }
     });
-
-    sh.getRange(filaActual,1).setValue(etiquetaGrupoFEM_(g)+" — Percepción combinada ("+asistentes.length+" asistentes de "+miembros.length+" IE)");
-    sh.getRange(filaActual,1).setFontWeight("bold").setFontSize(11);
-    filaActual+=1;
-
-    if(!asistentes.length){
-      sh.getRange(filaActual,1).setValue("Todavía no hay asistencia registrada por código QR en ninguna IE de este grupo.");
-      filaActual+=3;
-      return;
-    }
-
-    const tF=tallyOpciones_(asistentes,"fortalezas"), tD=tallyOpciones_(asistentes,"dificultades");
-    sh.getRange(filaActual,1).setValue(
-      "Los "+asistentes.length+" participantes de este grupo que firmaron asistencia por código QR expresaron que las principales fortalezas institucionales identificadas en el Foro fueron "+top3Texto_(tF)+
-      ", mientras que las principales oportunidades de mejoramiento institucional identificadas fueron "+top3Texto_(tD)+"."
-    );
-    sh.getRange(filaActual,1,1,1).setWrap(true);
-    filaActual+=2;
-
-    const filaTablas=filaActual;
-    sh.getRange(filaTablas,1,1,2).setValues([["Fortaleza","Votos"]]);
-    if(tF.length) sh.getRange(filaTablas+1,1,tF.length,2).setValues(tF.map(function(x){return [x.opcion,x.votos];}));
-
-    sh.getRange(filaTablas,4,1,2).setValues([["Oportunidad de mejoramiento","Votos"]]);
-    if(tD.length) sh.getRange(filaTablas+1,4,tD.length,2).setValues(tD.map(function(x){return [x.opcion,x.votos];}));
-
-    if(tF.length){
-      const rangoF=sh.getRange(filaTablas,1,tF.length+1,2);
-      sh.insertChart(sh.newChart().setChartType(Charts.ChartType.BAR).addRange(rangoF)
-        .setOption("title","Fortalezas más votadas — "+etiquetaGrupoFEM_(g))
-        .setOption("width",420).setOption("height",Math.max(220,40+tF.length*22))
-        .setPosition(filaTablas,7,0,0).build());
-    }
-    if(tD.length){
-      const rangoD=sh.getRange(filaTablas,4,tD.length+1,2);
-      sh.insertChart(sh.newChart().setChartType(Charts.ChartType.BAR).addRange(rangoD)
-        .setOption("title","Oportunidades de mejoramiento más votadas — "+etiquetaGrupoFEM_(g))
-        .setOption("width",420).setOption("height",Math.max(220,40+tD.length*22))
-        .setPosition(filaTablas,13,0,0).build());
-    }
-
-    const filasTablaMax=Math.max(tF.length,tD.length)+1;
-    const filasChartMax=Math.ceil(Math.max(220,40+Math.max(tF.length,tD.length)*22)/21);
-    filaActual=filaTablas+Math.max(filasTablaMax,filasChartMax)+3;
+    filaActual=escribirBloquePercepcionFEM_(sh, filaActual, etiquetaGrupoFEM_(g)+" — Percepción combinada ("+asistentes.length+" asistentes de "+miembros.length+" IE)", asistentes);
   });
 
-  sh.autoResizeColumns(1,6);
+  sh.autoResizeColumns(1,8);
   return sh;
 }
 
@@ -5862,6 +5905,71 @@ function limpiarAsistenciaQR(){
   Logger.log("LIMPIEZA DE ASISTENCIAQR — RESULTADO");
   Logger.log("Filas en blanco eliminadas: "+resultado.filasEnBlancoEliminadas);
   Logger.log("ID_FORO corregidos: "+JSON.stringify(resultado.idForoCorregidos));
+  Logger.log("========================================");
+
+  return resultado;
+}
+
+/*
+ * 4) Un Google Doc de ANÁLISIS por grupo (G1-G6), con las 9 secciones
+ * pedidas: IE del grupo, participación por rol, edad de los
+ * participantes, fortalezas/debilidades generales (gráfico + texto),
+ * lo mismo por grupo de edad, y el comparativo entre grupos de edad
+ * (ver generarDocumentoAnalisisGrupoFEM_ en Código.js). Se deja en la
+ * raíz de la carpeta del grupo, junto al documento de "Respuestas
+ * Compiladas". Igual que ese, NUNCA crea un documento nuevo si ya
+ * existe uno con el mismo nombre: lo reescribe en el mismo archivo.
+ *
+ * Uso: desde el editor de Apps Script, seleccionar esta función y
+ * presionar "Ejecutar".
+ */
+function generarDocumentosAnalisisPorGrupoFEM(){
+  const grupos=mapaGruposFEM_();
+  const resultado={};
+
+  GRUPOS_FEM_ORDEN_.forEach(function(g){
+    const miembros=(grupos[g]||[]).slice().sort(function(a,b){ return a.nombreIE.localeCompare(b.nombreIE,"es"); });
+
+    const conteoPorRol=ROLES_PARTICIPACION_ANALISIS_.map(function(){ return 0; });
+    let asistentesGrupo=[];
+    miembros.forEach(function(m){
+      try{
+        const datos=obtenerDatosGuardadosPorIdForo_(m.idForo);
+        const c=(datos&&datos.campos)||{};
+        ROLES_PARTICIPACION_ANALISIS_.forEach(function(id,i){ conteoPorRol[i]+=Number(c["participantes"+id]?.valor||0); });
+      }catch(error){ Logger.log("Participación de "+m.nombreIE+" para análisis de grupo "+g+": "+error.message); }
+      try{ asistentesGrupo=asistentesGrupo.concat(obtenerAsistentesQR_(m.idForo)); }
+      catch(error){ Logger.log("Asistentes QR de "+m.nombreIE+" para análisis de grupo "+g+": "+error.message); }
+    });
+
+    const totalParticipantes=conteoPorRol.reduce(function(a,b){return a+b;},0);
+    const porRol=ETIQUETAS_PARTICIPACION_ANALISIS_.map(function(etiqueta,i){ return {etiqueta:etiqueta, total:conteoPorRol[i]}; });
+
+    const analisis={
+      miembros:miembros.map(function(m){return m.nombreIE;}),
+      porRol:porRol,
+      totalParticipantes:totalParticipantes,
+      asistentesGrupo:asistentesGrupo
+    };
+
+    const carpetas=crearEstructuraCarpetasGrupoFEM_(g);
+    const nombreDoc="Análisis de Grupo "+g+" FEM 2026";
+    const existentesIt=carpetas.grupoFolder.getFilesByName(nombreDoc);
+    const archivoExistente=existentesIt.hasNext() ? existentesIt.next() : null;
+    while(existentesIt.hasNext()) existentesIt.next().setTrashed(true);
+
+    const archivoDoc=generarDocumentoAnalisisGrupoFEM_(g, analisis, archivoExistente?archivoExistente.getId():null);
+    if(!archivoExistente){
+      carpetas.grupoFolder.addFile(archivoDoc);
+      try{ DriveApp.getRootFolder().removeFile(archivoDoc); }catch(e){}
+    }
+
+    resultado[g]={documento:archivoDoc.getUrl(), ieIncluidas:analisis.miembros, totalParticipantes:totalParticipantes, totalAsistentesQR:asistentesGrupo.length};
+  });
+
+  Logger.log("========================================");
+  Logger.log("DOCUMENTOS DE ANÁLISIS POR GRUPO — RESULTADO");
+  Logger.log(JSON.stringify(resultado, null, 2));
   Logger.log("========================================");
 
   return resultado;
