@@ -96,10 +96,9 @@ genera una vez al poblar `GruposComunal` (p. ej. `GRUPO-01`) y es estable durant
   Google) — toda la seguridad es de aplicación.
 - Acceso por **token + código a nivel de GRUPO** (no de IE): un grupo tiene un único `TOKEN` y hasta 4
   códigos (principal + 3 de contingencia), igual que 3.1 por IE.
-- Sesión múltiple por dispositivo: como un grupo reúne a varias IE trabajando *a la vez* en la misma
-  sesión colectiva, el cupo de dispositivos simultáneos (`MAX_SESIONES_SIMULTANEAS_GRUPO`) debe ser mayor
-  que el `4` de 3.1 — **pendiente de confirmar con el usuario** (propuesta: 1 dispositivo por IE del grupo
-  + margen, configurable en `ConfiguracionComunal`, no hardcodeado).
+- Sesión múltiple por dispositivo: `MAX_SESIONES_SIMULTANEAS_GRUPO = 4`, igual que 3.1 (confirmado con el
+  usuario), pero definido como constante en `Config.gs`/`ConfiguracionComunal` para poder ajustarlo sin
+  reeditar código si la operación real lo exige.
 - `LockService` en toda escritura compartida (participación, Sesión 1, ConectaEduca, generación de
   informe) — igual patrón que 3.1 (§5.5 auditoría).
 - Cliente nunca puede fijar por sí mismo grupo, IE, `ID_FORO_COMUNAL`, correo institucional ni estado
@@ -130,16 +129,14 @@ genera una vez al poblar `GruposComunal` (p. ej. `GRUPO-01`) y es estable durant
 INFORME_GENERADO → ENVIADO` (con rama a `ERROR` en cualquier punto). Se guarda en `AccesosGrupo.ESTADO`
 igual que 3.1 guardaba `ESTADO` en `AccesosIE`.
 
-### 5.3 Punto abierto — campos de "socialización" de Sesión 1
+### 5.3 Campos de "socialización" de Sesión 1 (confirmado con el usuario)
 
-La especificación (sección 9) menciona 6 insumos que las IE llevan al encuentro (Reflexiones,
-Conclusiones, Propuestas, Experiencias, Retos, Aportes territoriales), pero la tabla mínima de Sheets
-(sección 13, `Sesion1Comunal`) solo define las 8 columnas de la **síntesis colectiva** (Convergencias,
-Apuestas, Desafíos, Identidad, Prioridades, Propuestas, Acuerdos, Ruta). Interpretación propuesta: los 6
-insumos se socializan verbalmente/en pantalla durante la sesión (no se piden como formulario, spec
-sección 9: "el aplicativo no debe volver a solicitar todas las preguntas del FEI") y solo la síntesis
-colectiva se persiste. **Pendiente de confirmar con el usuario** antes de implementar si los 6 insumos
-deben o no tener un campo de texto propio (aunque sea uno solo, agregado, no por IE) en `Sesion1Comunal`.
+Además de los 8 campos de síntesis colectiva (sección 10 de la spec), `Sesion1Comunal` añade 6 columnas
+más para los insumos de socialización que menciona la sección 9 (Reflexiones, Conclusiones, Propuestas,
+Experiencias, Retos, Aportes territoriales) — **un solo valor agregado por grupo, no por IE**: el
+facilitador de la mesa consolida en un campo lo que las IE compartieron verbalmente, no se piden 37
+formularios individuales (se respeta "el aplicativo no debe volver a solicitar todas las preguntas del
+FEI"). Ver estructura final de `Sesion1Comunal` en la Fase 6.
 
 ---
 
@@ -170,10 +167,14 @@ explícitamente en sección 7). Deduplicación por `(ID_GRUPO, ID_IE, NOMBRE)` �
 (auditoría §5.6).
 
 ### `Sesion1Comunal`
-`ID_GRUPO | CONVERGENCIAS | APUESTAS | DESAFIOS | IDENTIDAD | PRIORIDADES | PROPUESTAS | ACUERDOS | RUTA`
-(exactamente la tabla mínima de la spec, sección 13). UPSERT por `ID_GRUPO` — un único registro editable
-colectivamente por todos los dispositivos conectados al grupo (mismo patrón de fusión de campos que
-`AvancesForo`, auditoría §5.7).
+`ID_GRUPO | REFLEXIONES | CONCLUSIONES | PROPUESTAS_IE | EXPERIENCIAS | RETOS | APORTES_TERRITORIALES |
+CONVERGENCIAS | APUESTAS | DESAFIOS | IDENTIDAD | PRIORIDADES | PROPUESTAS_COLECTIVAS | ACUERDOS | RUTA`
+Las 6 primeras columnas (tras `ID_GRUPO`) son los insumos de socialización de la sección 9 de la spec,
+agregados por el grupo (no por IE — confirmado con el usuario, ver 5.3); las 8 restantes son la síntesis
+colectiva de la sección 10/tabla mínima de la spec (`PROPUESTAS_COLECTIVAS` se renombra así, sin guion
+bajo con `PROPUESTAS_IE`, para no confundir ambos campos de "propuestas"). UPSERT por `ID_GRUPO` — un
+único registro editable colectivamente por todos los dispositivos conectados al grupo (mismo patrón de
+fusión de campos que `AvancesForo`, auditoría §5.7).
 
 ### `ConectaEduca`
 `ID_GRUPO | ACTOR | TIPO_ACTOR | AREA | NECESIDADES_ARTICULACION | OPORTUNIDAD | ALIANZA | IE_INTERESADAS
@@ -223,12 +224,10 @@ FORO EDUCATIVO COMUNAL NEIVA 2026/   (raíz, ID guardado en ConfiguracionComunal
 └── 06_EVIDENCIAS
 ```
 
-**Punto abierto**: 3.1 separaba físicamente el Doc editable (carpeta privada aparte,
-`DRIVE_CARPETA_EDITABLES_FEM_ID`) del PDF público, por un incidente de seguridad documentado (auditoría
-§1.4). La spec (sección 16) no pide una carpeta editable separada — el `.docx` y el `.pdf` conviven en la
-misma carpeta `GRUPO N`. Propuesta: mantener el mismo criterio de seguridad de 3.1 (el `.docx` **no** se
-comparte públicamente aunque viva en la misma carpeta que el PDF — permisos por archivo, no por carpeta) y
-confirmarlo con el usuario antes de implementar Drive.gs.
+**Confirmado con el usuario**: se mantiene el mismo criterio de seguridad de 3.1 — el `.docx` vive en la
+misma carpeta `GRUPO N` (tal como pide la spec, sección 16) pero **no** se comparte públicamente; solo el
+`.pdf` se comparte "cualquiera con el enlace" vía `hacerPublicoSiEsPosible_`. Permisos por archivo, no por
+carpeta.
 
 ---
 
@@ -337,19 +336,19 @@ function probarFlujoCompletoGrupo()
 
 ---
 
-## Fase 10 en adelante (pendiente de aprobación)
+## Fase 10 en adelante — decisiones confirmadas y arranque de implementación
 
-Las Fases 10-16 (estructura CLASP real del proyecto, implementación de backend/frontend, generación de
-informes/PDF, pruebas integrales, auditoría final de dependencias) **no se inician hasta validar este
-documento**, tal como exige la especificación. Puntos concretos que necesito que confirmes antes de
-escribir código (resumidos también en el chat):
+Los 4 puntos de decisión quedaron resueltos con el usuario:
 
-1. Los 6 campos de "socialización" de Sesión 1 (Reflexiones, Conclusiones, Propuestas, Experiencias,
-   Retos, Aportes territoriales) — ¿se persisten como campos agregados del grupo, o solo se socializan en
-   vivo y el sistema únicamente guarda los 8 campos de síntesis colectiva?
-2. `MAX_SESIONES_SIMULTANEAS_GRUPO` — ¿cuántos dispositivos concurrentes por grupo (3.1 usaba 4 por IE)?
-3. Informe editable (`.docx`) del grupo — ¿carpeta separada privada (como 3.1) o misma carpeta que el PDF
-   con permisos por archivo?
-4. Destino de despliegue: ¿implementamos todo en este repo de Git primero (para tu revisión) y luego yo
-   hago `clasp push` al proyecto **Foro comunal 1.0** cuando esté validado, o prefieres que empuje directo
-   a Apps Script en cada fase?
+1. **Sesión 1**: los 6 insumos de socialización se agregan como 6 columnas más en `Sesion1Comunal` (un
+   valor por grupo, no por IE) — ver Fase 5.3 y Fase 6.
+2. **Cupos de sesión**: `MAX_SESIONES_SIMULTANEAS_GRUPO = 4`, igual que 3.1, configurable desde
+   `Config.gs`/`ConfiguracionComunal`.
+3. **Informe editable**: mismo criterio de seguridad que 3.1 — `.docx` no público, en la misma carpeta
+   `GRUPO N` que el `.pdf` público (permisos por archivo).
+4. **Despliegue**: implementación en este repositorio Git primero; `clasp push` al proyecto Apps Script
+   **Foro comunal 1.0** (`1tqsSNT-3BiCkQhcfSCVmzMe9IeVIsDuFujf_rzMRygz3pDUbRP7fKy7Y`) cuando cada entrega
+   quede validada, usando las credenciales de `clasp login` ya autorizadas por el usuario en esta sesión.
+
+Con esto arrancan las Fases 10-16 (estructura CLASP, implementación de backend/frontend, generación de
+informes/PDF, pruebas integrales, auditoría final de dependencias).

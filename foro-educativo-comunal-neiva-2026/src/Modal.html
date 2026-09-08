@@ -1,0 +1,27 @@
+<!-- Modal.html — Foro Educativo Comunal Neiva 2026
+     Modales: ver todos los firmantes, y aviso de toma de sesión
+     (equivalente al "forzar" de FEI 3.1, ver docs/01-auditoria-fei-3.1.md
+     §5.3). El open/close vive en JS.html (abrirModal/cerrarModal). -->
+
+<div class="modal-fondo oculto" id="modalFirmantes">
+  <div class="modal-caja">
+    <button type="button" class="modal-cerrar" data-cerrar-modal="modalFirmantes">&times;</button>
+    <h3>Personas que han firmado</h3>
+    <table class="tabla-simple">
+      <thead><tr><th>Nombre</th><th>Institución</th><th>Rol</th></tr></thead>
+      <tbody id="tablaTodosFirmantes"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal-fondo oculto" id="modalTomaSesion">
+  <div class="modal-caja">
+    <button type="button" class="modal-cerrar" data-cerrar-modal="modalTomaSesion">&times;</button>
+    <h3>Ya hay dispositivos conectados</h3>
+    <p id="mensajeTomaSesion"></p>
+    <div class="fila-botones">
+      <button class="btn btn-secundario" data-cerrar-modal="modalTomaSesion">Cancelar</button>
+      <button class="btn btn-peligro" id="btnForzarSesion">Continuar de todas formas</button>
+    </div>
+  </div>
+</div>

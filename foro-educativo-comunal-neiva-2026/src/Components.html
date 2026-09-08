@@ -1,0 +1,80 @@
+<script>
+/**
+ * Components.html — Foro Educativo Comunal Neiva 2026
+ * Funciones de render reutilizables (patrón de renderizarPlenaria /
+ * renderCaracterizacionHTML de FEI 3.1 — ver docs/01-auditoria-fei-3.1.md
+ * §2.6), separadas de la lógica de negocio en JS.html.
+ */
+
+function escapeHtml(texto) {
+  var div = document.createElement("div");
+  div.textContent = texto == null ? "" : String(texto);
+  return div.innerHTML;
+}
+
+function renderListaInstituciones(instituciones) {
+  var contenedor = document.getElementById("listaInstituciones");
+  var selectIE = document.getElementById("campoIEParticipante");
+  contenedor.innerHTML = "";
+  selectIE.innerHTML = "";
+  (instituciones || []).forEach(function (ie) {
+    var item = document.createElement("div");
+    item.className = "item-institucion";
+    item.innerHTML =
+      "<span>" + escapeHtml(ie.institucion) + "</span>" +
+      "<span class='comuna'>" + escapeHtml(ie.comuna || "") + "</span>";
+    contenedor.appendChild(item);
+
+    var opcion = document.createElement("option");
+    opcion.value = ie.idIE;
+    opcion.textContent = ie.institucion;
+    selectIE.appendChild(opcion);
+  });
+}
+
+function renderResumenFirmantes(estado) {
+  document.getElementById("contadorFirmantes").textContent = estado.total || 0;
+  var ultimos = (estado.firmantes || []).slice(0, 3).map(function (f) {
+    return f.nombre;
+  });
+  document.getElementById("ultimosFirmantes").textContent =
+    ultimos.length ? "Últimos: " + ultimos.join(" · ") : "";
+}
+
+function renderTablaTodosFirmantes(firmantes) {
+  var tbody = document.getElementById("tablaTodosFirmantes");
+  tbody.innerHTML = "";
+  (firmantes || []).forEach(function (f) {
+    var fila = document.createElement("tr");
+    fila.innerHTML =
+      "<td>" + escapeHtml(f.nombre) + "</td>" +
+      "<td>" + escapeHtml(f.institucion) + "</td>" +
+      "<td>" + escapeHtml(f.rol) + "</td>";
+    tbody.appendChild(fila);
+  });
+}
+
+function renderTablaConectaEduca(registros) {
+  var tbody = document.querySelector("#tablaConectaEduca tbody");
+  tbody.innerHTML = "";
+  (registros || []).forEach(function (r) {
+    var fila = document.createElement("tr");
+    fila.innerHTML =
+      "<td>" + escapeHtml(r.ACTOR) + "</td>" +
+      "<td>" + escapeHtml(r.TIPO_ACTOR) + "</td>" +
+      "<td>" + escapeHtml(r.AREA) + "</td>" +
+      "<td><button type='button' class='btn btn-secundario' data-borrar-actor='" + r.ID_REGISTRO + "'>Quitar</button></td>";
+    tbody.appendChild(fila);
+  });
+}
+
+function mostrarMensaje(idContenedor, texto, tipo) {
+  var contenedor = document.getElementById(idContenedor);
+  if (!contenedor) return;
+  if (!texto) {
+    contenedor.innerHTML = "";
+    return;
+  }
+  contenedor.innerHTML = "<div class='mensaje " + (tipo || "info") + "'>" + escapeHtml(texto) + "</div>";
+}
+</script>

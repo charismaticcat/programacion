@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<base target="_top">
+<title><?!= NOMBRE_FORO ?></title>
+<?!= include('CSS'); ?>
+<?!= include('InformeStyles'); ?>
+</head>
+<body>
+
+<!-- Panel permanente de firmantes (spec sección 8) — visible desde Participación en adelante -->
+<div id="panelFirmantes" class="oculto">
+  <div class="info">
+    <span class="icono">👥</span>
+    <span>PARTICIPACIÓN —</span>
+    <span class="contador"><span id="contadorFirmantes">0</span> personas han firmado</span>
+    <span class="ultimos" id="ultimosFirmantes"></span>
+  </div>
+  <button type="button" id="btnVerTodosFirmantes">Ver todos</button>
+</div>
+
+<header class="marca">
+  <h1><?!= NOMBRE_FORO ?></h1>
+  <p class="subtitulo">"<?!= SUBTITULO_FORO ?>"</p>
+</header>
+
+<main>
+  <div class="barra-progreso"><div id="barraProgresoRelleno" style="width:0%"></div></div>
+  <div id="mensajeGlobal"></div>
+
+  <!-- 1. INICIO -->
+  <section id="pantallaInicio" class="pantalla visible">
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">Bienvenida</h2>
+      <p>El Foro Educativo Comunal Neiva 2026 reúne a las instituciones educativas organizadas por
+        grupos territoriales para socializar los resultados de sus Foros Educativos Institucionales,
+        construir conclusiones colectivas y dialogar con ConectaEduca.</p>
+      <div class="fila-botones">
+        <button class="btn btn-primario" data-ir="pantallaPresentacion">Comenzar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. PRESENTACIÓN -->
+  <section id="pantallaPresentacion" class="pantalla">
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">Presentación del Foro</h2>
+      <p>"Encuentro de voces que construyen territorio": un espacio de encuentro entre instituciones
+        educativas agrupadas por territorio, para construir de manera colectiva insumos que
+        alimentarán el Foro Educativo Municipal FEM 2026.</p>
+      <div class="fila-botones">
+        <button class="btn btn-secundario" data-ir="pantallaInicio">Atrás</button>
+        <button class="btn btn-primario" data-ir="pantallaMetodologia">Continuar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. METODOLOGÍA -->
+  <section id="pantallaMetodologia" class="pantalla">
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">Metodología</h2>
+      <ol>
+        <li>Ingreso con el código de acceso del grupo.</li>
+        <li>Registro de participación y asistencia.</li>
+        <li>Sesión 1: socialización de resultados institucionales y construcción colectiva.</li>
+        <li>Sesión 2: ConectaEduca — diálogo con el sector productivo y educación superior.</li>
+        <li>Revisión, cierre y generación del informe único del grupo.</li>
+      </ol>
+      <div class="fila-botones">
+        <button class="btn btn-secundario" data-ir="pantallaPresentacion">Atrás</button>
+        <button class="btn btn-primario" data-ir="pantallaAcceso">Continuar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. ACCESO -->
+  <section id="pantallaAcceso" class="pantalla">
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">Acceso del grupo</h2>
+      <p class="ayuda" id="nombreGrupoAcceso"></p>
+      <label for="campoCodigoAcceso">Código de acceso</label>
+      <input type="text" id="campoCodigoAcceso" placeholder="FEC-XXXXX" autocomplete="off">
+      <div id="mensajeAcceso"></div>
+      <div class="fila-botones">
+        <button class="btn btn-primario" id="btnValidarAcceso">Ingresar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. PARTICIPACIÓN -->
+  <section id="pantallaParticipacion" class="pantalla">
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">Participación y asistencia</h2>
+      <p class="ayuda">Instituciones educativas de <strong id="nombreGrupoParticipacion"></strong>:</p>
+      <div class="lista-instituciones" id="listaInstituciones"></div>
+
+      <h3 class="subtitulo-campo">Registrar mi asistencia</h3>
+      <label for="campoNombreParticipante">Nombre completo</label>
+      <input type="text" id="campoNombreParticipante">
+      <label for="campoIEParticipante">Institución educativa</label>
+      <select id="campoIEParticipante"></select>
+      <label for="campoRolParticipante">Rol</label>
+      <select id="campoRolParticipante">
+        <option>Rector(a)</option>
+        <option>Coordinador(a)</option>
+        <option>Docente</option>
+        <option>Orientador(a)</option>
+        <option>Estudiante</option>
+        <option>Padre/madre de familia</option>
+        <option>Personal administrativo</option>
+        <option>Sector productivo</option>
+        <option>Otro</option>
+      </select>
+      <label for="campoCorreoParticipante">Correo (opcional)</label>
+      <input type="email" id="campoCorreoParticipante">
+      <div id="mensajeParticipacion"></div>
+      <div class="fila-botones">
+        <button class="btn btn-primario" id="btnRegistrarParticipacion">Confirmar asistencia</button>
+      </div>
+    </div>
+    <div class="fila-botones">
+      <button class="btn btn-primario" data-ir="pantallaSesion1">Continuar a Sesión 1</button>
+    </div>
+  </section>
+
+  <!-- 6. SESIÓN 1 -->
+  <section id="pantallaSesion1" class="pantalla">
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">Sesión 1 — Socialización y construcción colectiva</h2>
+      <p class="ayuda">Registre lo que cada institución compartió durante la socialización (un
+        consolidado por grupo, no formulario por IE).</p>
+
+      <h3 class="subtitulo-campo">Reflexiones</h3>
+      <textarea id="campo_REFLEXIONES" data-campo-sesion1="REFLEXIONES"></textarea>
+      <h3 class="subtitulo-campo">Conclusiones</h3>
+      <textarea id="campo_CONCLUSIONES" data-campo-sesion1="CONCLUSIONES"></textarea>
+      <h3 class="subtitulo-campo">Propuestas de las instituciones</h3>
+      <textarea id="campo_PROPUESTAS_IE" data-campo-sesion1="PROPUESTAS_IE"></textarea>
+      <h3 class="subtitulo-campo">Experiencias</h3>
+      <textarea id="campo_EXPERIENCIAS" data-campo-sesion1="EXPERIENCIAS"></textarea>
+      <h3 class="subtitulo-campo">Retos</h3>
+      <textarea id="campo_RETOS" data-campo-sesion1="RETOS"></textarea>
+      <h3 class="subtitulo-campo">Aportes territoriales</h3>
+      <textarea id="campo_APORTES_TERRITORIALES" data-campo-sesion1="APORTES_TERRITORIALES"></textarea>
+    </div>
+
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">Construcción colectiva del grupo</h2>
+      <h3 class="subtitulo-campo">Convergencias</h3>
+      <textarea id="campo_CONVERGENCIAS" data-campo-sesion1="CONVERGENCIAS"></textarea>
+      <h3 class="subtitulo-campo">Apuestas compartidas</h3>
+      <textarea id="campo_APUESTAS" data-campo-sesion1="APUESTAS"></textarea>
+      <h3 class="subtitulo-campo">Desafíos comunes</h3>
+      <textarea id="campo_DESAFIOS" data-campo-sesion1="DESAFIOS"></textarea>
+      <h3 class="subtitulo-campo">Identidad territorial</h3>
+      <textarea id="campo_IDENTIDAD" data-campo-sesion1="IDENTIDAD"></textarea>
+      <h3 class="subtitulo-campo">Prioridades</h3>
+      <textarea id="campo_PRIORIDADES" data-campo-sesion1="PRIORIDADES"></textarea>
+      <h3 class="subtitulo-campo">Propuestas colectivas</h3>
+      <textarea id="campo_PROPUESTAS_COLECTIVAS" data-campo-sesion1="PROPUESTAS_COLECTIVAS"></textarea>
+      <h3 class="subtitulo-campo">Acuerdos</h3>
+      <textarea id="campo_ACUERDOS" data-campo-sesion1="ACUERDOS"></textarea>
+      <h3 class="subtitulo-campo">Ruta de trabajo</h3>
+      <textarea id="campo_RUTA" data-campo-sesion1="RUTA"></textarea>
+
+      <div id="mensajeSesion1"></div>
+      <div class="fila-botones">
+        <button class="btn btn-secundario" id="btnGuardarSesion1">Guardar avance</button>
+        <button class="btn btn-primario" id="btnEnviarSesion1">Enviar Sesión 1 definitiva</button>
+      </div>
+    </div>
+    <div class="fila-botones">
+      <button class="btn btn-primario" data-ir="pantallaSesion2">Continuar a Sesión 2</button>
+    </div>
+  </section>
+
+  <!-- 7. SESIÓN 2 — CONECTAEDUCA -->
+  <section id="pantallaSesion2" class="pantalla">
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">Sesión 2 — ConectaEduca</h2>
+      <p class="ayuda">Registre cada actor o entidad con quien el grupo dialogó.</p>
+
+      <label for="campoActorCE">Actor o entidad</label>
+      <input type="text" id="campoActorCE">
+      <label for="campoTipoActorCE">Tipo de actor</label>
+      <select id="campoTipoActorCE">
+        <option>Educación superior</option>
+        <option>Sector productivo</option>
+        <option>Formación técnica</option>
+        <option>Formación tecnológica</option>
+        <option>Formación complementaria</option>
+        <option>Otro</option>
+      </select>
+      <label for="campoAreaCE">Área de interés</label>
+      <input type="text" id="campoAreaCE">
+      <label for="campoNecesidadesCE">Necesidades de articulación</label>
+      <textarea id="campoNecesidadesCE"></textarea>
+      <label for="campoOportunidadCE">Oportunidades identificadas</label>
+      <textarea id="campoOportunidadCE"></textarea>
+      <label for="campoAlianzaCE">Posibles alianzas</label>
+      <textarea id="campoAlianzaCE"></textarea>
+      <label for="campoIEInteresadasCE">Instituciones del grupo interesadas</label>
+      <input type="text" id="campoIEInteresadasCE">
+      <label for="campoConexionesCE">Contactos o conexiones realizadas</label>
+      <textarea id="campoConexionesCE"></textarea>
+      <label for="campoObservacionesCE">Observaciones</label>
+      <textarea id="campoObservacionesCE"></textarea>
+
+      <div id="mensajeConectaEduca"></div>
+      <div class="fila-botones">
+        <button class="btn btn-primario" id="btnAgregarActorCE">Agregar actor</button>
+      </div>
+
+      <table class="tabla-simple" id="tablaConectaEduca">
+        <thead><tr><th>Actor</th><th>Tipo</th><th>Área</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+
+      <div class="fila-botones">
+        <button class="btn btn-primario" id="btnEnviarSesion2">Enviar Sesión 2 definitiva</button>
+      </div>
+    </div>
+    <div class="fila-botones">
+      <button class="btn btn-primario" data-ir="pantallaRevisionCierre">Continuar a revisión y cierre</button>
+    </div>
+  </section>
+
+  <!-- 8. REVISIÓN Y CIERRE -->
+  <section id="pantallaRevisionCierre" class="pantalla">
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">Revisión y cierre</h2>
+      <p>Al generar el informe se crea el documento único del grupo, disponible para todas sus
+        instituciones educativas.</p>
+      <p class="ayuda" id="avisoResponsablePrincipal"></p>
+      <div id="mensajeCierre"></div>
+      <div class="fila-botones">
+        <button class="btn btn-primario" id="btnGenerarInforme">Generar informe del grupo</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. INFORME GENERADO -->
+  <section id="pantallaInformeGenerado" class="pantalla">
+    <div class="resumen-informe">
+      <div class="icono-check">✅</div>
+      <h2>Informe generado</h2>
+      <p>El informe del grupo ya está disponible. Todas las instituciones educativas del grupo pueden
+        consultarlo con el mismo enlace.</p>
+      <a class="btn btn-primario enlace-informe" id="enlaceInformeGenerado" href="#" target="_blank">Ver informe</a>
+      <p class="nota">También se envió por correo al responsable del grupo.</p>
+    </div>
+    <div class="fila-botones">
+      <button class="btn btn-primario" data-ir="pantallaDespedida">Continuar</button>
+    </div>
+  </section>
+
+  <!-- 10. DESPEDIDA -->
+  <section id="pantallaDespedida" class="pantalla">
+    <div class="tarjeta" style="text-align:center;">
+      <h2 class="titulo-seccion">Gracias por participar</h2>
+      <p>"Muchas voces. Un territorio. Una escuela viva."</p>
+      <p class="ayuda">FEI → Voces → Encuentro → Consensos → Conexiones → FEM 2026</p>
+    </div>
+  </section>
+</main>
+
+<footer class="marca-pie">
+  <?!= NOMBRE_FORO ?> — Secretaría de Educación de Neiva
+</footer>
+
+<?!= include('Modal'); ?>
+
+<script>
+  var TOKEN_ACCESO = <?!= JSON.stringify(TOKEN_ACCESO || "") ?>;
+  var NOMBRE_GRUPO_ACCESO = <?!= JSON.stringify(NOMBRE_GRUPO_ACCESO || "") ?>;
+</script>
+<?!= include('Components'); ?>
+<?!= include('JS'); ?>
+
+</body>
+</html>

@@ -1,0 +1,345 @@
+<script>
+/**
+ * JS.html — Foro Educativo Comunal Neiva 2026
+ * Lógica de cliente. Reutiliza (adaptados a GRUPO) los patrones más
+ * maduros de App.html en FEI 3.1 (docs/01-auditoria-fei-3.1.md §2.6):
+ * dispositivoId persistente en localStorage, heartbeat periódico de
+ * sesión, autoguardado con sincronización periódica al servidor.
+ */
+
+/* ------------------------------------------------------------------ *
+ * Estado de cliente
+ * ------------------------------------------------------------------ */
+var estado = {
+  dispositivoId: obtenerDispositivoId(),
+  idGrupo: "",
+  grupo: "",
+  tokenSesion: "",
+  esPrincipal: false,
+  instituciones: [],
+  ultimosFirmantes: []
+};
+
+var ORDEN_PANTALLAS = [
+  "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia", "pantallaAcceso",
+  "pantallaParticipacion", "pantallaSesion1", "pantallaSesion2", "pantallaRevisionCierre",
+  "pantallaInformeGenerado", "pantallaDespedida"
+];
+
+function obtenerDispositivoId() {
+  var clave = "forumComunalNeiva2026_dispositivo";
+  try {
+    var guardado = localStorage.getItem(clave);
+    if (guardado) return guardado;
+    var nuevo = "FEC-DEV-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+    localStorage.setItem(clave, nuevo);
+    return nuevo;
+  } catch (e) {
+    return "FEC-DEV-" + Date.now().toString(36);
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Llamadas al servidor (envoltorio de google.script.run)
+ * ------------------------------------------------------------------ */
+function llamarServidor(nombreFuncion, args, onExito, onError) {
+  google.script.run
+    .withSuccessHandler(function (resultado) {
+      if (onExito) onExito(resultado);
+    })
+    .withFailureHandler(function (error) {
+      console.error(nombreFuncion, error);
+      if (onError) onError(error);
+      else mostrarMensaje("mensajeGlobal", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+    })
+    [nombreFuncion].apply(null, args || []);
+}
+
+/* ------------------------------------------------------------------ *
+ * Navegación entre pantallas
+ * ------------------------------------------------------------------ */
+function cambiarPantalla(idPantalla) {
+  ORDEN_PANTALLAS.forEach(function (id) {
+    document.getElementById(id).classList.toggle("visible", id === idPantalla);
+  });
+  var indice = ORDEN_PANTALLAS.indexOf(idPantalla);
+  var porcentaje = Math.round(((indice + 1) / ORDEN_PANTALLAS.length) * 100);
+  document.getElementById("barraProgresoRelleno").style.width = porcentaje + "%";
+  window.scrollTo(0, 0);
+
+  if (idPantalla === "pantallaParticipacion") actualizarFirmantes();
+  if (idPantalla === "pantallaSesion1") cargarSesion1();
+  if (idPantalla === "pantallaSesion2") cargarConectaEduca();
+  if (idPantalla === "pantallaRevisionCierre") prepararCierre();
+}
+
+document.addEventListener("click", function (evento) {
+  var boton = evento.target.closest("[data-ir]");
+  if (boton) cambiarPantalla(boton.getAttribute("data-ir"));
+
+  var cerrar = evento.target.closest("[data-cerrar-modal]");
+  if (cerrar) cerrarModal(cerrar.getAttribute("data-cerrar-modal"));
+
+  var borrarActor = evento.target.closest("[data-borrar-actor]");
+  if (borrarActor) borrarActorConectaEduca(borrarActor.getAttribute("data-borrar-actor"));
+});
+
+function abrirModal(id) {
+  document.getElementById(id).classList.remove("oculto");
+}
+function cerrarModal(id) {
+  document.getElementById(id).classList.add("oculto");
+}
+
+/* ------------------------------------------------------------------ *
+ * Acceso
+ * ------------------------------------------------------------------ */
+if (NOMBRE_GRUPO_ACCESO) {
+  document.getElementById("nombreGrupoAcceso").textContent = "Grupo: " + NOMBRE_GRUPO_ACCESO;
+}
+
+function intentarValidarAcceso(forzar) {
+  var codigo = document.getElementById("campoCodigoAcceso").value.trim();
+  if (!TOKEN_ACCESO) {
+    mostrarMensaje("mensajeAcceso", "El enlace de acceso no incluye un token válido.", "error");
+    return;
+  }
+  if (!codigo) {
+    mostrarMensaje("mensajeAcceso", "Ingrese el código de acceso.", "error");
+    return;
+  }
+  llamarServidor("rpcValidarAcceso", [TOKEN_ACCESO, codigo, estado.dispositivoId, !!forzar], function (r) {
+    if (!r.ok) {
+      if (r.codigo === "SESION_YA_ABIERTA") {
+        document.getElementById("mensajeTomaSesion").textContent = r.mensaje;
+        abrirModal("modalTomaSesion");
+        return;
+      }
+      mostrarMensaje("mensajeAcceso", r.mensaje || "No fue posible validar el acceso.", "error");
+      return;
+    }
+    estado.idGrupo = r.idGrupo;
+    estado.grupo = r.grupo;
+    estado.tokenSesion = r.tokenSesion;
+    estado.esPrincipal = r.esPrincipal;
+    estado.instituciones = r.instituciones || [];
+
+    document.getElementById("nombreGrupoParticipacion").textContent = r.grupo;
+    renderListaInstituciones(estado.instituciones);
+    document.getElementById("panelFirmantes").classList.remove("oculto");
+
+    iniciarHeartbeat();
+    iniciarPollingFirmantes();
+    cambiarPantalla("pantallaParticipacion");
+  });
+}
+
+document.getElementById("btnValidarAcceso").addEventListener("click", function () {
+  intentarValidarAcceso(false);
+});
+document.getElementById("btnForzarSesion").addEventListener("click", function () {
+  cerrarModal("modalTomaSesion");
+  intentarValidarAcceso(true);
+});
+
+/* ------------------------------------------------------------------ *
+ * Heartbeat de sesión (mantiene el cupo de dispositivo activo)
+ * ------------------------------------------------------------------ */
+function iniciarHeartbeat() {
+  setInterval(function () {
+    if (!estado.idGrupo) return;
+    llamarServidor(
+      "rpcMantenerSesion",
+      [estado.idGrupo, estado.dispositivoId, estado.tokenSesion],
+      function (r) {
+        if (!r.ok) {
+          mostrarMensaje("mensajeGlobal", "Esta sesión ya no está activa en este dispositivo (otro dispositivo tomó el cupo). Vuelva a ingresar.", "error");
+        }
+      },
+      function () {}
+    );
+  }, 30000);
+}
+
+/* ------------------------------------------------------------------ *
+ * Participación / firmantes
+ * ------------------------------------------------------------------ */
+document.getElementById("btnRegistrarParticipacion").addEventListener("click", function () {
+  var nombre = document.getElementById("campoNombreParticipante").value.trim();
+  var idIE = document.getElementById("campoIEParticipante").value;
+  var rol = document.getElementById("campoRolParticipante").value;
+  var correo = document.getElementById("campoCorreoParticipante").value.trim();
+  if (!nombre) {
+    mostrarMensaje("mensajeParticipacion", "El nombre es obligatorio.", "error");
+    return;
+  }
+  llamarServidor("rpcRegistrarParticipante", [estado.idGrupo, idIE, nombre, rol, correo, estado.dispositivoId], function (r) {
+    if (!r.ok) {
+      mostrarMensaje("mensajeParticipacion", r.mensaje || "No fue posible registrar la asistencia.", "error");
+      return;
+    }
+    mostrarMensaje("mensajeParticipacion", r.yaRegistrado ? "Ya estabas registrado(a)." : "Asistencia registrada. ¡Gracias!", "exito");
+    document.getElementById("campoNombreParticipante").value = "";
+    actualizarFirmantes();
+  });
+});
+
+function actualizarFirmantes() {
+  if (!estado.idGrupo) return;
+  llamarServidor("rpcEstadoFirmantes", [estado.idGrupo], function (r) {
+    estado.ultimosFirmantes = r.firmantes || [];
+    renderResumenFirmantes(r);
+  });
+}
+
+function iniciarPollingFirmantes() {
+  actualizarFirmantes();
+  setInterval(actualizarFirmantes, 15000);
+}
+
+document.getElementById("btnVerTodosFirmantes").addEventListener("click", function () {
+  renderTablaTodosFirmantes(estado.ultimosFirmantes);
+  abrirModal("modalFirmantes");
+});
+
+/* ------------------------------------------------------------------ *
+ * Sesión 1 — autoguardado con sincronización periódica
+ * ------------------------------------------------------------------ */
+var CAMPOS_SESION1 = [
+  "REFLEXIONES", "CONCLUSIONES", "PROPUESTAS_IE", "EXPERIENCIAS", "RETOS", "APORTES_TERRITORIALES",
+  "CONVERGENCIAS", "APUESTAS", "DESAFIOS", "IDENTIDAD", "PRIORIDADES", "PROPUESTAS_COLECTIVAS", "ACUERDOS", "RUTA"
+];
+var temporizadorGuardadoSesion1 = null;
+
+function recolectarCamposSesion1() {
+  var campos = {};
+  CAMPOS_SESION1.forEach(function (nombre) {
+    var el = document.getElementById("campo_" + nombre);
+    if (el) campos[nombre] = el.value;
+  });
+  return campos;
+}
+
+function cargarSesion1() {
+  if (!estado.idGrupo) return;
+  llamarServidor("rpcObtenerSesion1", [estado.idGrupo], function (datos) {
+    if (!datos) return;
+    CAMPOS_SESION1.forEach(function (nombre) {
+      var el = document.getElementById("campo_" + nombre);
+      if (el && !el.value && datos[nombre]) el.value = datos[nombre];
+    });
+  });
+}
+
+function guardarSesion1(manual) {
+  if (!estado.idGrupo) return;
+  llamarServidor("rpcGuardarSesion1", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, recolectarCamposSesion1()], function (r) {
+    if (manual) mostrarMensaje("mensajeSesion1", r.ok ? "Avance guardado." : (r.mensaje || "No fue posible guardar."), r.ok ? "exito" : "error");
+  });
+}
+
+document.querySelectorAll("[data-campo-sesion1]").forEach(function (campo) {
+  campo.addEventListener("input", function () {
+    clearTimeout(temporizadorGuardadoSesion1);
+    temporizadorGuardadoSesion1 = setTimeout(function () {
+      guardarSesion1(false);
+    }, 2000);
+  });
+});
+setInterval(function () {
+  if (estado.idGrupo) guardarSesion1(false);
+}, 30000);
+
+document.getElementById("btnGuardarSesion1").addEventListener("click", function () {
+  guardarSesion1(true);
+});
+
+document.getElementById("btnEnviarSesion1").addEventListener("click", function () {
+  if (!confirm("¿Enviar Sesión 1 de forma definitiva? Verifique que todos los campos estén completos.")) return;
+  guardarSesion1(false);
+  llamarServidor("rpcEnviarSesion1", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
+    mostrarMensaje("mensajeSesion1", r.ok ? "Sesión 1 enviada." : (r.mensaje || "No fue posible enviar."), r.ok ? "exito" : "error");
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * Sesión 2 — ConectaEduca
+ * ------------------------------------------------------------------ */
+function cargarConectaEduca() {
+  if (!estado.idGrupo) return;
+  llamarServidor("rpcListarConectaEduca", [estado.idGrupo], function (registros) {
+    renderTablaConectaEduca(registros);
+  });
+}
+
+document.getElementById("btnAgregarActorCE").addEventListener("click", function () {
+  var registro = {
+    ACTOR: document.getElementById("campoActorCE").value.trim(),
+    TIPO_ACTOR: document.getElementById("campoTipoActorCE").value,
+    AREA: document.getElementById("campoAreaCE").value.trim(),
+    NECESIDADES_ARTICULACION: document.getElementById("campoNecesidadesCE").value.trim(),
+    OPORTUNIDAD: document.getElementById("campoOportunidadCE").value.trim(),
+    ALIANZA: document.getElementById("campoAlianzaCE").value.trim(),
+    IE_INTERESADAS: document.getElementById("campoIEInteresadasCE").value.trim(),
+    CONEXIONES: document.getElementById("campoConexionesCE").value.trim(),
+    OBSERVACIONES: document.getElementById("campoObservacionesCE").value.trim()
+  };
+  if (!registro.ACTOR) {
+    mostrarMensaje("mensajeConectaEduca", "El nombre del actor/entidad es obligatorio.", "error");
+    return;
+  }
+  llamarServidor("rpcGuardarActorConectaEduca", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, registro], function (r) {
+    if (!r.ok) {
+      mostrarMensaje("mensajeConectaEduca", r.mensaje || "No fue posible guardar el registro.", "error");
+      return;
+    }
+    mostrarMensaje("mensajeConectaEduca", "Actor registrado.", "exito");
+    ["campoActorCE", "campoAreaCE", "campoNecesidadesCE", "campoOportunidadCE", "campoAlianzaCE", "campoIEInteresadasCE", "campoConexionesCE", "campoObservacionesCE"].forEach(function (id) {
+      document.getElementById(id).value = "";
+    });
+    cargarConectaEduca();
+  });
+});
+
+function borrarActorConectaEduca(idRegistro) {
+  llamarServidor("rpcEliminarActorConectaEduca", [estado.idGrupo, idRegistro, estado.tokenSesion, estado.dispositivoId], function (r) {
+    if (r.ok) cargarConectaEduca();
+  });
+}
+
+document.getElementById("btnEnviarSesion2").addEventListener("click", function () {
+  if (!confirm("¿Enviar Sesión 2 (ConectaEduca) de forma definitiva?")) return;
+  llamarServidor("rpcEnviarSesion2", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
+    mostrarMensaje("mensajeConectaEduca", r.ok ? "Sesión 2 enviada." : (r.mensaje || "No fue posible enviar."), r.ok ? "exito" : "error");
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * Revisión, cierre y generación del informe
+ * ------------------------------------------------------------------ */
+function prepararCierre() {
+  var boton = document.getElementById("btnGenerarInforme");
+  var aviso = document.getElementById("avisoResponsablePrincipal");
+  if (!estado.esPrincipal) {
+    aviso.textContent = "Solo el responsable principal del grupo puede generar el informe definitivo. Puede seguir revisando mientras tanto.";
+    boton.disabled = true;
+  } else {
+    aviso.textContent = "";
+    boton.disabled = false;
+  }
+}
+
+document.getElementById("btnGenerarInforme").addEventListener("click", function () {
+  if (!confirm("¿Generar el informe definitivo del grupo? Esta acción crea el documento único que verán todas las IE del grupo.")) return;
+  document.getElementById("btnGenerarInforme").disabled = true;
+  llamarServidor("rpcGenerarInforme", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
+    document.getElementById("btnGenerarInforme").disabled = false;
+    if (!r.ok) {
+      mostrarMensaje("mensajeCierre", r.mensaje || "No fue posible generar el informe.", "error");
+      return;
+    }
+    document.getElementById("enlaceInformeGenerado").href = r.url;
+    cambiarPantalla("pantallaInformeGenerado");
+  });
+});
+</script>
