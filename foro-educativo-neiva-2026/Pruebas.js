@@ -7259,3 +7259,290 @@ function generarInformeSintesisGrupo6FEM(){
 
   return archivoDoc.getUrl();
 }
+
+/*
+ * INFORME DE SÍNTESIS MUNICIPAL — CONSOLIDADO GRUPOS G1 A G6.
+ *
+ * Consolida en un solo documento las once preguntas de las tres
+ * sesiones de trabajo para las 34 instituciones educativas (de las 36
+ * del catálogo municipal) que remitieron su Informe Ejecutivo, más un
+ * capítulo especial sobre la percepción de la comunidad educativa
+ * recogida mediante firma por código QR.
+ *
+ * Metodología: la prosa de "comun"/"particularidades" de cada una de
+ * las 11 preguntas se redactó a partir de los seis Informes de
+ * Síntesis Grupal ya generados (DATOS_SINTESIS_GRUPO_1_FEM_ a
+ * DATOS_SINTESIS_GRUPO_6_FEM_), identificando los patrones que se
+ * repiten en el conjunto de los seis grupos y elevando, como
+ * particularidades municipales, los 2-3 hallazgos institucionales más
+ * significativos de todo el Foro (no uno por grupo). Las 4 tablas de
+ * preguntas mixtas agregan, opción por opción, los conteos ya
+ * publicados en los seis informes grupales (que a su vez surgieron de
+ * la lectura directa y el conteo manual de los Informes Ejecutivos
+ * reales); como cada informe grupal reportó solo las opciones de mayor
+ * adopción dentro de su grupo, los porcentajes de las opciones de
+ * menor adopción son un piso mínimo, mientras que el ordenamiento de
+ * las opciones más adoptadas es plenamente confiable (así se advierte
+ * en la Presentación del propio documento).
+ *
+ * PERCEPCIÓN QR: de las 34 IE con informe, solo 4 usaron firma por
+ * código QR con encuesta de percepción demográfica: Liceo de Santa
+ * Librada (G1, 69 firmantes), Atanasio Girardot (G4, 64), El Limonar
+ * (G6, 101) y Rodrigo Lara Bonilla (G6, 52) — 286 firmantes en total,
+ * cifra prácticamente coincidente con los 287 solicitados. El resto de
+ * instituciones registró su asistencia mediante PDF escaneado, sin
+ * encuesta de percepción digital.
+ */
+const DATOS_SINTESIS_MUNICIPAL_FEM_ = {
+  tituloInforme: "Informe de Síntesis Municipal — Foro Educativo Institucional Neiva 2026",
+  responsableInforme: "[Nombre de quien consolida el Informe de Síntesis Municipal — SEM Neiva]",
+  fechaPresentacion: "8 de septiembre de 2026",
+  totalConInforme: "34 de 36",
+  grupos: [
+    {
+      grupo: "G1",
+      instituciones: ["AIPECITO","CHAPINERO","I.E. CLARETIANO GUSTAVO TORRES PARRA","INEM JULIAM MOTTA SALAS","LICEO DE SANTA LIBRADA","PROMOCION SOCIAL"],
+      sinInforme: []
+    },
+    {
+      grupo: "G2",
+      instituciones: ["MARIA CRISTINA ARANGO DE PASTRANA.","LUIS IGNACIO ANDRADE","GABRIEL GARCIA MARQUEZ","EDUARDO SANTOS","MARIA AUXILIADORA FORTALECILLAS","JAIRO MOSQUERA MORENO"],
+      sinInforme: ["MARIA CRISTINA ARANGO DE PASTRANA."]
+    },
+    {
+      grupo: "G3",
+      instituciones: ["TECNICO SUPERIOR","DEPARTAMENTAL TIERRA DE PROMISION","SANTA LIBRADA","RICARDO BORRERO ALVAREZ","ANGEL MARIA PAREDES","CEINAR"],
+      sinInforme: []
+    },
+    {
+      grupo: "G4",
+      instituciones: ["JOSE EUSTASIO RIVERA","ATANASIO GIRARDOT","MISAEL PASTRANA BORRERO","HUMBERTO TAFUR CHARRY","ENRIQUE OLAYA HERRERA","ROBERTO DURAN ALVIRA"],
+      sinInforme: ["HUMBERTO TAFUR CHARRY"]
+    },
+    {
+      grupo: "G5",
+      instituciones: ["SANTA TERESA","ESCUELA NORMAL SUPERIOR","INSTITUTO TECNICO IPC ANDRES ROSA","JUAN DE CABRERA","JAIRO MORERA LIZCANO","SAN ANTONIO DE ANACONIA"],
+      sinInforme: []
+    },
+    {
+      grupo: "G6",
+      instituciones: ["OLIVERIO LARA BORRERO","AGUSTIN CODAZZI","EL LIMONAR","RODRIGO LARA BONILLA","EL CAGUAN","SAN LUIS BELTRAN"],
+      sinInforme: []
+    }
+  ],
+  participacion: {
+    totalParticipantes: 3196,
+    porGrupo: [
+      {grupo: "G1", totalIE: 6, totalParticipantes: 582},
+      {grupo: "G2", totalIE: 5, totalParticipantes: 338},
+      {grupo: "G3", totalIE: 6, totalParticipantes: 771},
+      {grupo: "G4", totalIE: 5, totalParticipantes: 430},
+      {grupo: "G5", totalIE: 6, totalParticipantes: 494},
+      {grupo: "G6", totalIE: 6, totalParticipantes: 581}
+    ]
+  },
+  secciones: [
+    {
+      sesion: "SESIÓN 1",
+      pregunta: "Pregunta orientadora",
+      enunciado: "¿Cómo hemos avanzado, desde nuestra institución educativa, en el logro de los retos y propósitos planteados en el FEM2025?",
+      tipo: "cualitativo",
+      comun: "Las 34 instituciones educativas de Neiva que remitieron su Informe Ejecutivo, agrupadas en los seis grupos de trabajo del Foro (G1 a G6), coinciden de manera prácticamente unánime en un primer hallazgo: el avance hacia los retos del FEM2025 se sostiene sobre todo en proyectos pedagógicos transversales y experiencias significativas propias de cada institución, más que en una transformación curricular estructural uniforme. Esto se expresa mediante iniciativas nombradas y distintas en cada caso —huertas escolares y alianzas con el SENA en el Grupo 1, el fortalecimiento de la primera infancia y los centros de interés en el Grupo 2, el hilo conductor institucional y las alianzas con el SENA y universidades en el Grupo 3, la educación inclusiva mediante PIAR y DUA en el Grupo 4, los macroproyectos y los Proyectos Pedagógicos de Aula en el Grupo 5, y los centros de interés PILEO/CRESE y los proyectos de turismo y emprendimiento en el Grupo 6—, pero conducen todas a la misma conclusión de fondo: el progreso pedagógico depende, en gran medida, del esfuerzo individual de cada institución y de sus equipos docentes. Un segundo hallazgo, igualmente transversal a los seis grupos, es que las limitaciones de infraestructura, dotación y conectividad constituyen el obstáculo estructural más persistente y más ampliamente repetido de todo el Foro, señalado por la mayoría de las instituciones de cada uno de los seis grupos, sin excepción. Un tercer hallazgo compartido es la necesidad, expresada de forma recurrente en al menos la mitad de las instituciones de casi todos los grupos, de fortalecer la corresponsabilidad y la participación activa de las familias como condición para sostener en el tiempo los avances alcanzados.",
+      particularidades: "Entre las particularidades más críticas de las 34 instituciones, dos ameritan especial atención de la Secretaría de Educación Municipal por señalar problemas que trascienden lo estrictamente pedagógico: la IE El Caguán (Grupo 6) reportó que la inestabilidad de la figura de la rectoría ha afectado directamente la continuidad de sus procesos institucionales —incluyendo el manejo de recursos, la toma de decisiones y el seguimiento de las acciones—; y la IE Ricardo Borrero Álvarez (Grupo 3) documentó problemáticas concretas de salubridad e inseguridad (una infestación de palomas que deteriora su infraestructura, además de inconformidad con el Programa de Alimentación Escolar, el transporte escolar y episodios de microtráfico e inseguridad). En un registro distinto, la IE Eduardo Santos (Grupo 2) fue la única en formular un señalamiento directo de \"abandono\" hacia la Secretaría de Educación y la Alcaldía por falta de respuesta oportuna a sus exigencias institucionales, mientras que Roberto Durán Alvira (Grupo 4) se distinguió en el sentido opuesto, siendo la única institución de todo el Foro en cuantificar explícitamente un nivel de avance del 80% frente a las metas del FEM2025 gracias a su macroproyecto \"Cultivando saberes y conexiones rurales\"."
+    },
+    {
+      sesion: "SESIÓN 1",
+      pregunta: "Pregunta 2",
+      enunciado: "¿Cómo hemos avanzado, desde nuestra institución educativa, en la implementación de los nuevos grados del nivel de preescolar (jardín, prejardín)?",
+      tipo: "cualitativo",
+      comun: "En los seis grupos se repite el mismo patrón: la implementación del grado jardín está mucho más consolidada que la del prejardín, y en al menos ocho de las 34 instituciones analizadas —entre ellas el INEM Juliam Motta Salas (G1), Ceinar (G3), José Eustasio Rivera, Agustín Codazzi y Enrique Olaya Herrera (G4), Juan de Cabrera (G5), y El Caguán y San Luis Beltrán (G6)— la causa principal de la baja demanda o de la nula apertura de prejardín es la misma: la competencia de los hogares comunitarios del ICBF y de los centros de cuidado privados, que ofrecen alimentación y jornada completa que la oferta escolar oficial no logra igualar. Un segundo hallazgo, igualmente generalizado en las seis mesas de trabajo, es que incluso en las instituciones donde el nivel ya opera, persisten limitaciones de infraestructura, dotación y personal formado que condicionan la calidad de la atención brindada.",
+      particularidades: "Tres instituciones documentan de manera especialmente concreta las consecuencias de estas limitaciones: El Caguán (G6) relató el caso de una docente de primera infancia reasignada por falta de infraestructura hasta terminar atendiendo a sus estudiantes en un \"salón improvisado\"; Juan de Cabrera (G5) reconoció no haber logrado ninguna apertura efectiva pese a haber realizado la oferta; y San Luis Beltrán (G6) reportó que, tras gestionar una docente específica para estos grados, no logró sostener la matrícula mínima necesaria. En el extremo opuesto, el Instituto Técnico IPC Andrés Rosa (G5) aportó el único hallazgo demográfico —y no institucional— de todo el Foro: identificó una disminución en la tasa de natalidad del sector como causa de la contracción de su oferta de preescolar."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 1",
+      enunciado: "¿Consideran que los currículos actuales que se desarrollan en las instituciones educativas son pertinentes con sus realidades territoriales (sociales, culturales, productivas)? ¿Por qué?",
+      tipo: "cualitativo",
+      comun: "La pertinencia curricular es calificada por la inmensa mayoría de las 34 instituciones como parcial o en proceso de consolidación: los currículos se reconocen alineados con los lineamientos del Ministerio de Educación Nacional, pero todavía insuficientemente conectados con las realidades sociales, culturales y productivas específicas de cada territorio. Este diagnóstico compartido se sostiene en dos tensiones que se repiten en los seis grupos: la presión de las pruebas estandarizadas (Saber, ICFES, DBA) como factor que limita la flexibilización curricular necesaria para incorporar el contexto local, señalada explícitamente en los Grupos 2 y 5; y la persistencia de una \"concepción curricular homogénea\" —en palabras de San Antonio de Anaconia (G5)— que no siempre reconoce las particularidades de cada comunidad, especialmente en las instituciones rurales del Foro.",
+      particularidades: "El hallazgo más contundente de todo el Foro en esta pregunta proviene de Jairo Morera Lizcano (G5): es la única de las 34 instituciones en concluir, sin matices, que su currículo \"no es pertinente con la realidad territorial\", atribuyendo la sostenibilidad de cualquier enseñanza contextualizada casi enteramente a la vocación individual de sus docentes y no a una política institucional o estatal. En el extremo étnico, El Caguán (G6) es la única institución en documentar un componente etnoeducativo explícito, con su sede La Gabriela atendiendo población indígena en concordancia con el Decreto 804 de 1995 — una dimensión de pertinencia curricular por identidad étnica sin equivalente en ninguna otra de las 34 instituciones del Foro."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 2",
+      enunciado: "¿Qué acciones se han implementado para lograr currículos más pertinentes al territorio?",
+      tipo: "cualitativo",
+      comun: "El fortalecimiento de proyectos pedagógicos transversales propios —con nombre y sello institucional en cada caso (huertas y PRAE en el Grupo 1, centros de interés y proyectos de vida en el Grupo 2, hilo conductor y CEINARTE en el Grupo 3, proyectos culturales y ambientales en el Grupo 4, Proyectos Pedagógicos de Aula y macroproyectos en el Grupo 5, y Lectuvalores, Oliverio TV o Palabrerío en el Grupo 6)— es, de lejos, la acción curricular más repetida en las 34 instituciones del Foro. La revisión y actualización periódica de los planes de área y de estudio, generalmente durante la semana institucional de inicio de año, es la segunda línea de acción más ampliamente compartida. Como tercer eje, al menos una institución en cinco de los seis grupos reporta alianzas formales con el SENA como estrategia concreta de pertinencia técnico-laboral, consolidando a esta entidad como el aliado externo más recurrente de todo el Foro Educativo Institucional.",
+      particularidades: "El Caguán (Grupo 6) es la única institución de las 34 en fundamentar explícitamente una de sus acciones curriculares en el principio de la libertad de cátedra docente individual. Ricardo Borrero Álvarez (Grupo 3), por su parte, es la única en reportar una estrategia de apropiación estudiantil del currículo mediante roles asignados a los propios estudiantes como líderes y guardianes ambientales, de convivencia, de TIC y de rendimiento académico."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 3",
+      enunciado: "¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar estas acciones?",
+      tipo: "mixto",
+      totalIE: 34,
+      tally: [
+        {opcion: "Consejo Académico", count: 33},
+        {opcion: "Comités de área", count: 31},
+        {opcion: "Consejo Directivo", count: 24},
+        {opcion: "Consejo Estudiantil", count: 19},
+        {opcion: "Comisión de Evaluación y Promoción", count: 18},
+        {opcion: "Personero(a) Estudiantil", count: 16},
+        {opcion: "Consejo de Padres de Familia", count: 13},
+        {opcion: "Equipo de Preescolar", count: 12}
+      ],
+      comun: "El Consejo Académico es la instancia que con mayor extensión lidera las acciones hacia currículos más pertinentes en todo el municipio, reportado por 33 de las 34 instituciones (97,1%). Le siguen los comités de área, presentes en 31 instituciones (91,2%), y el Consejo Directivo, en 24 (70,6%). Con una adopción minoritaria pero relevante se ubican el Consejo Estudiantil (19 IE, 55,9%), la Comisión de Evaluación y Promoción (18 IE, 52,9%), el/la Personero(a) Estudiantil (16 IE, 47,1%), el Consejo de Padres de Familia (13 IE, 38,2%) y el Equipo de Preescolar (12 IE, 35,3%). Este patrón, consistente en los seis grupos de trabajo, confirma al Consejo Académico y a los comités de área como el núcleo verdaderamente universal de la gestión curricular del Foro, mientras que las instancias de representación estudiantil y familiar, aunque mayoritarias, presentan una adopción más desigual entre instituciones y grupos.",
+      particularidades: "AIPECITO (Grupo 1) sigue siendo, a escala municipal, la institución más atípica en su relación con el catálogo estándar de equipos de trabajo: en las cuatro preguntas mixtas del Foro respondió sistemáticamente por fuera de las categorías sugeridas, apoyándose en estructuras propias de corte comunitario-territorial (veeduría del PAE, comités de riesgo y medio ambiente) en lugar de las instancias reglamentarias de representación estudiantil que sí reportó la inmensa mayoría de las demás 33 instituciones. En el extremo de mayor complejidad organizativa, el Instituto Técnico IPC Andrés Rosa (Grupo 5) reportó, con cerca de veinte equipos de trabajo distintos, la estructura curricular más extensa de todo el municipio."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 4",
+      enunciado: "¿Cómo se están articulando estos equipos de trabajo para lograr currículos más pertinentes territorialmente?",
+      tipo: "cualitativo",
+      comun: "En los seis grupos, la articulación entre los equipos de trabajo institucional se apoya, de manera prácticamente unánime, en reuniones periódicas, comités de área y el Consejo Académico como instancia orientadora central, más que en mecanismos formales creados específicamente para este fin. Una proporción significativa de instituciones en casi todos los grupos —el Liceo de Santa Librada y el INEM en el Grupo 1, varias del Grupo 2, Santa Librada y Ricardo Borrero Álvarez en el Grupo 3, la Escuela Normal Superior y Jairo Morera Lizcano en el Grupo 5, y Agustín Codazzi en el Grupo 6— reconoce de manera explícita que esta articulación resulta todavía insuficiente, dependiente de iniciativas individuales más que de una política institucional sistemática.",
+      particularidades: "Atanasio Girardot (Grupo 4) constituye el hallazgo más severo de todo el Foro en esta pregunta: es la única de las 34 instituciones en admitir que su Consejo Académico no fue convocado ni una sola vez durante todo el año escolar 2026, dejando la reflexión curricular en manos exclusivas de comités de área específicos — un vacío de gobierno curricular sin equivalente en ninguna otra institución del municipio."
+    },
+    {
+      sesion: "SESIÓN 2",
+      pregunta: "Pregunta 5",
+      enunciado: "¿Qué mecanismos de seguimiento se están implementando para que dichas acciones se cumplan?",
+      tipo: "mixto",
+      totalIE: 34,
+      tally: [
+        {opcion: "Autoevaluación institucional anual", count: 28},
+        {opcion: "Consejo Académico", count: 26},
+        {opcion: "Comités de área o núcleos de formación", count: 26},
+        {opcion: "Actas de reunión de área", count: 25},
+        {opcion: "Análisis de resultados de Pruebas Saber e ICFES", count: 22},
+        {opcion: "Articulación con el PEI", count: 18},
+        {opcion: "Plataformas de gestión académica (JIGRA)", count: 17},
+        {opcion: "Reportes al MEN / Planes de Mejoramiento Institucional", count: 13}
+      ],
+      comun: "La autoevaluación institucional anual es el mecanismo de seguimiento a las acciones curriculares más ampliamente adoptado en las 34 instituciones del Foro, presente en 28 de ellas (82,4%). Le siguen, con una adopción muy similar y cercana a las tres cuartas partes del municipio, el Consejo Académico y los comités de área (26 IE cada uno, 76,5%) y las actas de reunión de área (25 IE, 73,5%). El análisis de resultados de Pruebas Saber e ICFES se reporta en 22 instituciones (64,7%), la articulación con el PEI en 18 (52,9%) y las plataformas de gestión académica JIGRA en 17 (50,0%). Este patrón confirma que el seguimiento curricular del municipio se apoya, sobre todo, en instrumentos internos de autoevaluación y en el análisis de resultados académicos externos, más que en mecanismos de seguimiento comunitario o de participación directa de las familias.",
+      particularidades: "Gabriel García Márquez (Grupo 2) es la institución con el seguimiento más débil de todo el municipio en esta pregunta: seleccionó un único mecanismo del catálogo estándar y reconoció explícitamente carecer de una acción de seguimiento sistemática más allá de ese instrumento aislado. En el extremo opuesto, el Instituto Técnico IPC Andrés Rosa (Grupo 5) y El Limonar (Grupo 6) reportaron los catálogos de seguimiento más extensos y diversificados del Foro, incluyendo ambos, de manera excepcional, la evaluación por matriz DOFA como herramienta formal de análisis institucional."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Pregunta 1",
+      enunciado: "¿Consideran que la toma de decisiones en las instituciones educativas actualmente es participativa y democrática? ¿Por qué?",
+      tipo: "cualitativo",
+      comun: "Sin una sola excepción entre las 34 instituciones del Foro, todas reconocen la existencia de estructuras formales de gobierno escolar democrático (Consejo Directivo, Consejo Académico, Consejo Estudiantil, Consejo de Padres) y todas, también sin excepción, matizan esa existencia formal señalando límites concretos a su incidencia real sobre las decisiones institucionales. La baja participación de las familias es, con diferencia, el obstáculo específico más repetido de todo el Foro, mencionado de manera explícita por una mayoría de instituciones en cada uno de los seis grupos. Un segundo obstáculo ampliamente compartido es la percepción de que las decisiones de fondo se concentran en los equipos directivos o de gestión, señalada de forma recurrente —aunque con palabras propias en cada caso— en instituciones de los Grupos 1, 4, 5 y 6.",
+      particularidades: "Ricardo Borrero Álvarez (Grupo 3) presenta la denuncia más directa de todo el Foro sobre opacidad en la comunicación de decisiones, al señalar que las decisiones clave \"se centralizan en el Equipo de Gestión sin comunicarse oportunamente a las bases\". San Luis Beltrán (Grupo 6), por su parte, es la única institución en documentar explícitamente una \"percepción dividida entre las mesas de trabajo\" sobre esta misma pregunta, evidenciando que el desacuerdo sobre el estado de la democracia escolar puede darse también al interior de una misma comunidad educativa y no solo entre instituciones."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Pregunta 2",
+      enunciado: "¿Qué acciones se están implementando para canalizar y fortalecer la participación de la comunidad educativa?",
+      tipo: "cualitativo",
+      comun: "El fortalecimiento del Gobierno Escolar y de sus procesos electorales —elección de representantes, personeros y contralores— es la acción más repetida en las 34 instituciones del Foro para canalizar la participación de la comunidad educativa. La apertura de espacios de diálogo directo con las familias, principalmente mediante la Escuela de Padres, constituye la segunda línea de acción compartida por la mayoría de instituciones en los seis grupos. Un tercer grupo, más reducido pero presente en instituciones de casi todos los grupos, reporta alianzas interinstitucionales externas —con el SENA, el ICBF, la Policía de Infancia, universidades regionales o entidades gubernamentales— como estrategia complementaria de fortalecimiento comunitario.",
+      particularidades: "San Antonio de Anaconia (Grupo 5) presenta, con diferencia, las herramientas de participación más innovadoras de todo el Foro: mesas comunitarias de co-creación del PEI, jornadas de rendición pública de cuentas pedagógicas, murales y boletines informativos comunitarios, y presupuestos participativos escolares. José Eustasio Rivera (Grupo 4), por su parte, es la única institución en reportar una veeduría comunitaria formalizada con un objeto de vigilancia concreto: un comité de acompañamiento de padres que hace seguimiento directo a la construcción de infraestructura de una de sus sedes."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Equipos de trabajo",
+      enunciado: "¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar las estrategias y mecanismos de participación escolar?",
+      tipo: "mixto",
+      totalIE: 34,
+      tally: [
+        {opcion: "Gobierno Escolar", count: 30},
+        {opcion: "Consejo Directivo", count: 30},
+        {opcion: "Comité Escolar de Convivencia", count: 30},
+        {opcion: "Consejo Académico", count: 29},
+        {opcion: "Consejo de Padres de Familia", count: 29},
+        {opcion: "Personero(a) Estudiantil", count: 27},
+        {opcion: "Comisión de Evaluación y Promoción", count: 26},
+        {opcion: "Consejo Estudiantil", count: 25},
+        {opcion: "Contralor(a) Estudiantil", count: 25}
+      ],
+      comun: "El Gobierno Escolar en su conjunto, el Consejo Directivo y el Comité Escolar de Convivencia son los tres equipos de participación con mayor adopción en todo el municipio, cada uno reportado por 30 de las 34 instituciones (88,2%). Les siguen el Consejo Académico y el Consejo de Padres de Familia, cada uno en 29 instituciones (85,3%); el/la Personero(a) Estudiantil, en 27 (79,4%); la Comisión de Evaluación y Promoción, en 26 (76,5%); y el Consejo Estudiantil y el/la Contralor(a) Estudiantil, cada uno en 25 instituciones (73,5%). Este patrón evidencia una estructura de gobierno escolar notablemente homogénea y consolidada en las 34 instituciones del Foro, con las instancias reglamentarias de la Ley 115 alcanzando niveles de adopción cercanos o superiores al 80% en la práctica totalidad de los equipos evaluados.",
+      particularidades: "El Caguán (Grupo 6) presenta, con diferencia, la estructura de participación más débil de todo el municipio en esta pregunta: seleccionó apenas dos equipos del catálogo reglamentario, una inconsistencia notable frente a la descripción cualitativa mucho más rica que la misma institución ofreció en su propio informe. En el otro extremo, Santa Librada (Grupo 3) y el Instituto Técnico IPC Andrés Rosa (Grupo 5) presentan algunas de las estructuras de participación más completas y diversificadas del Foro, complementando el catálogo reglamentario con equipos propios adicionales."
+    },
+    {
+      sesion: "SESIÓN 3",
+      pregunta: "Mecanismos de seguimiento",
+      enunciado: "¿Qué mecanismos de seguimiento se están implementando para garantizar las acciones encaminadas a promover gobiernos educativos democráticos?",
+      tipo: "mixto",
+      totalIE: 34,
+      tally: [
+        {opcion: "Autoevaluación institucional anual (Guía 34 – MEN)", count: 31},
+        {opcion: "Reuniones periódicas con entes de gobierno escolar", count: 28},
+        {opcion: "Plan de Mejoramiento Institucional (PMI)", count: 27},
+        {opcion: "Elecciones estudiantiles", count: 26},
+        {opcion: "Elección de docentes para consejo directivo", count: 25},
+        {opcion: "Elección de docentes para consejo académico", count: 23},
+        {opcion: "Actualización y ajuste permanente del PEI", count: 23}
+      ],
+      comun: "La autoevaluación institucional anual conforme a la Guía 34 del MEN es, con 31 de las 34 instituciones (91,2%), el mecanismo de seguimiento a la democracia escolar más adoptado en todo el municipio. Le siguen las reuniones periódicas con los entes de gobierno escolar (28 IE, 82,4%), el Plan de Mejoramiento Institucional (27 IE, 79,4%), las elecciones estudiantiles (26 IE, 76,5%), la elección de docentes para el Consejo Directivo (25 IE, 73,5%) y, en un mismo nivel, la elección de docentes para el Consejo Académico y la actualización permanente del PEI (23 IE cada uno, 67,6%). Este patrón confirma que el seguimiento a la democracia escolar en las 34 instituciones del Foro se sustenta principalmente en los procesos electorales reglamentarios y en los instrumentos de autoevaluación dispuestos por la normativa nacional.",
+      particularidades: "Atanasio Girardot (Grupo 4) constituye el hallazgo más crítico de todo el municipio en esta pregunta: es la única de las 34 instituciones en admitir explícitamente que \"no existen mecanismos formales, instrumentos consolidados o un seguimiento riguroso\" a la democracia escolar más allá de la votación inicial de representantes, una confesión de vacío institucional sin equivalente en ninguna otra institución del Foro. El Caguán (Grupo 6), por su parte, complementa este panorama al describir en su respuesta cualitativa —aunque sin reflejarlo en el catálogo de casillas marcadas— mecanismos propios de veeduría comunitaria directa, incluyendo asambleas y pronunciamientos públicos de padres y estudiantes."
+    }
+  ],
+  percepcionQR: {
+    totalFirmantes: 286,
+    institucionesQR: [
+      {nombre: "LICEO DE SANTA LIBRADA", grupo: "G1", firmantes: 69, totalParticipantes: 116},
+      {nombre: "ATANASIO GIRARDOT", grupo: "G4", firmantes: 64, totalParticipantes: 87},
+      {nombre: "EL LIMONAR", grupo: "G6", firmantes: 101, totalParticipantes: 112},
+      {nombre: "RODRIGO LARA BONILLA", grupo: "G6", firmantes: 52, totalParticipantes: 75}
+    ],
+    demografia: [
+      {categoria: "Mujeres adultas (mayores de 18 años)", count: 178},
+      {categoria: "Hombres adultos (mayores de 18 años)", count: 80},
+      {categoria: "Adolescentes mujeres (13 a 18 años)", count: 17},
+      {categoria: "Adolescentes hombres (13 a 18 años)", count: 5},
+      {categoria: "Niños y niñas (0 a 12 años)", count: 2},
+      {categoria: "Prefirió no responder la edad", count: 3}
+    ],
+    fortalezasGenerales: [
+      {opcion: "Trabajo colaborativo entre docentes", count: 4},
+      {opcion: "Docentes con experiencias exitosas que pueden ser compartidas", count: 4},
+      {opcion: "Participación activa de los estudiantes", count: 1},
+      {opcion: "Liderazgo pedagógico de los directivos", count: 1},
+      {opcion: "Reconocimiento de las necesidades del contexto", count: 1},
+      {opcion: "Estrategias que han mejorado los aprendizajes", count: 1}
+    ],
+    oportunidadesGenerales: [
+      {opcion: "Baja participación de estudiantes y familias", count: 4},
+      {opcion: "Infraestructura o dotación que limita el aprendizaje", count: 3},
+      {opcion: "Brechas de aprendizaje entre estudiantes, grados o sedes", count: 2},
+      {opcion: "Bajo logro de aprendizajes fundamentales", count: 1},
+      {opcion: "Desarticulación entre PEI, currículo y práctica de aula", count: 1},
+      {opcion: "Necesidades de formación y acompañamiento docente", count: 1}
+    ],
+    analisisCuantitativo: "De los 3.196 participantes declarados en las 34 instituciones del Foro Educativo Institucional 2026, 286 personas —cifra prácticamente coincidente con las 287 reportadas— firmaron su asistencia mediante código QR con encuesta de percepción digital, en cuatro instituciones de tres de los seis grupos de trabajo: el Liceo de Santa Librada (Grupo 1, 69 firmantes de 116 participantes), Atanasio Girardot (Grupo 4, 64 de 87), El Limonar (Grupo 6, 101 de 112) y Rodrigo Lara Bonilla (Grupo 6, 52 de 75). Aunque esta muestra cubre solo 4 de las 34 instituciones (11,8%) y en torno al 9% del total de participantes del Foro, constituye la única fuente de datos demográficos y de percepción individual disponible en todo el municipio, y sus hallazgos —como se detalla más adelante— resultan coherentes con la síntesis cualitativa de los seis grupos de trabajo. En términos demográficos, el 90,2% de los 286 firmantes (258 personas) son adultos mayores de 18 años (178 mujeres y 80 hombres), el 7,7% (22 personas) son adolescentes entre 13 y 18 años (17 mujeres y 5 hombres), apenas el 0,7% (2 personas) son niños o niñas entre 0 y 12 años, y un 1,0% (3 personas) prefirió no responder la pregunta de edad. Esta composición demográfica —abrumadoramente adulta y mayoritariamente docente— es coherente con la caracterización general de participantes de todo el Foro, en la que los docentes representan la proporción más alta de asistentes en la práctica totalidad de las 34 instituciones. En cuanto a las fortalezas identificadas, dos opciones fueron señaladas por la totalidad de las cuatro instituciones con datos de percepción (100%): el trabajo colaborativo entre docentes y la existencia de docentes con experiencias exitosas que pueden ser compartidas. Con una adopción minoritaria se ubican la participación activa de los estudiantes, el liderazgo pedagógico de los directivos, el reconocimiento de las necesidades del contexto y las estrategias que han mejorado los aprendizajes, cada una señalada como fortaleza principal por una sola de las cuatro instituciones. En cuanto a las oportunidades de mejoramiento, un hallazgo es igualmente unánime: la baja participación de estudiantes y familias fue señalada por las cuatro instituciones (100%), seguida por la infraestructura o dotación que limita el aprendizaje, señalada por tres de las cuatro (75%). Con una adopción minoritaria se ubican las brechas de aprendizaje entre estudiantes, grados o sedes (2 de 4, 50%), el bajo logro de aprendizajes fundamentales, la desarticulación entre PEI, currículo y práctica de aula, y las necesidades de formación y acompañamiento docente (cada una en 1 de las 4 instituciones).",
+    analisisCualitativo: "El análisis por grupo etario, posible en las tres instituciones que registraron respuestas de adolescentes (Liceo de Santa Librada, Atanasio Girardot y El Limonar) y en las dos que registraron respuestas de niños y niñas (Liceo de Santa Librada y El Limonar, con apenas un caso cada una), aporta un matiz relevante a la lectura general. Entre los adultos —el 90% de la muestra— el patrón es enteramente consistente con el hallazgo general: las cuatro instituciones coinciden en valorar el trabajo colaborativo docente y las experiencias exitosas compartidas como sus principales fortalezas, y en señalar la baja participación de familias como su principal reto, acompañada en tres de los cuatro casos por las limitaciones de infraestructura y dotación. Entre los adolescentes, el patrón es más heterogéneo y arroja un hallazgo particularmente relevante: mientras el Liceo de Santa Librada y El Limonar mantienen entre sus jóvenes una valoración positiva del trabajo colaborativo docente, los adolescentes de Atanasio Girardot señalan justamente lo contrario —el \"escaso trabajo colaborativo entre docentes\"— como una de sus principales oportunidades de mejora, una divergencia generacional dentro de una misma institución que sugiere que la percepción positiva de los adultos sobre su propio trabajo en equipo no necesariamente es compartida por sus estudiantes adolescentes, y que amerita ser explorada con mayor profundidad por la propia institución. Los dos registros disponibles de percepción infantil, aunque estadísticamente insuficientes para generalizar, coinciden en valorar el liderazgo pedagógico de los directivos como una fortaleza reconocida incluso por los niños y niñas más pequeños de la comunidad educativa. En el plano cualitativo de las respuestas de texto libre, los dos únicos comentarios registrados en las secciones de oportunidades de mejoramiento (Liceo de Santa Librada y Rodrigo Lara Bonilla) convergen exactamente en el mismo señalamiento: la necesidad de un mayor compromiso y participación de las familias en las actividades institucionales. Esta coincidencia, sumada a que la baja participación de estudiantes y familias fue la oportunidad de mejora unánime entre las cuatro instituciones con datos de percepción digital, y a que este mismo hallazgo emergió de manera independiente y recurrente en el análisis cualitativo de los 34 informes ejecutivos que sustenta las once secciones anteriores de este documento, permite afirmar con un alto grado de confianza que la participación insuficiente de las familias es, con diferencia, el reto más extendido y mejor triangulado de todo el Foro Educativo Institucional Neiva 2026 — una conclusión que converge de manera consistente tanto en el análisis cualitativo de los seis grupos de trabajo como en el análisis cuantitativo de la muestra poblacional de firmantes QR aquí presentada."
+  },
+  conclusiones: "El Foro Educativo Institucional — Neiva 2026 congregó a las 36 instituciones educativas oficiales del municipio organizadas en seis grupos de trabajo, de las cuales 34 remitieron su Informe Ejecutivo a la fecha de consolidación de este documento (Humberto Tafur Charry, del Grupo 4, y María Cristina Arango de Pastrana, del Grupo 2, no habían enviado su informe). El análisis conjunto de las tres sesiones de trabajo desarrolladas por estas 34 instituciones permite concluir que el municipio comparte una trayectoria sólida de avances en la contextualización curricular mediante proyectos pedagógicos propios y transversales, en el fortalecimiento de la educación inicial —aunque con una implementación de prejardín sistemáticamente rezagada frente a la de jardín, en buena medida por la competencia de los hogares comunitarios del ICBF—, y en la consolidación de una estructura de gobierno escolar notablemente homogénea, con las instancias reglamentarias de la Ley 115 alcanzando niveles de adopción entre el 70% y el 97% en la práctica totalidad de los equipos y mecanismos evaluados. Frente a estos avances, dos retos estructurales atraviesan la totalidad del municipio sin excepción: las limitaciones de infraestructura, dotación y conectividad, señaladas como el obstáculo más persistente en los seis grupos de trabajo; y la participación real de las familias, que —según confirma de manera convergente tanto el análisis cualitativo de los 34 informes ejecutivos como el análisis cuantitativo de los 286 firmantes por código QR presentado en el capítulo especial de este documento— constituye el reto mejor documentado y más extendido de todo el Foro. Cuatro hallazgos institucionales particulares ameritan seguimiento prioritario y específico de la Secretaría de Educación Municipal: la IE Atanasio Girardot (Grupo 4), única institución del municipio en admitir no haber convocado su Consejo Académico durante todo el año escolar ni contar con mecanismos formales de seguimiento a la democracia escolar; la IE El Caguán (Grupo 6), que reportó la inestabilidad de su rectoría como factor que ha afectado la continuidad de sus procesos institucionales, incluyendo un caso documentado de una docente de primera infancia reasignada por falta de infraestructura hasta terminar atendiendo a sus estudiantes en un salón improvisado; la IE Ricardo Borrero Álvarez (Grupo 3), que denunció la centralización de decisiones clave sin comunicación oportuna a las bases, además de problemáticas concretas de salubridad e inseguridad; y la IE Jairo Morera Lizcano (Grupo 5), única institución del Foro en concluir sin matices que su currículo actual no es pertinente con la realidad territorial. En el extremo positivo, la IE Roberto Durán Alvira (Grupo 4) y la IE San Antonio de Anaconia (Grupo 5) se destacan como referentes replicables: la primera por su macroproyecto rural \"Cultivando saberes y conexiones rurales\", con un nivel de avance estimado del 80% frente a las metas del FEM2025; y la segunda por un conjunto de herramientas de participación directa y transparencia (presupuestos participativos escolares, rendición pública de cuentas, mesas de co-creación del PEI) sin equivalente en ninguna otra institución del municipio. En cuanto a la valoración general de la jornada, de las 34 instituciones con informe remitido, únicamente ocho registraron formalmente su calificación del Foro a la fecha de este documento: Fortalecillas (5,0/5, Grupo 2), Departamental Tierra de Promisión (5,0/5, Grupo 3), José Eustasio Rivera (4,5/5, Grupo 4), Escuela Normal Superior (5,0/5, Grupo 5), Instituto Técnico IPC Andrés Rosa (4,8/5, Grupo 5), El Limonar (4,8/5, Grupo 6) y Rodrigo Lara Bonilla (4,8/5, Grupo 6); las 26 instituciones restantes aún no habían diligenciado este instrumento. Se recomienda a la Secretaría de Educación Municipal: (1) gestionar el diligenciamiento pendiente de la valoración general y del Informe Ejecutivo con las instituciones señaladas; (2) diseñar una estrategia diferenciada de fortalecimiento de la participación familiar, dado que este es el hallazgo más robusto y mejor triangulado de todo el Foro; (3) brindar acompañamiento específico a Atanasio Girardot y El Caguán en materia de gobierno escolar y continuidad institucional; y (4) ampliar el uso del instrumento de percepción por código QR a la totalidad de las instituciones en futuras versiones del Foro, dado que la muestra de 286 firmantes analizada en el capítulo especial de este documento, aunque valiosa, cubrió apenas 4 de las 36 instituciones del municipio.",
+  proyectoNombre: "[Nombre de quien consolida el Informe Consolidado]",
+  proyectoCargo: "[Cargo]",
+  fechaRealizacion: "8 de septiembre de 2026"
+};
+
+/*
+ * Genera (o reescribe, si ya existe) el Informe de Síntesis Municipal
+ * consolidado del Foro Educativo Institucional Neiva 2026, dejándolo
+ * en la raíz de la carpeta general del Foro (no en una carpeta de
+ * grupo específica, ya que este documento cubre a los 6 grupos).
+ *
+ * Uso: desde el editor de Apps Script, seleccionar esta función y
+ * presionar "Ejecutar". El enlace del documento queda en "Ver
+ * registros de ejecución".
+ */
+function generarInformeSintesisMunicipalFEM(){
+  const carpetaRaiz=DriveApp.getFolderById(DRIVE_CARPETA_FEM_ID);
+  const nombreDoc="Informe de Síntesis Municipal - Foro Educativo Institucional Neiva 2026";
+  const existentesIt=carpetaRaiz.getFilesByName(nombreDoc);
+  const archivoExistente=existentesIt.hasNext() ? existentesIt.next() : null;
+  while(existentesIt.hasNext()) existentesIt.next().setTrashed(true);
+
+  const archivoDoc=generarInformeSintesisMunicipalFEM_(DATOS_SINTESIS_MUNICIPAL_FEM_, archivoExistente?archivoExistente.getId():null);
+  if(!archivoExistente){
+    carpetaRaiz.addFile(archivoDoc);
+    try{ DriveApp.getRootFolder().removeFile(archivoDoc); }catch(e){}
+  }
+
+  Logger.log("========================================");
+  Logger.log("INFORME DE SÍNTESIS MUNICIPAL — RESULTADO");
+  Logger.log("Documento: "+archivoDoc.getUrl());
+  Logger.log("========================================");
+
+  return archivoDoc.getUrl();
+}

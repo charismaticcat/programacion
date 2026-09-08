@@ -9693,3 +9693,281 @@ function generarInformeSintesisGrupoFEM_(datosGrupo, idDocExistente){
   doc.saveAndClose();
   return DriveApp.getFileById(doc.getId());
 }
+
+/*
+ * Genera el Informe de Síntesis MUNICIPAL del Foro Educativo
+ * Institucional — Neiva 2026: consolida en un solo documento las once
+ * preguntas de las tres sesiones de trabajo para las 34 instituciones
+ * educativas (de las 36 del catálogo municipal) que remitieron su
+ * Informe Ejecutivo en los Grupos G1 a G6, y añade un capítulo especial
+ * dedicado a la percepción de la comunidad educativa recogida mediante
+ * firma por código QR.
+ *
+ * datosMunicipio: {
+ *   tituloInforme, fechaPresentacion, responsableInforme,
+ *   grupos: [{grupo, instituciones:[...]}],           // para portada
+ *   participacion: {totalParticipantes, porGrupo:[{grupo,totalIE,totalParticipantes}]},
+ *   secciones: [ ...mismo esquema que generarInformeSintesisGrupoFEM_... ],
+ *   percepcionQR: {
+ *     totalFirmantes, institucionesQR:[{nombre,grupo,firmantes,totalParticipantes}],
+ *     demografia:[{categoria,count}],
+ *     fortalezasGenerales:[{opcion,count}], oportunidadesGenerales:[{opcion,count}],
+ *     analisisCuantitativo, analisisCualitativo
+ *   },
+ *   conclusiones, proyectoNombre, proyectoCargo, fechaRealizacion
+ * }
+ */
+function generarInformeSintesisMunicipalFEM_(datosMunicipio, idDocExistente){
+  const VERDE=COLOR_VERDE_DOC, GRIS_TEXTO=COLOR_GRIS_TEXTO_DOC, NEGRO="#000000";
+  const doc=idDocExistente ? DocumentApp.openById(idDocExistente) : DocumentApp.create("Informe de Síntesis Municipal FEM 2026");
+  const body=doc.getBody();
+  body.clear();
+
+  const ANCHO_UTIL=468;
+
+  function titulo1_(texto){
+    const p=body.appendParagraph(texto);
+    p.setHeading(DocumentApp.ParagraphHeading.HEADING1);
+    p.editAsText().setBold(true).setForegroundColor(VERDE);
+    return p;
+  }
+  function subtitulo_(texto){
+    const p=body.appendParagraph(texto);
+    p.setHeading(DocumentApp.ParagraphHeading.HEADING2);
+    p.editAsText().setBold(true).setForegroundColor(VERDE);
+    p.setSpacingBefore(12).setSpacingAfter(6);
+    return p;
+  }
+  function subtitulo3_(texto){
+    const p=body.appendParagraph(texto);
+    p.setHeading(DocumentApp.ParagraphHeading.HEADING3);
+    p.editAsText().setBold(true).setForegroundColor(VERDE);
+    p.setSpacingBefore(10).setSpacingAfter(4);
+    return p;
+  }
+  function etiquetaMenor_(texto){
+    const p=body.appendParagraph(texto);
+    p.editAsText().setBold(false).setItalic(false).setForegroundColor(NEGRO);
+    p.setSpacingBefore(10).setSpacingAfter(6);
+    return p;
+  }
+  function parrafo_(texto){
+    const p=body.appendParagraph(texto);
+    p.editAsText().setForegroundColor(GRIS_TEXTO);
+    p.setAlignment(DocumentApp.HorizontalAlignment.JUSTIFY);
+    return p;
+  }
+  function porcentaje_(parte,total){ return total>0 ? ((parte/total)*100).toFixed(1)+"%" : "0.0%"; }
+  function imagenAnchoCompleto_(blob){
+    const img=body.appendImage(blob);
+    const escala=ANCHO_UTIL/img.getWidth();
+    img.setWidth(ANCHO_UTIL);
+    img.setHeight(Math.round(img.getHeight()*escala));
+    return img;
+  }
+  // Tabla genérica de dos columnas (opción/categoría + N°) con
+  // porcentaje sobre un denominador dado — reutilizada tanto para las
+  // preguntas mixtas de las 11 secciones como para el capítulo especial
+  // de percepción QR.
+  function tablaConteo_(encabezados, filas, denominador){
+    const tabla=body.appendTable();
+    tabla.setBorderColor("#CCCCCC");
+    const fEnc=tabla.appendTableRow();
+    encabezados.forEach(function(t){
+      const c=fEnc.appendTableCell(t);
+      c.setBackgroundColor(VERDE);
+      c.getChild(0).asParagraph().editAsText().setBold(true).setForegroundColor("#FFFFFF").setFontSize(9);
+    });
+    filas.forEach(function(f){
+      const fila=tabla.appendTableRow();
+      [f.etiqueta, String(f.count), porcentaje_(f.count, denominador)].forEach(function(v){
+        const c=fila.appendTableCell(v);
+        c.getChild(0).asParagraph().editAsText().setForegroundColor(GRIS_TEXTO).setFontSize(9);
+      });
+    });
+    body.appendParagraph("");
+  }
+  function graficoBarras_(titulo, filas){
+    try{
+      const blob=construirGraficoBarrasHorizontal_(titulo, filas.map(function(f){return f.etiqueta||f.opcion;}), filas.map(function(f){return f.count;}));
+      body.appendImage(blob).setWidth(500);
+    }catch(errorGrafico){ Logger.log("Gráfico \""+titulo+"\" (informe municipal): "+errorGrafico.message); }
+  }
+
+  // ---------- PORTADA ----------
+  try{ imagenAnchoCompleto_(DriveApp.getFileById(FONDO_SINTESIS_BANDA_SUPERIOR_ID).getBlob()); }
+  catch(errorBandaSup){ Logger.log("Banda superior de portada (municipal): "+errorBandaSup.message); }
+
+  const tituloDoc=body.appendParagraph(datosMunicipio.tituloInforme||"INFORME DE SÍNTESIS MUNICIPAL — FORO EDUCATIVO INSTITUCIONAL NEIVA 2026");
+  tituloDoc.setHeading(DocumentApp.ParagraphHeading.TITLE);
+  tituloDoc.editAsText().setBold(true).setForegroundColor(VERDE);
+  const subDoc=body.appendParagraph("FEM 2026 “Escuela Viva: Voces que construyen territorio”.\nForo Educativo Institucional — Neiva 2026");
+  subDoc.editAsText().setForegroundColor(GRIS_TEXTO).setItalic(false);
+  body.appendParagraph("");
+
+  function filaPortada_(etiqueta, valor){
+    const p=body.appendParagraph("");
+    p.appendText(etiqueta+": ").setBold(true).setForegroundColor(VERDE);
+    p.appendText(String(valor||"")).setBold(false).setForegroundColor(GRIS_TEXTO);
+  }
+  const totalInstituciones=datosMunicipio.grupos.reduce(function(acc,g){ return acc+g.instituciones.length; },0);
+  filaPortada_("Cobertura del informe", "Grupos G1 a G6 — "+totalInstituciones+" instituciones educativas oficiales de Neiva");
+  filaPortada_("Responsable del informe", datosMunicipio.responsableInforme);
+  filaPortada_("Fecha de presentación", datosMunicipio.fechaPresentacion);
+  filaPortada_("Lugar", "Neiva, Huila.");
+  body.appendParagraph("");
+
+  // Listado de instituciones agrupado por G1-G6, con nota para las que
+  // no remitieron Informe Ejecutivo a la fecha de este documento.
+  datosMunicipio.grupos.forEach(function(g){
+    const pGrupo=body.appendParagraph("");
+    pGrupo.appendText("Grupo "+g.grupo+":\n").setBold(true).setForegroundColor(VERDE);
+    pGrupo.appendText(g.instituciones.map(function(n){
+      return "• "+n+(g.sinInforme && g.sinInforme.indexOf(n)>=0 ? " (sin Informe Ejecutivo a la fecha)" : "");
+    }).join("\n")).setBold(false).setForegroundColor(GRIS_TEXTO);
+  });
+  body.appendParagraph("");
+
+  // Logos institucionales, organizados en una fila por grupo (G1 a G6).
+  datosMunicipio.grupos.forEach(function(g){
+    const logosIE=g.instituciones.map(function(nombreIE){
+      try{
+        const logoId=obtenerLogoIdPorNombreIE_(nombreIE);
+        return logoId ? DriveApp.getFileById(logoId).getBlob() : null;
+      }catch(errorLogoIE){ Logger.log("Logo de "+nombreIE+" en portada municipal: "+errorLogoIE.message); return null; }
+    });
+    if(!logosIE.some(function(b){ return b; })) return;
+    const n=logosIE.length;
+    const anchoCelda=Math.floor(ANCHO_UTIL/n);
+    const tablaLogos=body.appendTable();
+    tablaLogos.setBorderColor("#FFFFFF");
+    const filaLogos=tablaLogos.appendTableRow();
+    logosIE.forEach(function(blob){
+      const celda=filaLogos.appendTableCell("");
+      celda.setWidth(anchoCelda);
+      const pCelda=celda.getChild(0).asParagraph();
+      pCelda.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+      if(blob){
+        try{
+          const img=pCelda.appendInlineImage(blob);
+          const alturaMax=34, anchoOriginal=img.getWidth(), altoOriginal=img.getHeight();
+          let w=anchoOriginal, h=altoOriginal;
+          if(h>alturaMax){ h=alturaMax; w=Math.round(anchoOriginal*alturaMax/altoOriginal); }
+          if(w>anchoCelda-6){ const f=(anchoCelda-6)/w; w=Math.round(w*f); h=Math.round(h*f); }
+          img.setWidth(w).setHeight(h);
+        }catch(errorImgLogo){ Logger.log("Insertar logo en portada municipal: "+errorImgLogo.message); }
+      }
+    });
+  });
+
+  try{ imagenAnchoCompleto_(DriveApp.getFileById(FONDO_SINTESIS_BANDA_INFERIOR_ID).getBlob()); }
+  catch(errorBandaInf){ Logger.log("Banda inferior de portada (municipal): "+errorBandaInf.message); }
+  body.appendPageBreak();
+
+  // ---------- PRESENTACIÓN METODOLÓGICA ----------
+  titulo1_("Presentación");
+  parrafo_("El presente informe consolida, en un solo documento de alcance municipal, los seis Informes de Síntesis Grupal (Grupos G1 a G6) del Foro Educativo Institucional — Neiva 2026, elaborados a su vez a partir de la lectura directa de los Informes Ejecutivos remitidos por "+totalInstituciones+" instituciones educativas oficiales del municipio. De estas, "+(datosMunicipio.totalConInforme||"")+" habían remitido su Informe Ejecutivo a la fecha de consolidación de este documento; las instituciones que aún no lo habían hecho se señalan expresamente en el listado de la portada y en las conclusiones de este informe. Para cada una de las once preguntas de las tres sesiones de trabajo, este documento identifica los elementos comunes al conjunto del municipio —construidos a partir de los patrones ya sintetizados en los seis informes grupales— y señala, como particularidades, los hallazgos institucionales más significativos de todo el Foro, sin limitarse a un hallazgo por grupo. En las cuatro preguntas de selección múltiple (equipos de trabajo y mecanismos de seguimiento de las Sesiones 2 y 3), las tablas y gráficos de este informe agregan los conteos ya publicados en los seis informes grupales, sumando el número de instituciones que reportaron cada opción; dado que cada informe grupal reportó, por razones de extensión, únicamente las opciones de mayor adopción dentro de su propio grupo, los porcentajes de las opciones de menor adopción constituyen un piso mínimo (podrían ser levemente superiores en la realidad), mientras que el ordenamiento de las opciones más adoptadas —que en su mayoría aparecen en la práctica totalidad de los seis grupos— es plenamente confiable. Finalmente, este informe incorpora un capítulo especial, ausente de los informes grupales, dedicado al análisis cuantitativo y cualitativo de la percepción de la comunidad educativa recogida mediante firma por código QR.");
+  body.appendPageBreak();
+
+  // ---------- PARTICIPACIÓN GENERAL DEL FORO ----------
+  if(datosMunicipio.participacion){
+    titulo1_("Participación General del Foro");
+    parrafo_("Las "+totalInstituciones+" instituciones educativas del municipio, agrupadas en los seis grupos de trabajo del Foro, declararon en conjunto "+datosMunicipio.participacion.totalParticipantes+" participantes en sus respectivos Informes Ejecutivos (rectores, coordinadores, docentes, tutores PTA/PFI 3.0, orientadores, estudiantes, padres y madres de familia, personal administrativo, egresados y representantes del sector productivo). La siguiente tabla desagrega esta participación por grupo de trabajo.");
+    tablaConteo_(["Grupo","N.° de IE con informe","Participantes declarados"], datosMunicipio.participacion.porGrupo.map(function(g){
+      return {etiqueta:g.grupo+" ("+g.totalIE+" IE)", count:g.totalParticipantes};
+    }), null);
+    body.appendPageBreak();
+  }
+
+  // ---------- SECCIONES POR PREGUNTA ----------
+  let sesionActual="";
+  datosMunicipio.secciones.forEach(function(sec){
+    if(sec.sesion!==sesionActual){
+      sesionActual=sec.sesion;
+      titulo1_(sesionActual);
+    }
+    subtitulo_(sec.pregunta+(sec.enunciado?": "+sec.enunciado:""));
+    etiquetaMenor_("Enfoque: "+(sec.tipo==="mixto"?"mixto (cuantitativo y cualitativo)":"descriptivo cualitativo"));
+
+    parrafo_(sec.comun);
+
+    if(sec.tipo==="mixto" && sec.tally && sec.tally.length){
+      graficoBarras_(sec.pregunta+" — Municipio", sec.tally);
+      const totalIE=sec.totalIE||totalInstituciones;
+      tablaConteo_(["Opción seleccionada en común","N.° de IE","% del municipio"], sec.tally.map(function(t){
+        return {etiqueta:t.opcion, count:t.count};
+      }), totalIE);
+    }
+
+    etiquetaMenor_("Particularidades coyunturales de las I.E");
+    parrafo_(sec.particularidades);
+    body.appendParagraph("");
+  });
+
+  // ---------- CAPÍTULO ESPECIAL: PERCEPCIÓN QR ----------
+  if(datosMunicipio.percepcionQR){
+    const qr=datosMunicipio.percepcionQR;
+    body.appendPageBreak();
+    titulo1_("Capítulo Especial — Percepción de la Comunidad Educativa: Firmantes por Código QR");
+    parrafo_("A diferencia de las once secciones anteriores —construidas a partir de las respuestas institucionales de las tres sesiones de trabajo—, este capítulo analiza la percepción individual de la comunidad educativa recogida mediante firma de asistencia por código QR, la cual incluye una breve encuesta demográfica y de percepción sobre las fortalezas y oportunidades de mejoramiento del Foro. De las 34 instituciones con Informe Ejecutivo, únicamente cuatro utilizaron este mecanismo de firma digital: "+qr.institucionesQR.map(function(i){ return i.nombre+" ("+i.grupo+", "+i.firmantes+" de "+i.totalParticipantes+" participantes)"; }).join("; ")+". En conjunto, estas cuatro instituciones aportan "+qr.totalFirmantes+" firmantes con datos de percepción, una muestra que —aunque cubre solo 4 de las 34 instituciones del municipio— constituye la única fuente disponible de datos demográficos y de percepción individual del Foro.");
+
+    subtitulo_("Perfil demográfico de los "+qr.totalFirmantes+" firmantes");
+    graficoBarras_("Perfil demográfico — Firmantes QR", qr.demografia.map(function(d){ return {opcion:d.categoria, count:d.count}; }));
+    tablaConteo_(["Categoría demográfica","N.° de personas","% del total"], qr.demografia.map(function(d){
+      return {etiqueta:d.categoria, count:d.count};
+    }), qr.totalFirmantes);
+
+    subtitulo_("Fortalezas identificadas por la comunidad educativa");
+    etiquetaMenor_("Enfoque: mixto (cuantitativo y cualitativo) — porcentaje de instituciones (de 4) que señalaron cada opción entre sus principales fortalezas");
+    graficoBarras_("Fortalezas generales — Firmantes QR", qr.fortalezasGenerales);
+    tablaConteo_(["Fortaleza señalada","N.° de IE (de 4)","% de las IE con datos QR"], qr.fortalezasGenerales.map(function(f){
+      return {etiqueta:f.opcion, count:f.count};
+    }), qr.institucionesQR.length);
+
+    subtitulo_("Oportunidades de mejoramiento identificadas por la comunidad educativa");
+    etiquetaMenor_("Enfoque: mixto (cuantitativo y cualitativo) — porcentaje de instituciones (de 4) que señalaron cada opción entre sus principales oportunidades de mejora");
+    graficoBarras_("Oportunidades generales — Firmantes QR", qr.oportunidadesGenerales);
+    tablaConteo_(["Oportunidad de mejora señalada","N.° de IE (de 4)","% de las IE con datos QR"], qr.oportunidadesGenerales.map(function(f){
+      return {etiqueta:f.opcion, count:f.count};
+    }), qr.institucionesQR.length);
+
+    subtitulo3_("Análisis cuantitativo");
+    parrafo_(qr.analisisCuantitativo);
+    subtitulo3_("Análisis cualitativo por grupo etario");
+    parrafo_(qr.analisisCualitativo);
+  }
+
+  // ---------- CONCLUSIONES ----------
+  body.appendPageBreak();
+  titulo1_("Conclusiones del Foro Educativo Institucional — Neiva 2026");
+  parrafo_(datosMunicipio.conclusiones);
+
+  // ---------- CIERRE: LOGOS Y FIRMAS ----------
+  body.appendParagraph("");
+  const filaLogosCierre=body.appendTable();
+  filaLogosCierre.setBorderColor("#FFFFFF");
+  const rLogosCierre=filaLogosCierre.appendTableRow();
+  const cLogoFemCierre=rLogosCierre.appendTableCell("");
+  cLogoFemCierre.setWidth(150);
+  try{ cLogoFemCierre.getChild(0).asParagraph().appendInlineImage(DriveApp.getFileById(LOGO_ENCABEZADO_ID).getBlob()).setWidth(126).setHeight(70); }
+  catch(errorLogoFemCierre){ Logger.log("Logo del Foro en cierre municipal: "+errorLogoFemCierre.message); }
+  const cLogoSemCierre=rLogosCierre.appendTableCell("");
+  cLogoSemCierre.setWidth(150);
+  try{ cLogoSemCierre.getChild(0).asParagraph().appendInlineImage(DriveApp.getFileById(LOGO_PIE_ID).getBlob()).setWidth(100).setHeight(50); }
+  catch(errorLogoSemCierre){ Logger.log("Logo de la SEM en cierre municipal: "+errorLogoSemCierre.message); }
+
+  body.appendParagraph("");
+  function lineaFirma_(texto){
+    const p=body.appendParagraph(String(texto||""));
+    p.editAsText().setBold(false).setItalic(false).setForegroundColor(GRIS_TEXTO);
+    return p;
+  }
+  lineaFirma_("Revisó: Ronald Polanía Perdomo");
+  lineaFirma_("Líder de Calidad Educativa.");
+  lineaFirma_("Proyectó: "+(datosMunicipio.proyectoNombre||"[Nombre de quien consolida el Informe Consolidado]"));
+  lineaFirma_(datosMunicipio.proyectoCargo||"[Cargo]");
+  lineaFirma_(datosMunicipio.fechaRealizacion||"");
+
+  doc.saveAndClose();
+  return DriveApp.getFileById(doc.getId());
+}
