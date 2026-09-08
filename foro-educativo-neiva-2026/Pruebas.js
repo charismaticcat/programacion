@@ -7546,3 +7546,136 @@ function generarInformeSintesisMunicipalFEM(){
 
   return archivoDoc.getUrl();
 }
+
+/*
+ * EXTRACCIÓN DE FOTOS DE EVIDENCIA — FEM 2026.
+ *
+ * subirEvidenciasFEM guarda la foto de evidencia de cada IE, dentro de
+ * su propia carpeta en Drive (crearCarpetaIE_), con el nombre fijo
+ * "Foro 2026 (<Institución>).<ext>" (jpg o png). Esta función localiza
+ * esa foto para cada una de las 36 IE del catálogo municipal, y la
+ * COPIA (no la mueve — el original queda intacto en la carpeta de la
+ * IE) a una única carpeta nueva, renombrada como
+ * "<Institución>, <N> participantes.<ext>", con N igual al total de
+ * participantes declarado en la sección "1. PARTICIPACIÓN" del
+ * Informe Ejecutivo de esa IE (el mismo dato usado para la tabla de
+ * "Participación General del Foro" del Informe de Síntesis Municipal).
+ *
+ * Las dos instituciones sin Informe Ejecutivo remitido a la fecha
+ * (Humberto Tafur Charry y María Cristina Arango de Pastrana.) no
+ * tienen ese total declarado; si su foto existe se copia igual, pero
+ * etiquetada "sin dato de participantes" en vez de un número.
+ *
+ * Uso: desde el editor de Apps Script, ejecutar
+ * extraerFotosEvidenciaFEM(). El enlace de la carpeta destino y el
+ * detalle de fotos copiadas / IE sin foto encontrada quedan en "Ver
+ * registros de ejecución".
+ */
+const PARTICIPANTES_POR_IE_FEM_ = {
+  "AIPECITO": 50,
+  "CHAPINERO": 23,
+  "I.E. CLARETIANO GUSTAVO TORRES PARRA": 81,
+  "INEM JULIAM MOTTA SALAS": 165,
+  "LICEO DE SANTA LIBRADA": 116,
+  "PROMOCION SOCIAL": 147,
+  "LUIS IGNACIO ANDRADE": 81,
+  "GABRIEL GARCIA MARQUEZ": 91,
+  "EDUARDO SANTOS": 108,
+  "MARIA AUXILIADORA FORTALECILLAS": 33,
+  "JAIRO MOSQUERA MORENO": 25,
+  "TECNICO SUPERIOR": 118,
+  "DEPARTAMENTAL TIERRA DE PROMISIÓN": 91,
+  "SANTA LIBRADA": 56,
+  "RICARDO BORRERO ALVAREZ": 106,
+  "ANGEL MARIA PAREDES": 333,
+  "CEINAR": 67,
+  "JOSE EUSTASIO RIVERA": 108,
+  "ATANASIO GIRARDOT": 87,
+  "MISAEL PASTRANA BORRERO": 54,
+  "ENRIQUE OLAYA HERRERA": 137,
+  "ROBERTO DURAN ALVIRA": 44,
+  "SANTA TERESA": 82,
+  "ESCUELA NORMAL SUPERIOR": 92,
+  "INSTITUTO TECNICO IPC ANDRES ROSA": 105,
+  "JUAN DE CABRERA": 77,
+  "JAIRO MORERA LIZCANO": 70,
+  "SAN ANTONIO DE ANACONIA": 68,
+  "OLIVERIO LARA BORRERO": 121,
+  "AGUSTIN CODAZZI": 126,
+  "EL LIMONAR": 112,
+  "RODRIGO LARA BONILLA": 75,
+  "EL CAGUAN": 82,
+  "SAN LUIS BELTRAN": 65
+  // "HUMBERTO TAFUR CHARRY" y "MARIA CRISTINA ARANGO DE PASTRANA."
+  // quedan deliberadamente fuera de este mapa: no remitieron Informe
+  // Ejecutivo a la fecha, así que no hay un total de participantes
+  // declarado con el cual etiquetar su foto.
+};
+
+function extraerFotosEvidenciaFEM(){
+  const root=DriveApp.getFolderById(DRIVE_CARPETA_FEM_ID);
+
+  // Mapa normalizado nombre-IE -> carpeta de la IE en Drive, para no
+  // depender de que la mayúscula/tilde/puntuación de la carpeta
+  // coincida exactamente con el catálogo (mismo criterio de
+  // normalización que obtenerLogoIdPorNombreIE_).
+  const carpetasPorNombre={};
+  const itFolders=root.getFolders();
+  while(itFolders.hasNext()){
+    const f=itFolders.next();
+    carpetasPorNombre[normalizarNombreIE_(f.getName())]=f;
+  }
+
+  const nombreCarpetaDestino="Fotos de Evidencia — FEM 2026";
+  const itDestinoExistente=root.getFoldersByName(nombreCarpetaDestino);
+  const destino=itDestinoExistente.hasNext() ? itDestinoExistente.next() : root.createFolder(nombreCarpetaDestino);
+
+  const todasLasIE=[];
+  Object.keys(GRUPOS_INSTITUCIONES_FEM_).forEach(function(g){
+    GRUPOS_INSTITUCIONES_FEM_[g].forEach(function(ie){ todasLasIE.push(ie); });
+  });
+
+  const copiadas=[], sinFoto=[], sinDatoParticipantes=[];
+
+  todasLasIE.forEach(function(nombreIE){
+    const carpetaIE=carpetasPorNombre[normalizarNombreIE_(nombreIE)];
+    if(!carpetaIE){ sinFoto.push(nombreIE+" (sin carpeta propia en Drive)"); return; }
+
+    // Se busca por el prefijo fijo "Foro 2026" (ver subirEvidenciasFEM)
+    // en vez de por nombre exacto, para tolerar variaciones menores
+    // entre el nombre con el que se subió el archivo y el catálogo.
+    let archivoFoto=null;
+    const itArchivos=carpetaIE.getFiles();
+    while(itArchivos.hasNext()){
+      const f=itArchivos.next();
+      const mime=f.getMimeType();
+      if((mime==="image/jpeg"||mime==="image/png") && f.getName().indexOf("Foro 2026")===0){ archivoFoto=f; break; }
+    }
+    if(!archivoFoto){ sinFoto.push(nombreIE); return; }
+
+    const participantes=PARTICIPANTES_POR_IE_FEM_[nombreIE];
+    const tieneParticipantes=typeof participantes==="number";
+    if(!tieneParticipantes) sinDatoParticipantes.push(nombreIE);
+    const etiqueta=tieneParticipantes ? (participantes+" participantes") : "sin dato de participantes";
+    const ext=archivoFoto.getName().split(".").pop();
+    const nombreNuevo=nombreIE+", "+etiqueta+"."+ext;
+
+    const copia=archivoFoto.makeCopy(nombreNuevo, destino);
+    copiadas.push(nombreNuevo+" ("+copia.getUrl()+")");
+  });
+
+  Logger.log("========================================");
+  Logger.log("EXTRACCIÓN DE FOTOS DE EVIDENCIA — RESULTADO");
+  Logger.log("Carpeta destino: "+destino.getUrl());
+  Logger.log("Fotos copiadas ("+copiadas.length+"):");
+  copiadas.forEach(function(l){ Logger.log("  • "+l); });
+  if(sinFoto.length){
+    Logger.log("IE sin foto de evidencia encontrada ("+sinFoto.length+"): "+sinFoto.join(", "));
+  }
+  if(sinDatoParticipantes.length){
+    Logger.log("IE sin dato de participantes, por no tener Informe Ejecutivo remitido ("+sinDatoParticipantes.length+"): "+sinDatoParticipantes.join(", "));
+  }
+  Logger.log("========================================");
+
+  return destino.getUrl();
+}
