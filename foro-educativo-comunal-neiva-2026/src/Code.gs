@@ -105,7 +105,7 @@ function rpcSubirFotoEvidencia(idGrupo, tokenSesion, dispositivoId, datosBase64,
   return subirFotoEvidencia(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType);
 }
 
-/** Usada desde Asistencia.html (página pública QR, sin token/código). */
+/** Usada desde AsistenciaPublica.html (página pública QR, sin token/código). */
 function rpcRegistrarAsistenciaPublica(idGrupo, idIE, nombre, rol, correo) {
   return registrarAsistenciaPublica(idGrupo, idIE, nombre, rol, correo);
 }

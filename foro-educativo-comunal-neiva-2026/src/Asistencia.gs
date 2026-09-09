@@ -134,7 +134,7 @@ function registrarAsistenciaPublica(idGrupo, idIE, nombre, rol, correo) {
  */
 function paginaAsistenciaGrupo_(idGrupo) {
   var grupoInfo = obtenerGrupoPorId(idGrupo);
-  var template = HtmlService.createTemplateFromFile("Asistencia");
+  var template = HtmlService.createTemplateFromFile("AsistenciaPublica");
   template.ID_GRUPO = idGrupo;
   template.NOMBRE_GRUPO = grupoInfo ? grupoInfo.grupo : "";
   template.EXISTE_GRUPO = !!grupoInfo;
