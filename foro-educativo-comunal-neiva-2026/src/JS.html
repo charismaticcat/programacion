@@ -147,7 +147,14 @@ iniciarSplashInicial();
  * Carrusel de bienvenida — cada I.E. aparece una a una (1s c/u)
  * ------------------------------------------------------------------ */
 function mostrarCarruselIE() {
-  llamarServidor("rpcTodasLasInstituciones", [], function (instituciones) {
+  // El enlace de acceso (?t=TOKEN) ya identifica un grupo concreto: en ese
+  // caso el carrusel solo debe mostrar las IE de ESE grupo, nunca las de
+  // los demás. Solo se muestran todas cuando el enlace es genérico (sin
+  // token de grupo todavía resuelto).
+  var nombreRpc = ID_GRUPO_ACCESO ? "rpcInstitucionesDelGrupo" : "rpcTodasLasInstituciones";
+  var argumentos = ID_GRUPO_ACCESO ? [ID_GRUPO_ACCESO] : [];
+
+  llamarServidor(nombreRpc, argumentos, function (instituciones) {
     if (!instituciones || !instituciones.length) {
       cambiarPantalla("pantallaPresentacion");
       return;

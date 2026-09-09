@@ -30,6 +30,7 @@ function doGet(e) {
   var template = HtmlService.createTemplateFromFile("Index");
   template.TOKEN_ACCESO = token;
   template.NOMBRE_GRUPO_ACCESO = "";
+  template.ID_GRUPO_ACCESO = "";
   template.NOMBRE_FORO = getConfig().NOMBRE_FORO;
   template.SUBTITULO_FORO = getConfig().SUBTITULO;
   template.LOGO_ENCABEZADO_ID = getConfig().LOGO_ENCABEZADO_ID;
@@ -42,6 +43,10 @@ function doGet(e) {
       var fila = buscarFilaPorColumna_(hoja, mapa, "TOKEN", token);
       if (fila !== -1) {
         template.NOMBRE_GRUPO_ACCESO = String(hoja.getRange(fila, mapa["GRUPO"]).getValue() || "");
+        // Cada enlace de acceso (?t=TOKEN) es exclusivo de un grupo, así que
+        // ya se puede acotar el carrusel de bienvenida a las IE de ESE
+        // grupo, incluso antes de que el visitante ingrese el código.
+        template.ID_GRUPO_ACCESO = String(hoja.getRange(fila, mapa["ID_GRUPO"]).getValue() || "");
       }
     } catch (err) {
       Logger.log("doGet: no fue posible resolver el grupo por token: " + err.message);
@@ -210,10 +215,18 @@ function rpcEstadoGrupo(idGrupo) {
 }
 
 /**
- * Todas las IE activas de todos los grupos — usada por la animación de
- * bienvenida (carrusel de logos y nombres de IE), que se muestra antes de
- * que el visitante identifique su grupo con el código de acceso.
+ * Todas las IE activas de todos los grupos — respaldo del carrusel de
+ * bienvenida solo para un enlace de acceso genérico, sin token de grupo.
  */
 function rpcTodasLasInstituciones() {
   return obtenerTodasLasInstitucionesActivas();
+}
+
+/**
+ * IE activas de un solo grupo — usada por el carrusel de bienvenida
+ * cuando el enlace de acceso (?t=TOKEN) ya identifica un grupo concreto,
+ * para no mostrar las IE de los demás grupos.
+ */
+function rpcInstitucionesDelGrupo(idGrupo) {
+  return obtenerInstitucionesDelGrupo(idGrupo);
 }
