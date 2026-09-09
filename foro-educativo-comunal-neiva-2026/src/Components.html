@@ -20,7 +20,7 @@ function escapeHtml(texto) {
 function formatearComuna(comuna) {
   var texto = String(comuna || "").trim();
   if (!texto) return "";
-  if (/^\d+$/.test(texto)) return "Comuna (" + texto + ")";
+  if (/^\d+$/.test(texto)) return "Comuna " + texto;
   return texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase();
 }
 
@@ -245,13 +245,42 @@ function renderRecursosSesion1(recursos) {
   }
 }
 
-/** Vista previa de la fotografía general del grupo, o vacío si aún no se ha subido ninguna. */
-function renderFotoGrupo(fotoGrupoId) {
-  var contenedor = document.getElementById("previaFotoGrupo");
+/**
+ * Vista previa de la fotografía general del grupo — reutilizable en
+ * Participación y en la pantalla final (Informe generado), donde vuelve
+ * a pedirse si se aplazó. Una vez subida, se muestra la foto, se
+ * confirma con un mensaje "La foto del Grupo X ha sido subida" y se
+ * oculta el formulario de subida (no hace falta volver a subirla).
+ */
+function renderFotoGrupo(fotoGrupoId, idPrevia, idFormulario, nombreGrupo) {
+  var contenedor = document.getElementById(idPrevia || "previaFotoGrupo");
+  var formulario = document.getElementById(idFormulario || "formularioFotoGrupo");
   if (!contenedor) return;
-  contenedor.innerHTML = fotoGrupoId
-    ? "<img src='" + urlImagenDrive(fotoGrupoId, 600) + "' alt='Fotografía general del grupo'>"
-    : "<p class='ayuda'>Todavía no se ha subido ninguna fotografía.</p>";
+  if (fotoGrupoId) {
+    contenedor.innerHTML =
+      "<img src='" + urlImagenDrive(fotoGrupoId, 600) + "' alt='Fotografía general del grupo'>" +
+      "<div class='mensaje exito'>✅ La foto del " + escapeHtml(nombreGrupo || "grupo") + " ha sido subida.</div>";
+    if (formulario) formulario.classList.add("oculto");
+  } else {
+    contenedor.innerHTML = "<p class='ayuda'>Todavía no se ha subido ninguna fotografía.</p>";
+    if (formulario) formulario.classList.remove("oculto");
+  }
+}
+
+/** Foto + pie de página con la cantidad de participantes declarados, en Confirmación de caracterización. */
+function renderPieFotoCaracterizacion(fotoGrupoId, grupo, totalParticipantes) {
+  var contenedor = document.getElementById("pieFotoCaracterizacion");
+  if (!contenedor) return;
+  if (!fotoGrupoId) {
+    contenedor.classList.add("oculto");
+    contenedor.innerHTML = "";
+    return;
+  }
+  contenedor.classList.remove("oculto");
+  contenedor.innerHTML =
+    "<img src='" + urlImagenDrive(fotoGrupoId, 600) + "' alt='Fotografía general del grupo'>" +
+    "<p class='pie-foto-texto'>" + escapeHtml(grupo || "") + " — " + (totalParticipantes || 0) +
+    " participantes declarados</p>";
 }
 
 function renderTablaConectaEduca(registros) {
@@ -313,6 +342,24 @@ function renderPreguntasPreparacionIE(preguntas, respuestas) {
     html += "<summary>" + escapeHtml(p.titulo) + (tieneContenido ? " <span class='marca-con-contenido'>✓</span>" : "") + "</summary>";
     html += "<p class='ayuda'>" + escapeHtml(p.ayuda) + "</p>";
     html += "<textarea id='campo_prep_" + p.clave + "' data-prep-pregunta='" + p.clave + "' rows='10'>" +
+      escapeHtml(texto) + "</textarea>";
+    html += "</details>";
+  });
+  contenedor.innerHTML = html;
+}
+
+/** Igual que renderPreguntasPreparacionIE, para el acceso de invitado (sin código) — ids/atributos propios. */
+function renderPreguntasInvitado(preguntas, respuestas) {
+  var contenedor = document.getElementById("preguntasPreparacionInvitado");
+  if (!contenedor) return;
+  var html = "";
+  (preguntas || []).forEach(function (p) {
+    var texto = (respuestas && respuestas[p.clave]) || "";
+    var tieneContenido = String(texto).trim() !== "";
+    html += "<details class='pregunta-preparacion-colapsable'>";
+    html += "<summary>" + escapeHtml(p.titulo) + (tieneContenido ? " <span class='marca-con-contenido'>✓</span>" : "") + "</summary>";
+    html += "<p class='ayuda'>" + escapeHtml(p.ayuda) + "</p>";
+    html += "<textarea id='campo_inv_prep_" + p.clave + "' data-inv-prep-pregunta='" + p.clave + "' rows='10'>" +
       escapeHtml(texto) + "</textarea>";
     html += "</details>";
   });

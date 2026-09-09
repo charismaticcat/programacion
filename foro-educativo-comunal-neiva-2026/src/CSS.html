@@ -122,6 +122,12 @@ textarea { min-height: 90px; resize: vertical; }
 input:focus, select:focus, textarea:focus { outline: 2px solid var(--verde); border-color: var(--verde); }
 
 .fila-botones { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+.fila-botones-columna { flex-direction: column; }
+.fila-botones-columna .btn { width: 100%; }
+.separador-o {
+  text-align: center; color: var(--gris-texto); font-size: 0.85rem; margin: 16px 0 4px;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
 button.btn, a.btn {
   display: inline-block;
   border: none;
@@ -139,10 +145,47 @@ button.btn-secundario { background: var(--blanco); color: var(--verde); border: 
 button.btn-peligro { background: var(--rojo); color: var(--blanco); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.mensaje { padding: 10px 14px; border-radius: 8px; margin: 12px 0; font-size: 0.95rem; }
-.mensaje.error { background: #fbe9e7; color: var(--rojo); border: 1px solid #f3c1bd; }
-.mensaje.exito { background: var(--verde-claro); color: var(--verde-oscuro); border: 1px solid #bfe0cf; }
-.mensaje.info { background: #eef4fb; color: #1d4e78; border: 1px solid #cfe0f0; }
+@keyframes aparecerMensaje { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+.mensaje {
+  padding: 12px 16px 12px 42px;
+  border-radius: 10px;
+  margin: 12px 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.4;
+  position: relative;
+  box-shadow: var(--sombra);
+  animation: aparecerMensaje 0.25s ease-out;
+  border-left: 4px solid transparent;
+}
+.mensaje::before {
+  position: absolute;
+  left: 14px;
+  top: 12px;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+.mensaje.error { background: #fbe9e7; color: var(--rojo); border-left-color: var(--rojo); }
+.mensaje.error::before { content: "⚠️"; }
+.mensaje.exito { background: var(--verde-claro); color: var(--verde-oscuro); border-left-color: var(--verde); }
+.mensaje.exito::before { content: "✅"; }
+.mensaje.info { background: #eef4fb; color: #1d4e78; border-left-color: #4a86c8; }
+.mensaje.info::before { content: "ℹ️"; }
+
+/* ---------- Indicador de carga (spinner) — se usa en vez de un gif animado ---------- */
+.spinner-cargando {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 3px solid var(--gris-borde);
+  border-top-color: var(--verde);
+  border-radius: 50%;
+  animation: girarSpinner 0.8s linear infinite;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+@keyframes girarSpinner { to { transform: rotate(360deg); } }
+.texto-cargando { display: flex; align-items: center; gap: 8px; }
 
 /* ---------- Instituciones / tarjetas de lista ---------- */
 .lista-instituciones { display: grid; gap: 8px; margin: 12px 0; }
@@ -448,6 +491,13 @@ details.socializacion-ie[open] summary { margin-bottom: 8px; }
 .contenido-pantalla-completa-texto h2 { margin-top: 40px; }
 .contenido-pantalla-completa-texto p { white-space: pre-wrap; line-height: 1.6; }
 
+/* ---------- Acceso de invitado (estudiante/acudiente, sin código) ---------- */
+.overlay-invitado {
+  position: fixed; inset: 0; z-index: 260; background: rgba(8, 77, 50, 0.85);
+  display: flex; align-items: center; justify-content: center; padding: 24px; overflow-y: auto;
+}
+.overlay-invitado .tarjeta { max-width: 520px; width: 100%; margin: auto; }
+
 /* ---------- Contador de palabras (Sesión 1 y 2) ---------- */
 .contador-palabras {
   text-align: right;
@@ -490,14 +540,17 @@ details.socializacion-ie[open] summary { margin-bottom: 8px; }
 }
 .contador-participantes-tarjeta strong { font-size: 1.2rem; }
 
-/* ---------- Foto general del grupo (Participación) ---------- */
-#previaFotoGrupo img {
+/* ---------- Foto general del grupo (Participación, pantalla final, y su pie en Confirmación de caracterización) ---------- */
+#previaFotoGrupo img, #previaFotoGrupoFinal img, #pieFotoCaracterizacion img {
   display: block;
   max-width: 260px;
   border-radius: 10px;
   margin: 10px 0;
   box-shadow: var(--sombra);
 }
+.pie-foto-grupo { margin: 20px 0; text-align: center; }
+.pie-foto-grupo img { margin-left: auto; margin-right: auto; }
+.pie-foto-texto { font-weight: 600; color: var(--verde-oscuro); margin: 0; }
 
 /* ---------- Valoración del Foro (corazones, copiada de FEI 3.1) ---------- */
 .valoracion-pregunta { margin: 18px 0; }

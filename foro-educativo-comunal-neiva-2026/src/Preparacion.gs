@@ -524,6 +524,18 @@ function guardarPreparacionIE(idGrupo, tokenSesion, dispositivoId, idIE, respons
   if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
     return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión ya no está activa en este dispositivo." };
   }
+  return _guardarPreparacionIEInterno_(idGrupo, idIE, responsable, respuestas);
+}
+
+/**
+ * Escritura real, sin verificación de sesión — la usan tanto
+ * guardarPreparacionIE (sesión de grupo, con código) como el acceso de
+ * invitado (Invitados.gs, sin código, autenticado con su propio token de
+ * un solo uso). Ambos caminos validan primero, cada uno a su manera, que
+ * quien llama tiene permiso; esta función solo hace el UPSERT.
+ */
+function _guardarPreparacionIEInterno_(idGrupo, idIE, responsable, respuestas) {
+  idGrupo = String(idGrupo || "").trim();
   idIE = String(idIE || "").trim();
   var perteneceAlGrupo = obtenerInstitucionesDelGrupo(idGrupo).some(function (ie) {
     return ie.idIE === idIE;
@@ -558,6 +570,12 @@ function marcarPreparacionEnviada(idGrupo, tokenSesion, dispositivoId, idIE) {
   if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
     return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión ya no está activa en este dispositivo." };
   }
+  return _marcarPreparacionEnviadaInterno_(idGrupo, idIE);
+}
+
+/** Escritura real, sin verificación de sesión — ver comentario de _guardarPreparacionIEInterno_. */
+function _marcarPreparacionEnviadaInterno_(idGrupo, idIE) {
+  idGrupo = String(idGrupo || "").trim();
   idIE = String(idIE || "").trim();
   var perteneceAlGrupo = obtenerInstitucionesDelGrupo(idGrupo).some(function (ie) {
     return ie.idIE === idIE;

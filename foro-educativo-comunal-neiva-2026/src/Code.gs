@@ -135,6 +135,25 @@ function rpcPreparacionesEnviadasGrupo(idGrupo) {
 }
 
 /* ------------------------------------------------------------------ *
+ * RPC — Acceso de invitado (estudiante/acudiente, sin código de acceso)
+ * ------------------------------------------------------------------ */
+function rpcIniciarAccesoInvitado(idIE, tipoInvitado, dispositivoId) {
+  return iniciarAccesoInvitado(idIE, tipoInvitado, dispositivoId);
+}
+
+function rpcObtenerPreparacionIEInvitado(tokenInvitado, idIE, dispositivoId) {
+  return obtenerPreparacionIEInvitado(tokenInvitado, idIE, dispositivoId);
+}
+
+function rpcGuardarPreparacionIEInvitado(tokenInvitado, idIE, tipoInvitado, dispositivoId, respuestas) {
+  return guardarPreparacionIEInvitado(tokenInvitado, idIE, tipoInvitado, dispositivoId, respuestas);
+}
+
+function rpcMarcarPreparacionEnviadaInvitado(tokenInvitado, idIE, dispositivoId) {
+  return marcarPreparacionEnviadaInvitado(tokenInvitado, idIE, dispositivoId);
+}
+
+/* ------------------------------------------------------------------ *
  * RPC — Responsable de envío y asistentes de envío
  * ------------------------------------------------------------------ */
 

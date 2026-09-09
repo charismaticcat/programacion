@@ -39,8 +39,13 @@ function urlImagenDrive(idArchivo, ancho) {
   return "https://drive.google.com/thumbnail?id=" + encodeURIComponent(idArchivo) + "&sz=w" + (ancho || 600);
 }
 
+// El código de acceso se pide ANTES que cualquier otra pantalla (spec:
+// "Código debe pedirse antes de cualquier pantalla") — Acceso va primero;
+// Inicio/Presentación/Metodología se muestran DESPUÉS de validar el
+// código (ver intentarValidarAcceso), como introducción antes de
+// Participación.
 var ORDEN_PANTALLAS = [
-  "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia", "pantallaAcceso",
+  "pantallaAcceso", "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia",
   "pantallaConsentimientoGrupo", "pantallaParticipacion", "pantallaConfirmacionCaracterizacion",
   "pantallaPreSocializacion", "pantallaSeleccionIEPreparacion", "pantallaPreparacionIE",
   "pantallaSesion1", "pantallaSesion2", "pantallaRevisionCierre",
@@ -106,6 +111,10 @@ function cambiarPantalla(idPantalla) {
     prepararPantallaConectaEduca();
   }
   if (idPantalla === "pantallaRevisionCierre") prepararCierre();
+  if (idPantalla === "pantallaInformeGenerado") {
+    renderFotoGrupo(estado.fotoGrupoId, "previaFotoGrupoFinal", "formularioFotoGrupoFinal", estado.grupo);
+    mostrarMensaje("mensajeFaltaFotoFinalizar", "");
+  }
 }
 
 document.addEventListener("click", function (evento) {
@@ -328,7 +337,7 @@ function intentarValidarAcceso(forzar) {
     poblarSelectInstituciones("campoIEResponsable", estado.instituciones);
     poblarSelectInstituciones("campoIEAsistente", estado.instituciones);
     renderListaInstituciones(estado.instituciones);
-    renderFotoGrupo(estado.fotoGrupoId);
+    renderFotoGrupo(estado.fotoGrupoId, "previaFotoGrupo", "formularioFotoGrupo", estado.grupo);
     document.getElementById("panelFirmantes").classList.remove("oculto");
 
     mostrarPanelMetodoAsistencia(estado.metodoAsistencia);
@@ -338,12 +347,21 @@ function intentarValidarAcceso(forzar) {
 
     // El "recorrido" de logos de las IE del grupo va justo después de
     // validar el código de acceso (spec), no antes — en ese punto ya se
-    // conoce con certeza a qué grupo pertenece este dispositivo.
+    // conoce con certeza a qué grupo pertenece este dispositivo. El
+    // código se pide antes que cualquier otra pantalla, así que Inicio/
+    // Presentación/Metodología (la introducción) se muestran DESPUÉS de
+    // validar, no antes.
     mostrarCarruselIE(function () {
-      cambiarPantalla(estado.consentimientoGrupo ? "pantallaParticipacion" : "pantallaConsentimientoGrupo");
+      cambiarPantalla("pantallaInicio");
     });
   });
 }
+
+/** A dónde ir al terminar la introducción (Inicio → Presentación → Metodología), ya con el acceso validado. */
+function irTrasMetodologia_() {
+  cambiarPantalla(estado.consentimientoGrupo ? "pantallaParticipacion" : "pantallaConsentimientoGrupo");
+}
+document.getElementById("btnContinuarDesdeMetodologia").addEventListener("click", irTrasMetodologia_);
 
 document.getElementById("btnValidarAcceso").addEventListener("click", function () {
   intentarValidarAcceso(false);
@@ -351,6 +369,155 @@ document.getElementById("btnValidarAcceso").addEventListener("click", function (
 document.getElementById("btnForzarSesion").addEventListener("click", function () {
   cerrarModal("modalTomaSesion");
   intentarValidarAcceso(true);
+});
+
+/* ------------------------------------------------------------------ *
+ * Acceso de invitado (estudiante/acudiente) — NO requiere código de
+ * acceso. Flujo aparte, con su propio estado, que entra directo a la
+ * preparación de UNA IE y no vuelve a la aplicación una vez enviada.
+ * ------------------------------------------------------------------ */
+var estadoInvitado = {
+  tipoInvitado: "",
+  tokenInvitado: "",
+  idIE: "",
+  institucion: "",
+  idGrupo: "",
+  grupo: ""
+};
+
+document.getElementById("btnSoyInvitado").addEventListener("click", function () {
+  document.getElementById("overlayInvitadoTipo").classList.remove("oculto");
+});
+document.getElementById("btnCerrarInvitadoTipo").addEventListener("click", function () {
+  document.getElementById("overlayInvitadoTipo").classList.add("oculto");
+});
+document.getElementById("btnCerrarInvitadoIE").addEventListener("click", function () {
+  document.getElementById("overlayInvitadoIE").classList.add("oculto");
+});
+
+document.querySelectorAll("[data-invitado-tipo]").forEach(function (boton) {
+  boton.addEventListener("click", function () {
+    estadoInvitado.tipoInvitado = boton.getAttribute("data-invitado-tipo");
+    document.getElementById("overlayInvitadoTipo").classList.add("oculto");
+    document.getElementById("overlayInvitadoIE").classList.remove("oculto");
+    llamarServidor("rpcTodasLasInstituciones", [], function (instituciones) {
+      var select = document.getElementById("campoIEInvitado");
+      select.innerHTML = "";
+      (instituciones || []).forEach(function (ie) {
+        var opcion = document.createElement("option");
+        opcion.value = ie.idIE;
+        opcion.textContent = ie.institucion + (ie.grupo ? " — " + ie.grupo : "");
+        select.appendChild(opcion);
+      });
+    });
+  });
+});
+
+document.getElementById("btnContinuarInvitadoIE").addEventListener("click", function () {
+  var idIE = document.getElementById("campoIEInvitado").value;
+  if (!idIE) {
+    mostrarMensaje("mensajeInvitadoIE", "Selecciona tu institución educativa.", "error");
+    return;
+  }
+  llamarServidor("rpcIniciarAccesoInvitado", [idIE, estadoInvitado.tipoInvitado, estado.dispositivoId], function (r) {
+    if (!r.ok) {
+      mostrarMensaje("mensajeInvitadoIE", r.mensaje || "No fue posible ingresar.", "error");
+      return;
+    }
+    estadoInvitado.tokenInvitado = r.tokenInvitado;
+    estadoInvitado.idIE = r.idIE;
+    estadoInvitado.institucion = r.institucion;
+    estadoInvitado.idGrupo = r.idGrupo;
+    estadoInvitado.grupo = r.grupo;
+    document.getElementById("overlayInvitadoIE").classList.add("oculto");
+    abrirPreparacionInvitado_();
+  });
+});
+
+function abrirPreparacionInvitado_() {
+  document.getElementById("nombreIEInvitadoPrep").textContent = estadoInvitado.institucion;
+  document.getElementById("tipoInvitadoTexto").textContent =
+    estadoInvitado.tipoInvitado === "ESTUDIANTE" ? "Estudiante" : "Acudiente / padre de familia";
+  llamarServidor(
+    "rpcObtenerPreparacionIEInvitado",
+    [estadoInvitado.tokenInvitado, estadoInvitado.idIE, estado.dispositivoId],
+    function (datos) {
+      if (!datos) return;
+      renderPreguntasInvitado(datos.preguntas, datos.respuestas);
+      var enlace = document.getElementById("enlaceInformeEjecutivoInvitado");
+      var aviso = document.getElementById("avisoSinInformeEjecutivoInvitado");
+      if (datos.urlInformeEjecutivo) {
+        document.getElementById("btnVerInformeEjecutivoInvitado").href = datos.urlInformeEjecutivo;
+        enlace.classList.remove("oculto");
+        aviso.classList.add("oculto");
+      } else {
+        enlace.classList.add("oculto");
+        aviso.classList.remove("oculto");
+      }
+    }
+  );
+  document.getElementById("overlayInvitadoPreparacion").classList.remove("oculto");
+}
+
+function recolectarRespuestasInvitado_() {
+  var respuestas = {};
+  CAMPOS_PREPARACION_.forEach(function (clave) {
+    var el = document.getElementById("campo_inv_prep_" + clave);
+    if (el) respuestas[clave] = el.value;
+  });
+  return respuestas;
+}
+
+var temporizadorGuardadoInvitado_ = null;
+function guardarPreparacionInvitadoActual_(manual, callback) {
+  llamarServidor(
+    "rpcGuardarPreparacionIEInvitado",
+    [estadoInvitado.tokenInvitado, estadoInvitado.idIE, estadoInvitado.tipoInvitado, estado.dispositivoId, recolectarRespuestasInvitado_()],
+    function (r) {
+      if (manual) mostrarMensaje("mensajePreparacionInvitado", r.ok ? "Avance guardado." : (r.mensaje || "No fue posible guardar."), r.ok ? "exito" : "error");
+      if (callback) callback(!!r.ok);
+    },
+    function () {
+      if (callback) callback(false);
+    }
+  );
+}
+
+document.addEventListener("input", function (evento) {
+  var campo = evento.target.closest("[data-inv-prep-pregunta]");
+  if (!campo) return;
+  clearTimeout(temporizadorGuardadoInvitado_);
+  temporizadorGuardadoInvitado_ = setTimeout(function () {
+    guardarPreparacionInvitadoActual_(false);
+  }, 2000);
+});
+
+document.getElementById("btnGuardarPreparacionInvitado").addEventListener("click", function () {
+  guardarPreparacionInvitadoActual_(true);
+});
+
+document.getElementById("btnEnviarPreparacionInvitado").addEventListener("click", function () {
+  if (!confirm("¿Enviar tus aportes para " + estadoInvitado.institucion + "?")) return;
+  guardarPreparacionInvitadoActual_(false, function (guardadoOk) {
+    if (!guardadoOk) {
+      mostrarMensaje("mensajePreparacionInvitado", "No fue posible guardar antes de enviar. Intenta de nuevo.", "error");
+      return;
+    }
+    llamarServidor(
+      "rpcMarcarPreparacionEnviadaInvitado",
+      [estadoInvitado.tokenInvitado, estadoInvitado.idIE, estado.dispositivoId],
+      function (r) {
+        if (!r.ok) {
+          mostrarMensaje("mensajePreparacionInvitado", r.mensaje || "No fue posible enviar.", "error");
+          return;
+        }
+        // "envía aportes y no tiene más acceso" — se cierra la preparación
+        // y se muestra una pantalla final sin ningún camino de vuelta a la app.
+        document.getElementById("overlayInvitadoPreparacion").classList.add("oculto");
+        document.getElementById("overlayInvitadoFinalizado").classList.remove("oculto");
+      }
+    );
+  });
 });
 
 /* ------------------------------------------------------------------ *
@@ -509,14 +676,16 @@ document.getElementById("btnSubirListado").addEventListener("click", function ()
 });
 
 /* ------------------------------------------------------------------ *
- * Fotografía general del grupo (Participación) — independiente del
- * método de asistencia elegido.
+ * Fotografía general del grupo — independiente del método de asistencia
+ * elegido, obligatoria para poder finalizar el Foro. Se puede subir
+ * desde Participación o, si se aplaza, desde la pantalla final (Informe
+ * generado) — mismo botón/lógica reutilizada en las dos pantallas.
  * ------------------------------------------------------------------ */
-document.getElementById("btnSubirFotoGrupo").addEventListener("click", function () {
-  var input = document.getElementById("campoFotoGrupo");
+function subirFotoGrupoDesde_(idInput, idMensaje) {
+  var input = document.getElementById(idInput);
   var archivo = input.files[0];
   if (!archivo) {
-    mostrarMensaje("mensajeFotoGrupo", "Selecciona primero una fotografía.", "error");
+    mostrarMensaje(idMensaje, "Selecciona primero una fotografía.", "error");
     return;
   }
   leerArchivoComoBase64_(archivo, function (base64) {
@@ -524,15 +693,37 @@ document.getElementById("btnSubirFotoGrupo").addEventListener("click", function 
       "rpcSubirFotoGrupo",
       [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, base64, archivo.name, archivo.type],
       function (r) {
-        mostrarMensaje("mensajeFotoGrupo", r.ok ? "Fotografía subida correctamente." : (r.mensaje || "No fue posible subir la fotografía."), r.ok ? "exito" : "error");
+        mostrarMensaje(idMensaje, r.ok ? "Fotografía subida correctamente." : (r.mensaje || "No fue posible subir la fotografía."), r.ok ? "exito" : "error");
         if (r.ok) {
           input.value = "";
           estado.fotoGrupoId = r.fileId;
-          renderFotoGrupo(estado.fotoGrupoId);
+          renderFotoGrupo(estado.fotoGrupoId, "previaFotoGrupo", "formularioFotoGrupo", estado.grupo);
+          renderFotoGrupo(estado.fotoGrupoId, "previaFotoGrupoFinal", "formularioFotoGrupoFinal", estado.grupo);
+          mostrarMensaje("mensajeFaltaFotoFinalizar", "");
         }
       }
     );
   });
+}
+
+document.getElementById("btnSubirFotoGrupo").addEventListener("click", function () {
+  subirFotoGrupoDesde_("campoFotoGrupo", "mensajeFotoGrupo");
+});
+document.getElementById("btnSubirFotoGrupoFinal").addEventListener("click", function () {
+  subirFotoGrupoDesde_("campoFotoGrupoFinal", "mensajeFotoGrupoFinal");
+});
+
+// "Subir más tarde" no sube nada: solo tranquiliza a quien diligencia de
+// que puede seguir con el resto del instrumento — la foto se volverá a
+// pedir al final, cuando se descargue el informe (obligatoria para
+// finalizar el Foro).
+document.getElementById("btnFotoGrupoMasTarde").addEventListener("click", function () {
+  mostrarMensaje(
+    "mensajeFotoGrupo",
+    "De acuerdo — puedes continuar con el instrumento. Se te volverá a pedir la fotografía al finalizar, " +
+      "cuando se descargue el informe.",
+    "info"
+  );
 });
 
 /* ------------------------------------------------------------------ *
@@ -922,6 +1113,11 @@ function cargarConfirmacionCaracterizacion() {
     if (pendientes <= 0) {
       boton.classList.remove("oculto");
       if (aviso) aviso.classList.add("oculto");
+      renderPieFotoCaracterizacion(
+        estado.fotoGrupoId,
+        estado.grupo,
+        (estado.participacionEstamento && estado.participacionEstamento.totalGeneral) || 0
+      );
     }
   };
 
@@ -970,61 +1166,31 @@ function cargarListaIEPreparacion() {
  * continuar a la sesión uno"). Verifica que TODAS las IE del grupo hayan
  * enviado sus aportes antes de permitir avanzar.
  */
+/**
+ * Aviso puramente informativo (NUNCA bloquea el paso a Sesión 1): la IE
+ * que ya terminó su preparación puede seguir a la siguiente etapa sin
+ * esperar a las demás. Solo se recuerda, sin frenar a nadie, cuáles
+ * instituciones aún no han diligenciado la suya.
+ */
 function mostrarMensajePreparacionFaltante_(idsEnviados) {
   var faltantes = estado.instituciones.filter(function (ie) { return !idsEnviados[ie.idIE]; });
   var contenedor = document.getElementById("mensajePreparacionPendiente");
   if (!contenedor) return;
   if (!faltantes.length) {
-    contenedor.innerHTML = "<div class='mensaje exito'>✅ Todas las instituciones completaron su preparación. Ya pueden continuar a Sesión 1.</div>";
+    contenedor.innerHTML = "<div class='mensaje exito'>✅ Todas las instituciones completaron su preparación.</div>";
   } else {
-    // Solo se nombran las IE que faltan — a las que ya enviaron sus aportes no las afecta este aviso.
     contenedor.innerHTML =
       "<div class='mensaje info'>Aún falta por diligenciar la preparación de la socialización: <strong>" +
       faltantes.map(function (ie) { return escapeHtml(ie.institucion); }).join("</strong>, <strong>") +
-      "</strong>. Las demás instituciones ya completaron la suya y no necesitan hacer nada más — elija una de " +
-      "las pendientes arriba para continuar.</div>";
+      "</strong>. La institución que ya terminó puede continuar a la siguiente etapa sin esperar a las demás.</div>";
   }
-}
-
-function verificarPreparacionCompletaGrupo_(alTerminar) {
-  if (!estado.idGrupo) {
-    alTerminar(false, []);
-    return;
-  }
-  llamarServidor("rpcPreparacionesEnviadasGrupo", [estado.idGrupo], function (enviadas) {
-    var idsEnviados = {};
-    (enviadas || []).forEach(function (e) { idsEnviados[e.idIE] = true; });
-    var faltantes = estado.instituciones.filter(function (ie) { return !idsEnviados[ie.idIE]; });
-    alTerminar(faltantes.length === 0, faltantes);
-  });
-}
-
-function intentarContinuarASesion1_(idContenedorMensaje) {
-  verificarPreparacionCompletaGrupo_(function (completa, faltantes) {
-    if (completa) {
-      cambiarPantalla("pantallaSesion1");
-      return;
-    }
-    // Solo se nombran las IE que faltan — a la(s) que ya cumplió(eron) con su trabajo no las afecta
-    // este aviso, y pueden seguir usando la app con normalidad mientras las demás terminan.
-    var texto =
-      "Aún falta por diligenciar la preparación de la socialización: " +
-      faltantes.map(function (ie) { return ie.institucion; }).join(", ") +
-      ". Las instituciones que ya enviaron sus aportes no necesitan hacer nada más; elija una de las " +
-      "pendientes para continuar.";
-    if (idContenedorMensaje) {
-      mostrarMensaje(idContenedorMensaje, texto, "error");
-    } else {
-      mostrarMensaje("mensajeGlobal", texto, "error");
-    }
-  });
 }
 
 document.getElementById("btnContinuarASesion1DesdeSeleccion").addEventListener("click", function () {
-  intentarContinuarASesion1_("mensajePreparacionPendiente");
+  cambiarPantalla("pantallaSesion1");
 });
 document.getElementById("btnContinuarASesion1DesdePreparacionIE").addEventListener("click", function () {
-  intentarContinuarASesion1_("mensajePreparacionIE");
+  cambiarPantalla("pantallaSesion1");
 });
 
 function abrirModalResponsablePreparacion(idIE) {
@@ -1386,5 +1552,21 @@ document.getElementById("btnEnviarInformePorCorreo").addEventListener("click", f
     }
     mostrarMensaje("mensajeEnvioInforme", r.diferido ? r.mensaje : "Informe enviado por correo.", "exito");
   });
+});
+
+// No se puede finalizar el Foro sin haber subido la fotografía general
+// del grupo (spec: "No permitir finalizar el foro si no se sube la
+// foto") — este es el último punto donde se pide, para quien la aplazó.
+document.getElementById("btnFinalizarForo").addEventListener("click", function () {
+  if (!estado.fotoGrupoId) {
+    mostrarMensaje(
+      "mensajeFaltaFotoFinalizar",
+      "No se puede finalizar el Foro sin subir la fotografía general del grupo. Súbela arriba para continuar.",
+      "error"
+    );
+    document.getElementById("tarjetaFotoGrupoFinal").scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+  cambiarPantalla("pantallaDespedida");
 });
 </script>

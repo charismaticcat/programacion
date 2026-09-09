@@ -40,7 +40,7 @@
   <div id="mensajeGlobal"></div>
 
   <!-- 1. INICIO -->
-  <section id="pantallaInicio" class="pantalla visible">
+  <section id="pantallaInicio" class="pantalla">
     <div class="tarjeta">
       <h2 class="titulo-seccion">Bienvenida</h2>
       <p>El Foro Educativo Comunal Neiva 2026 reúne a las instituciones educativas organizadas por
@@ -79,13 +79,13 @@
       </ol>
       <div class="fila-botones">
         <button class="btn btn-secundario" data-ir="pantallaPresentacion">Atrás</button>
-        <button class="btn btn-primario" data-ir="pantallaAcceso">Continuar</button>
+        <button class="btn btn-primario" id="btnContinuarDesdeMetodologia">Continuar</button>
       </div>
     </div>
   </section>
 
-  <!-- 4. ACCESO -->
-  <section id="pantallaAcceso" class="pantalla">
+  <!-- 4. ACCESO (primera pantalla que se ve — el código se pide antes que cualquier otra) -->
+  <section id="pantallaAcceso" class="pantalla visible">
     <div class="tarjeta">
       <h2 class="titulo-seccion">Acceso del grupo</h2>
       <p class="ayuda" id="nombreGrupoAcceso"></p>
@@ -94,6 +94,10 @@
       <div id="mensajeAcceso"></div>
       <div class="fila-botones">
         <button class="btn btn-primario" id="btnValidarAcceso">Ingresar</button>
+      </div>
+      <p class="separador-o">o</p>
+      <div class="fila-botones">
+        <button class="btn btn-secundario" id="btnSoyInvitado">🎓 Soy invitado (estudiantes y acudientes)</button>
       </div>
     </div>
   </section>
@@ -182,12 +186,16 @@
       <div class="lista-instituciones" id="listaInstituciones"></div>
 
       <h3 class="subtitulo-campo" style="margin-top:20px;">Fotografía general del grupo</h3>
-      <p class="ayuda">Una foto representativa del encuentro de este grupo (opcional, independiente del
-        método de asistencia elegido).</p>
+      <p class="ayuda">Una foto representativa del encuentro de este grupo, independiente del método de
+        asistencia elegido. <strong>Es obligatoria para poder finalizar el Foro</strong> — si no la tienes
+        a mano ahora, puedes subirla más tarde, al final, cuando se descargue el informe.</p>
       <div id="previaFotoGrupo"></div>
-      <input type="file" id="campoFotoGrupo" accept="image/*">
-      <div class="fila-botones">
-        <button class="btn btn-secundario" id="btnSubirFotoGrupo">Subir fotografía del grupo</button>
+      <div id="formularioFotoGrupo">
+        <input type="file" id="campoFotoGrupo" accept="image/*">
+        <div class="fila-botones">
+          <button class="btn btn-secundario" id="btnSubirFotoGrupo">Subir fotografía del grupo</button>
+          <button class="btn btn-secundario" id="btnFotoGrupoMasTarde">Subir más tarde</button>
+        </div>
       </div>
       <div id="mensajeFotoGrupo"></div>
     </div>
@@ -258,7 +266,9 @@
       <div id="resumenParticipacionEstamentoCaracterizacion" class="resumen-participacion-estamento"></div>
       <div id="contenedorParticipacionEstamentoCaracterizacion" class="tabla-horizontal-desplazable"></div>
 
-      <p class="ayuda" id="avisoCargandoCaracterizacion">Cargando información…</p>
+      <div id="pieFotoCaracterizacion" class="pie-foto-grupo oculto"></div>
+
+      <p class="ayuda texto-cargando" id="avisoCargandoCaracterizacion"><span class="spinner-cargando"></span> Cargando información…</p>
       <div class="fila-botones">
         <button class="btn btn-secundario" data-ir="pantallaParticipacion">Atrás, corregir</button>
         <button class="btn btn-primario oculto" id="btnConfirmarCaracterizacion" data-ir="pantallaPreSocializacion">Confirmo que la información es correcta</button>
@@ -277,8 +287,8 @@
         elige a la persona responsable de diligenciar sus respuestas de preparación; el punto de partida es
         un resumen ya sugerido a partir del Informe Ejecutivo (IE) 2026 de esa institución, que se puede
         editar libremente antes de enviarlo.</p>
-      <p class="ayuda"><strong>Este paso NO es opcional:</strong> todas las instituciones del grupo deben
-        completar y enviar su preparación antes de poder continuar a la Sesión 1. Se puede hacer desde
+      <p class="ayuda">Cada institución debe completar y enviar su propia preparación. La institución que ya
+        haya terminado puede continuar a la siguiente etapa sin esperar a las demás. Se puede hacer desde
         cualquier computador o celular; queda guardado en la nube y se puede retomar después, desde otro
         dispositivo y otro día — las respuestas ya escritas aparecerán tal como quedaron.</p>
       <div class="fila-botones">
@@ -609,8 +619,23 @@
       <p class="nota" id="notaEnvioInforme">Descargue el informe (botón de arriba) para habilitar el envío
         por correo al responsable del grupo.</p>
     </div>
+
+    <div class="tarjeta" id="tarjetaFotoGrupoFinal">
+      <h2 class="titulo-seccion">Fotografía general del grupo</h2>
+      <p class="ayuda">Es obligatoria para poder finalizar el Foro. Este es el último momento para subirla.</p>
+      <div id="previaFotoGrupoFinal"></div>
+      <div id="formularioFotoGrupoFinal">
+        <input type="file" id="campoFotoGrupoFinal" accept="image/*">
+        <div class="fila-botones">
+          <button class="btn btn-secundario" id="btnSubirFotoGrupoFinal">Subir fotografía del grupo</button>
+        </div>
+      </div>
+      <div id="mensajeFotoGrupoFinal"></div>
+    </div>
+
+    <div id="mensajeFaltaFotoFinalizar"></div>
     <div class="fila-botones">
-      <button class="btn btn-primario" data-ir="pantallaDespedida">Continuar</button>
+      <button class="btn btn-primario" id="btnFinalizarForo">Continuar</button>
     </div>
   </section>
 
@@ -660,6 +685,69 @@
   <div class="contenido-pantalla-completa-texto">
     <h2 id="tituloPantallaCompletaTexto"></h2>
     <div id="cuerpoPantallaCompletaTexto"></div>
+  </div>
+</div>
+
+<!-- Acceso de invitado (estudiante/acudiente) — NO requiere código de
+     acceso; entra directo a la preparación de UNA IE y, al enviarla, no
+     tiene más acceso a la aplicación. Flujo totalmente aparte de
+     ORDEN_PANTALLAS/cambiarPantalla, con su propia lógica en JS.html. -->
+<div id="overlayInvitadoTipo" class="oculto overlay-invitado">
+  <div class="tarjeta">
+    <h2 class="titulo-seccion">¿Quién eres?</h2>
+    <p class="ayuda">Selecciona una opción para continuar directamente a la preparación de tu institución.</p>
+    <div class="fila-botones fila-botones-columna">
+      <button class="btn btn-primario" data-invitado-tipo="ESTUDIANTE">🧑‍🎓 Soy estudiante</button>
+      <button class="btn btn-primario" data-invitado-tipo="ACUDIENTE">👨‍👩‍👧 Soy acudiente / padre de familia</button>
+    </div>
+    <div class="fila-botones">
+      <button class="btn btn-secundario" id="btnCerrarInvitadoTipo">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div id="overlayInvitadoIE" class="oculto overlay-invitado">
+  <div class="tarjeta">
+    <h2 class="titulo-seccion">Tu institución educativa</h2>
+    <p class="ayuda">Selecciona tu institución para continuar con la preparación.</p>
+    <label for="campoIEInvitado">Institución educativa</label>
+    <select id="campoIEInvitado"></select>
+    <div id="mensajeInvitadoIE"></div>
+    <div class="fila-botones">
+      <button class="btn btn-secundario" id="btnCerrarInvitadoIE">Cancelar</button>
+      <button class="btn btn-primario" id="btnContinuarInvitadoIE">Continuar</button>
+    </div>
+  </div>
+</div>
+
+<div id="overlayInvitadoPreparacion" class="oculto overlay-invitado">
+  <div class="tarjeta">
+    <h2 class="titulo-seccion">Preparación — <span id="nombreIEInvitadoPrep"></span></h2>
+    <p class="ayuda"><span id="tipoInvitadoTexto"></span> invitado(a).</p>
+    <div id="enlaceInformeEjecutivoInvitado" class="oculto">
+      <a class="btn btn-secundario" id="btnVerInformeEjecutivoInvitado" href="#" target="_blank" rel="noopener">
+        📄 Ver/descargar el Informe Ejecutivo de esta IE
+      </a>
+    </div>
+    <p class="ayuda" id="avisoSinInformeEjecutivoInvitado">No se encontró el Informe Ejecutivo de esta
+      institución; responde las preguntas con la información que tengas disponible.</p>
+
+    <div id="preguntasPreparacionInvitado"></div>
+
+    <div id="mensajePreparacionInvitado"></div>
+    <div class="fila-botones">
+      <button class="btn btn-secundario" id="btnGuardarPreparacionInvitado">Guardar avance</button>
+      <button class="btn btn-primario" id="btnEnviarPreparacionInvitado">Enviar mis aportes</button>
+    </div>
+  </div>
+</div>
+
+<div id="overlayInvitadoFinalizado" class="oculto overlay-invitado">
+  <div class="tarjeta" style="text-align:center;">
+    <div class="icono-check">✅</div>
+    <h2 class="titulo-seccion">¡Gracias por tu aporte!</h2>
+    <p>Tus respuestas fueron enviadas y se usarán para la socialización de tu institución educativa.</p>
+    <p class="ayuda">Ya puedes cerrar esta ventana.</p>
   </div>
 </div>
 

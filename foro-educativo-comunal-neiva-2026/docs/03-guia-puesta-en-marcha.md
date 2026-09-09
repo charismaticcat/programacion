@@ -290,6 +290,46 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   rango de 50-400 palabras, validado también en el servidor) — seguida del aporte propio del grupo
   (opcional) que ya existía.
 
+## 4.11 Código antes que cualquier pantalla, preparación no bloqueante, foto obligatoria, invitados
+
+- **Orden de pantallas**: el código de acceso (`pantallaAcceso`) ahora es la PRIMERA pantalla que se ve —
+  antes se mostraban primero Bienvenida/Presentación/Metodología. `ORDEN_PANTALLAS` empieza en
+  `pantallaAcceso`; tras validar el código, el recorrido de logos de las IE lleva a Bienvenida →
+  Presentación → Metodología (la introducción, que ahora va DESPUÉS de validar) y de ahí a
+  Consentimiento/Participación, igual que antes.
+- **Comuna sin paréntesis**: `formatearComuna()` ahora muestra "Comuna 7" en vez de "Comuna (7)".
+- **Sesión de preparación — ya NO bloquea el paso a Sesión 1**: la IE que termine su preparación puede
+  continuar a la siguiente etapa sin esperar a que las demás terminen (antes se bloqueaba a todo el grupo
+  hasta que TODAS enviaran, lo cual afectaba también a la que ya había cumplido). El aviso de "faltan por
+  diligenciar" sigue existiendo, pero es solo informativo, nunca bloquea el botón "Continuar a Sesión 1".
+- **Fotografía general del grupo, obligatoria para finalizar**:
+  - Al subirse, se muestra la foto y el texto cambia a "✅ La foto del Grupo X ha sido subida" (se oculta
+    el formulario de subida, ya no hace falta volver a subirla).
+  - En "Confirmación de caracterización" aparece un pie de foto con la cantidad de participantes
+    declarados (`renderPieFotoCaracterizacion`, usa el total de la matriz de participación por estamento).
+  - En Participación hay un botón "Subir más tarde" que solo tranquiliza (mensaje: "puedes continuar con
+    el instrumento, se te volverá a pedir al finalizar") sin subir nada.
+  - En "Informe generado" vuelve a aparecer el mismo formulario de subida (si aún no se subió), y el botón
+    final "Continuar" (ahora `btnFinalizarForo`) NO deja pasar a Despedida sin la foto — spec: "No permitir
+    finalizar el foro si no se sube la foto".
+- **Acceso de invitado (estudiante/acudiente) — sin código**: en la pantalla de Acceso hay un botón "🎓 Soy
+  invitado". Elige tipo (Estudiante/Acudiente), elige su institución (de todas las IE reales, vía
+  `rpcTodasLasInstituciones`) y entra DIRECTO a la preparación de esa IE en un overlay aparte (fuera de
+  `ORDEN_PANTALLAS`/`cambiarPantalla`). Al enviar sus aportes queda en una pantalla final sin ningún botón
+  de regreso — "no tiene más acceso" a la aplicación.
+  - `Invitados.gs` (nuevo): hoja `InvitadosPreparacion`, `iniciarAccesoInvitado()` (resuelve el grupo de la
+    IE con `obtenerGrupoDeInstitucion_`, sin pedir código), `sesionInvitadoValida_()` (token de un solo
+    uso, ligado a esa IE y ese dispositivo — nunca pasa por `sesionActivaPorIdGrupo_`, así que un invitado
+    JAMÁS puede escribir en Participación, Sesión 1, Sesión 2 ni nada del resto del grupo).
+  - `Preparacion.gs` se refactorizó: `_guardarPreparacionIEInterno_`/`_marcarPreparacionEnviadaInterno_`
+    contienen la escritura real sin verificación de sesión; `guardarPreparacionIE`/`marcarPreparacionEnviada`
+    (sesión de grupo) y las funciones de `Invitados.gs` (sesión de invitado) llaman a lo mismo tras cada
+    una validar a su manera.
+- **Mensajes y carga**: no fue posible obtener el CSS/gif exacto de FEI 3.1 en este entorno (sin acceso al
+  contenido de ese proyecto de Apps Script desde aquí). Se rediseñaron `.mensaje.error/.exito/.info` con
+  icono, sombra y animación de entrada, y se agregó `.spinner-cargando` (spinner CSS) como indicador de
+  carga en vez de un gif.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:
