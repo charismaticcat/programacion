@@ -301,7 +301,10 @@ a.btn-recurso:hover { background: var(--verde-claro); }
 .carrusel-ie-progreso { position: absolute; bottom: 24px; font-size: 0.85rem; opacity: 0.8; margin: 0; }
 .carrusel-ie-saltar { position: absolute; top: 20px; right: 20px; }
 
-/* ---------- Participación por estamento e institución (formato 3.1, por IE) ---------- */
+/* ---------- Participación por estamento e institución (formato 3.1) ----------
+   UNA sola tabla horizontal: filas = estamento, columnas = IE, con
+   encabezado corto "Comuna (N)" (nombre completo como tooltip) y fila/
+   columna de Total — igual formato que el cuadro del informe generado. */
 .resumen-participacion-estamento {
   background: var(--verde-claro);
   color: var(--verde-oscuro);
@@ -310,22 +313,60 @@ a.btn-recurso:hover { background: var(--verde-claro); }
   margin-bottom: 14px;
   font-weight: 600;
 }
-.participacion-ie {
+.tabla-horizontal-desplazable { overflow-x: auto; margin-bottom: 8px; }
+table.tabla-participacion-horizontal {
+  width: 100%;
+  min-width: 480px;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+table.tabla-participacion-horizontal th, table.tabla-participacion-horizontal td {
   border: 1px solid var(--gris-borde);
-  border-radius: 10px;
-  padding: 14px 16px;
-  margin-bottom: 14px;
+  padding: 5px 6px;
+  text-align: center;
+  white-space: nowrap;
 }
-.participacion-ie h4 { margin: 0 0 8px; color: var(--verde-oscuro); }
-table.tabla-participacion-estamento { width: 100%; border-collapse: collapse; }
-table.tabla-participacion-estamento th, table.tabla-participacion-estamento td {
-  text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--gris-borde); font-size: 0.9rem;
+table.tabla-participacion-horizontal thead th {
+  background: var(--verde-claro);
+  color: var(--verde-oscuro);
+  font-weight: 700;
 }
-input.input-participantes { width: 90px; padding: 6px 8px; }
-.total-participacion-ie {
-  display: flex; justify-content: space-between; font-weight: 700; padding: 8px 8px 0; color: var(--verde-oscuro);
+table.tabla-participacion-horizontal .th-estamento,
+table.tabla-participacion-horizontal .td-estamento {
+  text-align: left;
+  white-space: normal;
+  min-width: 150px;
+  position: sticky;
+  left: 0;
+  background: var(--blanco);
+  font-weight: 600;
 }
-.participacion-ie .fila-botones { margin-top: 10px; }
+table.tabla-participacion-horizontal thead .th-estamento { background: var(--verde-claro); z-index: 1; }
+table.tabla-participacion-horizontal .th-total,
+table.tabla-participacion-horizontal .total-fila-estamento {
+  background: var(--gris-fondo);
+  font-weight: 700;
+}
+table.tabla-participacion-horizontal tfoot .fila-total-ie td {
+  background: var(--verde-claro);
+  color: var(--verde-oscuro);
+  font-weight: 700;
+}
+table.tabla-participacion-horizontal tfoot .gran-total { background: var(--verde); color: var(--blanco); }
+input.input-participantes-h {
+  width: 52px;
+  padding: 4px;
+  text-align: center;
+  border: 1px solid var(--gris-borde);
+  border-radius: 4px;
+}
+
+/* ---------- Método de asistencia — botón activo ---------- */
+.btn-metodo-activo {
+  background: var(--verde);
+  color: var(--blanco);
+  border-color: var(--verde);
+}
 
 /* ---------- Sesión de preparación (pre-socialización) ---------- */
 .lista-ie-preparacion { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }

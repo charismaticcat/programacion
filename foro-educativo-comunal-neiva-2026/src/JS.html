@@ -117,9 +117,6 @@ document.addEventListener("click", function (evento) {
   var quitarAsistente = evento.target.closest("[data-quitar-asistente]");
   if (quitarAsistente) quitarAsistenteEnvio(quitarAsistente.getAttribute("data-quitar-asistente"));
 
-  var guardarParticipacionIE = evento.target.closest("[data-guardar-participacion-ie]");
-  if (guardarParticipacionIE) guardarParticipacionEstamentoIE(guardarParticipacionIE.getAttribute("data-guardar-participacion-ie"));
-
   var guardarRector = evento.target.closest("[data-guardar-rector]");
   if (guardarRector) guardarRectorIE(guardarRector.getAttribute("data-guardar-rector"));
 
@@ -386,6 +383,12 @@ function iniciarHeartbeat() {
 function mostrarPanelMetodoAsistencia(metodo) {
   document.getElementById("panelMetodoQR").classList.toggle("oculto", metodo !== "QR");
   document.getElementById("panelMetodoListado").classList.toggle("oculto", metodo !== "LISTADO");
+  // Métodos EXCLUSIVOS: con PDF (LISTADO) desaparece el conteo de firmas en
+  // vivo (no aplica, nadie firma por celular); con QR sigue visible.
+  var ocultarConteoFirmas = metodo === "LISTADO";
+  document.getElementById("panelFirmantes").classList.toggle("oculto", ocultarConteoFirmas || !metodo);
+  var filaContador = document.getElementById("filaContadorParticipantesTarjeta");
+  if (filaContador) filaContador.classList.toggle("oculto", ocultarConteoFirmas);
   if (metodo === "QR") cargarEnlaceAsistencia();
 }
 
@@ -402,7 +405,10 @@ function cargarEnlaceAsistencia() {
 function elegirMetodoAsistencia(metodo) {
   mostrarPanelMetodoAsistencia(metodo);
   estado.metodoAsistencia = metodo;
-  renderResumenParticipacionEstamento(estado.participacionEstamento, estado.metodoAsistencia, estado.totalFirmantes || 0);
+  mostrarMensaje("mensajeSeleccionMetodo", "");
+  document.getElementById("btnMetodoQR").classList.toggle("btn-metodo-activo", metodo === "QR");
+  document.getElementById("btnMetodoListado").classList.toggle("btn-metodo-activo", metodo === "LISTADO");
+  renderResumenParticipacionEstamentoTodo();
   llamarServidor("rpcGuardarMetodoAsistencia", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, metodo], function (r) {
     if (!r.ok) mostrarMensaje("mensajeMetodoAsistencia", r.mensaje || "No fue posible guardar el método.", "error");
   });
@@ -413,6 +419,16 @@ document.getElementById("btnMetodoQR").addEventListener("click", function () {
 });
 document.getElementById("btnMetodoListado").addEventListener("click", function () {
   elegirMetodoAsistencia("LISTADO");
+});
+
+// Es obligatorio elegir exactamente un método (QR o PDF) antes de continuar.
+document.getElementById("btnContinuarAParticipacion").addEventListener("click", function () {
+  if (estado.metodoAsistencia !== "QR" && estado.metodoAsistencia !== "LISTADO") {
+    mostrarMensaje("mensajeSeleccionMetodo", "Elige un método de asistencia (QR o PDF) antes de continuar.", "error");
+    document.getElementById("mensajeSeleccionMetodo").scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+  cambiarPantalla("pantallaConfirmacionCaracterizacion");
 });
 
 document.getElementById("btnCopiarEnlaceAsistencia").addEventListener("click", function () {
@@ -461,6 +477,10 @@ document.getElementById("btnSubirListado").addEventListener("click", function ()
   var archivo = input.files[0];
   if (!archivo) {
     mostrarMensaje("mensajeMetodoAsistencia", "Selecciona primero un archivo.", "error");
+    return;
+  }
+  if (archivo.type !== "application/pdf") {
+    mostrarMensaje("mensajeMetodoAsistencia", "Solo se admiten archivos PDF para el listado de asistencia.", "error");
     return;
   }
   leerArchivoComoBase64_(archivo, function (base64) {
@@ -602,43 +622,93 @@ function quitarAsistenteEnvio(idRegistro) {
 }
 
 /* ------------------------------------------------------------------ *
- * Participación por estamento e institución (formato de 3.1, por IE) —
- * conteo manual con autosuma, distinto del conteo de firmantes en vivo.
+ * Participación por estamento e institución (formato de 3.1) — UNA sola
+ * tabla horizontal (filas = estamento, columnas = IE, fila Total),
+ * conteo manual con autosuma, distinta del conteo de firmantes en vivo.
+ * Se muestra y se puede editar tanto en Participación como en
+ * Confirmación de caracterización (misma tabla, dos contenedores).
  * ------------------------------------------------------------------ */
+var CONTENEDORES_PARTICIPACION_ESTAMENTO_ = ["contenedorParticipacionEstamento", "contenedorParticipacionEstamentoCaracterizacion"];
+var RESUMENES_PARTICIPACION_ESTAMENTO_ = ["resumenParticipacionEstamento", "resumenParticipacionEstamentoCaracterizacion"];
+var temporizadoresGuardadoParticipacionEstamento_ = {};
+
 function cargarParticipacionEstamento() {
   if (!estado.idGrupo) return;
   llamarServidor("rpcObtenerParticipacionEstamento", [estado.idGrupo], function (datos) {
     estado.participacionEstamento = datos;
-    renderParticipacionEstamento(datos);
-    renderResumenParticipacionEstamento(datos, estado.metodoAsistencia, estado.totalFirmantes || 0);
+    CONTENEDORES_PARTICIPACION_ESTAMENTO_.forEach(function (idContenedor) {
+      if (document.getElementById(idContenedor)) renderParticipacionEstamento(datos, idContenedor);
+    });
+    renderResumenParticipacionEstamentoTodo();
   });
 }
 
-function guardarParticipacionEstamentoIE(idIE) {
-  var contenedorIE = document.querySelector('.participacion-ie[data-ie="' + idIE + '"]');
-  if (!contenedorIE) return;
+function renderResumenParticipacionEstamentoTodo() {
+  RESUMENES_PARTICIPACION_ESTAMENTO_.forEach(function (idResumen) {
+    if (document.getElementById(idResumen)) {
+      renderResumenParticipacionEstamento(idResumen, estado.participacionEstamento, estado.metodoAsistencia, estado.totalFirmantes || 0);
+    }
+  });
+}
+
+/** Recalcula en vivo la fila/columna de totales de la tabla horizontal que contiene este input, sin ir al servidor. */
+function actualizarTotalesParticipacionEstamentoHorizontal_(tabla) {
+  if (!tabla) return;
+  var totalGeneral = 0;
+  tabla.querySelectorAll("tbody tr[data-estamento]").forEach(function (fila) {
+    var totalFila = 0;
+    fila.querySelectorAll(".input-participantes-h").forEach(function (input) {
+      totalFila += Math.max(0, parseInt(input.value, 10) || 0);
+    });
+    var celdaTotalFila = fila.querySelector(".total-fila-estamento");
+    if (celdaTotalFila) celdaTotalFila.textContent = totalFila;
+  });
+  var filaTotal = tabla.querySelector("tfoot tr.fila-total-ie");
+  if (filaTotal) {
+    var granTotal = 0;
+    filaTotal.querySelectorAll("[data-total-ie]").forEach(function (celda) {
+      var idIE = celda.getAttribute("data-total-ie");
+      var totalIE = 0;
+      tabla.querySelectorAll('.input-participantes-h[data-ie="' + idIE + '"]').forEach(function (input) {
+        totalIE += Math.max(0, parseInt(input.value, 10) || 0);
+      });
+      celda.textContent = totalIE;
+      granTotal += totalIE;
+    });
+    var celdaGranTotal = filaTotal.querySelector(".gran-total");
+    if (celdaGranTotal) celdaGranTotal.textContent = granTotal;
+  }
+}
+
+/** Autoguardado por columna (IE): junta los valores de esa IE en TODA la tabla que se está editando y los guarda. */
+function guardarColumnaParticipacionEstamento_(tabla, idIE) {
   var valores = {};
-  contenedorIE.querySelectorAll(".input-participantes").forEach(function (input) {
+  tabla.querySelectorAll('.input-participantes-h[data-ie="' + idIE + '"]').forEach(function (input) {
     valores[input.dataset.estamento] = input.value;
   });
   llamarServidor("rpcGuardarParticipacionEstamentoIE", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, idIE, valores], function (r) {
-    var estadoEl = document.getElementById("estadoParticipacionIE_" + idIE);
-    if (estadoEl) estadoEl.textContent = r.ok ? "✓ Guardado" : (r.mensaje || "No fue posible guardar.");
-    if (r.ok) cargarParticipacionEstamento();
+    if (r.ok) {
+      estado.participacionEstamento = null; // se refresca en segundo plano en la próxima carga, sin pisar lo que el usuario está escribiendo ahora
+      llamarServidor("rpcObtenerParticipacionEstamento", [estado.idGrupo], function (datos) {
+        estado.participacionEstamento = datos;
+      });
+    }
   });
 }
 
 document.addEventListener("input", function (evento) {
-  var input = evento.target.closest(".input-participantes");
+  var input = evento.target.closest(".input-participantes-h");
   if (!input) return;
-  var contenedorIE = input.closest(".participacion-ie");
-  if (!contenedorIE) return;
-  var total = 0;
-  contenedorIE.querySelectorAll(".input-participantes").forEach(function (i) {
-    total += Math.max(0, parseInt(i.value, 10) || 0);
-  });
-  var totalEl = contenedorIE.querySelector(".total-participacion-ie strong");
-  if (totalEl) totalEl.textContent = total;
+  var tabla = input.closest("table.tabla-participacion-horizontal");
+  if (!tabla) return;
+  actualizarTotalesParticipacionEstamentoHorizontal_(tabla);
+
+  var idIE = input.dataset.ie;
+  var clave = tabla.id + "|" + idIE;
+  clearTimeout(temporizadoresGuardadoParticipacionEstamento_[clave]);
+  temporizadoresGuardadoParticipacionEstamento_[clave] = setTimeout(function () {
+    guardarColumnaParticipacionEstamento_(tabla, idIE);
+  }, 1500);
 });
 
 /* ------------------------------------------------------------------ *
@@ -650,7 +720,7 @@ function actualizarFirmantes() {
     estado.ultimosFirmantes = r.firmantes || [];
     estado.totalFirmantes = r.total || 0;
     renderResumenFirmantes(r);
-    renderResumenParticipacionEstamento(estado.participacionEstamento, estado.metodoAsistencia, estado.totalFirmantes);
+    renderResumenParticipacionEstamentoTodo();
   });
 }
 
@@ -787,6 +857,7 @@ function cargarConfirmacionCaracterizacion() {
       renderFichaCaracterizacion(estado.grupo, estado.instituciones, estadoFirmantes, responsables);
     });
   });
+  cargarParticipacionEstamento();
 }
 
 /** Rector(a) editable en la ficha de Confirmación de caracterización (igual que en FEI 3.1). */

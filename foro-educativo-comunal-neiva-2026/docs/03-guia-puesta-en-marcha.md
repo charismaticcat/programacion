@@ -224,6 +224,29 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
 - Este paso es opcional: en cualquier momento el grupo puede pasar directamente a Sesión 1 sin preparar
   aportes por escrito.
 
+## 4.9 Asistencia: solo PDF, un solo método obligatorio; matriz de participación horizontal
+
+- El método "Listado físico" ahora solo admite **PDF** (ya no fotos/imágenes) — validado en el cliente
+  (`accept="application/pdf"` + chequeo de `file.type`) y en el servidor (`subirListadoAsistencia` en
+  `Asistencia.gs` rechaza cualquier `mimeType` distinto de `application/pdf`).
+- Elegir un método es **obligatorio** para continuar desde Participación: el botón "Continuar" valida que
+  `estado.metodoAsistencia` sea `QR` o `LISTADO` antes de avanzar; el botón del método elegido queda
+  resaltado (`.btn-metodo-activo`).
+- Los dos métodos son mutuamente excluyentes en pantalla: si se elige **PDF**, desaparece el conteo de
+  firmas en vivo (barra superior de firmantes y el renglón "Total de participantes registrados" de la
+  tarjeta) porque no aplica; si se elige **QR**, desaparece el panel de subir PDF.
+- La "Cantidad de asistentes por estamento e institución" pasó de una tarjeta por IE a **una sola tabla
+  horizontal**: filas = estamento, columnas = IE (encabezado corto "Comuna (N)", con el nombre completo
+  de la IE como tooltip), con fila y columna de Total — mismo formato que ya usa el cuadro del informe
+  generado (`obtenerMatrizParticipacionGrupo` en Grupos.gs). Sigue siendo editable y con autoguardado
+  (ahora por columna/IE, con debounce de 1.5 s), y el backend (`ParticipacionEstamento.gs`) no cambió.
+- Esta misma tabla horizontal ahora también aparece, editable, dentro de **Confirmación de
+  caracterización** (no solo en Participación) — mismos datos, mismo endpoint, dos contenedores en
+  pantalla (`renderParticipacionEstamento(datos, idContenedor)` acepta el id del contenedor).
+- Dondequiera que aparece el número de comuna junto a una IE (lista de instituciones en Participación,
+  encabezados de la matriz horizontal), ahora se muestra como "Comuna (N)" (`formatearComuna()` en
+  Components.html); los valores no numéricos (p. ej. "RURAL") se dejan tal cual, solo capitalizados.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

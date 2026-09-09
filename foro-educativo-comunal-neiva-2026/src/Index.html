@@ -136,16 +136,20 @@
   <!-- 6. PARTICIPACIÓN -->
   <section id="pantallaParticipacion" class="pantalla">
     <!-- Método de asistencia — al inicio de la pantalla, como pide el flujo:
-         cada grupo elige cómo se firma (QR/enlace, o listado físico +
-         fotografía), igual que en FEI 3.1 pero por grupo en vez de por IE. -->
+         cada grupo elige EXACTAMENTE UNO de dos métodos, QR o PDF (nunca
+         ambos): con QR se firma por celular y se ve el conteo de firmas en
+         vivo; con PDF se sube el listado firmado en papel y desaparece el
+         conteo de firmas (no aplica). Es obligatorio elegir uno para
+         continuar. -->
     <div class="tarjeta">
       <h2 class="titulo-seccion">Método de asistencia del grupo</h2>
-      <p class="ayuda">Elige cómo va a registrar la asistencia este grupo. Puedes cambiarlo en cualquier
-        momento sin perder lo ya registrado.</p>
+      <p class="ayuda">Elige UNO de los dos métodos para registrar la asistencia de este grupo. Puedes
+        cambiarlo en cualquier momento sin perder lo ya registrado.</p>
       <div class="fila-botones">
         <button class="btn btn-secundario" id="btnMetodoQR" data-metodo-asistencia="QR">📱 QR / enlace</button>
-        <button class="btn btn-secundario" id="btnMetodoListado" data-metodo-asistencia="LISTADO">📋 Listado físico + fotografía</button>
+        <button class="btn btn-secundario" id="btnMetodoListado" data-metodo-asistencia="LISTADO">📄 Listado en PDF</button>
       </div>
+      <div id="mensajeSeleccionMetodo"></div>
 
       <div id="panelMetodoQR" class="oculto" style="margin-top:14px;">
         <p class="ayuda">Comparte este enlace o el código QR para que cada persona firme desde su
@@ -161,8 +165,8 @@
       </div>
 
       <div id="panelMetodoListado" class="oculto" style="margin-top:14px;">
-        <label for="campoArchivoListado">Foto o PDF del listado firmado en papel</label>
-        <input type="file" id="campoArchivoListado" accept="application/pdf,image/*">
+        <label for="campoArchivoListado">PDF del listado firmado en papel</label>
+        <input type="file" id="campoArchivoListado" accept="application/pdf">
         <div class="fila-botones">
           <button class="btn btn-secundario" id="btnSubirListado">Subir listado</button>
         </div>
@@ -172,7 +176,7 @@
 
     <div class="tarjeta">
       <h2 class="titulo-seccion">Participación y asistencia</h2>
-      <p class="contador-participantes-tarjeta">👥 Total de participantes registrados:
+      <p class="contador-participantes-tarjeta" id="filaContadorParticipantesTarjeta">👥 Total de participantes registrados:
         <strong id="contadorParticipantesTarjeta">0</strong></p>
       <p class="ayuda">Instituciones educativas de <strong id="nombreGrupoParticipacion"></strong>:</p>
       <div class="lista-instituciones" id="listaInstituciones"></div>
@@ -233,11 +237,11 @@
         educativa del grupo (mismo formato de la caracterización de FEI 3.1). La suma se calcula
         automáticamente.</p>
       <div id="resumenParticipacionEstamento" class="resumen-participacion-estamento"></div>
-      <div id="contenedorParticipacionEstamento"></div>
+      <div id="contenedorParticipacionEstamento" class="tabla-horizontal-desplazable"></div>
     </div>
 
     <div class="fila-botones">
-      <button class="btn btn-primario" data-ir="pantallaConfirmacionCaracterizacion">Continuar</button>
+      <button class="btn btn-primario" id="btnContinuarAParticipacion">Continuar</button>
     </div>
   </section>
 
@@ -248,6 +252,12 @@
       <p class="ayuda">Verifica que toda la información del grupo sea correcta antes de continuar a las
         sesiones de trabajo.</p>
       <div id="fichaCaracterizacionGrupo"></div>
+
+      <h3 class="subtitulo-campo" style="margin-top:20px;">Participación por estamento e institución</h3>
+      <p class="ayuda">Mismos datos que en la pantalla de Participación — editable también desde aquí.</p>
+      <div id="resumenParticipacionEstamentoCaracterizacion" class="resumen-participacion-estamento"></div>
+      <div id="contenedorParticipacionEstamentoCaracterizacion" class="tabla-horizontal-desplazable"></div>
+
       <div class="fila-botones">
         <button class="btn btn-secundario" data-ir="pantallaParticipacion">Atrás, corregir</button>
         <button class="btn btn-primario" data-ir="pantallaPreSocializacion">Confirmo que la información es correcta</button>

@@ -61,11 +61,20 @@ function guardarMetodoAsistencia(idGrupo, tokenSesion, dispositivoId, metodo) {
   return { ok: true };
 }
 
-/** Sube el listado físico de asistencia (foto o PDF) a 02_ASISTENCIA/GRUPO N. */
+/**
+ * Sube el listado físico de asistencia (SOLO PDF) a 02_ASISTENCIA/GRUPO N.
+ * El método "listado" es, junto con "QR", uno de los dos métodos EXCLUSIVOS
+ * de asistencia del grupo (spec: "exigir un solo método de firma de
+ * asistencia, o QR o PDF") — este método se identifica en pantalla como
+ * "Listado en PDF", ya no admite fotografías del listado.
+ */
 function subirListadoAsistencia(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType) {
   idGrupo = String(idGrupo || "").trim();
   if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
     return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión ya no está activa en este dispositivo." };
+  }
+  if (String(mimeType || "").toLowerCase() !== "application/pdf") {
+    return { ok: false, mensaje: "Solo se admiten archivos PDF para el listado de asistencia." };
   }
   var grupoInfo = obtenerGrupoPorId(idGrupo);
   if (!grupoInfo) return { ok: false, mensaje: "Grupo no encontrado." };

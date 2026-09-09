@@ -12,6 +12,18 @@ function escapeHtml(texto) {
   return div.innerHTML;
 }
 
+/**
+ * Formatea el número de comuna como "Comuna (N)" (spec: "los números que
+ * aparecen frente a cada IE debe decir antes Comuna (#)"). Los valores no
+ * numéricos (p.ej. "RURAL") se dejan tal cual, solo con capitalización.
+ */
+function formatearComuna(comuna) {
+  var texto = String(comuna || "").trim();
+  if (!texto) return "";
+  if (/^\d+$/.test(texto)) return "Comuna (" + texto + ")";
+  return texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase();
+}
+
 function renderListaInstituciones(instituciones) {
   var contenedor = document.getElementById("listaInstituciones");
   contenedor.innerHTML = "";
@@ -20,7 +32,7 @@ function renderListaInstituciones(instituciones) {
     item.className = "item-institucion";
     item.innerHTML =
       "<span>" + escapeHtml(ie.institucion) + "</span>" +
-      "<span class='comuna'>" + escapeHtml(ie.comuna || "") + "</span>";
+      "<span class='comuna'>" + escapeHtml(formatearComuna(ie.comuna)) + "</span>";
     contenedor.appendChild(item);
   });
 }
@@ -78,44 +90,63 @@ function renderResponsables(responsables) {
 }
 
 /**
- * Una tabla de participación por estamento (mismo formato que 3.1) por
- * cada IE del grupo — conteo manual con autosuma, distinto del conteo de
- * firmantes en vivo.
+ * Tabla ÚNICA y horizontal de participación por estamento (mismo formato
+ * que 3.1, y mismo formato del cuadro dentro del informe generado):
+ * filas = estamento, columnas = IE (encabezado corto "Comuna (N)", con
+ * el nombre completo como tooltip), última columna/fila = Total —
+ * conteo manual con autosuma, editable, distinto del conteo de
+ * firmantes en vivo. `idContenedor` permite pintar la misma tabla tanto
+ * en Participación como en Confirmación de caracterización.
  */
-function renderParticipacionEstamento(datos) {
-  var contenedor = document.getElementById("contenedorParticipacionEstamento");
+function renderParticipacionEstamento(datos, idContenedor) {
+  var contenedor = document.getElementById(idContenedor);
   if (!contenedor) return;
   if (!datos || !datos.instituciones.length) {
     contenedor.innerHTML = "<p class='ayuda'>No hay instituciones para mostrar.</p>";
     return;
   }
-  var html = "";
+
+  var html = "<table id='tabla_" + idContenedor + "' class='tabla-participacion-horizontal'>";
+  html += "<thead><tr><th class='th-estamento'>Estamento</th>";
   datos.instituciones.forEach(function (ie) {
-    html += "<div class='participacion-ie' data-ie='" + escapeHtml(ie.idIE) + "'>";
-    html += "<h4>" + escapeHtml(ie.institucion) + "</h4>";
-    html += "<table class='tabla-participacion-estamento'><thead><tr><th>Estamento</th><th>Participantes</th></tr></thead><tbody>";
-    datos.estamentos.forEach(function (e) {
-      html +=
-        "<tr><td>" + escapeHtml(e.etiqueta) + "</td><td>" +
-        "<input type='number' min='0' step='1' inputmode='numeric' class='input-participantes' " +
-        "data-estamento='" + e.clave + "' value='" + (ie.valores[e.clave] || 0) + "'></td></tr>";
-    });
-    html += "</tbody></table>";
-    html += "<div class='total-participacion-ie'><span>Total</span><strong>" + ie.total + "</strong></div>";
-    html += "<div class='fila-botones'><button type='button' class='btn btn-secundario' data-guardar-participacion-ie='" + escapeHtml(ie.idIE) + "'>Guardar</button></div>";
-    html += "<p class='ayuda' id='estadoParticipacionIE_" + escapeHtml(ie.idIE) + "'></p>";
-    html += "</div>";
+    html += "<th title='" + escapeHtml(ie.institucion) + "'>" + escapeHtml(formatearComuna(ie.comuna)) + "</th>";
   });
+  html += "<th class='th-total'>Total</th></tr></thead>";
+
+  html += "<tbody>";
+  datos.estamentos.forEach(function (e) {
+    html += "<tr data-estamento='" + escapeHtml(e.clave) + "'>";
+    html += "<td class='td-estamento'>" + escapeHtml(e.etiqueta) + "</td>";
+    datos.instituciones.forEach(function (ie) {
+      html +=
+        "<td><input type='number' min='0' step='1' inputmode='numeric' class='input-participantes-h' " +
+        "data-ie='" + escapeHtml(ie.idIE) + "' data-estamento='" + escapeHtml(e.clave) + "' " +
+        "value='" + (ie.valores[e.clave] || 0) + "'></td>";
+    });
+    html += "<td class='total-fila-estamento'>" + (datos.totalesPorEstamento[e.clave] || 0) + "</td>";
+    html += "</tr>";
+  });
+  html += "</tbody>";
+
+  html += "<tfoot><tr class='fila-total-ie'><td class='td-estamento'>Total</td>";
+  datos.instituciones.forEach(function (ie) {
+    html += "<td data-total-ie='" + escapeHtml(ie.idIE) + "'>" + ie.total + "</td>";
+  });
+  html += "<td class='gran-total'>" + (datos.totalGeneral || 0) + "</td></tr></tfoot>";
+  html += "</table>";
+
   contenedor.innerHTML = html;
 }
 
 /**
  * Resumen del total: si el grupo eligió el método QR, muestra
  * "firmantes / participantes declarados" para comparar la firma en vivo
- * contra el conteo manual; si no, solo el total declarado.
+ * contra el conteo manual; si no, solo el total declarado. `idResumen`
+ * permite mostrarlo tanto en Participación como en Confirmación de
+ * caracterización.
  */
-function renderResumenParticipacionEstamento(datos, metodoAsistencia, totalFirmantes) {
-  var contenedor = document.getElementById("resumenParticipacionEstamento");
+function renderResumenParticipacionEstamento(idResumen, datos, metodoAsistencia, totalFirmantes) {
+  var contenedor = document.getElementById(idResumen);
   if (!contenedor || !datos) return;
   if (metodoAsistencia === "QR") {
     contenedor.textContent = "👥 Firmantes / participantes declarados: " + (totalFirmantes || 0) + " / " + (datos.totalGeneral || 0);
