@@ -153,6 +153,22 @@ enlace" (o con cada destinatario específico) desde Google Drive.
   de la fotografía de evidencia (que solo aplica cuando el método es "Listado físico"). Se guarda en
   `06_EVIDENCIAS/GRUPO N` (columna `FOTO_GRUPO_ID` de `AccesosGrupo`, distinta de `ID_FOTO_EVIDENCIA`).
 
+## 4.5 Valoración del Foro como condición para el informe
+
+A diferencia de FEI 3.1 (donde la valoración "no bloquea nada" — es una encuesta de cierre opcional
+después de enviar el informe), en esta entrega la valoración SÍ es condición: en "Revisión y cierre", el
+grupo debe responder primero las 4 preguntas de corazones (1 a 5) + la pregunta abierta final antes de
+que el botón "Generar informe del grupo" se habilite (`Valoracion.gs`, gatea
+`generarInformeCompletoGrupo` en `Grupos.gs`). El instrumento (preguntas, mecánica de corazones,
+umbrales de la nota, mensaje final condicionado al promedio) es el mismo de FEI 3.1
+(`inicializarValoracionFEM_`), adaptado de "Foro Educativo Institucional"/IE a "Foro Educativo
+Comunal"/grupo.
+
+Además, el botón "Enviar informe por correo" (pantalla de informe generado) queda deshabilitado hasta
+que el grupo haga clic en "Descargar informe" (se registra en `InformesComunal.DESCARGADO`) — antes, el
+correo se enviaba automáticamente al generar el informe; ahora es una acción explícita y separada,
+gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

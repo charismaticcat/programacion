@@ -393,6 +393,101 @@
 
   <!-- 10. REVISIÓN Y CIERRE -->
   <section id="pantallaRevisionCierre" class="pantalla">
+    <div class="tarjeta" id="tarjetaValoracion">
+      <h2 class="titulo-seccion">💬 Valoración del Foro Educativo Comunal</h2>
+      <p class="ayuda">Antes de generar el informe, respondan estas 5 preguntas breves sobre la
+        actividad. Este espacio lo responde únicamente quien diligenció (o quienes diligenciaron, si son
+        más de una persona) el formulario.</p>
+
+      <div id="valoracionYaEnviada" class="oculto"></div>
+
+      <div id="valoracionFormulario">
+        <div class="valoracion-pregunta" data-pregunta="p1">
+          <p>🏫 ¿El Foro Educativo Comunal permitió generar espacios de diálogo y reflexión sobre los
+            retos y oportunidades de la educación en nuestro territorio?</p>
+          <div class="valoracion-corazones" role="radiogroup" aria-label="Pregunta 1">
+            <button type="button" class="corazon-valoracion" data-valor="1" aria-label="1 corazón">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="2" aria-label="2 corazones">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="3" aria-label="3 corazones">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="4" aria-label="4 corazones">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="5" aria-label="5 corazones">🤍</button>
+          </div>
+          <div class="valoracion-mejora oculto" data-mejora-de="p1">
+            <label for="valoracionMejoraP1">😔 ¿Nos dice brevemente cómo podría mejorar esto para el
+              próximo Foro?</label>
+            <textarea id="valoracionMejoraP1" rows="2" placeholder="Escriba aquí su respuesta (opcional)"></textarea>
+          </div>
+        </div>
+
+        <div class="valoracion-pregunta" data-pregunta="p2">
+          <p>🤝 ¿Considera que el Foro Educativo Comunal permitió la participación activa de estudiantes,
+            docentes, familias y demás integrantes de la comunidad educativa del grupo?</p>
+          <div class="valoracion-corazones" role="radiogroup" aria-label="Pregunta 2">
+            <button type="button" class="corazon-valoracion" data-valor="1" aria-label="1 corazón">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="2" aria-label="2 corazones">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="3" aria-label="3 corazones">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="4" aria-label="4 corazones">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="5" aria-label="5 corazones">🤍</button>
+          </div>
+          <div class="valoracion-mejora oculto" data-mejora-de="p2">
+            <label for="valoracionMejoraP2">😔 ¿Nos dice brevemente cómo podría mejorar esto para el
+              próximo Foro?</label>
+            <textarea id="valoracionMejoraP2" rows="2" placeholder="Escriba aquí su respuesta (opcional)"></textarea>
+          </div>
+        </div>
+
+        <div class="valoracion-pregunta" data-pregunta="p3">
+          <p>💡 ¿Los temas abordados durante el Foro Educativo Comunal aportaron ideas o propuestas que
+            pueden contribuir al mejoramiento de nuestro territorio?</p>
+          <div class="valoracion-corazones" role="radiogroup" aria-label="Pregunta 3">
+            <button type="button" class="corazon-valoracion" data-valor="1" aria-label="1 corazón">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="2" aria-label="2 corazones">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="3" aria-label="3 corazones">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="4" aria-label="4 corazones">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="5" aria-label="5 corazones">🤍</button>
+          </div>
+          <div class="valoracion-mejora oculto" data-mejora-de="p3">
+            <label for="valoracionMejoraP3">😔 ¿Nos dice brevemente cómo podría mejorar esto para el
+              próximo Foro?</label>
+            <textarea id="valoracionMejoraP3" rows="2" placeholder="Escriba aquí su respuesta (opcional)"></textarea>
+          </div>
+        </div>
+
+        <div class="valoracion-pregunta" data-pregunta="p4">
+          <p>😊 ¿Qué tan satisfecho(a) se encuentra con el instrumento utilizado para recoger la
+            información y conocer la percepción de la comunidad educativa sobre el Foro Educativo
+            Comunal?</p>
+          <div class="valoracion-corazones" role="radiogroup" aria-label="Pregunta 4">
+            <button type="button" class="corazon-valoracion" data-valor="1" aria-label="1 corazón">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="2" aria-label="2 corazones">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="3" aria-label="3 corazones">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="4" aria-label="4 corazones">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="5" aria-label="5 corazones">🤍</button>
+          </div>
+          <div class="valoracion-mejora oculto" data-mejora-de="p4">
+            <label for="valoracionMejoraP4">😔 ¿Nos dice brevemente cómo podría mejorar esto para el
+              próximo Foro?</label>
+            <textarea id="valoracionMejoraP4" rows="2" placeholder="Escriba aquí su respuesta (opcional)"></textarea>
+          </div>
+        </div>
+
+        <div class="valoracion-resultado oculto" id="valoracionResultado">
+          <p class="valoracion-nota" id="valoracionNotaTexto"></p>
+        </div>
+
+        <div class="valoracion-pregunta oculto" id="valoracionAbiertaBloque">
+          <label for="valoracionP5" id="valoracionP5Label">💬 ¿Qué sugerencias, recomendaciones o
+            propuestas tiene para fortalecer la organización y desarrollo del Foro Educativo Comunal?</label>
+          <textarea id="valoracionP5" rows="4" placeholder="Escriba aquí su respuesta (opcional)"></textarea>
+        </div>
+
+        <div id="mensajeValoracion"></div>
+        <div class="fila-botones">
+          <button type="button" class="btn btn-primario" id="btnEnviarValoracion">Enviar valoración</button>
+        </div>
+      </div>
+    </div>
+
     <div class="tarjeta">
       <h2 class="titulo-seccion">Revisión y cierre</h2>
       <p>Al generar el informe se crea el documento único del grupo, disponible para todas sus
@@ -412,8 +507,13 @@
       <h2>Informe generado</h2>
       <p>El informe del grupo ya está disponible. Todas las instituciones educativas del grupo pueden
         consultarlo con el mismo enlace.</p>
-      <a class="btn btn-primario enlace-informe" id="enlaceInformeGenerado" href="#" target="_blank">Ver informe</a>
-      <p class="nota">También se envió por correo al responsable del grupo.</p>
+      <a class="btn btn-primario enlace-informe" id="enlaceInformeGenerado" href="#" target="_blank">Descargar informe</a>
+      <div id="mensajeEnvioInforme"></div>
+      <div class="fila-botones">
+        <button class="btn btn-secundario" id="btnEnviarInformePorCorreo" disabled>✉️ Enviar informe por correo</button>
+      </div>
+      <p class="nota" id="notaEnvioInforme">Descargue el informe (botón de arriba) para habilitar el envío
+        por correo al responsable del grupo.</p>
     </div>
     <div class="fila-botones">
       <button class="btn btn-primario" data-ir="pantallaDespedida">Continuar</button>

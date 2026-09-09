@@ -325,6 +325,29 @@ function enviarGrupoRecorridoPruebaA(destinatario) {
   }
 }
 
+/**
+ * Envía el informe por correo, pero solo si el grupo ya valoró el Foro y
+ * ya descargó el informe (condiciones explícitas de esta entrega —
+ * distinto de generarInformeCompletoGrupo, que solo exige la valoración:
+ * aquí además hace falta haberlo descargado, spec de este pedido). Es el
+ * punto de entrada del botón "Enviar informe por correo" de la pantalla
+ * de informe generado.
+ */
+function enviarInformeSiCorresponde(idGrupo, tokenSesion, dispositivoId) {
+  idGrupo = String(idGrupo || "").trim();
+  if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
+    return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión ya no está activa en este dispositivo." };
+  }
+  if (!obtenerValoracionGrupo(idGrupo)) {
+    return { ok: false, mensaje: "Debe completar la valoración del Foro antes de enviar el informe." };
+  }
+  var informe = obtenerInformeGrupo(idGrupo);
+  if (!informe || String(informe.DESCARGADO || "").toUpperCase() !== "SI") {
+    return { ok: false, mensaje: "Debe descargar el informe antes de enviarlo por correo." };
+  }
+  return enviarInformeGrupo(idGrupo);
+}
+
 /** Reintenta los envíos diferidos por cuota agotada (ejecutar vía trigger diario, p. ej. a medianoche). */
 function reintentarEnviosDiferidos() {
   var hoja = obtenerHoja_(HOJA_ENVIOS_DIFERIDOS_, ["ID_GRUPO", "FECHA_REGISTRO", "REINTENTADO"]);

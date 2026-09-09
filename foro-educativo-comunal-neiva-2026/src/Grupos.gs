@@ -51,7 +51,7 @@ function obtenerEstadoGrupo(idGrupo) {
 
   var totalParticipantes = contarParticipantesGrupo(idGrupoStr);
 
-  var hojaInformes = obtenerHoja_("InformesComunal", ["ID_GRUPO", "DOC_ID", "PDF_ID", "URL", "FECHA", "ESTADO"]);
+  var hojaInformes = obtenerHoja_("InformesComunal", cabecerasInformesComunal_());
   var mapaInformes = obtenerMapaCabeceras_(hojaInformes);
   var filaInforme = buscarFilaPorColumna_(hojaInformes, mapaInformes, "ID_GRUPO", idGrupoStr);
   var informe = filaInforme === -1 ? null : leerFilaComoObjeto_(hojaInformes, filaInforme, mapaInformes);
@@ -81,6 +81,16 @@ function generarInformeCompletoGrupo(idGrupo, tokenSesion, dispositivoId) {
     }
     if (!esPrincipalDeGrupo_(idGrupo, dispositivoId, tokenSesion)) {
       return { ok: false, mensaje: "Solo el responsable principal del grupo puede generar el informe definitivo." };
+    }
+    // Condición explícita de esta entrega (distinta de FEI 3.1, ver
+    // Valoracion.gs): no se genera el informe sin haber enviado antes la
+    // valoración del Foro.
+    if (!obtenerValoracionGrupo(idGrupo)) {
+      return {
+        ok: false,
+        codigo: "VALORACION_REQUERIDA",
+        mensaje: "Debe completar la valoración del Foro antes de generar el informe."
+      };
     }
     var resultado = generarInformeGrupo(idGrupo);
     if (!resultado.ok) return resultado;

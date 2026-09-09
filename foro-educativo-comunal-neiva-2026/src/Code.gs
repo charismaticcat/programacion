@@ -199,24 +199,45 @@ function rpcEnviarSesion2(idGrupo, tokenSesion, dispositivoId) {
  * RPC — Informe / cierre
  * ------------------------------------------------------------------ */
 
+/**
+ * Generar el informe ya NO envía el correo automáticamente (a diferencia
+ * de antes): el envío es ahora una acción explícita y separada
+ * (rpcEnviarInformePorCorreo), habilitada solo tras valorar y descargar
+ * el informe. generarInformeCompletoGrupo ya exige la valoración antes
+ * de generar (Grupos.gs).
+ */
 function rpcGenerarInforme(idGrupo, tokenSesion, dispositivoId) {
-  var resultado = generarInformeCompletoGrupo(idGrupo, tokenSesion, dispositivoId);
-  if (resultado.ok) {
-    try {
-      enviarInformeGrupo(idGrupo);
-    } catch (e) {
-      Logger.log("El informe se generó, pero el envío por correo falló: " + e.message);
-    }
-  }
-  return resultado;
+  return generarInformeCompletoGrupo(idGrupo, tokenSesion, dispositivoId);
 }
 
 function rpcObtenerInforme(idGrupo) {
   return obtenerInformeGrupo(idGrupo);
 }
 
+/** Se llama al hacer clic en el enlace de descarga del informe (habilita el envío por correo). */
+function rpcMarcarInformeDescargado(idGrupo, tokenSesion, dispositivoId) {
+  return marcarInformeDescargado(idGrupo, tokenSesion, dispositivoId);
+}
+
+/** Envía el informe por correo — exige valoración enviada y descarga registrada (Correo.gs). */
+function rpcEnviarInformePorCorreo(idGrupo, tokenSesion, dispositivoId) {
+  return enviarInformeSiCorresponde(idGrupo, tokenSesion, dispositivoId);
+}
+
 function rpcEstadoGrupo(idGrupo) {
   return obtenerEstadoGrupo(idGrupo);
+}
+
+/* ------------------------------------------------------------------ *
+ * RPC — Valoración del Foro (condición para generar el informe)
+ * ------------------------------------------------------------------ */
+
+function rpcGuardarValoracion(idGrupo, tokenSesion, dispositivoId, respuestas) {
+  return guardarValoracionGrupo(idGrupo, tokenSesion, dispositivoId, respuestas);
+}
+
+function rpcObtenerValoracion(idGrupo) {
+  return obtenerValoracionGrupo(idGrupo);
 }
 
 /**

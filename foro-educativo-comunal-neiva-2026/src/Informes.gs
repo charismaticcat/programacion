@@ -20,6 +20,17 @@ var COLOR_VERDE_INFORME_ = "#0B6A44";
 var COLOR_GRIS_TEXTO_INFORME_ = "#555555";
 var COLOR_GRIS_BORDE_INFORME_ = "#CCCCCC";
 
+/**
+ * Cabeceras de InformesComunal — única fuente de verdad (evita el
+ * problema de drift ya sufrido antes en este proyecto por repetir el
+ * mismo arreglo de cabeceras en más de un archivo): DESCARGADO se agregó
+ * para la condición de "descargado" que habilita enviar el informe por
+ * correo (ver marcarInformeDescargado más abajo).
+ */
+function cabecerasInformesComunal_() {
+  return ["ID_GRUPO", "DOC_ID", "PDF_ID", "URL", "FECHA", "ESTADO", "DESCARGADO"];
+}
+
 var _titulosKeepWithNext_ = [];
 
 function titulo1_(body, texto) {
@@ -353,10 +364,10 @@ function generarInformeGrupo(idGrupo) {
   var url = pdfFile.getUrl();
   upsertFila_(
     "InformesComunal",
-    ["ID_GRUPO", "DOC_ID", "PDF_ID", "URL", "FECHA", "ESTADO"],
+    cabecerasInformesComunal_(),
     "ID_GRUPO",
     idGrupo,
-    { DOC_ID: doc.getId(), PDF_ID: pdfFile.getId(), URL: url, FECHA: new Date(), ESTADO: "GENERADO" }
+    { DOC_ID: doc.getId(), PDF_ID: pdfFile.getId(), URL: url, FECHA: new Date(), ESTADO: "GENERADO", DESCARGADO: "NO" }
   );
 
   return { ok: true, docId: doc.getId(), pdfId: pdfFile.getId(), url: url };
@@ -364,9 +375,31 @@ function generarInformeGrupo(idGrupo) {
 
 /** Informe ya generado de un grupo (para que cualquier IE del grupo lo consulte — mismo informe para todas). */
 function obtenerInformeGrupo(idGrupo) {
-  var hoja = obtenerHoja_("InformesComunal", ["ID_GRUPO", "DOC_ID", "PDF_ID", "URL", "FECHA", "ESTADO"]);
+  var hoja = obtenerHoja_("InformesComunal", cabecerasInformesComunal_());
   var mapa = obtenerMapaCabeceras_(hoja);
   var fila = buscarFilaPorColumna_(hoja, mapa, "ID_GRUPO", String(idGrupo || "").trim());
   if (fila === -1) return null;
   return leerFilaComoObjeto_(hoja, fila, mapa);
+}
+
+/**
+ * Marca que el informe del grupo ya fue descargado — condición explícita
+ * de esta entrega (junto con la valoración) para habilitar el envío del
+ * informe por correo. Es un registro de "intención de descarga" (se
+ * dispara al hacer clic en el enlace de descarga): Apps Script no puede
+ * observar el evento real de descarga del navegador, así que se confía
+ * en el mismo clic, igual que el resto de acciones autoreportadas de
+ * esta aplicación (consentimientos, envíos de sesión, etc.).
+ */
+function marcarInformeDescargado(idGrupo, tokenSesion, dispositivoId) {
+  idGrupo = String(idGrupo || "").trim();
+  if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
+    return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión ya no está activa en este dispositivo." };
+  }
+  var hoja = obtenerHoja_("InformesComunal", cabecerasInformesComunal_());
+  var mapa = obtenerMapaCabeceras_(hoja);
+  var fila = buscarFilaPorColumna_(hoja, mapa, "ID_GRUPO", idGrupo);
+  if (fila === -1) return { ok: false, mensaje: "El grupo todavía no tiene informe generado." };
+  hoja.getRange(fila, mapa["DESCARGADO"]).setValue("SI");
+  return { ok: true };
 }

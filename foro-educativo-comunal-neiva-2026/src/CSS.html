@@ -319,6 +319,35 @@ a.btn-recurso:hover { background: var(--verde-claro); }
   box-shadow: var(--sombra);
 }
 
+/* ---------- Valoración del Foro (corazones, copiada de FEI 3.1) ---------- */
+.valoracion-pregunta { margin: 18px 0; }
+.valoracion-pregunta > p { font-weight: 600; margin-bottom: 8px; }
+.valoracion-corazones { display: flex; gap: 6px; }
+button.corazon-valoracion {
+  background: none;
+  border: none;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px;
+}
+.valoracion-mejora { margin-top: 10px; background: var(--gris-fondo); border-radius: 8px; padding: 10px 14px; }
+.valoracion-resultado {
+  background: var(--verde-claro);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 16px 0;
+  text-align: center;
+}
+.valoracion-nota { font-size: 1.1rem; font-weight: 700; color: var(--verde-oscuro); margin: 0; }
+.valoracion-ya-enviada {
+  background: var(--verde-claro);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: var(--verde-oscuro);
+  font-weight: 600;
+}
+
 @media (max-width: 480px) {
   header.marca h1 { font-size: 1.3rem; }
   #panelFirmantes { font-size: 0.9rem; }

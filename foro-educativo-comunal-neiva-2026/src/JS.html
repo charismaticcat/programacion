@@ -738,17 +738,133 @@ function cargarConfirmacionCaracterizacion() {
 /* ------------------------------------------------------------------ *
  * Revisión, cierre y generación del informe
  * ------------------------------------------------------------------ */
+estado.valoracionCompletada = false;
+
 function prepararCierre() {
+  cargarValoracion();
+}
+
+function cargarValoracion() {
+  llamarServidor("rpcObtenerValoracion", [estado.idGrupo], function (v) {
+    estado.valoracionCompletada = !!v;
+    mostrarEstadoValoracion(v);
+    actualizarBotonGenerarInforme();
+  });
+}
+
+function mostrarEstadoValoracion(valoracion) {
+  var formulario = document.getElementById("valoracionFormulario");
+  var yaEnviada = document.getElementById("valoracionYaEnviada");
+  if (valoracion) {
+    formulario.classList.add("oculto");
+    var nota = Number(valoracion.NOTA_PROMEDIO || 0).toFixed(1);
+    yaEnviada.innerHTML = "<p class='valoracion-ya-enviada'>✅ Valoración enviada — nota promedio: " + nota + " / 5.0</p>";
+    yaEnviada.classList.remove("oculto");
+  } else {
+    formulario.classList.remove("oculto");
+    yaEnviada.classList.add("oculto");
+  }
+}
+
+function actualizarBotonGenerarInforme() {
   var boton = document.getElementById("btnGenerarInforme");
   var aviso = document.getElementById("avisoResponsablePrincipal");
   if (!estado.esPrincipal) {
     aviso.textContent = "Solo el responsable principal del grupo puede generar el informe definitivo. Puede seguir revisando mientras tanto.";
+    boton.disabled = true;
+  } else if (!estado.valoracionCompletada) {
+    aviso.textContent = "Complete la valoración del Foro (arriba) antes de generar el informe.";
     boton.disabled = true;
   } else {
     aviso.textContent = "";
     boton.disabled = false;
   }
 }
+
+/* ---- Valoración del Foro — 4 preguntas de corazones + 1 abierta (copiado de FEI 3.1) ---- */
+(function inicializarValoracion() {
+  var contenedor = document.getElementById("tarjetaValoracion");
+  if (!contenedor) return;
+  var puntajes = { p1: 0, p2: 0, p3: 0, p4: 0 };
+
+  function actualizarResultadoValoracion() {
+    var bloqueAbierto = document.getElementById("valoracionAbiertaBloque");
+    var bloqueResultado = document.getElementById("valoracionResultado");
+    var notaTexto = document.getElementById("valoracionNotaTexto");
+    var labelAbierto = document.getElementById("valoracionP5Label");
+
+    if (!puntajes.p1 || !puntajes.p2 || !puntajes.p3 || !puntajes.p4) {
+      bloqueAbierto.classList.add("oculto");
+      bloqueResultado.classList.add("oculto");
+      return;
+    }
+
+    var nota = (puntajes.p1 + puntajes.p2 + puntajes.p3 + puntajes.p4) / 4;
+    var emoji, pregunta;
+    if (nota < 3) {
+      emoji = "😭";
+      pregunta = "😭 ¡Debemos hacerlo mejor! ¿Qué sugerencias, recomendaciones o propuestas tienen para fortalecer la organización y desarrollo del Foro Educativo Comunal?";
+    } else if (nota <= 4) {
+      emoji = "😬";
+      pregunta = "😬 ¡Pasamos raspados! ¿Quieren decirnos qué funcionó bien para " + (estado.grupo || "el grupo") + " y qué pudo haber sido mejor para fortalecer la organización y desarrollo del Foro Educativo Comunal?";
+    } else {
+      emoji = "🎉";
+      pregunta = "🎉 ¡Bravo, gracias por el reconocimiento! ¿Quieren decirnos qué hicimos bien para " + (estado.grupo || "el grupo") + " para merecer el reconocimiento de ustedes? Y de paso también pueden decirnos cómo mejorar para fortalecer la organización y desarrollo del Foro Educativo Comunal.";
+    }
+
+    notaTexto.textContent = emoji + " Nuestra nota fue de: " + nota.toFixed(1) + " / 5.0 " + emoji;
+    bloqueResultado.classList.remove("oculto");
+    labelAbierto.textContent = pregunta;
+    bloqueAbierto.classList.remove("oculto");
+  }
+
+  contenedor.querySelectorAll(".valoracion-pregunta[data-pregunta]").forEach(function (bloque) {
+    var pregunta = bloque.dataset.pregunta;
+    var corazones = Array.prototype.slice.call(bloque.querySelectorAll(".corazon-valoracion"));
+    var bloqueMejora = contenedor.querySelector('.valoracion-mejora[data-mejora-de="' + pregunta + '"]');
+
+    corazones.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var valor = Number(this.dataset.valor);
+        puntajes[pregunta] = valor;
+        corazones.forEach(function (b) {
+          var v = Number(b.dataset.valor);
+          b.textContent = v <= valor ? "❤️" : "🤍";
+        });
+        if (bloqueMejora) bloqueMejora.classList.toggle("oculto", valor > 2);
+        actualizarResultadoValoracion();
+      });
+    });
+  });
+
+  document.getElementById("btnEnviarValoracion").addEventListener("click", function () {
+    if (!puntajes.p1 || !puntajes.p2 || !puntajes.p3 || !puntajes.p4) {
+      mostrarMensaje("mensajeValoracion", "Seleccione de 1 a 5 corazones en las cuatro preguntas antes de enviar.", "error");
+      return;
+    }
+    var boton = document.getElementById("btnEnviarValoracion");
+    boton.disabled = true;
+    var respuestas = {
+      p1: puntajes.p1, p2: puntajes.p2, p3: puntajes.p3, p4: puntajes.p4,
+      p5: document.getElementById("valoracionP5").value,
+      mejoraP1: document.getElementById("valoracionMejoraP1").value,
+      mejoraP2: document.getElementById("valoracionMejoraP2").value,
+      mejoraP3: document.getElementById("valoracionMejoraP3").value,
+      mejoraP4: document.getElementById("valoracionMejoraP4").value
+    };
+    llamarServidor("rpcGuardarValoracion", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, respuestas], function (r) {
+      boton.disabled = false;
+      if (!r.ok) {
+        mostrarMensaje("mensajeValoracion", r.mensaje || "No fue posible guardar la valoración.", "error");
+        return;
+      }
+      mostrarMensaje("mensajeValoracion", "", "");
+      estado.valoracionCompletada = true;
+      mostrarEstadoValoracion({ NOTA_PROMEDIO: r.notaPromedio });
+      actualizarBotonGenerarInforme();
+    });
+  });
+})();
 
 document.getElementById("btnGenerarInforme").addEventListener("click", function () {
   if (!confirm("¿Generar el informe definitivo del grupo? Esta acción crea el documento único que verán todas las IE del grupo.")) return;
@@ -760,7 +876,32 @@ document.getElementById("btnGenerarInforme").addEventListener("click", function 
       return;
     }
     document.getElementById("enlaceInformeGenerado").href = r.url;
+    document.getElementById("btnEnviarInformePorCorreo").disabled = true;
+    mostrarMensaje("mensajeEnvioInforme", "", "");
+    document.getElementById("notaEnvioInforme").textContent = "Descargue el informe (botón de arriba) para habilitar el envío por correo al responsable del grupo.";
     cambiarPantalla("pantallaInformeGenerado");
+  });
+});
+
+/* ---- Descargar informe (habilita el envío por correo) y enviarlo ---- */
+document.getElementById("enlaceInformeGenerado").addEventListener("click", function () {
+  llamarServidor("rpcMarcarInformeDescargado", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
+    if (!r.ok) return;
+    document.getElementById("btnEnviarInformePorCorreo").disabled = false;
+    document.getElementById("notaEnvioInforme").textContent = "Ya puede enviar el informe por correo al responsable del grupo.";
+  }, function () {});
+});
+
+document.getElementById("btnEnviarInformePorCorreo").addEventListener("click", function () {
+  var boton = document.getElementById("btnEnviarInformePorCorreo");
+  boton.disabled = true;
+  llamarServidor("rpcEnviarInformePorCorreo", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
+    boton.disabled = false;
+    if (!r.ok) {
+      mostrarMensaje("mensajeEnvioInforme", r.mensaje || "No fue posible enviar el informe.", "error");
+      return;
+    }
+    mostrarMensaje("mensajeEnvioInforme", r.diferido ? r.mensaje : "Informe enviado por correo.", "exito");
   });
 });
 </script>

@@ -119,8 +119,23 @@ function testFlujoCompletoGrupoPrueba() {
 
   Logger.log(JSON.stringify(enviarSesion2Definitiva("GRUPO-PRUEBA", tokenSesion, dispositivoId)));
 
+  // La valoración del Foro es condición para generar el informe (Valoracion.gs) — probar primero que
+  // generarInformeCompletoGrupo la exige, luego enviarla y generar el informe de verdad.
+  var sinValorar = generarInformeCompletoGrupo("GRUPO-PRUEBA", tokenSesion, dispositivoId);
+  Logger.log("generarInformeCompletoGrupo sin valorar (debe fallar): " + JSON.stringify(sinValorar));
+  if (sinValorar.ok) throw new Error("generarInformeCompletoGrupo no debería permitir generar el informe sin valoración.");
+
+  Logger.log(JSON.stringify(guardarValoracionGrupo("GRUPO-PRUEBA", tokenSesion, dispositivoId, {
+    p1: 5, p2: 4, p3: 5, p4: 4, p5: "Sugerencia de prueba.",
+    mejoraP1: "", mejoraP2: "Mejora de prueba.", mejoraP3: "", mejoraP4: ""
+  })));
+
   var informe = generarInformeCompletoGrupo("GRUPO-PRUEBA", tokenSesion, dispositivoId);
   Logger.log("generarInformeCompletoGrupo: " + JSON.stringify(informe));
+  if (informe.ok) {
+    Logger.log(JSON.stringify(marcarInformeDescargado("GRUPO-PRUEBA", tokenSesion, dispositivoId)));
+    Logger.log(JSON.stringify(enviarInformeSiCorresponde("GRUPO-PRUEBA", tokenSesion, dispositivoId)));
+  }
 
   liberarSesionGrupo_("GRUPO-PRUEBA", dispositivoId, tokenSesion);
   Logger.log("Flujo de prueba completado.");
@@ -143,7 +158,7 @@ function testEnviarGrupoRecorridoPruebaAutor() {
 
 /** Borra el GRUPO-PRUEBA y sus datos asociados (Sesión 1, ConectaEduca, participación, acceso, informe). */
 function testLimpiarDatosDePrueba() {
-  ["GruposComunal", "AccesosGrupo", "ParticipacionComunal", "Sesion1Comunal", "ConectaEduca", "InformesComunal", "EnviosDiferidosComunal", "ResponsablesComunal"].forEach(
+  ["GruposComunal", "AccesosGrupo", "ParticipacionComunal", "Sesion1Comunal", "ConectaEduca", "InformesComunal", "EnviosDiferidosComunal", "ResponsablesComunal", "ValoracionComunal"].forEach(
     function (nombreHoja) {
       var ss = abrirSpreadsheet_();
       var hoja = ss.getSheetByName(nombreHoja);

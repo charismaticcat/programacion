@@ -147,9 +147,10 @@ function inicializarHojasBase_(ss) {
   crear("ParticipacionComunal", cabecerasParticipacionComunal_());
   crear("Sesion1Comunal", cabecerasSesion1Comunal_());
   crear("ConectaEduca", cabecerasConectaEduca_());
-  crear("InformesComunal", ["ID_GRUPO", "DOC_ID", "PDF_ID", "URL", "FECHA", "ESTADO"]);
+  crear("InformesComunal", cabecerasInformesComunal_());
   crear(HOJA_CARACTERIZACION_IE_, cabecerasCaracterizacionIE_());
   crear(HOJA_RESPONSABLES_COMUNAL_, cabecerasResponsablesComunal_());
+  crear(HOJA_VALORACION_COMUNAL_, cabecerasValoracionComunal_());
   crear("EnviosDiferidosComunal", ["ID_GRUPO", "FECHA_REGISTRO", "REINTENTADO"]);
 
   var hojaConfig = crear("ConfiguracionComunal", CABECERAS_CONFIGURACION_);
