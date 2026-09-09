@@ -56,6 +56,27 @@ En el spreadsheet nuevo (no en el de 3.1):
 4. Ejecutar `enviarAccesosGrupo(idGrupo)` por cada grupo (o adaptar un bucle sobre `obtenerGrupos()`)
    para enviar el correo de acceso a cada responsable.
 
+## 4.1 Logo por grupo y método de asistencia (Asistencia.gs)
+
+Igual que 3.1 resolvía el logo de cada IE dinámicamente (columna `LOGO_ID` en `AccesosIE`, ver
+auditoría §1.4), cada grupo puede tener su propio logo:
+
+1. Sube la imagen del logo a Drive (a mano) y copia el ID del archivo.
+2. Ejecuta `asignarLogoGrupo(idGrupo, logoFileId)` desde el editor, una vez por grupo.
+
+El método de asistencia (QR/enlace, o listado físico + fotografía) lo elige cada grupo desde la
+pantalla de **Participación** de la aplicación (no hace falta configurarlo desde el editor) — queda
+guardado en `AccesosGrupo.METODO_ASISTENCIA` y es visible para todos los dispositivos conectados al
+grupo. La página pública de firma rápida (QR/enlace, sin token ni código, pensada para escanear en el
+evento) vive en `?asistencia=<ID_GRUPO>` — su URL se construye automáticamente y se muestra junto con
+un código QR generado por [api.qrserver.com](https://api.qrserver.com) cuando el grupo elige ese
+método. El listado físico sube a `02_ASISTENCIA/GRUPO N` y la fotografía de evidencia a
+`06_EVIDENCIAS/GRUPO N`, ambas dentro de la estructura de Drive del proyecto.
+
+**Diferencia deliberada frente a 3.1**: cambiar de método NO borra los datos del método anterior (3.1
+sí lo hacía — `eliminarAsistenciaQRPorCambioMetodo`/`PDF`, ver auditoría §7). Aquí se prefiere no
+arriesgar pérdida de datos durante un evento en vivo.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

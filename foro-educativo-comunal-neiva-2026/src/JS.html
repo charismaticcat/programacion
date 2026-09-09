@@ -17,7 +17,8 @@ var estado = {
   tokenSesion: "",
   esPrincipal: false,
   instituciones: [],
-  ultimosFirmantes: []
+  ultimosFirmantes: [],
+  metodoAsistencia: ""
 };
 
 var ORDEN_PANTALLAS = [
@@ -123,11 +124,13 @@ function intentarValidarAcceso(forzar) {
     estado.tokenSesion = r.tokenSesion;
     estado.esPrincipal = r.esPrincipal;
     estado.instituciones = r.instituciones || [];
+    estado.metodoAsistencia = r.metodoAsistencia || "";
 
     document.getElementById("nombreGrupoParticipacion").textContent = r.grupo;
     renderListaInstituciones(estado.instituciones);
     document.getElementById("panelFirmantes").classList.remove("oculto");
 
+    mostrarPanelMetodoAsistencia(estado.metodoAsistencia);
     iniciarHeartbeat();
     iniciarPollingFirmantes();
     cambiarPantalla("pantallaParticipacion");
@@ -160,6 +163,91 @@ function iniciarHeartbeat() {
     );
   }, 30000);
 }
+
+/* ------------------------------------------------------------------ *
+ * Método de asistencia (QR/enlace o listado físico + fotografía)
+ * ------------------------------------------------------------------ */
+function mostrarPanelMetodoAsistencia(metodo) {
+  document.getElementById("panelMetodoQR").classList.toggle("oculto", metodo !== "QR");
+  document.getElementById("panelMetodoListado").classList.toggle("oculto", metodo !== "LISTADO");
+  if (metodo === "QR") cargarEnlaceAsistencia();
+}
+
+function cargarEnlaceAsistencia() {
+  llamarServidor("rpcUrlAsistencia", [estado.idGrupo], function (url) {
+    var enlace = document.getElementById("enlaceAsistenciaQR");
+    enlace.href = url;
+    enlace.textContent = url;
+    document.getElementById("imagenQRAsistencia").src =
+      "https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=" + encodeURIComponent(url);
+  });
+}
+
+function elegirMetodoAsistencia(metodo) {
+  mostrarPanelMetodoAsistencia(metodo);
+  llamarServidor("rpcGuardarMetodoAsistencia", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, metodo], function (r) {
+    if (!r.ok) mostrarMensaje("mensajeMetodoAsistencia", r.mensaje || "No fue posible guardar el método.", "error");
+  });
+}
+
+document.getElementById("btnMetodoQR").addEventListener("click", function () {
+  elegirMetodoAsistencia("QR");
+});
+document.getElementById("btnMetodoListado").addEventListener("click", function () {
+  elegirMetodoAsistencia("LISTADO");
+});
+
+document.getElementById("btnCopiarEnlaceAsistencia").addEventListener("click", function () {
+  var url = document.getElementById("enlaceAsistenciaQR").href;
+  if (navigator.clipboard) navigator.clipboard.writeText(url);
+});
+
+function leerArchivoComoBase64_(archivo, callback) {
+  var lector = new FileReader();
+  lector.onload = function () {
+    var base64 = lector.result.split(",")[1];
+    callback(base64);
+  };
+  lector.readAsDataURL(archivo);
+}
+
+document.getElementById("btnSubirListado").addEventListener("click", function () {
+  var input = document.getElementById("campoArchivoListado");
+  var archivo = input.files[0];
+  if (!archivo) {
+    mostrarMensaje("mensajeMetodoAsistencia", "Selecciona primero un archivo.", "error");
+    return;
+  }
+  leerArchivoComoBase64_(archivo, function (base64) {
+    llamarServidor(
+      "rpcSubirListadoAsistencia",
+      [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, base64, archivo.name, archivo.type],
+      function (r) {
+        mostrarMensaje("mensajeMetodoAsistencia", r.ok ? "Listado subido correctamente." : (r.mensaje || "No fue posible subir el listado."), r.ok ? "exito" : "error");
+        if (r.ok) input.value = "";
+      }
+    );
+  });
+});
+
+document.getElementById("btnSubirEvidencia").addEventListener("click", function () {
+  var input = document.getElementById("campoArchivoEvidencia");
+  var archivo = input.files[0];
+  if (!archivo) {
+    mostrarMensaje("mensajeMetodoAsistencia", "Selecciona primero una fotografía.", "error");
+    return;
+  }
+  leerArchivoComoBase64_(archivo, function (base64) {
+    llamarServidor(
+      "rpcSubirFotoEvidencia",
+      [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, base64, archivo.name, archivo.type],
+      function (r) {
+        mostrarMensaje("mensajeMetodoAsistencia", r.ok ? "Fotografía subida correctamente." : (r.mensaje || "No fue posible subir la fotografía."), r.ok ? "exito" : "error");
+        if (r.ok) input.value = "";
+      }
+    );
+  });
+});
 
 /* ------------------------------------------------------------------ *
  * Participación / firmantes

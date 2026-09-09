@@ -91,6 +91,43 @@
 
   <!-- 5. PARTICIPACIÓN -->
   <section id="pantallaParticipacion" class="pantalla">
+    <!-- Método de asistencia — al inicio de la pantalla, como pide el flujo:
+         cada grupo elige cómo se firma (QR/enlace, o listado físico +
+         fotografía), igual que en FEI 3.1 pero por grupo en vez de por IE. -->
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">Método de asistencia del grupo</h2>
+      <p class="ayuda">Elige cómo va a registrar la asistencia este grupo. Puedes cambiarlo en cualquier
+        momento sin perder lo ya registrado.</p>
+      <div class="fila-botones">
+        <button class="btn btn-secundario" id="btnMetodoQR" data-metodo-asistencia="QR">📱 QR / enlace</button>
+        <button class="btn btn-secundario" id="btnMetodoListado" data-metodo-asistencia="LISTADO">📋 Listado físico + fotografía</button>
+      </div>
+
+      <div id="panelMetodoQR" class="oculto" style="margin-top:14px;">
+        <p class="ayuda">Comparte este enlace o el código QR para que cada persona firme desde su
+          celular:</p>
+        <p style="word-break:break-all;"><a id="enlaceAsistenciaQR" href="#" target="_blank"></a></p>
+        <div class="fila-botones">
+          <button class="btn btn-secundario" id="btnCopiarEnlaceAsistencia">Copiar enlace</button>
+        </div>
+        <img id="imagenQRAsistencia" alt="Código QR de asistencia" style="max-width:220px;display:block;margin:14px auto;">
+      </div>
+
+      <div id="panelMetodoListado" class="oculto" style="margin-top:14px;">
+        <label for="campoArchivoListado">Foto o PDF del listado firmado en papel</label>
+        <input type="file" id="campoArchivoListado" accept="application/pdf,image/*">
+        <div class="fila-botones">
+          <button class="btn btn-secundario" id="btnSubirListado">Subir listado</button>
+        </div>
+        <label for="campoArchivoEvidencia">Fotografía del encuentro (evidencia)</label>
+        <input type="file" id="campoArchivoEvidencia" accept="image/*">
+        <div class="fila-botones">
+          <button class="btn btn-secundario" id="btnSubirEvidencia">Subir fotografía</button>
+        </div>
+        <div id="mensajeMetodoAsistencia"></div>
+      </div>
+    </div>
+
     <div class="tarjeta">
       <h2 class="titulo-seccion">Participación y asistencia</h2>
       <p class="ayuda">Instituciones educativas de <strong id="nombreGrupoParticipacion"></strong>:</p>

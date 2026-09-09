@@ -89,7 +89,9 @@ function validarAccesoGrupo(token, codigo, dispositivoId, forzar) {
     idForoComunal: valorColumna("ID_FORO_COMUNAL"),
     tokenSesion: sesion.tokenSesion,
     esPrincipal: sesion.esPrincipal,
-    instituciones: obtenerInstitucionesDelGrupo(idGrupo)
+    instituciones: obtenerInstitucionesDelGrupo(idGrupo),
+    logoId: valorColumna("LOGO_ID"),
+    metodoAsistencia: valorColumna("METODO_ASISTENCIA")
   };
 }
 
@@ -122,7 +124,10 @@ function cabecerasAccesosGrupo_() {
     "CODIGO_CONTINGENCIA_1", "CODIGO_CONTINGENCIA_2", "CODIGO_CONTINGENCIA_3",
     "URL_ACCESO", "ESTADO", "HABILITAR_DESDE", "EMAIL_RESPONSABLE_GRUPO",
     "FECHA_GENERACION", "ULTIMA_ACTIVIDAD", "SESION1_ENVIADA", "SESION2_ENVIADA",
-    "FECHA_ENVIO_S1", "FECHA_ENVIO_S2", "FECHA_ENVIO_DEFINITIVO"
+    "FECHA_ENVIO_S1", "FECHA_ENVIO_S2", "FECHA_ENVIO_DEFINITIVO",
+    // Asistencia (Asistencia.gs): logo propio del grupo + método elegido
+    // (QR/enlace o listado físico) + referencias a lo subido.
+    "LOGO_ID", "METODO_ASISTENCIA", "ID_LISTADO_ASISTENCIA", "ID_FOTO_EVIDENCIA"
   ];
 }
 
@@ -172,7 +177,8 @@ function generarAccesosGrupo() {
         generarCodigoAcceso_(codigosUsados),
         construirUrlAcceso_(token),
         "DISPONIBLE",
-        "", "", new Date(), "", "NO", "NO", "", "", ""
+        "", "", new Date(), "", "NO", "NO", "", "", "",
+        "", "", "", ""
       ];
       hoja.appendRow(fila);
       creados.push(g.idGrupo);
@@ -187,6 +193,22 @@ function construirUrlAcceso_(token) {
   var config = getConfig();
   var base = config.URL_WEBAPP || ScriptApp.getService().getUrl();
   return base + "?t=" + token;
+}
+
+/**
+ * Asigna el logo propio de un grupo (equivalente a LOGO_ID en AccesosIE de
+ * 3.1, resuelto dinámicamente en vez de hardcodeado — ver auditoría §1.4).
+ * `logoFileId` es el ID del archivo de imagen ya subido a Drive (súbelo a
+ * mano una vez y pega aquí su ID; este proyecto no inventa ni genera
+ * logos). Ejecutar desde el editor, una vez por grupo.
+ */
+function asignarLogoGrupo(idGrupo, logoFileId) {
+  var hoja = obtenerHoja_(HOJA_ACCESOS_GRUPO_, cabecerasAccesosGrupo_());
+  var mapa = obtenerMapaCabeceras_(hoja);
+  var fila = buscarFilaPorColumna_(hoja, mapa, "ID_GRUPO", String(idGrupo || "").trim());
+  if (fila === -1) return { ok: false, mensaje: "No existe acceso para ese grupo. Ejecute generarAccesosGrupo() primero." };
+  hoja.getRange(fila, mapa["LOGO_ID"]).setValue(String(logoFileId || "").trim());
+  return { ok: true };
 }
 
 /** Recalcula URL_ACCESO de todos los grupos (usar tras publicar un nuevo deployment). */

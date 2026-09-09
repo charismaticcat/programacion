@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<base target="_top">
+<title>Asistencia — <?!= NOMBRE_GRUPO || NOMBRE_FORO ?></title>
+<?!= include('CSS'); ?>
+<style>
+  body { display: flex; justify-content: center; }
+  main.asistencia { max-width: 480px; width: 100%; padding: 24px 16px 60px; }
+  .logo-grupo { display: block; max-width: 140px; max-height: 140px; margin: 0 auto 14px; border-radius: 10px; }
+</style>
+</head>
+<body>
+<main class="asistencia">
+  <header class="marca" style="padding-top:8px;">
+    <? if (LOGO_GRUPO_URL) { ?>
+      <img class="logo-grupo" src="<?!= LOGO_GRUPO_URL ?>" alt="Logo del grupo">
+    <? } ?>
+    <h1><?!= NOMBRE_FORO ?></h1>
+    <p class="subtitulo"><?!= NOMBRE_GRUPO ?></p>
+  </header>
+
+  <? if (!EXISTE_GRUPO) { ?>
+    <div class="tarjeta">
+      <div class="mensaje error">Este enlace de asistencia no es válido.</div>
+    </div>
+  <? } else { ?>
+    <div id="panelFirmantesAsistencia" class="tarjeta" style="text-align:center;">
+      <p class="ayuda">👥 <span class="contador"><span id="contadorFirmantes">0</span> personas han firmado</span></p>
+    </div>
+
+    <div class="tarjeta" id="tarjetaFormulario">
+      <h2 class="titulo-seccion">Registrar mi asistencia</h2>
+      <label for="campoNombre">Nombre completo</label>
+      <input type="text" id="campoNombre">
+      <label for="campoIE">Institución educativa</label>
+      <select id="campoIE"></select>
+      <label for="campoRol">Rol</label>
+      <select id="campoRol">
+        <option>Rector(a)</option>
+        <option>Coordinador(a)</option>
+        <option>Docente</option>
+        <option>Orientador(a)</option>
+        <option>Estudiante</option>
+        <option>Padre/madre de familia</option>
+        <option>Personal administrativo</option>
+        <option>Sector productivo</option>
+        <option>Otro</option>
+      </select>
+      <label for="campoCorreo">Correo (opcional)</label>
+      <input type="email" id="campoCorreo">
+      <div id="mensajeFirma"></div>
+      <div class="fila-botones">
+        <button class="btn btn-primario" id="btnFirmar">Confirmar asistencia</button>
+      </div>
+    </div>
+  <? } ?>
+
+  <footer class="marca-pie"><?!= NOMBRE_FORO ?></footer>
+</main>
+
+<script>
+  var ID_GRUPO = <?!= JSON.stringify(ID_GRUPO || "") ?>;
+  var INSTITUCIONES = <?!= JSON.stringify(instituciones || []) ?>;
+
+  function escapeHtml(t) {
+    var d = document.createElement("div");
+    d.textContent = t == null ? "" : String(t);
+    return d.innerHTML;
+  }
+
+  (function poblarInstituciones() {
+    var select = document.getElementById("campoIE");
+    if (!select) return;
+    INSTITUCIONES.forEach(function (ie) {
+      var opcion = document.createElement("option");
+      opcion.value = ie.idIE;
+      opcion.textContent = ie.institucion;
+      select.appendChild(opcion);
+    });
+  })();
+
+  function actualizarContador() {
+    if (!ID_GRUPO) return;
+    google.script.run.withSuccessHandler(function (r) {
+      var el = document.getElementById("contadorFirmantes");
+      if (el) el.textContent = r.total || 0;
+    }).rpcEstadoFirmantes(ID_GRUPO);
+  }
+  actualizarContador();
+  setInterval(actualizarContador, 15000);
+
+  var btnFirmar = document.getElementById("btnFirmar");
+  if (btnFirmar) {
+    btnFirmar.addEventListener("click", function () {
+      var nombre = document.getElementById("campoNombre").value.trim();
+      var idIE = document.getElementById("campoIE").value;
+      var rol = document.getElementById("campoRol").value;
+      var correo = document.getElementById("campoCorreo").value.trim();
+      var mensaje = document.getElementById("mensajeFirma");
+      if (!nombre) {
+        mensaje.innerHTML = "<div class='mensaje error'>El nombre es obligatorio.</div>";
+        return;
+      }
+      btnFirmar.disabled = true;
+      google.script.run
+        .withSuccessHandler(function (r) {
+          btnFirmar.disabled = false;
+          if (!r.ok) {
+            mensaje.innerHTML = "<div class='mensaje error'>" + escapeHtml(r.mensaje || "No fue posible registrar la asistencia.") + "</div>";
+            return;
+          }
+          mensaje.innerHTML = "<div class='mensaje exito'>" + (r.yaRegistrado ? "Ya estabas registrado(a). ¡Gracias!" : "¡Asistencia registrada! Gracias por participar.") + "</div>";
+          document.getElementById("campoNombre").value = "";
+          actualizarContador();
+        })
+        .withFailureHandler(function () {
+          btnFirmar.disabled = false;
+          mensaje.innerHTML = "<div class='mensaje error'>Ocurrió un error de comunicación. Intenta de nuevo.</div>";
+        })
+        .rpcRegistrarAsistenciaPublica(ID_GRUPO, idIE, nombre, rol, correo);
+    });
+  }
+</script>
+</body>
+</html>

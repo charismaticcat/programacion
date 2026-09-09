@@ -82,6 +82,18 @@ function obtenerCarpetaConsolidadoMunicipal_() {
   return asegurarEstructuraDriveComunal_()["05_CONSOLIDADO_MUNICIPAL"];
 }
 
+/** Carpeta "GRUPO N" dentro de 02_ASISTENCIA, para el listado físico subido (Asistencia.gs). */
+function asegurarCarpetaAsistenciaGrupo_(grupo) {
+  var estructura = asegurarEstructuraDriveComunal_();
+  return crearOFolderHija_(estructura["02_ASISTENCIA"], grupo);
+}
+
+/** Carpeta "GRUPO N" dentro de 06_EVIDENCIAS, para la fotografía del encuentro del grupo. */
+function asegurarCarpetaEvidenciasGrupo_(grupo) {
+  var estructura = asegurarEstructuraDriveComunal_();
+  return crearOFolderHija_(estructura["06_EVIDENCIAS"], grupo);
+}
+
 /**
  * Sube un archivo (foto de evidencia, PDF de asistencia manual, etc.) a
  * la carpeta correspondiente. `datosBase64` viene del cliente
@@ -93,4 +105,10 @@ function subirArchivoAGrupo_(idGrupo, grupo, datosBase64, nombreArchivo, mimeTyp
   var blob = Utilities.newBlob(Utilities.base64Decode(datosBase64), mimeType, nombreArchivo);
   var file = destino.createFile(blob);
   return file;
+}
+
+/** Sube un archivo a una carpeta ya resuelta (usado por Asistencia.gs para 02_ASISTENCIA/06_EVIDENCIAS). */
+function subirArchivoACarpeta_(carpeta, datosBase64, nombreArchivo, mimeType) {
+  var blob = Utilities.newBlob(Utilities.base64Decode(datosBase64), mimeType, nombreArchivo);
+  return carpeta.createFile(blob);
 }

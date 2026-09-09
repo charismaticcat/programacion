@@ -124,45 +124,25 @@ function inicializarHojasBase_(ss) {
 
   // Sheets crea la spreadsheet nueva con una "Hoja 1" por defecto; la
   // reaprovechamos para GruposComunal en vez de dejarla vacía y suelta.
+  // Los encabezados de cada hoja se piden a la función cabecerasX_()
+  // "dueña" de esa hoja (Instituciones.gs, Access.gs, Data.gs, etc.) en
+  // vez de duplicarlos aquí, para que nunca se desincronicen entre sí.
   var hojaPorDefecto = ss.getSheets()[0];
   if (hojaPorDefecto && ss.getSheets().length === 1 && hojaPorDefecto.getLastRow() === 0) {
+    var cabecerasGrupos = cabecerasGruposComunal_();
     hojaPorDefecto.setName("GruposComunal");
-    hojaPorDefecto
-      .getRange(1, 1, 1, 6)
-      .setValues([["ID_GRUPO", "GRUPO", "ID_IE", "INSTITUCION", "COMUNA", "ACTIVO"]]);
+    hojaPorDefecto.getRange(1, 1, 1, cabecerasGrupos.length).setValues([cabecerasGrupos]);
     hojaPorDefecto.setFrozenRows(1);
   } else {
-    crear("GruposComunal", ["ID_GRUPO", "GRUPO", "ID_IE", "INSTITUCION", "COMUNA", "ACTIVO"]);
+    crear("GruposComunal", cabecerasGruposComunal_());
   }
 
-  crear("AccesosGrupo", [
-    "ID_ACCESO", "ID_GRUPO", "GRUPO", "ID_FORO_COMUNAL", "TOKEN", "CODIGO_ACCESO",
-    "CODIGO_CONTINGENCIA_1", "CODIGO_CONTINGENCIA_2", "CODIGO_CONTINGENCIA_3",
-    "URL_ACCESO", "ESTADO", "HABILITAR_DESDE", "EMAIL_RESPONSABLE_GRUPO",
-    "FECHA_GENERACION", "ULTIMA_ACTIVIDAD", "SESION1_ENVIADA", "SESION2_ENVIADA",
-    "FECHA_ENVIO_S1", "FECHA_ENVIO_S2", "FECHA_ENVIO_DEFINITIVO"
-  ]);
-
-  crear("ParticipacionComunal", [
-    "ID_PARTICIPANTE", "ID_GRUPO", "ID_IE", "NOMBRE", "ROL", "CORREO",
-    "CONFIRMACION_ASISTENCIA", "FECHA", "ESTADO", "DISPOSITIVO_ID"
-  ]);
-
-  crear("Sesion1Comunal", [
-    "ID_GRUPO", "REFLEXIONES", "CONCLUSIONES", "PROPUESTAS_IE", "EXPERIENCIAS", "RETOS",
-    "APORTES_TERRITORIALES", "CONVERGENCIAS", "APUESTAS", "DESAFIOS", "IDENTIDAD",
-    "PRIORIDADES", "PROPUESTAS_COLECTIVAS", "ACUERDOS", "RUTA", "ULTIMA_ACTUALIZACION"
-  ]);
-
-  crear("ConectaEduca", [
-    "ID_REGISTRO", "ID_GRUPO", "ACTOR", "TIPO_ACTOR", "AREA", "NECESIDADES_ARTICULACION",
-    "OPORTUNIDAD", "ALIANZA", "IE_INTERESADAS", "CONEXIONES", "OBSERVACIONES", "FECHA"
-  ]);
-
+  crear("AccesosGrupo", cabecerasAccesosGrupo_());
+  crear("ParticipacionComunal", cabecerasParticipacionComunal_());
+  crear("Sesion1Comunal", cabecerasSesion1Comunal_());
+  crear("ConectaEduca", cabecerasConectaEduca_());
   crear("InformesComunal", ["ID_GRUPO", "DOC_ID", "PDF_ID", "URL", "FECHA", "ESTADO"]);
-
   crear(HOJA_CARACTERIZACION_IE_, cabecerasCaracterizacionIE_());
-
   crear("EnviosDiferidosComunal", ["ID_GRUPO", "FECHA_REGISTRO", "REINTENTADO"]);
 
   var hojaConfig = crear("ConfiguracionComunal", CABECERAS_CONFIGURACION_);

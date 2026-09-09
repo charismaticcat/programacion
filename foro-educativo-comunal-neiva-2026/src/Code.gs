@@ -17,6 +17,14 @@ function include(nombre) {
 
 function doGet(e) {
   var params = (e && e.params) || (e && e.parameter) || {};
+
+  // Página pública de asistencia (QR/enlace), sin token/código — mismo
+  // patrón que paginaAsistenciaQR_ en FEI 3.1 (auditoría §1.1/§2.2).
+  var idGrupoAsistencia = String(params.asistencia || "").trim();
+  if (idGrupoAsistencia) {
+    return paginaAsistenciaGrupo_(idGrupoAsistencia);
+  }
+
   var token = String(params.t || params.token || params.TOKEN || "").trim();
 
   var template = HtmlService.createTemplateFromFile("Index");
@@ -75,6 +83,31 @@ function rpcRegistrarParticipante(idGrupo, idIE, nombre, rol, correo, dispositiv
 
 function rpcEstadoFirmantes(idGrupo) {
   return { total: contarParticipantesGrupo(idGrupo), firmantes: listarFirmantesGrupo(idGrupo).slice(0, 50) };
+}
+
+/* ------------------------------------------------------------------ *
+ * RPC — Método de asistencia (QR/enlace o listado físico + foto)
+ * ------------------------------------------------------------------ */
+
+function rpcGuardarMetodoAsistencia(idGrupo, tokenSesion, dispositivoId, metodo) {
+  return guardarMetodoAsistencia(idGrupo, tokenSesion, dispositivoId, metodo);
+}
+
+function rpcUrlAsistencia(idGrupo) {
+  return construirUrlAsistencia_(idGrupo);
+}
+
+function rpcSubirListadoAsistencia(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType) {
+  return subirListadoAsistencia(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType);
+}
+
+function rpcSubirFotoEvidencia(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType) {
+  return subirFotoEvidencia(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType);
+}
+
+/** Usada desde Asistencia.html (página pública QR, sin token/código). */
+function rpcRegistrarAsistenciaPublica(idGrupo, idIE, nombre, rol, correo) {
+  return registrarAsistenciaPublica(idGrupo, idIE, nombre, rol, correo);
 }
 
 /* ------------------------------------------------------------------ *
