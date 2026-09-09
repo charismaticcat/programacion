@@ -161,3 +161,74 @@ function importarCaracterizacionRealDesdeFEI31() {
   Logger.log("Caracterización importada: " + insertadas + " nuevas, " + actualizadas + " actualizadas (37 IE en total).");
   return { ok: true, insertadas: insertadas, actualizadas: actualizadas };
 }
+
+/**
+ * Importa a CaracterizacionIE.LOGO_ID el logo real de cada una de las 36
+ * IE que sí tienen grupo asignado, extraído por lectura (NUNCA escritura)
+ * de la hoja "AccesosIE" del spreadsheet de FEI 3.1
+ * (1OiBPO8BEsa0TpmYGRfEu2I2tMpxIMKAJdr9WtTRd14Y) el 2026-09-10 — mismos
+ * IDs de archivo de Drive que ya usa 3.1 para mostrar el logo de cada IE
+ * (ver auditoría §1.4/§3.1, columna LOGO_ID de AccesosIE). Usados aquí
+ * por el carrusel de bienvenida (spec: "aparece uno a uno cada logo de
+ * las IE") en vez del ícono genérico 🏫.
+ *
+ * SAN MIGUEL ARCANGEL también tiene LOGO_ID en el origen, pero se deja
+ * fuera de esta importación por la misma razón que en
+ * importarGruposRealesDesdeFEI31(): no tiene grupo asignado en este
+ * proyecto.
+ *
+ * Ejecutar UNA vez desde el editor. Idempotente: solo actualiza la
+ * columna LOGO_ID de una fila que ya existe en CaracterizacionIE (creada
+ * por importarCaracterizacionRealDesdeFEI31()); nunca toca las demás
+ * columnas de esa fila.
+ */
+function importarLogosIEDesdeFEI31() {
+  var logosPorIE = {
+    "141001001763": "1CypzNY5rHr0hT5jJaJDKKLme6gXqaKab", // AGUSTIN CODAZZI
+    "241001000711": "1AUEaynnesN6BDKfQwCPCG_260e1Wp_fu", // AIPECITO
+    "141001002557": "1Wsj0n0XpNagX6Dnm2btyBM2_G0nqGwZx", // ANGEL MARIA PAREDES
+    "141001005866": "1_5Bgo-l65Mn1mzx-k9mpXs47n7i0x5FY", // ATANASIO GIRARDOT
+    "141001004061": "1CgJolG0Kaltfk-JydOyVmiuKR5qptZdQ", // CEINAR
+    "241001001890": "1RwTJKVT0Lz0d1aqXaS_k6Rr80U1lcNY-", // CHAPINERO
+    "141001000058": "1fgJ2IGktyPH8lCjIsTtG6aHkZP8kmJvK", // DEPARTAMENTAL TIERRA DE PROMISIÓN
+    "141001004720": "1khSyS3PadHCbg9g2pIoUtagJdnlKmDBR", // EDUARDO SANTOS
+    "441001002747": "1-EOOOwrBTv6v8fNFvJ1bxdcueA10GXk0", // EL CAGUAN
+    "141001004452": "1YPUzYhXcHpCP5yW0bxEuxzAXY-lKNcK1", // EL LIMONAR
+    "141001005301": "1f2EfP1reThB3cZtnSk9a21z0k3gHuTMw", // ENRIQUE OLAYA HERRERA
+    "141001002247": "1A4NVFeqJRzdk8Hf4vhOlvp0RDSD1FbM7", // ESCUELA NORMAL SUPERIOR
+    "341001004559": "1yOm29DTzmlSZXuebjcuaIRrjxS_EArWv", // GABRIEL GARCIA MARQUEZ
+    "141001004312": "12IMJnIMuXw-Y9tOlRoFvoNQVtIzgaNfU", // HUMBERTO TAFUR CHARRY
+    "141001060441": "16YEwkaUpOpFkLD5DuLBxxdJ4bZFQWx_5", // I.E. CLARETIANO GUSTAVO TORRES PARRA
+    "141001003341": "1AResGxiz_RYP7hcWpQzjnVaC0lQ1ee0Z", // INEM JULIAM MOTTA SALAS
+    "141001003855": "13VipiW9jLCgFKXfvlzjw9oZaNWMerKgT", // INSTITUTO TECNICO IPC ANDRES ROSA
+    "141001005181": "1GSpglPbQKsuS8knlPSIApexwmiFqvfw7", // JAIRO MORERA LIZCANO
+    "241001000486": "1n66NFNmaQUx4eZ_kPdBETLujzTOSeP2w", // JAIRO MOSQUERA MORENO
+    "141001004398": "1rF7GgwfAgGE2NiWQVsWz9-N7eE79tOMj", // JOSE EUSTASIO RIVERA
+    "141001001259": "1LNVlw94GlDUXcDBgnrHBNUznO0_vbQIJ", // JUAN DE CABRERA
+    "141001000066": "1wod9Lo49mXaQZocZEGrnuBrPMrHkj1CL", // LICEO DE SANTA LIBRADA
+    "141001003171": "1A0Npz9kbYP5q-rzad5Tv96eTQLepnh08", // LUIS IGNACIO ANDRADE
+    "441001004839": "1YpVP_7QvXtaNKNMw4iBMLAJRHqoun0SX", // MARIA AUXILIADORA FORTALECILLAS
+    "141001001038": "19bPnYVAM0m9zxBlTKOAC2Uku1EDLBkeI", // MARIA CRISTINA ARANGO DE PASTRANA.
+    "141001003481": "1rawhFbEdsY46Smi6J78F9T2c0tD8H4_D", // MISAEL PASTRANA BORRERO
+    "141001000082": "1ajZPYR-UgahGVZ3dyEbC0wrOmmAX94T4", // OLIVERIO LARA BORRERO
+    "141001000040": "1ikm7V_R5vUUfNonZ48VDvu77KuSeB0PS", // PROMOCION SOCIAL
+    "141001001321": "11STHwjLyXVZRHYqCIHOZA4TI5sFG-cet", // RICARDO BORRERO ALVAREZ
+    "241001000664": "14oGMdR0iBuy8SzQOT8sydEVFNaM6NRZI", // ROBERTO DURAN ALVIRA
+    "141001060336": "1nNLed3VZN91Yk8dgxlcs2-d9aj-AyVba", // RODRIGO LARA BONILLA
+    "241001000435": "1ika98rWcmBP39OYZkxcLz2hxonBDrvDJ", // SAN ANTONIO DE ANACONIA
+    "441001003433": "1KgQjp8xg3Q4GeVxnxnoI_g3560y57FzJ", // SAN LUIS BELTRAN
+    "141001000023": "1M2q_Pe0JLkCBdc78rdOsAfHvghcNMvYm", // SANTA LIBRADA
+    "141001000899": "1hvIKi4A2FcGAv_xjFyoptgl3vblL_w-g", // SANTA TERESA
+    "141001000031": "1jtFYXfvM8WUFxIr2Tp-9CotrCQYK1CTz" // TECNICO SUPERIOR
+  };
+
+  var cabeceras = cabecerasCaracterizacionIE_();
+  var actualizadas = 0;
+  Object.keys(logosPorIE).forEach(function (idIE) {
+    upsertFila_(HOJA_CARACTERIZACION_IE_, cabeceras, "ID_IE", idIE, { LOGO_ID: logosPorIE[idIE] });
+    actualizadas++;
+  });
+
+  Logger.log("Logos de IE importados: " + actualizadas + " de 36.");
+  return { ok: true, actualizadas: actualizadas };
+}

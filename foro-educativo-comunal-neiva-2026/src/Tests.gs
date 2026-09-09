@@ -126,6 +126,11 @@ function testFlujoCompletoGrupoPrueba() {
   Logger.log("Flujo de prueba completado.");
 }
 
+/** Importa los logos reales de las 36 IE (con grupo asignado) desde FEI 3.1 — solo lectura, ejecutar una vez. */
+function testImportarLogosIE() {
+  Logger.log(JSON.stringify(importarLogosIEDesdeFEI31()));
+}
+
 /** Envío de grupo — recorrido de prueba: una asignación al azar de grupo real por cada dirección de la Alcaldía. */
 function testEnviarGrupoRecorridoPrueba() {
   Logger.log(JSON.stringify(enviarGrupoRecorridoPrueba()));
