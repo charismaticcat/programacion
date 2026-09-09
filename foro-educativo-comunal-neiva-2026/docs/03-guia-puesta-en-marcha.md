@@ -101,6 +101,38 @@ método. El listado físico sube a `02_ASISTENCIA/GRUPO N` y la fotografía de e
 sí lo hacía — `eliminarAsistenciaQRPorCambioMetodo`/`PDF`, ver auditoría §7). Aquí se prefiere no
 arriesgar pérdida de datos durante un evento en vivo.
 
+## 4.2 Transición inicial y carrusel de instituciones
+
+Al abrir la aplicación, antes de la pantalla de bienvenida, aparece una transición (menos de 5
+segundos, o toque para saltar) con el logo del Foro (`ConfiguracionComunal.LOGO_ENCABEZADO_ID`) y el
+logo de la Alcaldía (`ConfiguracionComunal.LOGO_PIE_ID`) — los mismos IDs de Drive que ya se usan para
+encabezar el informe (Informes.gs), reutilizados aquí. Si algún logo no está configurado, esa imagen
+simplemente no se muestra (nunca se inventa un logo).
+
+Al tocar "Comenzar", antes de pasar a la Presentación, se reproduce un carrusel que muestra una a una
+(1 segundo cada una) todas las I.E. activas de `GruposComunal` (de todos los grupos, porque en este
+punto el visitante todavía no ha ingresado el código de su grupo), con su nombre y su logo si ya fue
+cargado. Para asignar el logo de una IE:
+
+```js
+asignarLogoIE(idIE, logoFileId); // una vez por IE, desde el editor de Apps Script
+```
+
+Si una IE no tiene logo asignado, el carrusel muestra un ícono genérico (🏫) en su lugar — nunca un
+logo inventado. Hay un botón "Saltar" en todo momento para omitir el carrusel.
+
+## 4.3 Archivos de apoyo antes de Sesión 1
+
+Justo después de confirmar la caracterización del grupo, y también como botones pequeños dentro de la
+propia pantalla de Sesión 1, la aplicación ofrece 4 archivos descargables del Foro Educativo
+Institucional 2026: las Respuestas Compiladas y el Informe de Síntesis del grupo activo (resueltos
+dinámicamente según `ID_GRUPO`), y el informe de síntesis municipal y las FAQs (fijos para todos los
+grupos). Los IDs de Drive están en `Recursos.gs` (`RECURSOS_POR_GRUPO_`, `RECURSOS_FIJOS_SESION1_`),
+verificados uno a uno contra la carpeta pública
+["Informes por grupos"](https://drive.google.com/drive/folders/1SAjGsKFNudF94ag_xCWmPNuqE0nj9T85) del
+FEI — si se agregan grupos nuevos o se reemplazan esos documentos, hay que actualizar ese mapa a mano
+(nunca se generan IDs automáticamente).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

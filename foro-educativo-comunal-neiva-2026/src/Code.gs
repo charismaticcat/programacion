@@ -32,6 +32,8 @@ function doGet(e) {
   template.NOMBRE_GRUPO_ACCESO = "";
   template.NOMBRE_FORO = getConfig().NOMBRE_FORO;
   template.SUBTITULO_FORO = getConfig().SUBTITULO;
+  template.LOGO_ENCABEZADO_ID = getConfig().LOGO_ENCABEZADO_ID;
+  template.LOGO_PIE_ID = getConfig().LOGO_PIE_ID;
 
   if (token) {
     try {
@@ -158,6 +160,11 @@ function rpcEnviarSesion1(idGrupo, tokenSesion, dispositivoId) {
   return enviarSesion1Definitiva(idGrupo, tokenSesion, dispositivoId);
 }
 
+/** Archivos descargables necesarios antes de iniciar Sesión 1 (Recursos.gs). */
+function rpcObtenerRecursosSesion1(idGrupo) {
+  return obtenerRecursosSesion1(idGrupo);
+}
+
 /* ------------------------------------------------------------------ *
  * RPC — ConectaEduca (Sesión 2)
  * ------------------------------------------------------------------ */
@@ -200,4 +207,13 @@ function rpcObtenerInforme(idGrupo) {
 
 function rpcEstadoGrupo(idGrupo) {
   return obtenerEstadoGrupo(idGrupo);
+}
+
+/**
+ * Todas las IE activas de todos los grupos — usada por la animación de
+ * bienvenida (carrusel de logos y nombres de IE), que se muestra antes de
+ * que el visitante identifique su grupo con el código de acceso.
+ */
+function rpcTodasLasInstituciones() {
+  return obtenerTodasLasInstitucionesActivas();
 }

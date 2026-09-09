@@ -10,6 +10,18 @@
 </head>
 <body>
 
+<!-- Transición inicial: logo del Foro + logo de la Alcaldía, menos de 5
+     segundos, se puede saltar tocando la pantalla. Se muestra antes que
+     cualquier otra cosa; debajo queda la pantalla de bienvenida lista. -->
+<div id="pantallaSplashInicial" class="pantalla-splash">
+  <div class="fila-logos-splash">
+    <img id="imagenLogoForoSplash" class="oculto" alt="<?!= NOMBRE_FORO ?>">
+    <img id="imagenLogoAlcaldiaSplash" class="oculto" alt="Alcaldía de Neiva">
+  </div>
+  <p class="marca-texto"><?!= NOMBRE_FORO ?></p>
+  <p class="toque-continuar">Toque para continuar</p>
+</div>
+
 <!-- Panel permanente de firmantes (spec sección 8) — visible desde Participación en adelante -->
 <div id="panelFirmantes" class="oculto">
   <div class="info">
@@ -38,7 +50,7 @@
         grupos territoriales para socializar los resultados de sus Foros Educativos Institucionales,
         construir conclusiones colectivas y dialogar con ConectaEduca.</p>
       <div class="fila-botones">
-        <button class="btn btn-primario" data-ir="pantallaPresentacion">Comenzar</button>
+        <button class="btn btn-primario" id="btnComenzarForo">Comenzar</button>
       </div>
     </div>
   </section>
@@ -244,6 +256,13 @@
       <p class="ayuda">Registre lo que cada institución compartió durante la socialización (un
         consolidado por grupo, no formulario por IE).</p>
 
+      <div class="tarjeta-recursos">
+        <h3 class="subtitulo-campo">📎 Archivos de apoyo para esta sesión</h3>
+        <p class="ayuda">Descargue estos documentos del Foro Educativo Institucional para tenerlos a mano
+          mientras socializan los resultados de su grupo.</p>
+        <div id="listaRecursosSesion1Botones" class="fila-botones-recursos"></div>
+      </div>
+
       <h3 class="subtitulo-campo">Reflexiones</h3>
       <textarea id="campo_REFLEXIONES" data-campo-sesion1="REFLEXIONES"></textarea>
       <h3 class="subtitulo-campo">Conclusiones</h3>
@@ -413,11 +432,22 @@
   <p class="enlace-grande" id="enlacePantallaCompleta"></p>
 </div>
 
+<!-- Carrusel de bienvenida: cada I.E. del Foro aparece una a una (1s c/u)
+     con su logo (si ya fue cargado) o un ícono genérico, y su nombre.
+     Se muestra al tocar "Comenzar" y termina en Presentación. -->
+<div id="pantallaCarruselIE" class="oculto pantalla-carrusel-ie">
+  <button type="button" class="btn btn-secundario carrusel-ie-saltar" id="btnSaltarCarruselIE">Saltar ⏭</button>
+  <div id="itemCarruselIE"></div>
+  <p class="carrusel-ie-progreso" id="progresoCarruselIE"></p>
+</div>
+
 <?!= include('Modal'); ?>
 
 <script>
   var TOKEN_ACCESO = <?!= JSON.stringify(TOKEN_ACCESO || "") ?>;
   var NOMBRE_GRUPO_ACCESO = <?!= JSON.stringify(NOMBRE_GRUPO_ACCESO || "") ?>;
+  var LOGO_ENCABEZADO_ID = <?!= JSON.stringify(LOGO_ENCABEZADO_ID || "") ?>;
+  var LOGO_PIE_ID = <?!= JSON.stringify(LOGO_PIE_ID || "") ?>;
 </script>
 <?!= include('Components'); ?>
 <?!= include('JS'); ?>

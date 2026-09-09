@@ -230,6 +230,67 @@ details.desplegable-aporte[open] summary { margin-bottom: 8px; }
 .pantalla-completa-qr .enlace-grande { font-size: 1rem; opacity: 0.85; word-break: break-all; max-width: 90vw; }
 .pantalla-completa-qr #btnCerrarPantallaCompletaQR { position: absolute; top: 20px; right: 20px; }
 
+/* ---------- Recursos descargables (Sesión 1) ---------- */
+.tarjeta-recursos {
+  background: var(--gris-fondo);
+  border: 1px dashed var(--gris-borde);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+.item-recurso {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--verde-claro);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 8px 0;
+  text-decoration: none;
+  color: inherit;
+}
+.item-recurso:hover { background: #d9ede2; }
+.item-recurso .emoji-recurso { font-size: 1.4rem; line-height: 1.2; }
+.item-recurso strong { color: var(--verde-oscuro); display: block; }
+.item-recurso p.ayuda { margin: 2px 0 0; }
+.fila-botones-recursos { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+a.btn-recurso {
+  background: var(--blanco);
+  color: var(--verde-oscuro);
+  border: 1px solid var(--verde);
+  border-radius: 20px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+a.btn-recurso:hover { background: var(--verde-claro); }
+
+/* ---------- Transición inicial (splash: foro + alcaldía) ---------- */
+.pantalla-splash {
+  position: fixed; inset: 0; z-index: 300; background: var(--verde-oscuro); color: var(--blanco);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+  text-align: center; padding: 24px; cursor: pointer;
+}
+.pantalla-splash .fila-logos-splash { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; justify-content: center; }
+.pantalla-splash img { max-height: 20vh; max-width: 60vw; background: var(--blanco); border-radius: 12px; padding: 12px; }
+.pantalla-splash .marca-texto { font-size: 1.2rem; font-weight: 700; margin: 0; }
+.pantalla-splash .toque-continuar { font-size: 0.8rem; opacity: 0.75; position: absolute; bottom: 24px; margin: 0; }
+
+/* ---------- Carrusel de bienvenida (logos y nombres de I.E., uno a uno) ---------- */
+.pantalla-carrusel-ie {
+  position: fixed; inset: 0; z-index: 300; background: var(--verde-oscuro); color: var(--blanco);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 24px;
+}
+.carrusel-ie-item { display: flex; flex-direction: column; align-items: center; gap: 12px; animation: aparecerCarrusel 1s ease; }
+.carrusel-ie-item img { max-height: 18vh; max-width: 60vw; background: var(--blanco); border-radius: 10px; padding: 10px; }
+.carrusel-ie-item .icono-generico { font-size: 4rem; }
+.carrusel-ie-item .nombre-ie { font-size: clamp(1.1rem, 3vw, 1.6rem); font-weight: 700; margin: 0; }
+.carrusel-ie-item .grupo-ie { opacity: 0.85; margin: 0; font-size: 0.9rem; }
+@keyframes aparecerCarrusel { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.carrusel-ie-progreso { position: absolute; bottom: 24px; font-size: 0.85rem; opacity: 0.8; margin: 0; }
+.carrusel-ie-saltar { position: absolute; top: 20px; right: 20px; }
+
 @media (max-width: 480px) {
   header.marca h1 { font-size: 1.3rem; }
   #panelFirmantes { font-size: 0.9rem; }

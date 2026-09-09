@@ -125,6 +125,47 @@ function renderFichaCaracterizacion(grupo, instituciones, matriz, responsables) 
   contenedor.innerHTML = html;
 }
 
+/** Un "item-recurso" (emoji + título + descripción), como enlace de descarga clicable. */
+function _htmlItemRecurso(r, compacto) {
+  var enlace = document.createElement("a");
+  enlace.className = compacto ? "btn-recurso" : "item-recurso";
+  enlace.href = r.url;
+  enlace.target = "_blank";
+  enlace.rel = "noopener";
+  enlace.title = r.descripcion || "";
+  if (compacto) {
+    enlace.textContent = r.emoji + " " + r.titulo;
+  } else {
+    enlace.innerHTML =
+      "<span class='emoji-recurso'>" + escapeHtml(r.emoji) + "</span>" +
+      "<span><strong>" + escapeHtml(r.titulo) + "</strong><p class='ayuda'>" + escapeHtml(r.descripcion) + "</p></span>";
+  }
+  return enlace;
+}
+
+/** Pinta los recursos descargables de Sesión 1 en el modal (ficha completa) y en la fila de botones pequeños. */
+function renderRecursosSesion1(recursos) {
+  var contenedorModal = document.getElementById("listaRecursosSesion1Modal");
+  if (contenedorModal) {
+    contenedorModal.innerHTML = "";
+    if (!recursos || !recursos.length) {
+      contenedorModal.innerHTML = "<p class='ayuda'>No hay archivos de apoyo disponibles todavía.</p>";
+    } else {
+      recursos.forEach(function (r) {
+        contenedorModal.appendChild(_htmlItemRecurso(r, false));
+      });
+    }
+  }
+
+  var contenedorBotones = document.getElementById("listaRecursosSesion1Botones");
+  if (contenedorBotones) {
+    contenedorBotones.innerHTML = "";
+    (recursos || []).forEach(function (r) {
+      contenedorBotones.appendChild(_htmlItemRecurso(r, true));
+    });
+  }
+}
+
 function renderTablaConectaEduca(registros) {
   var tbody = document.querySelector("#tablaConectaEduca tbody");
   tbody.innerHTML = "";

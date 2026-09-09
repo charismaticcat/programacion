@@ -28,7 +28,7 @@ function cabecerasGruposComunal_() {
 }
 
 function cabecerasCaracterizacionIE_() {
-  return ["ID_IE", "INSTITUCION", "DIRECCION", "SECTOR", "COMUNA", "ZONA", "EMAIL", "RECTOR", "SEDES"];
+  return ["ID_IE", "INSTITUCION", "DIRECCION", "SECTOR", "COMUNA", "ZONA", "EMAIL", "RECTOR", "SEDES", "LOGO_ID"];
 }
 
 /** Mapa {ID_IE: fila de CaracterizacionIE}, para enriquecer listados sin leer la hoja una vez por IE. */
@@ -55,8 +55,28 @@ function obtenerCaracterizacionIE(idIE) {
     zona: String(fila.ZONA || "").trim(),
     email: String(fila.EMAIL || "").trim(),
     rector: String(fila.RECTOR || "").trim(),
-    sedes: String(fila.SEDES || "").trim()
+    sedes: String(fila.SEDES || "").trim(),
+    logoId: String(fila.LOGO_ID || "").trim()
   };
+}
+
+/**
+ * Asigna el logo de una IE (mismo patrón que asignarLogoGrupo en Access.gs
+ * — ID de archivo de Drive, no la imagen en sí). Uso: ejecutar desde el
+ * editor de Apps Script una vez por IE cuando la SEM entregue los logos
+ * reales. Si la IE todavía no tiene fila en CaracterizacionIE, la crea.
+ */
+function asignarLogoIE(idIE, logoFileId) {
+  var hoja = obtenerHoja_(HOJA_CARACTERIZACION_IE_, cabecerasCaracterizacionIE_());
+  var mapa = obtenerMapaCabeceras_(hoja);
+  var idIEStr = String(idIE || "").trim();
+  var fila = buscarFilaPorColumna_(hoja, mapa, "ID_IE", idIEStr);
+  if (fila === -1) {
+    hoja.appendRow([idIEStr, "", "", "", "", "", "", "", "", String(logoFileId || "").trim()]);
+    return { ok: true, creada: true };
+  }
+  hoja.getRange(fila, mapa["LOGO_ID"]).setValue(String(logoFileId || "").trim());
+  return { ok: true, creada: false };
 }
 
 /**
@@ -88,7 +108,35 @@ function obtenerInstitucionesDelGrupo(idGrupo) {
         zona: String(c.ZONA || "").trim(),
         email: String(c.EMAIL || "").trim(),
         rector: String(c.RECTOR || "").trim(),
-        sedes: String(c.SEDES || "").trim()
+        sedes: String(c.SEDES || "").trim(),
+        logoId: String(c.LOGO_ID || "").trim()
+      };
+    });
+}
+
+/**
+ * Todas las IE activas de todos los grupos, en el orden de GruposComunal —
+ * usada por la animación de bienvenida (carrusel de logos y nombres de
+ * IE, spec: "aparece uno a uno cada logo de las IE"), que se muestra antes
+ * de que el visitante ingrese el código de un grupo en particular, por lo
+ * que no puede filtrarse todavía por ID_GRUPO.
+ */
+function obtenerTodasLasInstitucionesActivas() {
+  var hoja = obtenerHoja_(HOJA_GRUPOS_COMUNAL_, cabecerasGruposComunal_());
+  var filas = leerFilasComoObjetos_(hoja);
+  var caracterizacion = mapaCaracterizacionPorIE_();
+  return filas
+    .filter(function (f) {
+      return String(f.ACTIVO || "SI").toUpperCase() !== "NO";
+    })
+    .map(function (f) {
+      var idIE = String(f.ID_IE || "").trim();
+      var c = caracterizacion[idIE] || {};
+      return {
+        idIE: idIE,
+        institucion: String(f.INSTITUCION || "").trim(),
+        grupo: String(f.GRUPO || "").trim(),
+        logoId: String(c.LOGO_ID || "").trim()
       };
     });
 }

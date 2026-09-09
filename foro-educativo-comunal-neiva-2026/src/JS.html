@@ -22,8 +22,14 @@ var estado = {
   logoId: "",
   consentimientoGrupo: false,
   rolesForo: [],
-  responsables: { principal: null, asistentes: [] }
+  responsables: { principal: null, asistentes: [] },
+  recursosSesion1Mostrado: false
 };
+
+/** URL de imagen para un archivo de Drive público (logos) — mismo patrón usado para el QR de asistencia. */
+function urlImagenDrive(idArchivo, ancho) {
+  return "https://drive.google.com/thumbnail?id=" + encodeURIComponent(idArchivo) + "&sz=w" + (ancho || 600);
+}
 
 var ORDEN_PANTALLAS = [
   "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia", "pantallaAcceso",
@@ -79,7 +85,10 @@ function cambiarPantalla(idPantalla) {
     cargarMatrizParticipacion();
   }
   if (idPantalla === "pantallaConfirmacionCaracterizacion") cargarConfirmacionCaracterizacion();
-  if (idPantalla === "pantallaSesion1") cargarSesion1();
+  if (idPantalla === "pantallaSesion1") {
+    cargarSesion1();
+    cargarRecursosSesion1();
+  }
   if (idPantalla === "pantallaSesion2") cargarConectaEduca();
   if (idPantalla === "pantallaRevisionCierre") prepararCierre();
 }
@@ -103,6 +112,107 @@ function abrirModal(id) {
 }
 function cerrarModal(id) {
   document.getElementById(id).classList.add("oculto");
+}
+
+/* ------------------------------------------------------------------ *
+ * Transición inicial (splash: logo del Foro + logo de la Alcaldía)
+ * ------------------------------------------------------------------ */
+function iniciarSplashInicial() {
+  var splash = document.getElementById("pantallaSplashInicial");
+  if (!splash) return;
+
+  if (LOGO_ENCABEZADO_ID) {
+    var imgForo = document.getElementById("imagenLogoForoSplash");
+    imgForo.src = urlImagenDrive(LOGO_ENCABEZADO_ID, 500);
+    imgForo.classList.remove("oculto");
+  }
+  if (LOGO_PIE_ID) {
+    var imgAlcaldia = document.getElementById("imagenLogoAlcaldiaSplash");
+    imgAlcaldia.src = urlImagenDrive(LOGO_PIE_ID, 500);
+    imgAlcaldia.classList.remove("oculto");
+  }
+
+  var cerrado = false;
+  var cerrarSplash = function () {
+    if (cerrado) return;
+    cerrado = true;
+    splash.classList.add("oculto");
+  };
+  splash.addEventListener("click", cerrarSplash);
+  setTimeout(cerrarSplash, 4000); // menos de 5 segundos, spec
+}
+iniciarSplashInicial();
+
+/* ------------------------------------------------------------------ *
+ * Carrusel de bienvenida — cada I.E. aparece una a una (1s c/u)
+ * ------------------------------------------------------------------ */
+function mostrarCarruselIE() {
+  llamarServidor("rpcTodasLasInstituciones", [], function (instituciones) {
+    if (!instituciones || !instituciones.length) {
+      cambiarPantalla("pantallaPresentacion");
+      return;
+    }
+    ejecutarCarruselIE(instituciones);
+  }, function () {
+    cambiarPantalla("pantallaPresentacion");
+  });
+}
+
+function ejecutarCarruselIE(instituciones) {
+  var overlay = document.getElementById("pantallaCarruselIE");
+  var contenedorItem = document.getElementById("itemCarruselIE");
+  var progreso = document.getElementById("progresoCarruselIE");
+  overlay.classList.remove("oculto");
+
+  var indice = 0;
+  var temporizador = null;
+
+  var terminar = function () {
+    if (temporizador) clearTimeout(temporizador);
+    overlay.classList.add("oculto");
+    cambiarPantalla("pantallaPresentacion");
+  };
+
+  var mostrarSiguiente = function () {
+    if (indice >= instituciones.length) {
+      terminar();
+      return;
+    }
+    var ie = instituciones[indice];
+    var html = "<div class='carrusel-ie-item'>";
+    if (ie.logoId) {
+      html += "<img src='" + urlImagenDrive(ie.logoId, 400) + "' alt='" + escapeHtml(ie.institucion) + "'>";
+    } else {
+      html += "<span class='icono-generico'>🏫</span>";
+    }
+    html += "<p class='nombre-ie'>" + escapeHtml(ie.institucion) + "</p>";
+    if (ie.grupo) html += "<p class='grupo-ie'>" + escapeHtml(ie.grupo) + "</p>";
+    html += "</div>";
+    contenedorItem.innerHTML = html;
+    progreso.textContent = (indice + 1) + " / " + instituciones.length;
+    indice++;
+    temporizador = setTimeout(mostrarSiguiente, 1000);
+  };
+
+  document.getElementById("btnSaltarCarruselIE").onclick = terminar;
+  mostrarSiguiente();
+}
+
+document.getElementById("btnComenzarForo").addEventListener("click", function () {
+  mostrarCarruselIE();
+});
+
+/* ------------------------------------------------------------------ *
+ * Recursos descargables antes de Sesión 1
+ * ------------------------------------------------------------------ */
+function cargarRecursosSesion1() {
+  llamarServidor("rpcObtenerRecursosSesion1", [estado.idGrupo], function (recursos) {
+    renderRecursosSesion1(recursos || []);
+    if (!estado.recursosSesion1Mostrado) {
+      estado.recursosSesion1Mostrado = true;
+      abrirModal("modalRecursosSesion1");
+    }
+  });
 }
 
 /* ------------------------------------------------------------------ *
