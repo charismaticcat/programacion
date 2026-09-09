@@ -191,9 +191,12 @@ function generarInformeGrupo(idGrupo) {
   // Instituciones participantes.
   titulo1_(body, "Instituciones educativas del grupo");
   if (instituciones.length) {
-    var filasIE = [["Institución educativa", "Comuna"]].concat(
+    // Dirección/rector llegan automáticamente desde CaracterizacionIE
+    // (obtenerInstitucionesDelGrupo() ya las combina, ver Instituciones.gs)
+    // cuando esa hoja tiene la fila de la IE; si no, quedan en "—".
+    var filasIE = [["Institución educativa", "Comuna", "Dirección", "Rector(a)"]].concat(
       instituciones.map(function (ie) {
-        return [ie.institucion, ie.comuna || "—"];
+        return [ie.institucion, ie.comuna || "—", ie.direccion || "—", ie.rector || "—"];
       })
     );
     tablaSimple_(body, filasIE);
