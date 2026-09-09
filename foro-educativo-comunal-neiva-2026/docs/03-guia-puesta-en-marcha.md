@@ -247,6 +247,49 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   encabezados de la matriz horizontal), ahora se muestra como "Comuna (N)" (`formatearComuna()` en
   Components.html); los valores no numéricos (p. ej. "RURAL") se dejan tal cual, solo capitalizados.
 
+## 4.10 Confirmación de caracterización, preparación obligatoria y Consolidado de Socialización
+
+- **Confirmación de caracterización**: el botón "Confirmo que la información es correcta" ahora permanece
+  oculto hasta que TODA la información de la pantalla haya terminado de cargar (ficha del grupo + matriz
+  de participación por estamento) — se revela recién cuando ambas cargas terminan.
+- **Sesión de preparación — ya NO es opcional**: es condición para continuar a Sesión 1. Los botones
+  "Continuar a Sesión 1" (en "¿Qué institución va a preparar sus aportes?" y en la pantalla de
+  preparación de una IE) verifican primero, contra el servidor, que TODAS las IE del grupo hayan enviado
+  sus aportes; si falta alguna, muestran cuáles y no dejan avanzar.
+  - Se corrigió una condición de carrera: al hacer clic en "Enviar aportes" se guarda primero y se espera
+    la confirmación del servidor antes de marcar el envío — antes, guardar y enviar se disparaban en
+    paralelo y a veces mostraba por error "Responda al menos una pregunta antes de enviar" aunque la
+    pantalla ya mostrara el resumen sugerido.
+  - Cuando una IE ya envió su preparación (desde este dispositivo u otro, cualquier día — todo queda
+    guardado en la nube por `PreparacionIE`), al volver a entrar se muestra un aviso "✅ Ya realizó la
+    preparación de esta institución. Puede continuar con Sesión 1" sin bloquear la edición.
+  - Las 6 preguntas ahora son colapsables (`<details>`, cerradas por defecto, con un ✓ en el título si ya
+    tienen contenido) y su casilla de texto es más grande al desplegarlas — para no llenar tanta pantalla
+    con las seis a la vez.
+- **Sesión 1 → "Consolidado de Socialización"**: se redujo a solo 4 preguntas —Reflexiones, Desafíos
+  comunes, Apuestas compartidas y Conclusiones—, cada una con mínimo 50 y máximo 400 palabras (contador
+  en vivo que se pone rojo fuera de rango; el envío definitivo también lo valida en el servidor), más el
+  aporte propio del grupo (opcional). "Construcción colectiva del grupo" se mantiene con Prioridades,
+  Propuestas colectivas, Acuerdos y Ruta de trabajo (se quitaron Convergencias e Identidad territorial;
+  Desafíos y Apuestas se trasladaron a la primera tarjeta). Los campos retirados de pantalla
+  (`PROPUESTAS_IE`, `EXPERIENCIAS`, `RETOS`, `APORTES_TERRITORIALES`, `CONVERGENCIAS`, `IDENTIDAD`) se
+  conservan como columnas heredadas en `Sesion1Comunal` por si algún grupo ya las había diligenciado, pero
+  ya no se muestran ni se piden.
+- **Sesión 2 → ConectaEduca reestructurado**: al entrar se explica primero, en una ventana emergente, qué
+  es ConectaEduca; solo al cerrarla se despliega el resto de la pantalla. Justo después aparecen dos
+  preguntas de GRUPO (no por actor): "Necesidades de articulación" y "Oportunidades identificadas"
+  (`NECESIDADES_ARTICULACION_GRUPO`/`OPORTUNIDADES_GRUPO`, guardadas igual que el resto en
+  `Sesion1Comunal`). El formulario de cada actor se redujo a Actor o entidad, Tipo de actor, Área de
+  interés (ahora una lista de opciones) e Instituciones del grupo interesadas (ahora casillas de
+  selección múltiple con las IE del grupo, en vez de texto libre); se quitaron los campos de necesidades,
+  oportunidad, alianzas, conexiones y observaciones por actor (columnas heredadas en `ConectaEduca`, ya
+  no se piden). Después de la tabla de actores hay una segunda parte de construcción colectiva —
+  "Prioridades de las instituciones del grupo (#)", "Acuerdos entre instituciones de las comunas (comunas
+  # y rural)", "Propuestas de las instituciones del grupo (#)" y "Ruta de trabajo sugerida por las IE del
+  grupo (#)" (`PRIORIDADES_CE`/`ACUERDOS_CE`/`PROPUESTAS_CE`/`RUTA_CE`, también en `Sesion1Comunal`, mismo
+  rango de 50-400 palabras, validado también en el servidor) — seguida del aporte propio del grupo
+  (opcional) que ya existía.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

@@ -37,6 +37,20 @@ function renderListaInstituciones(instituciones) {
   });
 }
 
+/** Casillas para elegir qué IE del grupo están interesadas en un actor/entidad de ConectaEduca. */
+function renderChecklistIEInteresadasCE(instituciones) {
+  var contenedor = document.getElementById("listaIEInteresadasCE");
+  if (!contenedor) return;
+  contenedor.innerHTML = "";
+  (instituciones || []).forEach(function (ie) {
+    var etiqueta = document.createElement("label");
+    etiqueta.innerHTML =
+      "<input type='checkbox' data-nombre-ie='" + escapeHtml(ie.institucion) + "' value='" + escapeHtml(ie.idIE) + "'> " +
+      escapeHtml(ie.institucion);
+    contenedor.appendChild(etiqueta);
+  });
+}
+
 function renderResumenFirmantes(estado) {
   document.getElementById("contadorFirmantes").textContent = estado.total || 0;
   var contadorTarjeta = document.getElementById("contadorParticipantesTarjeta");
@@ -272,17 +286,26 @@ function renderListaIEPreparacion(instituciones, idsEnviados) {
 }
 
 /** Las 6 preguntas editables de la Sesión de preparación de una IE (título + ayuda + textarea). */
+/**
+ * Cada pregunta de preparación en un <details> colapsable (spec: "amplía
+ * más las casillas de texto y haz que sean colapsables cuando se les dé
+ * click para no llenar tanta pantalla") — colapsadas por defecto, con un
+ * indicador en el título de si ya tienen contenido, y una casilla de
+ * texto más grande al desplegarlas.
+ */
 function renderPreguntasPreparacionIE(preguntas, respuestas) {
   var contenedor = document.getElementById("preguntasPreparacionIE");
   if (!contenedor) return;
   var html = "";
   (preguntas || []).forEach(function (p) {
-    html += "<div class='pregunta-preparacion'>";
-    html += "<h3 class='subtitulo-campo'>" + escapeHtml(p.titulo) + "</h3>";
+    var texto = (respuestas && respuestas[p.clave]) || "";
+    var tieneContenido = String(texto).trim() !== "";
+    html += "<details class='pregunta-preparacion-colapsable'>";
+    html += "<summary>" + escapeHtml(p.titulo) + (tieneContenido ? " <span class='marca-con-contenido'>✓</span>" : "") + "</summary>";
     html += "<p class='ayuda'>" + escapeHtml(p.ayuda) + "</p>";
-    html += "<textarea id='campo_prep_" + p.clave + "' data-prep-pregunta='" + p.clave + "'>" +
-      escapeHtml((respuestas && respuestas[p.clave]) || "") + "</textarea>";
-    html += "</div>";
+    html += "<textarea id='campo_prep_" + p.clave + "' data-prep-pregunta='" + p.clave + "' rows='10'>" +
+      escapeHtml(texto) + "</textarea>";
+    html += "</details>";
   });
   contenedor.innerHTML = html;
 }

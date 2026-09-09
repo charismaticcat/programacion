@@ -105,21 +105,28 @@ function testFlujoCompletoGrupoPrueba() {
     nombre: "Responsable de Prueba", idIE: "IE-PRUEBA-1", rolForo: "Líder (Rector/Rectora)", correo: "prueba@example.org"
   })));
 
+  // Párrafo de prueba de ~58 palabras (Sesion1.gs exige entre 50 y 400 palabras en los campos con rango).
+  var TEXTO_PRUEBA_50_PALABRAS_ =
+    "Este es un texto de prueba generado únicamente para validar el flujo completo de la aplicación " +
+    "del Foro Educativo Comunal Neiva 2026, sin ningún contenido real de ningún grupo o institución " +
+    "educativa; sirve exclusivamente para comprobar que el guardado, el envío y la validación de " +
+    "longitud mínima y máxima de palabras funcionan correctamente en este entorno de pruebas.";
+
   var guardado = guardarSesion1("GRUPO-PRUEBA", tokenSesion, dispositivoId, {
-    REFLEXIONES: "Texto de prueba — reflexiones.",
-    CONCLUSIONES: "Texto de prueba — conclusiones.",
-    PROPUESTAS_IE: "Texto de prueba — propuestas IE.",
-    EXPERIENCIAS: "Texto de prueba — experiencias.",
-    RETOS: "Texto de prueba — retos.",
-    APORTES_TERRITORIALES: "Texto de prueba — aportes territoriales.",
-    CONVERGENCIAS: "Texto de prueba — convergencias.",
-    APUESTAS: "Texto de prueba — apuestas.",
-    DESAFIOS: "Texto de prueba — desafíos.",
-    IDENTIDAD: "Texto de prueba — identidad.",
+    REFLEXIONES: TEXTO_PRUEBA_50_PALABRAS_,
+    DESAFIOS: TEXTO_PRUEBA_50_PALABRAS_,
+    APUESTAS: TEXTO_PRUEBA_50_PALABRAS_,
+    CONCLUSIONES: TEXTO_PRUEBA_50_PALABRAS_,
     PRIORIDADES: "Texto de prueba — prioridades.",
     PROPUESTAS_COLECTIVAS: "Texto de prueba — propuestas colectivas.",
     ACUERDOS: "Texto de prueba — acuerdos.",
-    RUTA: "Texto de prueba — ruta de trabajo."
+    RUTA: "Texto de prueba — ruta de trabajo.",
+    NECESIDADES_ARTICULACION_GRUPO: "Texto de prueba — necesidades de articulación.",
+    OPORTUNIDADES_GRUPO: "Texto de prueba — oportunidades identificadas.",
+    PRIORIDADES_CE: TEXTO_PRUEBA_50_PALABRAS_,
+    ACUERDOS_CE: TEXTO_PRUEBA_50_PALABRAS_,
+    PROPUESTAS_CE: TEXTO_PRUEBA_50_PALABRAS_,
+    RUTA_CE: TEXTO_PRUEBA_50_PALABRAS_
   });
   Logger.log("guardarSesion1: " + JSON.stringify(guardado));
 
@@ -129,8 +136,8 @@ function testFlujoCompletoGrupoPrueba() {
     guardarActorConectaEduca("GRUPO-PRUEBA", tokenSesion, dispositivoId, {
       ACTOR: "Actor de prueba",
       TIPO_ACTOR: "Educación superior",
-      AREA: "Área de prueba",
-      OPORTUNIDAD: "Oportunidad de prueba"
+      AREA: "Educación y pedagogía",
+      IE_INTERESADAS: "I.E. Institución de Prueba 1"
     })
   ));
 

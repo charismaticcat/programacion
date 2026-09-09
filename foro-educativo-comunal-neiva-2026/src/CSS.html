@@ -378,9 +378,30 @@ input.input-participantes-h {
 }
 .btn-ie-preparacion:hover { background: #d9ede2; }
 .btn-ie-preparacion .marca-enviado { font-size: 1.1rem; }
-.pregunta-preparacion { margin-bottom: 18px; }
 #enlaceInformeEjecutivoIE { margin: 10px 0 16px; }
 #avisoSinInformeEjecutivoIE { margin: 10px 0 16px; }
+.banner-completado {
+  background: var(--verde-claro); color: var(--verde-oscuro); border: 1px solid #bfe0cf;
+  border-radius: 8px; padding: 12px 16px; margin: 12px 0; font-weight: 600;
+}
+
+/* Preguntas de preparación: colapsables (accordion), casilla de texto amplia al abrirlas. */
+details.pregunta-preparacion-colapsable {
+  border: 1px solid var(--gris-borde);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  background: var(--blanco);
+}
+details.pregunta-preparacion-colapsable summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--verde-oscuro);
+  font-size: 1.05rem;
+}
+details.pregunta-preparacion-colapsable[open] summary { margin-bottom: 8px; }
+details.pregunta-preparacion-colapsable textarea { min-height: 220px; }
+.marca-con-contenido { color: var(--verde); font-weight: 700; }
 
 /* ---------- Sección de socialización (Sesión 1: aportes de preparación por IE) ---------- */
 .tarjeta-socializacion {
@@ -425,6 +446,29 @@ details.socializacion-ie[open] summary { margin-bottom: 8px; }
   color: var(--gris-texto);
   margin: 4px 0 14px;
 }
+.contador-palabras.fuera-de-rango { color: var(--rojo); font-weight: 600; }
+.contador-palabras.en-rango { color: var(--verde-oscuro); font-weight: 600; }
+
+/* ---------- Instituciones interesadas (ConectaEduca) — multi-selección con checkboxes ---------- */
+.lista-checks-ie {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 16px;
+}
+.lista-checks-ie label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--gris-fondo);
+  border: 1px solid var(--gris-borde);
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-weight: 400;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.lista-checks-ie input[type="checkbox"] { width: auto; margin: 0; }
 
 /* ---------- Contador de participantes fijo (tarjeta de Participación) ---------- */
 .contador-participantes-tarjeta {

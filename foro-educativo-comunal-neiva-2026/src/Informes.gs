@@ -281,22 +281,11 @@ function generarInformeGrupo(idGrupo) {
     });
   }
 
-  // Síntesis Sesión 1 — socialización.
-  titulo1_(body, "Socialización de resultados institucionales (Sesión 1)");
+  // Consolidado de Socialización (Sesión 1, tarjeta 1).
+  titulo1_(body, "Consolidado de Socialización (Sesión 1)");
   [
-    ["Reflexiones", "REFLEXIONES"], ["Conclusiones", "CONCLUSIONES"], ["Propuestas de las IE", "PROPUESTAS_IE"],
-    ["Experiencias", "EXPERIENCIAS"], ["Retos", "RETOS"], ["Aportes territoriales", "APORTES_TERRITORIALES"]
-  ].forEach(function (par) {
-    subtitulo_(body, par[0]);
-    parrafo_(body, sesion1[par[1]]);
-  });
-
-  // Construcción colectiva del grupo.
-  titulo1_(body, "Construcción colectiva del grupo");
-  [
-    ["Convergencias", "CONVERGENCIAS"], ["Apuestas compartidas", "APUESTAS"], ["Desafíos comunes", "DESAFIOS"],
-    ["Identidad territorial", "IDENTIDAD"], ["Prioridades", "PRIORIDADES"],
-    ["Propuestas colectivas", "PROPUESTAS_COLECTIVAS"], ["Acuerdos", "ACUERDOS"], ["Ruta de trabajo", "RUTA"]
+    ["Reflexiones", "REFLEXIONES"], ["Desafíos comunes", "DESAFIOS"],
+    ["Apuestas compartidas", "APUESTAS"], ["Conclusiones", "CONCLUSIONES"]
   ].forEach(function (par) {
     subtitulo_(body, par[0]);
     parrafo_(body, sesion1[par[1]]);
@@ -308,34 +297,45 @@ function generarInformeGrupo(idGrupo) {
     parrafo_(body, sesion1.APORTE_PROPIO_S1_TEXTO);
   }
 
+  // Construcción colectiva del grupo.
+  titulo1_(body, "Construcción colectiva del grupo");
+  [
+    ["Prioridades", "PRIORIDADES"], ["Propuestas colectivas", "PROPUESTAS_COLECTIVAS"],
+    ["Acuerdos", "ACUERDOS"], ["Ruta de trabajo", "RUTA"]
+  ].forEach(function (par) {
+    subtitulo_(body, par[0]);
+    parrafo_(body, sesion1[par[1]]);
+  });
+
   // ConectaEduca.
   titulo1_(body, "ConectaEduca — oportunidades de articulación");
+  if (String(sesion1.NECESIDADES_ARTICULACION_GRUPO || "").trim() || String(sesion1.OPORTUNIDADES_GRUPO || "").trim()) {
+    subtitulo_(body, "Necesidades de articulación");
+    parrafo_(body, sesion1.NECESIDADES_ARTICULACION_GRUPO);
+    subtitulo_(body, "Oportunidades identificadas");
+    parrafo_(body, sesion1.OPORTUNIDADES_GRUPO);
+  }
   if (conectaEduca.length) {
-    var filasCE = [["Actor / entidad", "Tipo", "Área", "Oportunidad", "IE interesadas"]].concat(
+    var filasCE = [["Actor / entidad", "Tipo", "Área", "IE interesadas"]].concat(
       conectaEduca.map(function (r) {
-        return [r.ACTOR, r.TIPO_ACTOR, r.AREA, r.OPORTUNIDAD, r.IE_INTERESADAS];
+        return [r.ACTOR, r.TIPO_ACTOR, r.AREA, r.IE_INTERESADAS];
       })
     );
     tablaSimple_(body, filasCE);
-    conectaEduca.forEach(function (r) {
-      if (r.NECESIDADES_ARTICULACION || r.ALIANZA || r.CONEXIONES || r.OBSERVACIONES) {
-        subtitulo_(body, r.ACTOR);
-        parrafo_(
-          body,
-          [
-            r.NECESIDADES_ARTICULACION ? "Necesidades de articulación: " + r.NECESIDADES_ARTICULACION : "",
-            r.ALIANZA ? "Posibles alianzas: " + r.ALIANZA : "",
-            r.CONEXIONES ? "Conexiones realizadas: " + r.CONEXIONES : "",
-            r.OBSERVACIONES ? "Observaciones: " + r.OBSERVACIONES : ""
-          ]
-            .filter(Boolean)
-            .join("\n")
-        );
-      }
-    });
   } else {
     parrafo_(body, "No se registraron actores de ConectaEduca para este grupo.");
   }
+
+  // Construcción colectiva con el sector productivo y la educación superior (segunda parte de ConectaEduca).
+  [
+    ["Prioridades de las instituciones del grupo", "PRIORIDADES_CE"],
+    ["Acuerdos entre instituciones de las comunas (comunas y rural)", "ACUERDOS_CE"],
+    ["Propuestas de las instituciones del grupo", "PROPUESTAS_CE"],
+    ["Ruta de trabajo sugerida por las IE del grupo", "RUTA_CE"]
+  ].forEach(function (par) {
+    subtitulo_(body, par[0]);
+    parrafo_(body, sesion1[par[1]]);
+  });
 
   // Aporte propio de la comunidad (opcional) para Sesión 2 / ConectaEduca.
   if (String(sesion1.APORTE_PROPIO_S2_TITULO || "").trim() || String(sesion1.APORTE_PROPIO_S2_TEXTO || "").trim()) {

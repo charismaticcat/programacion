@@ -77,7 +77,14 @@ function eliminarActorConectaEduca(idGrupo, idRegistro, tokenSesion, dispositivo
   }, 10000);
 }
 
-/** Marca Sesión 2 (ConectaEduca) como enviada definitivamente. */
+/**
+ * Marca Sesión 2 (ConectaEduca) como enviada definitivamente. Los 4
+ * campos de la segunda parte de ConectaEduca (PRIORIDADES_CE,
+ * ACUERDOS_CE, PROPUESTAS_CE, RUTA_CE) se guardan, junto con el resto de
+ * "consolidados de grupo", en Sesion1Comunal (mismo mecanismo genérico
+ * de UPSERT-por-grupo con fusión — ver Sesion1.gs), así que se validan
+ * aquí leyendo obtenerSesion1().
+ */
 function enviarSesion2Definitiva(idGrupo, tokenSesion, dispositivoId) {
   idGrupo = String(idGrupo || "").trim();
   if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
@@ -86,6 +93,23 @@ function enviarSesion2Definitiva(idGrupo, tokenSesion, dispositivoId) {
   if (!esPrincipalDeGrupo_(idGrupo, dispositivoId, tokenSesion)) {
     return { ok: false, mensaje: "Solo el responsable principal del grupo puede enviar ConectaEduca de forma definitiva." };
   }
+
+  var datos = obtenerSesion1(idGrupo);
+  var vacios = CAMPOS_SESION2_OBLIGATORIOS_.filter(function (c) {
+    return !datos || !String(datos[c] || "").trim();
+  });
+  if (vacios.length) {
+    return { ok: false, mensaje: "Faltan campos por completar en ConectaEduca: " + vacios.join(", ") };
+  }
+  var fueraDeRango = _validarRangoPalabrasSesion1_(datos, CAMPOS_SESION2_OBLIGATORIOS_);
+  if (fueraDeRango.length) {
+    return {
+      ok: false,
+      mensaje: "Estos campos deben tener entre " + MIN_PALABRAS_SESION1_ + " y " + MAX_PALABRAS_SESION1_ +
+        " palabras: " + fueraDeRango.join(", ")
+    };
+  }
+
   return conLock_(function () {
     var hoja = obtenerHoja_(HOJA_ACCESOS_GRUPO_, cabecerasAccesosGrupo_());
     var mapa = obtenerMapaCabeceras_(hoja);

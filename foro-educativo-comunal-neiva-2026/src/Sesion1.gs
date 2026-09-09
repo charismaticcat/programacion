@@ -14,9 +14,17 @@ var HOJA_SESION1_COMUNAL_ = "Sesion1Comunal";
 
 function cabecerasSesion1Comunal_() {
   return [
-    "ID_GRUPO", "REFLEXIONES", "CONCLUSIONES", "PROPUESTAS_IE", "EXPERIENCIAS", "RETOS",
-    "APORTES_TERRITORIALES", "CONVERGENCIAS", "APUESTAS", "DESAFIOS", "IDENTIDAD",
+    "ID_GRUPO",
+    // Consolidado de Socialización (Sesión 1, tarjeta 1) — 4 preguntas, min 50/máx 400 palabras.
+    "REFLEXIONES", "DESAFIOS", "APUESTAS", "CONCLUSIONES",
+    // Construcción colectiva del grupo (Sesión 1, tarjeta 2).
     "PRIORIDADES", "PROPUESTAS_COLECTIVAS", "ACUERDOS", "RUTA",
+    // Preguntas de grupo antes de ConectaEduca (Sesión 2) — se guardan
+    // aquí por simplicidad, igual que el resto: no son por actor, son
+    // UN solo par de respuestas por grupo.
+    "NECESIDADES_ARTICULACION_GRUPO", "OPORTUNIDADES_GRUPO",
+    // Segunda parte de ConectaEduca (Sesión 2) — min 50/máx 400 palabras.
+    "PRIORIDADES_CE", "ACUERDOS_CE", "PROPUESTAS_CE", "RUTA_CE",
     // Espacio libre y opcional por sesión para hallazgos propios de la
     // comunidad que no encajan en las preguntas orientadoras — mismo
     // espíritu que la Sesión Propia/4 (opcional) de FEI 3.1
@@ -25,21 +33,41 @@ function cabecerasSesion1Comunal_() {
     // sesiones ya usan el mismo UPSERT-por-grupo con fusión de campos).
     "APORTE_PROPIO_S1_TITULO", "APORTE_PROPIO_S1_TEXTO",
     "APORTE_PROPIO_S2_TITULO", "APORTE_PROPIO_S2_TEXTO",
+    // Columnas heredadas de versiones anteriores de la app, ya no se
+    // muestran en pantalla (spec: "elimina todo y solo deja..."), pero se
+    // conservan aquí para no perder ni desalinear datos ya capturados por
+    // grupos que las hayan diligenciado antes de este cambio.
+    "PROPUESTAS_IE", "EXPERIENCIAS", "RETOS", "APORTES_TERRITORIALES", "CONVERGENCIAS", "IDENTIDAD",
     "ULTIMA_ACTUALIZACION"
   ];
 }
 
+/** Campos con mínimo 50 / máximo 400 palabras (Sesión 1 tarjeta 1 + ConectaEduca segunda parte). */
+var CAMPOS_SESION1_CON_RANGO_PALABRAS_ = ["REFLEXIONES", "DESAFIOS", "APUESTAS", "CONCLUSIONES", "PRIORIDADES_CE", "ACUERDOS_CE", "PROPUESTAS_CE", "RUTA_CE"];
+var MIN_PALABRAS_SESION1_ = 50;
+var MAX_PALABRAS_SESION1_ = 400;
+
 /** Campos obligatorios para el envío definitivo de Sesión 1 (la síntesis colectiva). */
 var CAMPOS_SESION1_OBLIGATORIOS_ = [
-  "REFLEXIONES", "CONCLUSIONES", "PROPUESTAS_IE", "EXPERIENCIAS", "RETOS",
-  "APORTES_TERRITORIALES", "CONVERGENCIAS", "APUESTAS", "DESAFIOS", "IDENTIDAD",
+  "REFLEXIONES", "DESAFIOS", "APUESTAS", "CONCLUSIONES",
   "PRIORIDADES", "PROPUESTAS_COLECTIVAS", "ACUERDOS", "RUTA"
 ];
+
+/** Campos obligatorios para el envío definitivo de Sesión 2 / ConectaEduca (Sesion1.gs los guarda, ConectaEduca.gs los valida). */
+var CAMPOS_SESION2_OBLIGATORIOS_ = ["PRIORIDADES_CE", "ACUERDOS_CE", "PROPUESTAS_CE", "RUTA_CE"];
 
 /** Todos los campos de contenido que se pueden guardar (obligatorios + aportes propios, opcionales). */
 var CAMPOS_SESION1_ = cabecerasSesion1Comunal_().filter(function (c) {
   return c !== "ID_GRUPO" && c !== "ULTIMA_ACTUALIZACION";
 });
+
+/** Valida el rango de palabras (50-400) de los campos que lo exigen; devuelve los que están fuera de rango. */
+function _validarRangoPalabrasSesion1_(datos, campos) {
+  return campos.filter(function (c) {
+    var n = contarPalabras_(datos ? datos[c] : "");
+    return n < MIN_PALABRAS_SESION1_ || n > MAX_PALABRAS_SESION1_;
+  });
+}
 
 /**
  * Guarda (UPSERT con fusión) los campos de Sesión 1 (y/o los aportes
@@ -93,6 +121,16 @@ function enviarSesion1Definitiva(idGrupo, tokenSesion, dispositivoId) {
   });
   if (vacios.length) {
     return { ok: false, mensaje: "Faltan campos por completar en Sesión 1: " + vacios.join(", ") };
+  }
+  var fueraDeRango = _validarRangoPalabrasSesion1_(datos, CAMPOS_SESION1_CON_RANGO_PALABRAS_.filter(function (c) {
+    return CAMPOS_SESION1_OBLIGATORIOS_.indexOf(c) !== -1;
+  }));
+  if (fueraDeRango.length) {
+    return {
+      ok: false,
+      mensaje: "Estos campos deben tener entre " + MIN_PALABRAS_SESION1_ + " y " + MAX_PALABRAS_SESION1_ +
+        " palabras: " + fueraDeRango.join(", ")
+    };
   }
 
   return conLock_(function () {

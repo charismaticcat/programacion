@@ -104,6 +104,12 @@ function capitalizarNombre_(nombre) {
     });
 }
 
+/** Cuenta palabras de un texto libre (mismo criterio que el contador en vivo del cliente: split por espacios). */
+function contarPalabras_(texto) {
+  var limpio = String(texto || "").trim();
+  return limpio ? limpio.split(/\s+/).length : 0;
+}
+
 /** Genera un identificador legible corto para filas (ConectaEduca, etc.), no un UUID completo. */
 function generarIdCorto_() {
   return Utilities.getUuid().split("-")[0];

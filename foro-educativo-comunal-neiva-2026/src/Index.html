@@ -258,9 +258,10 @@
       <div id="resumenParticipacionEstamentoCaracterizacion" class="resumen-participacion-estamento"></div>
       <div id="contenedorParticipacionEstamentoCaracterizacion" class="tabla-horizontal-desplazable"></div>
 
+      <p class="ayuda" id="avisoCargandoCaracterizacion">Cargando información…</p>
       <div class="fila-botones">
         <button class="btn btn-secundario" data-ir="pantallaParticipacion">Atrás, corregir</button>
-        <button class="btn btn-primario" data-ir="pantallaPreSocializacion">Confirmo que la información es correcta</button>
+        <button class="btn btn-primario oculto" id="btnConfirmarCaracterizacion" data-ir="pantallaPreSocializacion">Confirmo que la información es correcta</button>
       </div>
     </div>
   </section>
@@ -269,15 +270,17 @@
   <section id="pantallaPreSocializacion" class="pantalla">
     <div class="tarjeta">
       <h2 class="titulo-seccion">Sesión de preparación</h2>
-      <p>Antes de socializar oralmente en Sesión 1, cada institución educativa del grupo puede preparar
+      <p>Antes de socializar oralmente en Sesión 1, cada institución educativa del grupo prepara
         brevemente sus aportes por escrito — <strong>en este espacio se ingresarán las respuestas</strong>
         que luego se compartirán con todo el grupo y la comunidad asistente.</p>
       <p class="ayuda">Todas las IE de este grupo ingresan con el mismo código de acceso. Cada institución
         elige a la persona responsable de diligenciar sus respuestas de preparación; el punto de partida es
         un resumen ya sugerido a partir del Informe Ejecutivo (IE) 2026 de esa institución, que se puede
         editar libremente antes de enviarlo.</p>
-      <p class="ayuda">Este paso es opcional: si el grupo prefiere, puede continuar directamente a la
-        Sesión 1 sin preparar aportes por escrito.</p>
+      <p class="ayuda"><strong>Este paso NO es opcional:</strong> todas las instituciones del grupo deben
+        completar y enviar su preparación antes de poder continuar a la Sesión 1. Se puede hacer desde
+        cualquier computador o celular; queda guardado en la nube y se puede retomar después, desde otro
+        dispositivo y otro día — las respuestas ya escritas aparecerán tal como quedaron.</p>
       <div class="fila-botones">
         <button class="btn btn-secundario" data-ir="pantallaConfirmacionCaracterizacion">Atrás</button>
         <button class="btn btn-primario" data-ir="pantallaSeleccionIEPreparacion">Ir a preparación</button>
@@ -290,11 +293,12 @@
     <div class="tarjeta">
       <h2 class="titulo-seccion">¿Qué institución va a preparar sus aportes?</h2>
       <p class="ayuda">Selecciona la institución educativa. Luego se te pedirá el nombre de quien va a
-        diligenciar las respuestas.</p>
+        diligenciar las respuestas. <strong>✅ = ya envió sus aportes.</strong></p>
       <div id="listaIEPreparacion" class="lista-ie-preparacion"></div>
+      <div id="mensajePreparacionPendiente"></div>
       <div class="fila-botones">
         <button class="btn btn-secundario" data-ir="pantallaPreSocializacion">Atrás</button>
-        <button class="btn btn-primario" data-ir="pantallaSesion1">Continuar a Sesión 1</button>
+        <button class="btn btn-primario" id="btnContinuarASesion1DesdeSeleccion">Continuar a Sesión 1</button>
       </div>
     </div>
   </section>
@@ -304,6 +308,12 @@
     <div class="tarjeta">
       <h2 class="titulo-seccion">Preparación — <span id="nombreIEPreparacion"></span></h2>
       <p class="ayuda">Responsable: <strong id="responsablePreparacionIE"></strong></p>
+
+      <div id="bannerPreparacionYaCompletada" class="banner-completado oculto">
+        ✅ Ya realizó la preparación de esta institución. Puede continuar con Sesión 1, o revisar/editar
+        sus respuestas abajo si lo necesita.
+      </div>
+
       <div id="enlaceInformeEjecutivoIE" class="oculto">
         <a class="btn btn-secundario" id="btnVerInformeEjecutivoIE" href="#" target="_blank" rel="noopener">
           📄 Ver/descargar el Informe Ejecutivo de esta IE
@@ -322,16 +332,16 @@
     </div>
     <div class="fila-botones">
       <button class="btn btn-secundario" data-ir="pantallaSeleccionIEPreparacion">Elegir otra institución</button>
-      <button class="btn btn-primario" data-ir="pantallaSesion1">Continuar a Sesión 1</button>
+      <button class="btn btn-primario" id="btnContinuarASesion1DesdePreparacionIE">Continuar a Sesión 1</button>
     </div>
   </section>
 
   <!-- 8. SESIÓN 1 -->
   <section id="pantallaSesion1" class="pantalla">
     <div class="tarjeta">
-      <h2 class="titulo-seccion">Sesión 1 — Socialización y construcción colectiva</h2>
+      <h2 class="titulo-seccion">Consolidado de Socialización</h2>
       <p class="ayuda">Registre lo que cada institución compartió durante la socialización (un
-        consolidado por grupo, no formulario por IE).</p>
+        consolidado por grupo, no formulario por IE). Cada pregunta debe tener entre 50 y 400 palabras.</p>
 
       <div class="tarjeta-socializacion" id="tarjetaSocializacionPreparacion">
         <h3 class="subtitulo-campo">🗣️ Aportes de preparación por institución</h3>
@@ -348,37 +358,13 @@
       </div>
 
       <h3 class="subtitulo-campo">Reflexiones</h3>
-      <textarea id="campo_REFLEXIONES" data-campo-sesion1="REFLEXIONES"></textarea>
-      <h3 class="subtitulo-campo">Conclusiones</h3>
-      <textarea id="campo_CONCLUSIONES" data-campo-sesion1="CONCLUSIONES"></textarea>
-      <h3 class="subtitulo-campo">Propuestas de las instituciones</h3>
-      <textarea id="campo_PROPUESTAS_IE" data-campo-sesion1="PROPUESTAS_IE"></textarea>
-      <h3 class="subtitulo-campo">Experiencias</h3>
-      <textarea id="campo_EXPERIENCIAS" data-campo-sesion1="EXPERIENCIAS"></textarea>
-      <h3 class="subtitulo-campo">Retos</h3>
-      <textarea id="campo_RETOS" data-campo-sesion1="RETOS"></textarea>
-      <h3 class="subtitulo-campo">Aportes territoriales</h3>
-      <textarea id="campo_APORTES_TERRITORIALES" data-campo-sesion1="APORTES_TERRITORIALES"></textarea>
-    </div>
-
-    <div class="tarjeta">
-      <h2 class="titulo-seccion">Construcción colectiva del grupo</h2>
-      <h3 class="subtitulo-campo">Convergencias</h3>
-      <textarea id="campo_CONVERGENCIAS" data-campo-sesion1="CONVERGENCIAS"></textarea>
-      <h3 class="subtitulo-campo">Apuestas compartidas</h3>
-      <textarea id="campo_APUESTAS" data-campo-sesion1="APUESTAS"></textarea>
+      <textarea id="campo_REFLEXIONES" data-campo-sesion1="REFLEXIONES" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
       <h3 class="subtitulo-campo">Desafíos comunes</h3>
-      <textarea id="campo_DESAFIOS" data-campo-sesion1="DESAFIOS"></textarea>
-      <h3 class="subtitulo-campo">Identidad territorial</h3>
-      <textarea id="campo_IDENTIDAD" data-campo-sesion1="IDENTIDAD"></textarea>
-      <h3 class="subtitulo-campo">Prioridades</h3>
-      <textarea id="campo_PRIORIDADES" data-campo-sesion1="PRIORIDADES"></textarea>
-      <h3 class="subtitulo-campo">Propuestas colectivas</h3>
-      <textarea id="campo_PROPUESTAS_COLECTIVAS" data-campo-sesion1="PROPUESTAS_COLECTIVAS"></textarea>
-      <h3 class="subtitulo-campo">Acuerdos</h3>
-      <textarea id="campo_ACUERDOS" data-campo-sesion1="ACUERDOS"></textarea>
-      <h3 class="subtitulo-campo">Ruta de trabajo</h3>
-      <textarea id="campo_RUTA" data-campo-sesion1="RUTA"></textarea>
+      <textarea id="campo_DESAFIOS" data-campo-sesion1="DESAFIOS" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+      <h3 class="subtitulo-campo">Apuestas compartidas</h3>
+      <textarea id="campo_APUESTAS" data-campo-sesion1="APUESTAS" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+      <h3 class="subtitulo-campo">Conclusiones</h3>
+      <textarea id="campo_CONCLUSIONES" data-campo-sesion1="CONCLUSIONES" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
 
       <details class="desplegable-aporte">
         <summary>➕ Aporte propio del grupo (opcional)</summary>
@@ -389,6 +375,18 @@
         <label for="campo_APORTE_PROPIO_S1_TEXTO">Descripción</label>
         <textarea id="campo_APORTE_PROPIO_S1_TEXTO" data-campo-sesion1="APORTE_PROPIO_S1_TEXTO"></textarea>
       </details>
+    </div>
+
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">Construcción colectiva del grupo</h2>
+      <h3 class="subtitulo-campo">Prioridades</h3>
+      <textarea id="campo_PRIORIDADES" data-campo-sesion1="PRIORIDADES"></textarea>
+      <h3 class="subtitulo-campo">Propuestas colectivas</h3>
+      <textarea id="campo_PROPUESTAS_COLECTIVAS" data-campo-sesion1="PROPUESTAS_COLECTIVAS"></textarea>
+      <h3 class="subtitulo-campo">Acuerdos</h3>
+      <textarea id="campo_ACUERDOS" data-campo-sesion1="ACUERDOS"></textarea>
+      <h3 class="subtitulo-campo">Ruta de trabajo</h3>
+      <textarea id="campo_RUTA" data-campo-sesion1="RUTA"></textarea>
 
       <div id="mensajeSesion1"></div>
       <div class="fila-botones">
@@ -406,57 +404,80 @@
   <section id="pantallaSesion2" class="pantalla">
     <div class="tarjeta">
       <h2 class="titulo-seccion">Sesión 2 — ConectaEduca</h2>
-      <p class="ayuda">Registre cada actor o entidad con quien el grupo dialogó.</p>
+      <p class="ayuda" id="avisoEsperandoExplicacionConectaEduca">Antes de empezar, revisa la explicación
+        de qué es ConectaEduca (ventana emergente).</p>
 
-      <label for="campoActorCE">Actor o entidad</label>
-      <input type="text" id="campoActorCE">
-      <label for="campoTipoActorCE">Tipo de actor</label>
-      <select id="campoTipoActorCE">
-        <option>Educación superior</option>
-        <option>Sector productivo</option>
-        <option>Formación técnica</option>
-        <option>Formación tecnológica</option>
-        <option>Formación complementaria</option>
-        <option>Otro</option>
-      </select>
-      <label for="campoAreaCE">Área de interés</label>
-      <input type="text" id="campoAreaCE">
-      <label for="campoNecesidadesCE">Necesidades de articulación</label>
-      <textarea id="campoNecesidadesCE"></textarea>
-      <label for="campoOportunidadCE">Oportunidades identificadas</label>
-      <textarea id="campoOportunidadCE"></textarea>
-      <label for="campoAlianzaCE">Posibles alianzas</label>
-      <textarea id="campoAlianzaCE"></textarea>
-      <label for="campoIEInteresadasCE">Instituciones del grupo interesadas</label>
-      <input type="text" id="campoIEInteresadasCE">
-      <label for="campoConexionesCE">Contactos o conexiones realizadas</label>
-      <textarea id="campoConexionesCE"></textarea>
-      <label for="campoObservacionesCE">Observaciones</label>
-      <textarea id="campoObservacionesCE"></textarea>
+      <div id="contenidoConectaEducaTrasExplicacion" class="oculto">
+        <h3 class="subtitulo-campo">Antes de registrar actores</h3>
+        <label for="campo_NECESIDADES_ARTICULACION_GRUPO">Necesidades de articulación</label>
+        <textarea id="campo_NECESIDADES_ARTICULACION_GRUPO" data-campo-sesion1="NECESIDADES_ARTICULACION_GRUPO"></textarea>
+        <label for="campo_OPORTUNIDADES_GRUPO">Oportunidades identificadas</label>
+        <textarea id="campo_OPORTUNIDADES_GRUPO" data-campo-sesion1="OPORTUNIDADES_GRUPO"></textarea>
 
-      <div id="mensajeConectaEduca"></div>
-      <div class="fila-botones">
-        <button class="btn btn-primario" id="btnAgregarActorCE">Agregar actor</button>
-      </div>
+        <h3 class="subtitulo-campo" style="margin-top:24px;">Registrar actor o entidad</h3>
+        <p class="ayuda">Registre cada actor o entidad con quien el grupo dialogó.</p>
 
-      <table class="tabla-simple" id="tablaConectaEduca">
-        <thead><tr><th>Actor</th><th>Tipo</th><th>Área</th><th></th></tr></thead>
-        <tbody></tbody>
-      </table>
+        <label for="campoActorCE">Actor o entidad</label>
+        <input type="text" id="campoActorCE">
+        <label for="campoTipoActorCE">Tipo de actor</label>
+        <select id="campoTipoActorCE">
+          <option>Educación superior</option>
+          <option>Sector productivo</option>
+          <option>Formación técnica</option>
+          <option>Formación tecnológica</option>
+          <option>Formación complementaria</option>
+          <option>Otro</option>
+        </select>
+        <label for="campoAreaCE">Área de interés</label>
+        <select id="campoAreaCE">
+          <option>Educación y pedagogía</option>
+          <option>Ciencia, tecnología e innovación</option>
+          <option>Emprendimiento y empleabilidad</option>
+          <option>Cultura y patrimonio</option>
+          <option>Deporte y recreación</option>
+          <option>Salud y bienestar</option>
+          <option>Medio ambiente y sostenibilidad</option>
+          <option>Convivencia y paz</option>
+          <option>Inclusión y diversidad</option>
+          <option>Otro</option>
+        </select>
+        <label>Instituciones del grupo interesadas en este actor o entidad</label>
+        <div id="listaIEInteresadasCE" class="lista-checks-ie"></div>
 
-      <details class="desplegable-aporte">
-        <summary>➕ Aporte propio del grupo (opcional)</summary>
-        <p class="ayuda">Espacio libre para hallazgos, reflexiones o propuestas propias de la comunidad
-          sobre ConectaEduca que no encajen en el registro de actores.</p>
-        <label for="campo_APORTE_PROPIO_S2_TITULO">Título</label>
-        <input type="text" id="campo_APORTE_PROPIO_S2_TITULO" data-campo-sesion1="APORTE_PROPIO_S2_TITULO">
-        <label for="campo_APORTE_PROPIO_S2_TEXTO">Descripción</label>
-        <textarea id="campo_APORTE_PROPIO_S2_TEXTO" data-campo-sesion1="APORTE_PROPIO_S2_TEXTO"></textarea>
-        <p class="ayuda">Se guarda automáticamente, igual que el resto de Sesión 1 y Sesión 2.</p>
-      </details>
+        <div id="mensajeConectaEduca"></div>
+        <div class="fila-botones">
+          <button class="btn btn-primario" id="btnAgregarActorCE">Agregar actor</button>
+        </div>
 
-      <div class="fila-botones">
-        <button class="btn btn-primario" id="btnEnviarSesion2">Enviar Sesión 2 definitiva</button>
+        <table class="tabla-simple" id="tablaConectaEduca">
+          <thead><tr><th>Actor</th><th>Tipo</th><th>Área</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+
+        <h3 class="subtitulo-campo" style="margin-top:24px;">Construcción colectiva con el sector productivo y la educación superior</h3>
+        <label for="campo_PRIORIDADES_CE">Prioridades de las instituciones del grupo (#)</label>
+        <textarea id="campo_PRIORIDADES_CE" data-campo-sesion1="PRIORIDADES_CE" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+        <label for="campo_ACUERDOS_CE">Acuerdos entre instituciones de las comunas (comunas # y rural)</label>
+        <textarea id="campo_ACUERDOS_CE" data-campo-sesion1="ACUERDOS_CE" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+        <label for="campo_PROPUESTAS_CE">Propuestas de las instituciones del grupo (#)</label>
+        <textarea id="campo_PROPUESTAS_CE" data-campo-sesion1="PROPUESTAS_CE" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+        <label for="campo_RUTA_CE">Ruta de trabajo sugerida por las IE del grupo (#)</label>
+        <textarea id="campo_RUTA_CE" data-campo-sesion1="RUTA_CE" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+
+        <details class="desplegable-aporte">
+          <summary>➕ Aporte propio del grupo (opcional)</summary>
+          <p class="ayuda">Espacio libre para hallazgos, reflexiones o propuestas propias de la comunidad
+            sobre ConectaEduca que no encajen en las preguntas anteriores.</p>
+          <label for="campo_APORTE_PROPIO_S2_TITULO">Título</label>
+          <input type="text" id="campo_APORTE_PROPIO_S2_TITULO" data-campo-sesion1="APORTE_PROPIO_S2_TITULO">
+          <label for="campo_APORTE_PROPIO_S2_TEXTO">Descripción</label>
+          <textarea id="campo_APORTE_PROPIO_S2_TEXTO" data-campo-sesion1="APORTE_PROPIO_S2_TEXTO"></textarea>
+          <p class="ayuda">Se guarda automáticamente, igual que el resto de Sesión 1 y Sesión 2.</p>
+        </details>
+
+        <div class="fila-botones">
+          <button class="btn btn-primario" id="btnEnviarSesion2">Enviar Sesión 2 definitiva</button>
+        </div>
       </div>
     </div>
     <div class="fila-botones">
