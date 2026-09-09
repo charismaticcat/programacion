@@ -269,18 +269,27 @@ function renderTablaConectaEduca(registros) {
 }
 
 /** Botones de selección de IE para la Sesión de preparación — con ✅ si esa IE ya envió sus aportes. */
+/**
+ * Cada IE del grupo con su estado de preparación explícito — a la que ya
+ * envió no se le vuelve a pedir nada (su trabajo ya cumplido no se ve
+ * afectado); a la que falta se le marca con un texto claro, no solo la
+ * ausencia de una marca.
+ */
 function renderListaIEPreparacion(instituciones, idsEnviados) {
   var contenedor = document.getElementById("listaIEPreparacion");
   if (!contenedor) return;
   contenedor.innerHTML = "";
   (instituciones || []).forEach(function (ie) {
+    var yaEnviado = !!(idsEnviados && idsEnviados[ie.idIE]);
     var boton = document.createElement("button");
     boton.type = "button";
-    boton.className = "btn-ie-preparacion";
+    boton.className = "btn-ie-preparacion" + (yaEnviado ? " ie-preparacion-completa" : " ie-preparacion-pendiente");
     boton.setAttribute("data-preparar-ie", ie.idIE);
     boton.innerHTML =
-      "<span>" + escapeHtml(ie.institucion) + "</span>" +
-      (idsEnviados && idsEnviados[ie.idIE] ? "<span class='marca-enviado' title='Aportes ya enviados'>✅</span>" : "");
+      "<span class='nombre-ie-preparacion'>" + escapeHtml(ie.institucion) + "</span>" +
+      (yaEnviado
+        ? "<span class='estado-ie-preparacion estado-ie-completa'>✅ Ya envió sus aportes</span>"
+        : "<span class='estado-ie-preparacion estado-ie-pendiente'>⚠️ La IE no ha diligenciado la preparación de la socialización</span>");
     contenedor.appendChild(boton);
   });
 }

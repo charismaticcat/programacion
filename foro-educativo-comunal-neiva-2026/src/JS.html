@@ -977,9 +977,12 @@ function mostrarMensajePreparacionFaltante_(idsEnviados) {
   if (!faltantes.length) {
     contenedor.innerHTML = "<div class='mensaje exito'>✅ Todas las instituciones completaron su preparación. Ya pueden continuar a Sesión 1.</div>";
   } else {
+    // Solo se nombran las IE que faltan — a las que ya enviaron sus aportes no las afecta este aviso.
     contenedor.innerHTML =
-      "<div class='mensaje info'>Faltan por enviar su preparación: " +
-      faltantes.map(function (ie) { return escapeHtml(ie.institucion); }).join(", ") + "</div>";
+      "<div class='mensaje info'>Aún falta por diligenciar la preparación de la socialización: <strong>" +
+      faltantes.map(function (ie) { return escapeHtml(ie.institucion); }).join("</strong>, <strong>") +
+      "</strong>. Las demás instituciones ya completaron la suya y no necesitan hacer nada más — elija una de " +
+      "las pendientes arriba para continuar.</div>";
   }
 }
 
@@ -1002,10 +1005,13 @@ function intentarContinuarASesion1_(idContenedorMensaje) {
       cambiarPantalla("pantallaSesion1");
       return;
     }
+    // Solo se nombran las IE que faltan — a la(s) que ya cumplió(eron) con su trabajo no las afecta
+    // este aviso, y pueden seguir usando la app con normalidad mientras las demás terminan.
     var texto =
-      "La Sesión de preparación no es opcional: todas las instituciones deben completar y enviar sus " +
-      "aportes antes de continuar a Sesión 1. Faltan: " +
-      faltantes.map(function (ie) { return ie.institucion; }).join(", ");
+      "Aún falta por diligenciar la preparación de la socialización: " +
+      faltantes.map(function (ie) { return ie.institucion; }).join(", ") +
+      ". Las instituciones que ya enviaron sus aportes no necesitan hacer nada más; elija una de las " +
+      "pendientes para continuar.";
     if (idContenedorMensaje) {
       mostrarMensaje(idContenedorMensaje, texto, "error");
     } else {
