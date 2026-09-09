@@ -27,6 +27,21 @@
   </div>
 </div>
 
+<div class="modal-fondo oculto" id="modalResponsablePreparacion">
+  <div class="modal-caja">
+    <button type="button" class="modal-cerrar" data-cerrar-modal="modalResponsablePreparacion">&times;</button>
+    <h3>¿Quién va a diligenciar los aportes?</h3>
+    <p class="ayuda" id="nombreIEResponsablePreparacion"></p>
+    <label for="campoResponsablePreparacion">Nombre de quien diligencia</label>
+    <input type="text" id="campoResponsablePreparacion" placeholder="Nombre completo">
+    <div id="mensajeResponsablePreparacion"></div>
+    <div class="fila-botones">
+      <button class="btn btn-secundario" data-cerrar-modal="modalResponsablePreparacion">Cancelar</button>
+      <button class="btn btn-primario" id="btnComenzarPreparacionIE">Comenzar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-fondo oculto" id="modalTomaSesion">
   <div class="modal-caja">
     <button type="button" class="modal-cerrar" data-cerrar-modal="modalTomaSesion">&times;</button>

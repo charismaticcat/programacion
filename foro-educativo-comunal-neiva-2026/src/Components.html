@@ -223,6 +223,68 @@ function renderTablaConectaEduca(registros) {
   });
 }
 
+/** Botones de selección de IE para la Sesión de preparación — con ✅ si esa IE ya envió sus aportes. */
+function renderListaIEPreparacion(instituciones, idsEnviados) {
+  var contenedor = document.getElementById("listaIEPreparacion");
+  if (!contenedor) return;
+  contenedor.innerHTML = "";
+  (instituciones || []).forEach(function (ie) {
+    var boton = document.createElement("button");
+    boton.type = "button";
+    boton.className = "btn-ie-preparacion";
+    boton.setAttribute("data-preparar-ie", ie.idIE);
+    boton.innerHTML =
+      "<span>" + escapeHtml(ie.institucion) + "</span>" +
+      (idsEnviados && idsEnviados[ie.idIE] ? "<span class='marca-enviado' title='Aportes ya enviados'>✅</span>" : "");
+    contenedor.appendChild(boton);
+  });
+}
+
+/** Las 6 preguntas editables de la Sesión de preparación de una IE (título + ayuda + textarea). */
+function renderPreguntasPreparacionIE(preguntas, respuestas) {
+  var contenedor = document.getElementById("preguntasPreparacionIE");
+  if (!contenedor) return;
+  var html = "";
+  (preguntas || []).forEach(function (p) {
+    html += "<div class='pregunta-preparacion'>";
+    html += "<h3 class='subtitulo-campo'>" + escapeHtml(p.titulo) + "</h3>";
+    html += "<p class='ayuda'>" + escapeHtml(p.ayuda) + "</p>";
+    html += "<textarea id='campo_prep_" + p.clave + "' data-prep-pregunta='" + p.clave + "'>" +
+      escapeHtml((respuestas && respuestas[p.clave]) || "") + "</textarea>";
+    html += "</div>";
+  });
+  contenedor.innerHTML = html;
+}
+
+/**
+ * Sección de socialización en Sesión 1: un <details> colapsado por cada
+ * IE que ya envió sus aportes de preparación, con un párrafo con título
+ * por cada sección diligenciada y un botón de pantalla completa.
+ */
+function renderSocializacionPreparacion(datos) {
+  var contenedor = document.getElementById("listaSocializacionPreparacion");
+  if (!contenedor) return;
+  if (!datos || !datos.length) {
+    contenedor.innerHTML = "<p class='ayuda'>Ninguna institución ha enviado aportes de preparación todavía.</p>";
+    return;
+  }
+  var html = "<div class='fila-botones'><button type='button' class='btn btn-secundario' data-alternar-socializacion>Expandir todas</button></div>";
+  datos.forEach(function (ie) {
+    html += "<details class='socializacion-ie'>";
+    html += "<summary>" + escapeHtml(ie.institucion) +
+      (ie.responsable ? " <span class='ayuda'>— preparado por " + escapeHtml(ie.responsable) + "</span>" : "") + "</summary>";
+    ie.secciones.forEach(function (seccion) {
+      html += "<div class='socializacion-seccion'>";
+      html += "<h4>" + escapeHtml(seccion.titulo) + "</h4>";
+      html += "<p>" + escapeHtml(seccion.texto) + "</p>";
+      html += "<button type='button' class='btn-recurso' data-ver-completo='" + escapeHtml(ie.idIE) + "|" + escapeHtml(seccion.clave) + "'>🔍 Pantalla completa</button>";
+      html += "</div>";
+    });
+    html += "</details>";
+  });
+  contenedor.innerHTML = html;
+}
+
 function mostrarMensaje(idContenedor, texto, tipo) {
   var contenedor = document.getElementById(idContenedor);
   if (!contenedor) return;

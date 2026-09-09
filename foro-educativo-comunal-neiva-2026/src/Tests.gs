@@ -92,6 +92,15 @@ function testFlujoCompletoGrupoPrueba() {
 
   Logger.log(JSON.stringify(actualizarRectorIE("GRUPO-PRUEBA", tokenSesion, dispositivoId, "IE-PRUEBA-1", "Rector de Prueba")));
 
+  // Sesión de preparación (pre-socialización) — una IE del grupo de prueba diligencia y envía sus aportes.
+  Logger.log("obtenerPreparacionIE (antes de guardar): " + JSON.stringify(obtenerPreparacionIE("GRUPO-PRUEBA", "IE-PRUEBA-1")));
+  Logger.log(JSON.stringify(guardarPreparacionIE("GRUPO-PRUEBA", tokenSesion, dispositivoId, "IE-PRUEBA-1", "Responsable de Prueba", {
+    P1: "Texto de prueba — P1.", P2: "Texto de prueba — P2.", P3: "Texto de prueba — P3.",
+    P4: "Texto de prueba — P4.", P5: "Texto de prueba — P5.", P6: "Texto de prueba — P6."
+  })));
+  Logger.log(JSON.stringify(marcarPreparacionEnviada("GRUPO-PRUEBA", tokenSesion, dispositivoId, "IE-PRUEBA-1")));
+  Logger.log("obtenerPreparacionesEnviadasGrupo: " + JSON.stringify(obtenerPreparacionesEnviadasGrupo("GRUPO-PRUEBA")));
+
   Logger.log(JSON.stringify(guardarResponsableEnvio("GRUPO-PRUEBA", tokenSesion, dispositivoId, "PRINCIPAL", {
     nombre: "Responsable de Prueba", idIE: "IE-PRUEBA-1", rolForo: "Líder (Rector/Rectora)", correo: "prueba@example.org"
   })));
@@ -166,7 +175,7 @@ function testEnviarGrupoRecorridoPruebaAutor() {
 
 /** Borra el GRUPO-PRUEBA y sus datos asociados (Sesión 1, ConectaEduca, participación, acceso, informe). */
 function testLimpiarDatosDePrueba() {
-  ["GruposComunal", "AccesosGrupo", "ParticipacionComunal", "Sesion1Comunal", "ConectaEduca", "InformesComunal", "EnviosDiferidosComunal", "ResponsablesComunal", "ValoracionComunal", "ParticipacionEstamentoIE"].forEach(
+  ["GruposComunal", "AccesosGrupo", "ParticipacionComunal", "Sesion1Comunal", "ConectaEduca", "InformesComunal", "EnviosDiferidosComunal", "ResponsablesComunal", "ValoracionComunal", "ParticipacionEstamentoIE", "PreparacionIE"].forEach(
     function (nombreHoja) {
       var ss = abrirSpreadsheet_();
       var hoja = ss.getSheetByName(nombreHoja);

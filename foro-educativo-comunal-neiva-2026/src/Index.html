@@ -250,8 +250,69 @@
       <div id="fichaCaracterizacionGrupo"></div>
       <div class="fila-botones">
         <button class="btn btn-secundario" data-ir="pantallaParticipacion">Atrás, corregir</button>
-        <button class="btn btn-primario" data-ir="pantallaSesion1">Confirmo que la información es correcta</button>
+        <button class="btn btn-primario" data-ir="pantallaPreSocializacion">Confirmo que la información es correcta</button>
       </div>
+    </div>
+  </section>
+
+  <!-- 7bis. PRE-SOCIALIZACIÓN (sesión de preparación) -->
+  <section id="pantallaPreSocializacion" class="pantalla">
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">Sesión de preparación</h2>
+      <p>Antes de socializar oralmente en Sesión 1, cada institución educativa del grupo puede preparar
+        brevemente sus aportes por escrito — <strong>en este espacio se ingresarán las respuestas</strong>
+        que luego se compartirán con todo el grupo y la comunidad asistente.</p>
+      <p class="ayuda">Todas las IE de este grupo ingresan con el mismo código de acceso. Cada institución
+        elige a la persona responsable de diligenciar sus respuestas de preparación; el punto de partida es
+        un resumen ya sugerido a partir del Informe Ejecutivo (IE) 2026 de esa institución, que se puede
+        editar libremente antes de enviarlo.</p>
+      <p class="ayuda">Este paso es opcional: si el grupo prefiere, puede continuar directamente a la
+        Sesión 1 sin preparar aportes por escrito.</p>
+      <div class="fila-botones">
+        <button class="btn btn-secundario" data-ir="pantallaConfirmacionCaracterizacion">Atrás</button>
+        <button class="btn btn-primario" data-ir="pantallaSeleccionIEPreparacion">Ir a preparación</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7ter. SELECCIÓN DE IE PARA PREPARACIÓN -->
+  <section id="pantallaSeleccionIEPreparacion" class="pantalla">
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">¿Qué institución va a preparar sus aportes?</h2>
+      <p class="ayuda">Selecciona la institución educativa. Luego se te pedirá el nombre de quien va a
+        diligenciar las respuestas.</p>
+      <div id="listaIEPreparacion" class="lista-ie-preparacion"></div>
+      <div class="fila-botones">
+        <button class="btn btn-secundario" data-ir="pantallaPreSocializacion">Atrás</button>
+        <button class="btn btn-primario" data-ir="pantallaSesion1">Continuar a Sesión 1</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7quater. PREPARACIÓN DE UNA IE (preguntas editables) -->
+  <section id="pantallaPreparacionIE" class="pantalla">
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">Preparación — <span id="nombreIEPreparacion"></span></h2>
+      <p class="ayuda">Responsable: <strong id="responsablePreparacionIE"></strong></p>
+      <div id="enlaceInformeEjecutivoIE" class="oculto">
+        <a class="btn btn-secundario" id="btnVerInformeEjecutivoIE" href="#" target="_blank" rel="noopener">
+          📄 Ver/descargar el Informe Ejecutivo de esta IE
+        </a>
+      </div>
+      <p class="ayuda" id="avisoSinInformeEjecutivoIE">No se encontró el Informe Ejecutivo de esta institución;
+        responda las preguntas con la información que tenga disponible.</p>
+
+      <div id="preguntasPreparacionIE"></div>
+
+      <div id="mensajePreparacionIE"></div>
+      <div class="fila-botones">
+        <button class="btn btn-secundario" id="btnGuardarPreparacionIE">Guardar avance</button>
+        <button class="btn btn-primario" id="btnEnviarPreparacionIE">Enviar aportes de esta IE</button>
+      </div>
+    </div>
+    <div class="fila-botones">
+      <button class="btn btn-secundario" data-ir="pantallaSeleccionIEPreparacion">Elegir otra institución</button>
+      <button class="btn btn-primario" data-ir="pantallaSesion1">Continuar a Sesión 1</button>
     </div>
   </section>
 
@@ -261,6 +322,13 @@
       <h2 class="titulo-seccion">Sesión 1 — Socialización y construcción colectiva</h2>
       <p class="ayuda">Registre lo que cada institución compartió durante la socialización (un
         consolidado por grupo, no formulario por IE).</p>
+
+      <div class="tarjeta-socializacion" id="tarjetaSocializacionPreparacion">
+        <h3 class="subtitulo-campo">🗣️ Aportes de preparación por institución</h3>
+        <p class="ayuda">Lo que cada institución envió en la Sesión de preparación, para socializar
+          oralmente con el grupo y la comunidad asistente.</p>
+        <div id="listaSocializacionPreparacion"></div>
+      </div>
 
       <div class="tarjeta-recursos">
         <h3 class="subtitulo-campo">📎 Archivos de apoyo para esta sesión</h3>
@@ -319,7 +387,7 @@
       </div>
     </div>
     <div class="fila-botones">
-      <button class="btn btn-secundario" data-ir="pantallaConfirmacionCaracterizacion">Atrás</button>
+      <button class="btn btn-secundario" data-ir="pantallaSeleccionIEPreparacion">Atrás</button>
       <button class="btn btn-primario" data-ir="pantallaSesion2">Continuar a Sesión 2</button>
     </div>
   </section>
@@ -546,6 +614,22 @@
   <button type="button" class="btn btn-secundario carrusel-ie-saltar" id="btnSaltarCarruselIE">Saltar ⏭</button>
   <div id="itemCarruselIE"></div>
   <p class="carrusel-ie-progreso" id="progresoCarruselIE"></p>
+</div>
+
+<!-- Transición con el logo de UNA sola IE, al entrar a su pantalla de preparación
+     (mismo mecanismo visual que el carrusel de bienvenida, pero un solo ítem). -->
+<div id="pantallaTransicionLogoIE" class="oculto pantalla-carrusel-ie">
+  <div id="itemTransicionLogoIE"></div>
+</div>
+
+<!-- Vista de pantalla completa genérica, reutilizada por la sección de
+     socialización de Sesión 1 para leer un aporte completo de una IE. -->
+<div id="pantallaCompletaTexto" class="oculto pantalla-completa-texto">
+  <button type="button" class="btn btn-secundario" id="btnCerrarPantallaCompletaTexto">✕ Cerrar</button>
+  <div class="contenido-pantalla-completa-texto">
+    <h2 id="tituloPantallaCompletaTexto"></h2>
+    <div id="cuerpoPantallaCompletaTexto"></div>
+  </div>
 </div>
 
 <?!= include('Modal'); ?>

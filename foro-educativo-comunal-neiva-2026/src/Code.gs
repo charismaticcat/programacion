@@ -115,6 +115,26 @@ function rpcActualizarRectorIE(idGrupo, tokenSesion, dispositivoId, idIE, nombre
 }
 
 /* ------------------------------------------------------------------ *
+ * RPC — Sesión de preparación (pre-socialización, Preparacion.gs)
+ * ------------------------------------------------------------------ */
+function rpcObtenerPreparacionIE(idGrupo, idIE) {
+  return obtenerPreparacionIE(idGrupo, idIE);
+}
+
+function rpcGuardarPreparacionIE(idGrupo, tokenSesion, dispositivoId, idIE, responsable, respuestas) {
+  return guardarPreparacionIE(idGrupo, tokenSesion, dispositivoId, idIE, responsable, respuestas);
+}
+
+function rpcMarcarPreparacionEnviada(idGrupo, tokenSesion, dispositivoId, idIE) {
+  return marcarPreparacionEnviada(idGrupo, tokenSesion, dispositivoId, idIE);
+}
+
+/** Aportes de preparación ya enviados por todas las IE del grupo, para la sección de socialización de Sesión 1. */
+function rpcPreparacionesEnviadasGrupo(idGrupo) {
+  return obtenerPreparacionesEnviadasGrupo(idGrupo);
+}
+
+/* ------------------------------------------------------------------ *
  * RPC — Responsable de envío y asistentes de envío
  * ------------------------------------------------------------------ */
 

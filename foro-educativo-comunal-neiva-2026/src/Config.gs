@@ -156,6 +156,7 @@ function inicializarHojasBase_(ss) {
   crear(HOJA_RESPONSABLES_COMUNAL_, cabecerasResponsablesComunal_());
   crear(HOJA_VALORACION_COMUNAL_, cabecerasValoracionComunal_());
   crear(HOJA_PARTICIPACION_ESTAMENTO_, cabecerasParticipacionEstamentoIE_());
+  crear(HOJA_PREPARACION_IE_, cabecerasPreparacionIE_());
   crear("EnviosDiferidosComunal", ["ID_GRUPO", "FECHA_REGISTRO", "REINTENTADO"]);
 
   var hojaConfig = crear("ConfiguracionComunal", CABECERAS_CONFIGURACION_);

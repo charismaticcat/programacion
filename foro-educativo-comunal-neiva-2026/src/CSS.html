@@ -327,6 +327,56 @@ input.input-participantes { width: 90px; padding: 6px 8px; }
 }
 .participacion-ie .fila-botones { margin-top: 10px; }
 
+/* ---------- Sesión de preparación (pre-socialización) ---------- */
+.lista-ie-preparacion { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+.btn-ie-preparacion {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  background: var(--verde-claro); border: 1px solid var(--verde); border-radius: 8px;
+  padding: 12px 16px; font-size: 0.95rem; font-weight: 600; color: var(--verde-oscuro);
+  cursor: pointer; text-align: left;
+}
+.btn-ie-preparacion:hover { background: #d9ede2; }
+.btn-ie-preparacion .marca-enviado { font-size: 1.1rem; }
+.pregunta-preparacion { margin-bottom: 18px; }
+#enlaceInformeEjecutivoIE { margin: 10px 0 16px; }
+#avisoSinInformeEjecutivoIE { margin: 10px 0 16px; }
+
+/* ---------- Sección de socialización (Sesión 1: aportes de preparación por IE) ---------- */
+.tarjeta-socializacion {
+  background: var(--gris-fondo);
+  border: 1px dashed var(--gris-borde);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+details.socializacion-ie {
+  border: 1px solid var(--gris-borde);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 10px 0;
+  background: var(--blanco);
+}
+details.socializacion-ie summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--verde-oscuro);
+}
+details.socializacion-ie[open] summary { margin-bottom: 8px; }
+.socializacion-seccion { margin: 10px 0; padding-top: 8px; border-top: 1px solid var(--gris-borde); }
+.socializacion-seccion:first-of-type { border-top: none; }
+.socializacion-seccion h4 { margin: 0 0 4px; color: var(--verde); font-size: 0.95rem; }
+.socializacion-seccion p { margin: 0 0 8px; white-space: pre-wrap; }
+
+/* ---------- Vista de pantalla completa genérica (aporte de socialización) ---------- */
+.pantalla-completa-texto {
+  position: fixed; inset: 0; z-index: 200; background: var(--verde-oscuro); color: var(--blanco);
+  display: flex; flex-direction: column; align-items: center; padding: 40px 20px; overflow-y: auto;
+}
+.pantalla-completa-texto #btnCerrarPantallaCompletaTexto { position: absolute; top: 20px; right: 20px; }
+.contenido-pantalla-completa-texto { max-width: 720px; width: 100%; }
+.contenido-pantalla-completa-texto h2 { margin-top: 40px; }
+.contenido-pantalla-completa-texto p { white-space: pre-wrap; line-height: 1.6; }
+
 /* ---------- Contador de palabras (Sesión 1 y 2) ---------- */
 .contador-palabras {
   text-align: right;

@@ -193,6 +193,37 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   rector(a) como campo editable (con botón 💾), igual que en FEI 3.1 — se guarda en
   `CaracterizacionIE.RECTOR` y solo se puede editar la de una IE que pertenezca al mismo grupo.
 
+## 4.8 Sesión de preparación (pre-socialización) — `Preparacion.gs`
+
+- Nueva etapa entre "Confirmación de caracterización" y "Sesión 1": todas las IE de un grupo ingresan con
+  el mismo código de acceso (ya no hay límite de 4 responsables). En "Sesión de preparación" el grupo
+  elige, IE por IE, quién va a diligenciar sus respuestas; al confirmar el nombre se hace una transición
+  con el logo de esa institución y se abre su pantalla de preparación.
+- En la pantalla de preparación de cada IE aparece, si existe, un enlace para ver/descargar su propio
+  "Informe Ejecutivo (IE) FEM 2026" real (Drive), y 6 preguntas totalmente editables cuyo texto de partida
+  es un **resumen sugerido** extraído por lectura (nunca escritura) de ese mismo informe:
+  1. Avances en el logro de retos y propósitos del SEM 2025.
+  2. Implementación de niveles de preescolar (jardín, prejardín).
+  3. Pertinencia curricular con las realidades de la comunidad.
+  4. Acciones pedagógicas para articular el currículo con la comunidad.
+  5. Equipos de trabajo para articular con la comunidad.
+  6. Democracia institucional.
+- `RESUMENES_PREPARACION_IE_` (en `Preparacion.gs`) contiene el resumen sugerido de las 36 IE reales,
+  extraído el 2026-09-09 de los archivos "Informe Ejecutivo - `<IE>` FEM 2026.pdf" de Drive (propiedad de
+  `jhonefrainsanchez@gmail.com`). La única excepción es MARIA CRISTINA ARANGO DE PASTRANA (DANE
+  141001001038): no existe ese archivo en Drive (confirmado también por el Informe de Síntesis Municipal
+  FEM 2026), así que sus 6 campos llevan una nota honesta en vez de contenido inventado, y no se muestra
+  enlace al informe ejecutivo para esa IE.
+- Cada respuesta se autoguarda (mismo patrón de debounce que Sesión 1) en la hoja `PreparacionIE`
+  (clave compuesta `ID_GRUPO|ID_IE`, igual que `ParticipacionEstamentoIE`). El botón "Enviar aportes de
+  esta IE" exige al menos una respuesta no vacía y marca `ENVIADO=SI`.
+- Lo que cada IE envía aparece en una tarjeta al inicio de la Sesión 1 ("Aportes de preparación por
+  institución"): un `<details>` colapsado por IE, con un párrafo con título por cada pregunta diligenciada
+  y un botón de pantalla completa (overlay genérico reutilizable), más un botón para expandir/colapsar
+  todas a la vez.
+- Este paso es opcional: en cualquier momento el grupo puede pasar directamente a Sesión 1 sin preparar
+  aportes por escrito.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

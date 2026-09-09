@@ -26,7 +26,11 @@ var estado = {
   recursosSesion1Mostrado: false,
   fotoGrupoId: "",
   totalFirmantes: 0,
-  participacionEstamento: null
+  participacionEstamento: null,
+  prepIdIE: "",
+  prepInstitucion: "",
+  prepResponsable: "",
+  socializacionPreparacion: []
 };
 
 /** URL de imagen para un archivo de Drive público (logos) — mismo patrón usado para el QR de asistencia. */
@@ -37,6 +41,7 @@ function urlImagenDrive(idArchivo, ancho) {
 var ORDEN_PANTALLAS = [
   "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia", "pantallaAcceso",
   "pantallaConsentimientoGrupo", "pantallaParticipacion", "pantallaConfirmacionCaracterizacion",
+  "pantallaPreSocializacion", "pantallaSeleccionIEPreparacion", "pantallaPreparacionIE",
   "pantallaSesion1", "pantallaSesion2", "pantallaRevisionCierre",
   "pantallaInformeGenerado", "pantallaDespedida"
 ];
@@ -88,9 +93,12 @@ function cambiarPantalla(idPantalla) {
     cargarParticipacionEstamento();
   }
   if (idPantalla === "pantallaConfirmacionCaracterizacion") cargarConfirmacionCaracterizacion();
+  if (idPantalla === "pantallaSeleccionIEPreparacion") cargarListaIEPreparacion();
+  if (idPantalla === "pantallaPreparacionIE") cargarPreparacionIE();
   if (idPantalla === "pantallaSesion1") {
     cargarSesion1();
     cargarRecursosSesion1();
+    cargarSocializacionPreparacion();
   }
   if (idPantalla === "pantallaSesion2") cargarConectaEduca();
   if (idPantalla === "pantallaRevisionCierre") prepararCierre();
@@ -114,6 +122,15 @@ document.addEventListener("click", function (evento) {
 
   var guardarRector = evento.target.closest("[data-guardar-rector]");
   if (guardarRector) guardarRectorIE(guardarRector.getAttribute("data-guardar-rector"));
+
+  var elegirIEPreparacion = evento.target.closest("[data-preparar-ie]");
+  if (elegirIEPreparacion) abrirModalResponsablePreparacion(elegirIEPreparacion.getAttribute("data-preparar-ie"));
+
+  var verPantallaCompletaTexto = evento.target.closest("[data-ver-completo]");
+  if (verPantallaCompletaTexto) abrirPantallaCompletaTexto(verPantallaCompletaTexto.getAttribute("data-ver-completo"));
+
+  var alternarSocializacionIE = evento.target.closest("[data-alternar-socializacion]");
+  if (alternarSocializacionIE) alternarTodosDesplegablesSocializacion();
 });
 
 function abrirModal(id) {
@@ -784,6 +801,184 @@ function guardarRectorIE(idIE) {
       if (ie) ie.rector = input.value;
     }
   });
+}
+
+/* ------------------------------------------------------------------ *
+ * Sesión de preparación (pre-socialización) — cada IE elige responsable,
+ * transición con su logo, responde 6 preguntas (punto de partida:
+ * resumen sugerido del Informe Ejecutivo de esa IE) y las envía.
+ * ------------------------------------------------------------------ */
+function cargarListaIEPreparacion() {
+  if (!estado.idGrupo) return;
+  llamarServidor("rpcPreparacionesEnviadasGrupo", [estado.idGrupo], function (enviadas) {
+    var idsEnviados = {};
+    (enviadas || []).forEach(function (e) { idsEnviados[e.idIE] = true; });
+    renderListaIEPreparacion(estado.instituciones, idsEnviados);
+  });
+}
+
+function abrirModalResponsablePreparacion(idIE) {
+  var ie = estado.instituciones.find(function (i) { return i.idIE === idIE; });
+  if (!ie) return;
+  estado.prepIdIE = idIE;
+  estado.prepInstitucion = ie.institucion;
+  document.getElementById("nombreIEResponsablePreparacion").textContent = ie.institucion;
+  document.getElementById("campoResponsablePreparacion").value = "";
+  mostrarMensaje("mensajeResponsablePreparacion", "");
+  abrirModal("modalResponsablePreparacion");
+}
+
+document.getElementById("btnComenzarPreparacionIE").addEventListener("click", function () {
+  var nombre = document.getElementById("campoResponsablePreparacion").value.trim();
+  if (!nombre) {
+    mostrarMensaje("mensajeResponsablePreparacion", "Ingrese el nombre de quien va a diligenciar.", "error");
+    return;
+  }
+  estado.prepResponsable = nombre;
+  cerrarModal("modalResponsablePreparacion");
+  var ie = estado.instituciones.find(function (i) { return i.idIE === estado.prepIdIE; });
+  ejecutarTransicionLogoIE(ie, function () {
+    cambiarPantalla("pantallaPreparacionIE");
+  });
+});
+
+/** Transición de un único logo (mismo mecanismo del carrusel de bienvenida, pero un solo ítem). */
+function ejecutarTransicionLogoIE(ie, alTerminar) {
+  alTerminar = alTerminar || function () {};
+  var overlay = document.getElementById("pantallaTransicionLogoIE");
+  var contenedorItem = document.getElementById("itemTransicionLogoIE");
+  if (!overlay || !contenedorItem || !ie) {
+    alTerminar();
+    return;
+  }
+  var html = "<div class='carrusel-ie-item'>";
+  if (ie.logoId) {
+    html += "<img src='" + urlImagenDrive(ie.logoId, 400) + "' alt='" + escapeHtml(ie.institucion) + "'>";
+  } else {
+    html += "<span class='icono-generico'>🏫</span>";
+  }
+  html += "<p class='nombre-ie'>" + escapeHtml(ie.institucion) + "</p>";
+  html += "</div>";
+  contenedorItem.innerHTML = html;
+  overlay.classList.remove("oculto");
+  setTimeout(function () {
+    overlay.classList.add("oculto");
+    alTerminar();
+  }, 1600);
+}
+
+var CAMPOS_PREPARACION_ = ["P1", "P2", "P3", "P4", "P5", "P6"];
+var temporizadorGuardadoPreparacion = null;
+
+function cargarPreparacionIE() {
+  if (!estado.idGrupo || !estado.prepIdIE) return;
+  document.getElementById("nombreIEPreparacion").textContent = estado.prepInstitucion;
+  document.getElementById("responsablePreparacionIE").textContent = estado.prepResponsable;
+  llamarServidor("rpcObtenerPreparacionIE", [estado.idGrupo, estado.prepIdIE], function (datos) {
+    if (!datos) return;
+    if (datos.responsable) {
+      estado.prepResponsable = datos.responsable;
+      document.getElementById("responsablePreparacionIE").textContent = datos.responsable;
+    }
+    renderPreguntasPreparacionIE(datos.preguntas, datos.respuestas);
+
+    var enlace = document.getElementById("enlaceInformeEjecutivoIE");
+    var aviso = document.getElementById("avisoSinInformeEjecutivoIE");
+    if (datos.urlInformeEjecutivo) {
+      document.getElementById("btnVerInformeEjecutivoIE").href = datos.urlInformeEjecutivo;
+      enlace.classList.remove("oculto");
+      aviso.classList.add("oculto");
+    } else {
+      enlace.classList.add("oculto");
+      aviso.classList.remove("oculto");
+    }
+
+    mostrarMensaje("mensajePreparacionIE", datos.enviado ? "✅ Estos aportes ya fueron enviados para socializar con el grupo." : "", "exito");
+  });
+}
+
+function recolectarRespuestasPreparacionIE() {
+  var respuestas = {};
+  CAMPOS_PREPARACION_.forEach(function (clave) {
+    var el = document.getElementById("campo_prep_" + clave);
+    if (el) respuestas[clave] = el.value;
+  });
+  return respuestas;
+}
+
+function guardarPreparacionIEActual(manual) {
+  if (!estado.idGrupo || !estado.prepIdIE) return;
+  llamarServidor(
+    "rpcGuardarPreparacionIE",
+    [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, estado.prepIdIE, estado.prepResponsable, recolectarRespuestasPreparacionIE()],
+    function (r) {
+      if (manual) mostrarMensaje("mensajePreparacionIE", r.ok ? "Avance guardado." : (r.mensaje || "No fue posible guardar."), r.ok ? "exito" : "error");
+    }
+  );
+}
+
+document.addEventListener("input", function (evento) {
+  var campo = evento.target.closest("[data-prep-pregunta]");
+  if (!campo) return;
+  clearTimeout(temporizadorGuardadoPreparacion);
+  temporizadorGuardadoPreparacion = setTimeout(function () {
+    guardarPreparacionIEActual(false);
+  }, 2000);
+});
+
+document.getElementById("btnGuardarPreparacionIE").addEventListener("click", function () {
+  guardarPreparacionIEActual(true);
+});
+
+document.getElementById("btnEnviarPreparacionIE").addEventListener("click", function () {
+  if (!confirm("¿Enviar los aportes de " + estado.prepInstitucion + " para socializar con el grupo?")) return;
+  guardarPreparacionIEActual(false);
+  llamarServidor("rpcMarcarPreparacionEnviada", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, estado.prepIdIE], function (r) {
+    if (!r.ok) {
+      mostrarMensaje("mensajePreparacionIE", r.mensaje || "No fue posible enviar.", "error");
+      return;
+    }
+    mostrarMensaje(
+      "mensajePreparacionIE",
+      "✅ Aportes de la IE " + estado.prepInstitucion + " enviados para socializar oralmente con el grupo " +
+        estado.grupo + " y la comunidad asistente.",
+      "exito"
+    );
+  });
+});
+
+/* ---- Sección de socialización en Sesión 1: aportes de preparación ya enviados por cada IE ---- */
+function cargarSocializacionPreparacion() {
+  if (!estado.idGrupo) return;
+  llamarServidor("rpcPreparacionesEnviadasGrupo", [estado.idGrupo], function (datos) {
+    estado.socializacionPreparacion = datos || [];
+    renderSocializacionPreparacion(estado.socializacionPreparacion);
+  });
+}
+
+function abrirPantallaCompletaTexto(clave) {
+  var partes = String(clave || "").split("|");
+  var idIE = partes[0];
+  var claveSeccion = partes[1];
+  var ie = (estado.socializacionPreparacion || []).find(function (i) { return i.idIE === idIE; });
+  if (!ie) return;
+  var seccion = ie.secciones.find(function (s) { return s.clave === claveSeccion; });
+  if (!seccion) return;
+  document.getElementById("tituloPantallaCompletaTexto").textContent = ie.institucion + " — " + seccion.titulo;
+  document.getElementById("cuerpoPantallaCompletaTexto").innerHTML = "<p>" + escapeHtml(seccion.texto).replace(/\n/g, "<br>") + "</p>";
+  document.getElementById("pantallaCompletaTexto").classList.remove("oculto");
+}
+document.getElementById("btnCerrarPantallaCompletaTexto").addEventListener("click", function () {
+  document.getElementById("pantallaCompletaTexto").classList.add("oculto");
+});
+
+function alternarTodosDesplegablesSocializacion() {
+  var todos = document.querySelectorAll("#listaSocializacionPreparacion details.socializacion-ie");
+  if (!todos.length) return;
+  var abrirTodas = !todos[0].open;
+  todos.forEach(function (d) { d.open = abrirTodas; });
+  var boton = document.querySelector("[data-alternar-socializacion]");
+  if (boton) boton.textContent = abrirTodas ? "Colapsar todas" : "Expandir todas";
 }
 
 /* ------------------------------------------------------------------ *
