@@ -180,8 +180,20 @@
 
     <div class="tarjeta">
       <h2 class="titulo-seccion">Participación y asistencia</h2>
+      <p class="contador-participantes-tarjeta">👥 Total de participantes registrados:
+        <strong id="contadorParticipantesTarjeta">0</strong></p>
       <p class="ayuda">Instituciones educativas de <strong id="nombreGrupoParticipacion"></strong>:</p>
       <div class="lista-instituciones" id="listaInstituciones"></div>
+
+      <h3 class="subtitulo-campo" style="margin-top:20px;">Fotografía general del grupo</h3>
+      <p class="ayuda">Una foto representativa del encuentro de este grupo (opcional, independiente del
+        método de asistencia elegido).</p>
+      <div id="previaFotoGrupo"></div>
+      <input type="file" id="campoFotoGrupo" accept="image/*">
+      <div class="fila-botones">
+        <button class="btn btn-secundario" id="btnSubirFotoGrupo">Subir fotografía del grupo</button>
+      </div>
+      <div id="mensajeFotoGrupo"></div>
     </div>
 
     <div class="tarjeta">

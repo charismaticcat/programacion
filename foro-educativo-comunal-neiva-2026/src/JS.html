@@ -23,7 +23,8 @@ var estado = {
   consentimientoGrupo: false,
   rolesForo: [],
   responsables: { principal: null, asistentes: [] },
-  recursosSesion1Mostrado: false
+  recursosSesion1Mostrado: false,
+  fotoGrupoId: ""
 };
 
 /** URL de imagen para un archivo de Drive público (logos) — mismo patrón usado para el QR de asistencia. */
@@ -210,6 +211,26 @@ document.getElementById("btnComenzarForo").addEventListener("click", function ()
 });
 
 /* ------------------------------------------------------------------ *
+ * Contador de palabras (Sesión 1 y Sesión 2 — preguntas abiertas)
+ * ------------------------------------------------------------------ */
+function inicializarContadoresPalabras() {
+  var textareas = document.querySelectorAll("#pantallaSesion1 textarea, #pantallaSesion2 textarea");
+  textareas.forEach(function (textarea) {
+    var contador = document.createElement("p");
+    contador.className = "contador-palabras";
+    textarea.insertAdjacentElement("afterend", contador);
+    var actualizar = function () {
+      var texto = textarea.value.trim();
+      var palabras = texto ? texto.split(/\s+/).length : 0;
+      contador.textContent = palabras + (palabras === 1 ? " palabra" : " palabras");
+    };
+    textarea.addEventListener("input", actualizar);
+    actualizar();
+  });
+}
+inicializarContadoresPalabras();
+
+/* ------------------------------------------------------------------ *
  * Recursos descargables antes de Sesión 1
  * ------------------------------------------------------------------ */
 function cargarRecursosSesion1() {
@@ -257,11 +278,13 @@ function intentarValidarAcceso(forzar) {
     estado.metodoAsistencia = r.metodoAsistencia || "";
     estado.logoId = r.logoId || "";
     estado.consentimientoGrupo = !!r.consentimientoGrupo;
+    estado.fotoGrupoId = r.fotoGrupoId || "";
 
     document.getElementById("nombreGrupoParticipacion").textContent = r.grupo;
     poblarSelectInstituciones("campoIEResponsable", estado.instituciones);
     poblarSelectInstituciones("campoIEAsistente", estado.instituciones);
     renderListaInstituciones(estado.instituciones);
+    renderFotoGrupo(estado.fotoGrupoId);
     document.getElementById("panelFirmantes").classList.remove("oculto");
 
     mostrarPanelMetodoAsistencia(estado.metodoAsistencia);
@@ -425,6 +448,33 @@ document.getElementById("btnSubirEvidencia").addEventListener("click", function 
       function (r) {
         mostrarMensaje("mensajeMetodoAsistencia", r.ok ? "Fotografía subida correctamente." : (r.mensaje || "No fue posible subir la fotografía."), r.ok ? "exito" : "error");
         if (r.ok) input.value = "";
+      }
+    );
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * Fotografía general del grupo (Participación) — independiente del
+ * método de asistencia elegido.
+ * ------------------------------------------------------------------ */
+document.getElementById("btnSubirFotoGrupo").addEventListener("click", function () {
+  var input = document.getElementById("campoFotoGrupo");
+  var archivo = input.files[0];
+  if (!archivo) {
+    mostrarMensaje("mensajeFotoGrupo", "Selecciona primero una fotografía.", "error");
+    return;
+  }
+  leerArchivoComoBase64_(archivo, function (base64) {
+    llamarServidor(
+      "rpcSubirFotoGrupo",
+      [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, base64, archivo.name, archivo.type],
+      function (r) {
+        mostrarMensaje("mensajeFotoGrupo", r.ok ? "Fotografía subida correctamente." : (r.mensaje || "No fue posible subir la fotografía."), r.ok ? "exito" : "error");
+        if (r.ok) {
+          input.value = "";
+          estado.fotoGrupoId = r.fileId;
+          renderFotoGrupo(estado.fotoGrupoId);
+        }
       }
     );
   });

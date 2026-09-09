@@ -109,6 +109,34 @@ function subirFotoEvidencia(idGrupo, tokenSesion, dispositivoId, datosBase64, no
 }
 
 /**
+ * Sube la fotografía general del grupo (Participación) — independiente
+ * del método de asistencia elegido, a diferencia de la fotografía de
+ * evidencia (que solo aplica al método "Listado físico"). Se guarda en
+ * la misma carpeta 06_EVIDENCIAS/GRUPO N, en su propia columna
+ * (FOTO_GRUPO_ID) para no mezclarla con esa evidencia.
+ */
+function subirFotoGrupo(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType) {
+  idGrupo = String(idGrupo || "").trim();
+  if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
+    return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión ya no está activa en este dispositivo." };
+  }
+  var grupoInfo = obtenerGrupoPorId(idGrupo);
+  if (!grupoInfo) return { ok: false, mensaje: "Grupo no encontrado." };
+
+  return conLock_(function () {
+    var carpeta = asegurarCarpetaEvidenciasGrupo_(grupoInfo.grupo);
+    var file = subirArchivoACarpeta_(carpeta, datosBase64, nombreArchivo, mimeType);
+    hacerPublicoSiEsPosible_(file);
+
+    var hoja = obtenerHoja_(HOJA_ACCESOS_GRUPO_, cabecerasAccesosGrupo_());
+    var mapa = obtenerMapaCabeceras_(hoja);
+    var fila = buscarFilaPorColumna_(hoja, mapa, "ID_GRUPO", idGrupo);
+    if (fila !== -1) hoja.getRange(fila, mapa["FOTO_GRUPO_ID"]).setValue(file.getId());
+    return { ok: true, fileId: file.getId(), url: file.getUrl() };
+  }, 30000);
+}
+
+/**
  * Registro rápido de asistencia desde la página pública de QR/enlace
  * (sin token/código, igual que registrarAsistenciaQR en 3.1 — es un punto
  * de entrada de conveniencia, no un control de seguridad). Reutiliza la

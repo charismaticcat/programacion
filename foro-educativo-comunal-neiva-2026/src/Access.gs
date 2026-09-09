@@ -92,7 +92,8 @@ function validarAccesoGrupo(token, codigo, dispositivoId, forzar) {
     instituciones: obtenerInstitucionesDelGrupo(idGrupo),
     logoId: valorColumna("LOGO_ID"),
     metodoAsistencia: valorColumna("METODO_ASISTENCIA"),
-    consentimientoGrupo: valorColumna("CONSENTIMIENTO_GRUPO") === "SI"
+    consentimientoGrupo: valorColumna("CONSENTIMIENTO_GRUPO") === "SI",
+    fotoGrupoId: valorColumna("FOTO_GRUPO_ID")
   };
 }
 
@@ -150,6 +151,10 @@ function cabecerasAccesosGrupo_() {
     // Asistencia (Asistencia.gs): logo propio del grupo + método elegido
     // (QR/enlace o listado físico) + referencias a lo subido.
     "LOGO_ID", "METODO_ASISTENCIA", "ID_LISTADO_ASISTENCIA", "ID_FOTO_EVIDENCIA",
+    // Foto general del grupo (Participación) — independiente del método de
+    // asistencia elegido; distinta de ID_FOTO_EVIDENCIA (esa solo aplica
+    // cuando el método es "Listado físico").
+    "FOTO_GRUPO_ID",
     // Consentimiento informado del grupo (sección 3.2 del Documento
     // Orientador FEM2026) — se confirma una sola vez por grupo.
     "CONSENTIMIENTO_GRUPO", "FECHA_CONSENTIMIENTO_GRUPO"

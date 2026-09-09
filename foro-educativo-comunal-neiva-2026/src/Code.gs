@@ -144,6 +144,11 @@ function rpcSubirFotoEvidencia(idGrupo, tokenSesion, dispositivoId, datosBase64,
   return subirFotoEvidencia(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType);
 }
 
+/** Foto general del grupo (Participación) — independiente del método de asistencia elegido. */
+function rpcSubirFotoGrupo(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType) {
+  return subirFotoGrupo(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType);
+}
+
 /** Usada desde AsistenciaPublica.html (página pública QR, sin token/código). */
 function rpcRegistrarAsistenciaPublica(idGrupo, idIE, nombre, estamento, correo) {
   return registrarAsistenciaPublica(idGrupo, idIE, nombre, estamento, correo);

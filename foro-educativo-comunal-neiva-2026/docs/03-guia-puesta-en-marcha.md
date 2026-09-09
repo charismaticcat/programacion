@@ -133,6 +133,26 @@ verificados uno a uno contra la carpeta pública
 FEI — si se agregan grupos nuevos o se reemplazan esos documentos, hay que actualizar ese mapa a mano
 (nunca se generan IDs automáticamente).
 
+**Importante — permisos de Drive**: estos 4 recursos siguen siendo propiedad de la cuenta que ejecuta
+el script; el enlace funciona para el dueño, pero cualquier otra persona recibe "no se puede abrir el
+archivo en estos momentos" si el archivo/carpeta no está compartido con ella. Antes de enviar accesos a
+usuarios reales, comparte las 6 carpetas de grupo y los 2 archivos fijos con "Cualquier persona con el
+enlace" (o con cada destinatario específico) desde Google Drive.
+
+## 4.4 Contador de palabras, contador de participantes y foto general del grupo
+
+- **Contador de palabras**: cada pregunta abierta de Sesión 1 y Sesión 2 (incluidos los campos de
+  "Aporte propio") muestra en vivo, debajo del cuadro de texto, cuántas palabras lleva escritas
+  (`inicializarContadoresPalabras()` en `JS.html`, genérico sobre cualquier `textarea` de esas dos
+  pantallas — no hace falta tocarlo si se agregan preguntas nuevas).
+- **Contador de participantes**: además del contador que ya aparece fijo arriba de toda la pantalla
+  (barra sticky) desde que se entra a Participación, el mismo total ahora también se muestra dentro de
+  la propia tarjeta "Participación y asistencia".
+- **Fotografía general del grupo**: en la tarjeta de Participación, cualquier dispositivo puede subir
+  una foto representativa del encuentro — independiente del método de asistencia elegido, a diferencia
+  de la fotografía de evidencia (que solo aplica cuando el método es "Listado físico"). Se guarda en
+  `06_EVIDENCIAS/GRUPO N` (columna `FOTO_GRUPO_ID` de `AccesosGrupo`, distinta de `ID_FOTO_EVIDENCIA`).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

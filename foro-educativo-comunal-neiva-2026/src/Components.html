@@ -27,6 +27,8 @@ function renderListaInstituciones(instituciones) {
 
 function renderResumenFirmantes(estado) {
   document.getElementById("contadorFirmantes").textContent = estado.total || 0;
+  var contadorTarjeta = document.getElementById("contadorParticipantesTarjeta");
+  if (contadorTarjeta) contadorTarjeta.textContent = estado.total || 0;
   var ultimos = (estado.firmantes || []).slice(0, 3).map(function (f) {
     return f.nombre;
   });
@@ -164,6 +166,15 @@ function renderRecursosSesion1(recursos) {
       contenedorBotones.appendChild(_htmlItemRecurso(r, true));
     });
   }
+}
+
+/** Vista previa de la fotografía general del grupo, o vacío si aún no se ha subido ninguna. */
+function renderFotoGrupo(fotoGrupoId) {
+  var contenedor = document.getElementById("previaFotoGrupo");
+  if (!contenedor) return;
+  contenedor.innerHTML = fotoGrupoId
+    ? "<img src='" + urlImagenDrive(fotoGrupoId, 600) + "' alt='Fotografía general del grupo'>"
+    : "<p class='ayuda'>Todavía no se ha subido ninguna fotografía.</p>";
 }
 
 function renderTablaConectaEduca(registros) {
