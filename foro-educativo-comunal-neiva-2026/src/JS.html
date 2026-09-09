@@ -24,7 +24,9 @@ var estado = {
   rolesForo: [],
   responsables: { principal: null, asistentes: [] },
   recursosSesion1Mostrado: false,
-  fotoGrupoId: ""
+  fotoGrupoId: "",
+  totalFirmantes: 0,
+  participacionEstamento: null
 };
 
 /** URL de imagen para un archivo de Drive público (logos) — mismo patrón usado para el QR de asistencia. */
@@ -83,7 +85,7 @@ function cambiarPantalla(idPantalla) {
   if (idPantalla === "pantallaParticipacion") {
     actualizarFirmantes();
     cargarResponsables();
-    cargarMatrizParticipacion();
+    cargarParticipacionEstamento();
   }
   if (idPantalla === "pantallaConfirmacionCaracterizacion") cargarConfirmacionCaracterizacion();
   if (idPantalla === "pantallaSesion1") {
@@ -106,6 +108,12 @@ document.addEventListener("click", function (evento) {
 
   var quitarAsistente = evento.target.closest("[data-quitar-asistente]");
   if (quitarAsistente) quitarAsistenteEnvio(quitarAsistente.getAttribute("data-quitar-asistente"));
+
+  var guardarParticipacionIE = evento.target.closest("[data-guardar-participacion-ie]");
+  if (guardarParticipacionIE) guardarParticipacionEstamentoIE(guardarParticipacionIE.getAttribute("data-guardar-participacion-ie"));
+
+  var guardarRector = evento.target.closest("[data-guardar-rector]");
+  if (guardarRector) guardarRectorIE(guardarRector.getAttribute("data-guardar-rector"));
 });
 
 function abrirModal(id) {
@@ -116,57 +124,66 @@ function cerrarModal(id) {
 }
 
 /* ------------------------------------------------------------------ *
- * Transición inicial (splash: logo del Foro + logo de la Alcaldía)
+ * Transición inicial (splash: logo del Foro, luego logo de la SEM Neiva,
+ * uno a la vez con crossfade)
  * ------------------------------------------------------------------ */
 function iniciarSplashInicial() {
   var splash = document.getElementById("pantallaSplashInicial");
   if (!splash) return;
-
-  if (LOGO_ENCABEZADO_ID) {
-    var imgForo = document.getElementById("imagenLogoForoSplash");
-    imgForo.src = urlImagenDrive(LOGO_ENCABEZADO_ID, 500);
-    imgForo.classList.remove("oculto");
-  }
-  if (LOGO_PIE_ID) {
-    var imgAlcaldia = document.getElementById("imagenLogoAlcaldiaSplash");
-    imgAlcaldia.src = urlImagenDrive(LOGO_PIE_ID, 500);
-    imgAlcaldia.classList.remove("oculto");
-  }
+  var img = document.getElementById("imagenSplashActual");
+  var secuencia = [LOGO_ENCABEZADO_ID, LOGO_PIE_ID].filter(Boolean);
 
   var cerrado = false;
+  var temporizador = null;
   var cerrarSplash = function () {
     if (cerrado) return;
     cerrado = true;
+    clearTimeout(temporizador);
     splash.classList.add("oculto");
   };
+
+  if (!secuencia.length) {
+    cerrarSplash();
+    return;
+  }
+
+  var indice = 0;
+  var mostrarSiguiente = function () {
+    if (indice >= secuencia.length) {
+      temporizador = setTimeout(cerrarSplash, 900);
+      return;
+    }
+    img.classList.remove("visible");
+    setTimeout(function () {
+      if (cerrado) return;
+      img.src = urlImagenDrive(secuencia[indice], 600);
+      img.classList.add("visible");
+    }, 250);
+    indice++;
+    temporizador = setTimeout(mostrarSiguiente, 2200);
+  };
+
   splash.addEventListener("click", cerrarSplash);
-  setTimeout(cerrarSplash, 4000); // menos de 5 segundos, spec
+  mostrarSiguiente();
 }
 iniciarSplashInicial();
 
 /* ------------------------------------------------------------------ *
- * Carrusel de bienvenida — cada I.E. aparece una a una (1s c/u)
+ * Carrusel de bienvenida — cada I.E. del grupo aparece una a una (1s
+ * c/u), justo después de validar el código de acceso (no antes).
  * ------------------------------------------------------------------ */
-function mostrarCarruselIE() {
-  // El enlace de acceso (?t=TOKEN) ya identifica un grupo concreto: en ese
-  // caso el carrusel solo debe mostrar las IE de ESE grupo, nunca las de
-  // los demás. Solo se muestran todas cuando el enlace es genérico (sin
-  // token de grupo todavía resuelto).
-  var nombreRpc = ID_GRUPO_ACCESO ? "rpcInstitucionesDelGrupo" : "rpcTodasLasInstituciones";
-  var argumentos = ID_GRUPO_ACCESO ? [ID_GRUPO_ACCESO] : [];
-
-  llamarServidor(nombreRpc, argumentos, function (instituciones) {
+function mostrarCarruselIE(alTerminar) {
+  alTerminar = alTerminar || function () {};
+  llamarServidor("rpcInstitucionesDelGrupo", [estado.idGrupo], function (instituciones) {
     if (!instituciones || !instituciones.length) {
-      cambiarPantalla("pantallaPresentacion");
+      alTerminar();
       return;
     }
-    ejecutarCarruselIE(instituciones);
-  }, function () {
-    cambiarPantalla("pantallaPresentacion");
-  });
+    ejecutarCarruselIE(instituciones, alTerminar);
+  }, alTerminar);
 }
 
-function ejecutarCarruselIE(instituciones) {
+function ejecutarCarruselIE(instituciones, alTerminar) {
   var overlay = document.getElementById("pantallaCarruselIE");
   var contenedorItem = document.getElementById("itemCarruselIE");
   var progreso = document.getElementById("progresoCarruselIE");
@@ -178,7 +195,7 @@ function ejecutarCarruselIE(instituciones) {
   var terminar = function () {
     if (temporizador) clearTimeout(temporizador);
     overlay.classList.add("oculto");
-    cambiarPantalla("pantallaPresentacion");
+    alTerminar();
   };
 
   var mostrarSiguiente = function () {
@@ -207,7 +224,7 @@ function ejecutarCarruselIE(instituciones) {
 }
 
 document.getElementById("btnComenzarForo").addEventListener("click", function () {
-  mostrarCarruselIE();
+  cambiarPantalla("pantallaPresentacion");
 });
 
 /* ------------------------------------------------------------------ *
@@ -292,7 +309,12 @@ function intentarValidarAcceso(forzar) {
     iniciarPollingFirmantes();
     cargarRolesForo();
 
-    cambiarPantalla(estado.consentimientoGrupo ? "pantallaParticipacion" : "pantallaConsentimientoGrupo");
+    // El "recorrido" de logos de las IE del grupo va justo después de
+    // validar el código de acceso (spec), no antes — en ese punto ya se
+    // conoce con certeza a qué grupo pertenece este dispositivo.
+    mostrarCarruselIE(function () {
+      cambiarPantalla(estado.consentimientoGrupo ? "pantallaParticipacion" : "pantallaConsentimientoGrupo");
+    });
   });
 }
 
@@ -362,6 +384,8 @@ function cargarEnlaceAsistencia() {
 
 function elegirMetodoAsistencia(metodo) {
   mostrarPanelMetodoAsistencia(metodo);
+  estado.metodoAsistencia = metodo;
+  renderResumenParticipacionEstamento(estado.participacionEstamento, estado.metodoAsistencia, estado.totalFirmantes || 0);
   llamarServidor("rpcGuardarMetodoAsistencia", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, metodo], function (r) {
     if (!r.ok) mostrarMensaje("mensajeMetodoAsistencia", r.mensaje || "No fue posible guardar el método.", "error");
   });
@@ -428,25 +452,6 @@ document.getElementById("btnSubirListado").addEventListener("click", function ()
       [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, base64, archivo.name, archivo.type],
       function (r) {
         mostrarMensaje("mensajeMetodoAsistencia", r.ok ? "Listado subido correctamente." : (r.mensaje || "No fue posible subir el listado."), r.ok ? "exito" : "error");
-        if (r.ok) input.value = "";
-      }
-    );
-  });
-});
-
-document.getElementById("btnSubirEvidencia").addEventListener("click", function () {
-  var input = document.getElementById("campoArchivoEvidencia");
-  var archivo = input.files[0];
-  if (!archivo) {
-    mostrarMensaje("mensajeMetodoAsistencia", "Selecciona primero una fotografía.", "error");
-    return;
-  }
-  leerArchivoComoBase64_(archivo, function (base64) {
-    llamarServidor(
-      "rpcSubirFotoEvidencia",
-      [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, base64, archivo.name, archivo.type],
-      function (r) {
-        mostrarMensaje("mensajeMetodoAsistencia", r.ok ? "Fotografía subida correctamente." : (r.mensaje || "No fue posible subir la fotografía."), r.ok ? "exito" : "error");
         if (r.ok) input.value = "";
       }
     );
@@ -580,14 +585,44 @@ function quitarAsistenteEnvio(idRegistro) {
 }
 
 /* ------------------------------------------------------------------ *
- * Matriz de participación por estamento e institución
+ * Participación por estamento e institución (formato de 3.1, por IE) —
+ * conteo manual con autosuma, distinto del conteo de firmantes en vivo.
  * ------------------------------------------------------------------ */
-function cargarMatrizParticipacion() {
+function cargarParticipacionEstamento() {
   if (!estado.idGrupo) return;
-  llamarServidor("rpcMatrizParticipacion", [estado.idGrupo], function (matriz) {
-    renderMatrizParticipacion(matriz);
+  llamarServidor("rpcObtenerParticipacionEstamento", [estado.idGrupo], function (datos) {
+    estado.participacionEstamento = datos;
+    renderParticipacionEstamento(datos);
+    renderResumenParticipacionEstamento(datos, estado.metodoAsistencia, estado.totalFirmantes || 0);
   });
 }
+
+function guardarParticipacionEstamentoIE(idIE) {
+  var contenedorIE = document.querySelector('.participacion-ie[data-ie="' + idIE + '"]');
+  if (!contenedorIE) return;
+  var valores = {};
+  contenedorIE.querySelectorAll(".input-participantes").forEach(function (input) {
+    valores[input.dataset.estamento] = input.value;
+  });
+  llamarServidor("rpcGuardarParticipacionEstamentoIE", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, idIE, valores], function (r) {
+    var estadoEl = document.getElementById("estadoParticipacionIE_" + idIE);
+    if (estadoEl) estadoEl.textContent = r.ok ? "✓ Guardado" : (r.mensaje || "No fue posible guardar.");
+    if (r.ok) cargarParticipacionEstamento();
+  });
+}
+
+document.addEventListener("input", function (evento) {
+  var input = evento.target.closest(".input-participantes");
+  if (!input) return;
+  var contenedorIE = input.closest(".participacion-ie");
+  if (!contenedorIE) return;
+  var total = 0;
+  contenedorIE.querySelectorAll(".input-participantes").forEach(function (i) {
+    total += Math.max(0, parseInt(i.value, 10) || 0);
+  });
+  var totalEl = contenedorIE.querySelector(".total-participacion-ie strong");
+  if (totalEl) totalEl.textContent = total;
+});
 
 /* ------------------------------------------------------------------ *
  * Participación / firmantes
@@ -596,7 +631,9 @@ function actualizarFirmantes() {
   if (!estado.idGrupo) return;
   llamarServidor("rpcEstadoFirmantes", [estado.idGrupo], function (r) {
     estado.ultimosFirmantes = r.firmantes || [];
+    estado.totalFirmantes = r.total || 0;
     renderResumenFirmantes(r);
+    renderResumenParticipacionEstamento(estado.participacionEstamento, estado.metodoAsistencia, estado.totalFirmantes);
   });
 }
 
@@ -728,10 +765,24 @@ document.getElementById("btnEnviarSesion2").addEventListener("click", function (
  * ------------------------------------------------------------------ */
 function cargarConfirmacionCaracterizacion() {
   if (!estado.idGrupo) return;
-  llamarServidor("rpcMatrizParticipacion", [estado.idGrupo], function (matriz) {
+  llamarServidor("rpcEstadoFirmantes", [estado.idGrupo], function (estadoFirmantes) {
     llamarServidor("rpcListarResponsables", [estado.idGrupo], function (responsables) {
-      renderFichaCaracterizacion(estado.grupo, estado.instituciones, matriz, responsables);
+      renderFichaCaracterizacion(estado.grupo, estado.instituciones, estadoFirmantes, responsables);
     });
+  });
+}
+
+/** Rector(a) editable en la ficha de Confirmación de caracterización (igual que en FEI 3.1). */
+function guardarRectorIE(idIE) {
+  var input = document.querySelector('[data-ie-rector="' + idIE + '"]');
+  var estadoEl = document.getElementById("estadoRector_" + idIE);
+  if (!input) return;
+  llamarServidor("rpcActualizarRectorIE", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, idIE, input.value], function (r) {
+    if (estadoEl) estadoEl.textContent = r.ok ? "✓ Guardado" : (r.mensaje || "No fue posible guardar.");
+    if (r.ok) {
+      var ie = estado.instituciones.find(function (i) { return i.idIE === idIE; });
+      if (ie) ie.rector = input.value;
+    }
   });
 }
 

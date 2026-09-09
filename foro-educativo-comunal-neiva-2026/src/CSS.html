@@ -85,9 +85,9 @@ main {
   margin: 0 auto;
   padding: 12px 16px 80px;
 }
-.pantalla { display: none; animation: aparecer 0.2s ease-in; }
+.pantalla { display: none; animation: aparecer 0.5s ease-out; }
 .pantalla.visible { display: block; }
-@keyframes aparecer { from { opacity: 0; } to { opacity: 1; } }
+@keyframes aparecer { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
 .tarjeta {
   background: var(--blanco);
@@ -212,6 +212,13 @@ details.desplegable-aporte[open] summary { margin-bottom: 8px; }
 .ficha-caracterizacion caption {
   text-align: left; font-weight: 700; color: var(--verde); margin-bottom: 6px;
 }
+.celda-rector { display: flex; align-items: center; gap: 6px; }
+.celda-rector .input-rector { flex: 1; min-width: 140px; padding: 6px 8px; font-size: 0.9rem; }
+.btn-guardar-rector {
+  background: none; border: 1px solid var(--gris-borde); border-radius: 6px;
+  padding: 4px 8px; cursor: pointer; font-size: 1rem;
+}
+.estado-rector { font-size: 0.8rem; color: var(--verde-oscuro); }
 
 /* ---------- Fichas de responsable/asistente de envío ---------- */
 .tarjeta-responsable {
@@ -265,15 +272,18 @@ a.btn-recurso {
 }
 a.btn-recurso:hover { background: var(--verde-claro); }
 
-/* ---------- Transición inicial (splash: foro + alcaldía) ---------- */
+/* ---------- Transición inicial (splash: logo del Foro, luego de la SEM) ---------- */
 .pantalla-splash {
   position: fixed; inset: 0; z-index: 300; background: var(--verde-oscuro); color: var(--blanco);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
   text-align: center; padding: 24px; cursor: pointer;
+  transition: opacity 0.6s ease;
 }
-.pantalla-splash .fila-logos-splash { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; justify-content: center; }
-.pantalla-splash img { max-height: 20vh; max-width: 60vw; background: var(--blanco); border-radius: 12px; padding: 12px; }
-.pantalla-splash .marca-texto { font-size: 1.2rem; font-weight: 700; margin: 0; }
+.pantalla-splash img.imagen-splash {
+  max-height: 26vh; max-width: 70vw; background: var(--blanco); border-radius: 12px; padding: 16px;
+  opacity: 0; transition: opacity 0.8s ease;
+}
+.pantalla-splash img.imagen-splash.visible { opacity: 1; }
 .pantalla-splash .toque-continuar { font-size: 0.8rem; opacity: 0.75; position: absolute; bottom: 24px; margin: 0; }
 
 /* ---------- Carrusel de bienvenida (logos y nombres de I.E., uno a uno) ---------- */
@@ -290,6 +300,32 @@ a.btn-recurso:hover { background: var(--verde-claro); }
 @keyframes aparecerCarrusel { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 .carrusel-ie-progreso { position: absolute; bottom: 24px; font-size: 0.85rem; opacity: 0.8; margin: 0; }
 .carrusel-ie-saltar { position: absolute; top: 20px; right: 20px; }
+
+/* ---------- Participación por estamento e institución (formato 3.1, por IE) ---------- */
+.resumen-participacion-estamento {
+  background: var(--verde-claro);
+  color: var(--verde-oscuro);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-weight: 600;
+}
+.participacion-ie {
+  border: 1px solid var(--gris-borde);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+.participacion-ie h4 { margin: 0 0 8px; color: var(--verde-oscuro); }
+table.tabla-participacion-estamento { width: 100%; border-collapse: collapse; }
+table.tabla-participacion-estamento th, table.tabla-participacion-estamento td {
+  text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--gris-borde); font-size: 0.9rem;
+}
+input.input-participantes { width: 90px; padding: 6px 8px; }
+.total-participacion-ie {
+  display: flex; justify-content: space-between; font-weight: 700; padding: 8px 8px 0; color: var(--verde-oscuro);
+}
+.participacion-ie .fila-botones { margin-top: 10px; }
 
 /* ---------- Contador de palabras (Sesión 1 y 2) ---------- */
 .contador-palabras {

@@ -10,15 +10,12 @@
 </head>
 <body>
 
-<!-- Transición inicial: logo del Foro + logo de la Alcaldía, menos de 5
-     segundos, se puede saltar tocando la pantalla. Se muestra antes que
-     cualquier otra cosa; debajo queda la pantalla de bienvenida lista. -->
+<!-- Transición inicial: primero el logo del Foro, luego el de la SEM Neiva
+     (uno a la vez, con crossfade), menos de 5 segundos en total, se puede
+     saltar tocando la pantalla. Se muestra antes que cualquier otra cosa;
+     debajo queda la pantalla de bienvenida lista. -->
 <div id="pantallaSplashInicial" class="pantalla-splash">
-  <div class="fila-logos-splash">
-    <img id="imagenLogoForoSplash" class="oculto" alt="<?!= NOMBRE_FORO ?>">
-    <img id="imagenLogoAlcaldiaSplash" class="oculto" alt="Alcaldía de Neiva">
-  </div>
-  <p class="marca-texto"><?!= NOMBRE_FORO ?></p>
+  <img id="imagenSplashActual" class="imagen-splash" alt="<?!= NOMBRE_FORO ?>">
   <p class="toque-continuar">Toque para continuar</p>
 </div>
 
@@ -169,11 +166,6 @@
         <div class="fila-botones">
           <button class="btn btn-secundario" id="btnSubirListado">Subir listado</button>
         </div>
-        <label for="campoArchivoEvidencia">Fotografía del encuentro (evidencia)</label>
-        <input type="file" id="campoArchivoEvidencia" accept="image/*">
-        <div class="fila-botones">
-          <button class="btn btn-secundario" id="btnSubirEvidencia">Subir fotografía</button>
-        </div>
         <div id="mensajeMetodoAsistencia"></div>
       </div>
     </div>
@@ -237,9 +229,11 @@
 
     <div class="tarjeta">
       <h3 class="subtitulo-campo">Cantidad de asistentes por estamento e institución</h3>
-      <p class="ayuda">Se calcula automáticamente a partir de las firmas registradas (método QR/enlace).
-        Si el grupo usa listado físico, esta tabla no reflejará esas firmas en papel.</p>
-      <div id="contenedorMatrizParticipacion" style="overflow-x:auto;"></div>
+      <p class="ayuda">Registre cuántas personas de cada estamento participaron, por cada institución
+        educativa del grupo (mismo formato de la caracterización de FEI 3.1). La suma se calcula
+        automáticamente.</p>
+      <div id="resumenParticipacionEstamento" class="resumen-participacion-estamento"></div>
+      <div id="contenedorParticipacionEstamento"></div>
     </div>
 
     <div class="fila-botones">
@@ -325,6 +319,7 @@
       </div>
     </div>
     <div class="fila-botones">
+      <button class="btn btn-secundario" data-ir="pantallaConfirmacionCaracterizacion">Atrás</button>
       <button class="btn btn-primario" data-ir="pantallaSesion2">Continuar a Sesión 2</button>
     </div>
   </section>

@@ -169,6 +169,30 @@ que el grupo haga clic en "Descargar informe" (se registra en `InformesComunal.D
 correo se enviaba automáticamente al generar el informe; ahora es una acción explícita y separada,
 gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`).
 
+## 4.6 Transición inicial, recorrido de logos y otros ajustes de recorrido
+
+- **Transición inicial**: primero el logo del Foro (`LOGO_ENCABEZADO_ID`), luego el de la SEM Neiva
+  (`LOGO_PIE_ID`), uno a la vez con crossfade — ya vienen con los IDs reales de Drive por defecto en
+  `CONFIG_POR_DEFECTO_`; se pueden cambiar editando `ConfiguracionComunal` sin tocar código.
+- **Recorrido de logos de las IE**: ahora se muestra justo después de validar el código de acceso (ya
+  no al tocar "Comenzar", que ahora navega de inmediato — antes esperaba una llamada al servidor y se
+  sentía lento).
+- **Transiciones entre pantallas**: se alargó y suavizó la animación (`aparecer`, en `CSS.html`).
+- Sesión 1 ahora tiene un botón "Atrás" hacia Confirmación de caracterización.
+- La fotografía de evidencia dentro del método "Listado físico" se eliminó (quedaba duplicada con la
+  fotografía general del grupo, independiente del método, agregada en Participación).
+
+## 4.7 Participación por estamento e institución (formato de FEI 3.1) y ficha editable
+
+- La tarjeta "Cantidad de asistentes por estamento e institución" ya no se calcula solo a partir de las
+  firmas QR: ahora es un conteo manual, con el mismo formato y los mismos 11 estamentos que la
+  caracterización de FEI 3.1 (incluye "Tutor PTA PFI/3.0"), repetido una vez por cada IE del grupo, con
+  autosuma (`ParticipacionEstamento.gs`, hoja `ParticipacionEstamentoIE`). Si el grupo eligió el método
+  QR, el resumen muestra "firmantes / participantes declarados" para comparar ambos números.
+- En "Confirmación de caracterización", la ficha de cada IE ahora incluye su código DANE y el nombre del
+  rector(a) como campo editable (con botón 💾), igual que en FEI 3.1 — se guarda en
+  `CaracterizacionIE.RECTOR` y solo se puede editar la de una IE que pertenezca al mismo grupo.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

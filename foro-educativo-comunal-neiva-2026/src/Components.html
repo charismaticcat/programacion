@@ -77,45 +77,77 @@ function renderResponsables(responsables) {
   }
 }
 
-/** Tabla de la matriz de participación por estamento (filas) e IE del grupo (columnas). */
-function renderMatrizParticipacion(matriz) {
-  var contenedor = document.getElementById("contenedorMatrizParticipacion");
+/**
+ * Una tabla de participación por estamento (mismo formato que 3.1) por
+ * cada IE del grupo — conteo manual con autosuma, distinto del conteo de
+ * firmantes en vivo.
+ */
+function renderParticipacionEstamento(datos) {
+  var contenedor = document.getElementById("contenedorParticipacionEstamento");
   if (!contenedor) return;
-  if (!matriz || !matriz.estamentos.length || !matriz.instituciones.length) {
-    contenedor.innerHTML = "<p class='ayuda'>Todavía no hay firmas registradas para calcular esta tabla.</p>";
+  if (!datos || !datos.instituciones.length) {
+    contenedor.innerHTML = "<p class='ayuda'>No hay instituciones para mostrar.</p>";
     return;
   }
-  var html = "<table class='tabla-simple'><thead><tr><th>Estamento</th>";
-  matriz.instituciones.forEach(function (ie) {
-    html += "<th>" + escapeHtml(ie.institucion) + "</th>";
-  });
-  html += "<th>Total</th></tr></thead><tbody>";
-  matriz.estamentos.forEach(function (estamento) {
-    html += "<tr><td>" + escapeHtml(estamento) + "</td>";
-    matriz.instituciones.forEach(function (ie) {
-      html += "<td>" + (matriz.matriz[estamento][ie.idIE] || 0) + "</td>";
+  var html = "";
+  datos.instituciones.forEach(function (ie) {
+    html += "<div class='participacion-ie' data-ie='" + escapeHtml(ie.idIE) + "'>";
+    html += "<h4>" + escapeHtml(ie.institucion) + "</h4>";
+    html += "<table class='tabla-participacion-estamento'><thead><tr><th>Estamento</th><th>Participantes</th></tr></thead><tbody>";
+    datos.estamentos.forEach(function (e) {
+      html +=
+        "<tr><td>" + escapeHtml(e.etiqueta) + "</td><td>" +
+        "<input type='number' min='0' step='1' inputmode='numeric' class='input-participantes' " +
+        "data-estamento='" + e.clave + "' value='" + (ie.valores[e.clave] || 0) + "'></td></tr>";
     });
-    html += "<td><strong>" + (matriz.totalesPorEstamento[estamento] || 0) + "</strong></td></tr>";
+    html += "</tbody></table>";
+    html += "<div class='total-participacion-ie'><span>Total</span><strong>" + ie.total + "</strong></div>";
+    html += "<div class='fila-botones'><button type='button' class='btn btn-secundario' data-guardar-participacion-ie='" + escapeHtml(ie.idIE) + "'>Guardar</button></div>";
+    html += "<p class='ayuda' id='estadoParticipacionIE_" + escapeHtml(ie.idIE) + "'></p>";
+    html += "</div>";
   });
-  html += "</tbody></table>";
   contenedor.innerHTML = html;
 }
 
+/**
+ * Resumen del total: si el grupo eligió el método QR, muestra
+ * "firmantes / participantes declarados" para comparar la firma en vivo
+ * contra el conteo manual; si no, solo el total declarado.
+ */
+function renderResumenParticipacionEstamento(datos, metodoAsistencia, totalFirmantes) {
+  var contenedor = document.getElementById("resumenParticipacionEstamento");
+  if (!contenedor || !datos) return;
+  if (metodoAsistencia === "QR") {
+    contenedor.textContent = "👥 Firmantes / participantes declarados: " + (totalFirmantes || 0) + " / " + (datos.totalGeneral || 0);
+  } else {
+    contenedor.textContent = "👥 Total de participantes declarados: " + (datos.totalGeneral || 0);
+  }
+}
+
 /** Ficha de caracterización del grupo: instituciones + resumen de participación, para confirmar antes de continuar. */
-function renderFichaCaracterizacion(grupo, instituciones, matriz, responsables) {
+/**
+ * grupo/instituciones/responsables como antes; `estadoFirmantes` es el
+ * resultado de rpcEstadoFirmantes (solo se usa .total). El nombre del
+ * rector(a) es editable, igual que en FEI 3.1 ("Rector(a) ✏️").
+ */
+function renderFichaCaracterizacion(grupo, instituciones, estadoFirmantes, responsables) {
   var contenedor = document.getElementById("fichaCaracterizacionGrupo");
   if (!contenedor) return;
 
   var html = "<table class='ficha-caracterizacion'><caption>" + escapeHtml(grupo) + "</caption>";
-  html += "<tr><th>Institución educativa</th><th>Comuna</th><th>Dirección</th><th>Rector(a)</th></tr>";
+  html += "<tr><th>Institución educativa</th><th>DANE</th><th>Rector(a) ✏️</th></tr>";
   (instituciones || []).forEach(function (ie) {
-    html += "<tr><td>" + escapeHtml(ie.institucion) + "</td><td>" + escapeHtml(ie.comuna || "—") + "</td>" +
-      "<td>" + escapeHtml(ie.direccion || "—") + "</td><td>" + escapeHtml(ie.rector || "—") + "</td></tr>";
+    html += "<tr><td>" + escapeHtml(ie.institucion) + "</td><td>" + escapeHtml(ie.idIE) + "</td>" +
+      "<td class='celda-rector'>" +
+      "<input type='text' class='input-rector' data-ie-rector='" + escapeHtml(ie.idIE) + "' value='" + escapeHtml(ie.rector || "") + "' placeholder='Nombre del rector(a)'>" +
+      "<button type='button' class='btn-guardar-rector' data-guardar-rector='" + escapeHtml(ie.idIE) + "' title='Guardar'>💾</button>" +
+      "<span class='estado-rector' id='estadoRector_" + escapeHtml(ie.idIE) + "'></span>" +
+      "</td></tr>";
   });
   html += "</table>";
 
   html += "<table class='ficha-caracterizacion'><caption>Participación</caption>";
-  html += "<tr><td>Total de firmantes</td><td><strong>" + (matriz.totalGeneral || 0) + "</strong></td></tr>";
+  html += "<tr><td>Total de firmantes</td><td><strong>" + ((estadoFirmantes && estadoFirmantes.total) || 0) + "</strong></td></tr>";
   html += "<tr><td>Responsable de envío</td><td>" +
     (responsables.principal ? escapeHtml(responsables.principal.nombre) + " — " + escapeHtml(responsables.principal.correo) : "Sin registrar") +
     "</td></tr>";

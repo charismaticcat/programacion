@@ -80,6 +80,30 @@ function asignarLogoIE(idIE, logoFileId) {
 }
 
 /**
+ * Actualiza el nombre del rector(a) de una IE (editable desde la pantalla
+ * de Confirmación de caracterización, igual que en FEI 3.1 — campo
+ * "Rector(a) ✏️" de la caracterización). Solo se permite si la IE
+ * pertenece al mismo grupo de la sesión activa: nunca se puede editar la
+ * caracterización de una IE de otro grupo.
+ */
+function actualizarRectorIE(idGrupo, tokenSesion, dispositivoId, idIE, nombreRector) {
+  idGrupo = String(idGrupo || "").trim();
+  if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
+    return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión ya no está activa en este dispositivo." };
+  }
+  idIE = String(idIE || "").trim();
+  var perteneceAlGrupo = obtenerInstitucionesDelGrupo(idGrupo).some(function (ie) {
+    return ie.idIE === idIE;
+  });
+  if (!perteneceAlGrupo) return { ok: false, mensaje: "Esa institución no pertenece a este grupo." };
+
+  upsertFila_(HOJA_CARACTERIZACION_IE_, cabecerasCaracterizacionIE_(), "ID_IE", idIE, {
+    RECTOR: String(nombreRector || "").trim()
+  });
+  return { ok: true };
+}
+
+/**
  * Todas las IE (activas) que pertenecen a un grupo, tal como las cargó la
  * SEM en GruposComunal — enriquecidas automáticamente con su
  * caracterización completa desde CaracterizacionIE cuando existe (si una

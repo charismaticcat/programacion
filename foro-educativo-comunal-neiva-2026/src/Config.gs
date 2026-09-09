@@ -32,8 +32,12 @@ var CONFIG_POR_DEFECTO_ = {
   // proyecto, inválido para cualquier persona sin permiso de edición.
   URL_WEBAPP: "",
   PLANTILLA_INFORME: "",
-  LOGO_ENCABEZADO_ID: "",
-  LOGO_PIE_ID: "",
+  // Logo del Foro y logo de la SEM Neiva — usados en la transición inicial
+  // (uno tras otro) y en el encabezado del informe. IDs reales de Drive
+  // dados por la SEM; si se necesita cambiarlos, basta con editar
+  // ConfiguracionComunal (no hace falta tocar código).
+  LOGO_ENCABEZADO_ID: "1mFOOUZ5aFAuwM-JMxNUaDnPPznDlQ2bj",
+  LOGO_PIE_ID: "1Cmx7c3ec2gQCjRc8kcNeUbZt5LiURyD5",
   CORREO_REMITENTE: "",
   COPIAS_CORREO: "",
   TIEMPO_SESION: "90",
@@ -151,6 +155,7 @@ function inicializarHojasBase_(ss) {
   crear(HOJA_CARACTERIZACION_IE_, cabecerasCaracterizacionIE_());
   crear(HOJA_RESPONSABLES_COMUNAL_, cabecerasResponsablesComunal_());
   crear(HOJA_VALORACION_COMUNAL_, cabecerasValoracionComunal_());
+  crear(HOJA_PARTICIPACION_ESTAMENTO_, cabecerasParticipacionEstamentoIE_());
   crear("EnviosDiferidosComunal", ["ID_GRUPO", "FECHA_REGISTRO", "REINTENTADO"]);
 
   var hojaConfig = crear("ConfiguracionComunal", CABECERAS_CONFIGURACION_);

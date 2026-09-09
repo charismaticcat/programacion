@@ -96,8 +96,22 @@ function rpcMatrizParticipacion(idGrupo) {
   return obtenerMatrizParticipacionGrupo(idGrupo);
 }
 
+/** Conteo manual de participantes por estamento e IE (ParticipacionEstamento.gs — mismo formato que Participación de 3.1). */
+function rpcObtenerParticipacionEstamento(idGrupo) {
+  return obtenerParticipacionEstamentoGrupo(idGrupo);
+}
+
+function rpcGuardarParticipacionEstamentoIE(idGrupo, tokenSesion, dispositivoId, idIE, valores) {
+  return guardarParticipacionEstamentoIE(idGrupo, tokenSesion, dispositivoId, idIE, valores);
+}
+
 function rpcRolesForo() {
   return ROLES_FORO_;
+}
+
+/** Rector(a) editable en la ficha de Confirmación de caracterización (igual que en FEI 3.1). */
+function rpcActualizarRectorIE(idGrupo, tokenSesion, dispositivoId, idIE, nombreRector) {
+  return actualizarRectorIE(idGrupo, tokenSesion, dispositivoId, idIE, nombreRector);
 }
 
 /* ------------------------------------------------------------------ *
