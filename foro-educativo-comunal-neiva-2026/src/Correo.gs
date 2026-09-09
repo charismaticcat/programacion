@@ -145,6 +145,186 @@ function enviarInformeGrupo(idGrupo) {
   return { ok: true, diferido: false, url: informe.URL };
 }
 
+/* ------------------------------------------------------------------ *
+ * Envío de grupo — recorrido de prueba
+ *
+ * Envía a personal de la Alcaldía/SEM (nunca a un correo institucional de
+ * una IE) el acceso real de un grupo elegido al azar entre los ya
+ * cargados en GruposComunal/AccesosGrupo, para que hagan un recorrido de
+ * prueba de principio a fin antes de la puesta en producción. El
+ * HTML/CSS del cuerpo es el mismo que construirCorreoAccesoIE_ de FEI 3.1
+ * (paleta institucional verde #0B6A44 / amarillo #F4B400), adaptado de
+ * "IE" a "grupo" — mismo estilo de los correos ya enviados por la SEM.
+ * ------------------------------------------------------------------ */
+
+/**
+ * URL del deployment publicado ("Foro comunal 1.0"), tomada de `clasp
+ * deployments`. Respaldo de ConfiguracionComunal.URL_WEBAPP: la primera
+ * vez que se envía un recorrido de prueba, si esa clave sigue vacía se
+ * guarda con este valor y se corre actualizarUrlsAcceso() — así el
+ * recorrido de prueba (y cualquier acceso enviado después) deja de
+ * apuntar al /dev del editor, que un destinatario externo sin permiso de
+ * edición sobre el proyecto no puede abrir.
+ */
+var URL_WEBAPP_PUBLICADA_ = "https://script.google.com/macros/s/AKfycbwpkc8qv90P43dDt-F5NpIBwBkABUc44BGvdFfebtODDZ6b2t1Y_BTAtWB87eJss69G6g/exec";
+
+function _asegurarUrlWebAppConfigurada_() {
+  var config = getConfig();
+  if (!config.URL_WEBAPP) {
+    escribirConfig_("URL_WEBAPP", URL_WEBAPP_PUBLICADA_);
+    actualizarUrlsAcceso();
+  }
+}
+
+/** Direcciones autorizadas para el recorrido de prueba (personal de la Alcaldía, nunca correos de IE). */
+var DESTINATARIOS_RECORRIDO_PRUEBA_ = [
+  "adriana.cedeno@alcaldianeiva.gov.co",
+  "ana.torres@alcaldianeiva.gov.co",
+  "carolina.soto@alcaldianeiva.gov.co",
+  "edna.rivera@alcaldianeiva.gov.co",
+  "nelson.herrera@alcaldianeiva.gov.co",
+  "ronald.polania@alcaldianeiva.gov.co",
+  "rosa.gonzalez@alcaldianeiva.gov.co",
+  "rosario.valenzuela@alcaldianeiva.gov.co"
+];
+
+function _construirCorreoRecorridoPrueba_(grupoNombre, codigo, url) {
+  var asunto = "🎓 Envío de grupo — recorrido de prueba — Foro Educativo Comunal Neiva 2026 — " + grupoNombre;
+  var textoEnlace = "Ingresar como " + grupoNombre + " (recorrido de prueba)";
+
+  var cuerpoTexto =
+    "Secretaría de Educación de Neiva\n\n" +
+    "Envío de grupo — recorrido de prueba del Foro Educativo Comunal Neiva 2026.\n\n" +
+    "Se le asignó al azar el acceso real del " + grupoNombre + " para que recorra la aplicación de " +
+    "principio a fin antes de la puesta en producción.\n\n" +
+    "Código de acceso: " + codigo + "\n\n" +
+    textoEnlace + ":\n" + url + "\n\n" +
+    "Este código y este enlace son de uso interno para la prueba: no deben compartirse fuera de la " +
+    "Secretaría de Educación.\n\n" +
+    "Secretaría de Educación de Neiva\n" +
+    "Foro Educativo Comunal Neiva 2026\n" +
+    "\"Encuentro de voces que construyen territorio\"";
+
+  var cuerpoHTML =
+    "<div style=\"background:#F7F8FA;padding:28px 12px;font-family:Arial,Helvetica,sans-serif;\">" +
+    "<div style=\"max-width:520px;margin:0 auto;background:#FFFFFF;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.10);\">" +
+    "<div style=\"background:#0B6A44;padding:26px 28px;text-align:center;\">" +
+    "<div style=\"color:#FFFFFF;font-size:20px;font-weight:700;\">Foro Educativo Comunal</div>" +
+    "<div style=\"color:#CFE8DC;font-size:14px;margin-top:2px;\">Neiva 2026</div>" +
+    "</div>" +
+    "<div style=\"padding:28px 28px 8px;\">" +
+    "<div style=\"display:inline-block;background:#FFF8E1;color:#7A5B00;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:6px 12px;border-radius:20px;margin:0 0 16px;\">🧪 Envío de grupo — recorrido de prueba</div>" +
+    "<p style=\"font-size:16px;color:#333333;margin:0 0 14px;\">Estimado(a) colaborador(a) de la Secretaría de Educación de Neiva:</p>" +
+    "<p style=\"font-size:15px;color:#4A4A4A;line-height:1.6;margin:0 0 22px;\">" +
+    "Le compartimos un acceso de prueba para recorrer el Foro Educativo Comunal Neiva 2026 de principio " +
+    "a fin, con los datos reales del <strong>" + grupoNombre + "</strong>, asignado al azar." +
+    "</p>" +
+    "<div style=\"background:#F7F8FA;border-left:6px solid #F4B400;border-radius:10px;padding:16px 20px;margin:0 0 24px;text-align:center;\">" +
+    "<div style=\"font-size:12px;font-weight:700;color:#0B6A44;text-transform:uppercase;letter-spacing:.5px;\">Código de acceso</div>" +
+    "<div style=\"font-size:30px;font-weight:700;letter-spacing:6px;color:#0B6A44;margin-top:4px;\">" + codigo + "</div>" +
+    "</div>" +
+    "<div style=\"text-align:center;margin:0 0 24px;\">" +
+    "<a href=\"" + url + "\" target=\"_blank\" style=\"display:inline-block;background:#0B6A44;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:15px;padding:14px 26px;border-radius:10px;\">" + textoEnlace + "</a>" +
+    "</div>" +
+    "<div style=\"background:#F7F8FA;border:1px dashed #C7CDD1;border-radius:10px;padding:10px 14px;margin:0 0 24px;text-align:center;\">" +
+    "<p style=\"font-size:11px;font-weight:700;color:#888888;text-transform:uppercase;letter-spacing:.4px;margin:0 0 4px;\">También puede copiar este enlace</p>" +
+    "<p style=\"font-size:12px;color:#0B6A44;word-break:break-all;margin:0;\">" + url + "</p>" +
+    "</div>" +
+    "<div style=\"background:#FFF8E1;border-left:6px solid #F4B400;border-radius:10px;padding:12px 16px;margin:0 0 20px;\">" +
+    "<p style=\"font-size:13px;color:#7A5B00;margin:0;\">🔒 Este código y este enlace son de uso interno para la prueba: no deben compartirse fuera de la Secretaría de Educación.</p>" +
+    "</div>" +
+    "</div>" +
+    "<div style=\"background:#F7F8FA;padding:18px 28px;text-align:center;border-top:1px solid #E5E7EA;\">" +
+    "<p style=\"font-size:13px;color:#0B6A44;font-weight:700;margin:0;\">Secretaría de Educación de Neiva</p>" +
+    "<p style=\"font-size:12px;color:#888888;margin:4px 0 0;font-style:italic;\">“Encuentro de voces que construyen territorio”</p>" +
+    "</div>" +
+    "</div>" +
+    "</div>";
+
+  return { asunto: asunto, cuerpoTexto: cuerpoTexto, cuerpoHTML: cuerpoHTML };
+}
+
+/**
+ * Accesos de grupos REALES ya generados (TOKEN+CODIGO), fuente para el
+ * sorteo del recorrido de prueba — excluye explícitamente GRUPO-PRUEBA
+ * (spec: "grupos al azar reales").
+ */
+function _accesosGrupoDisponibles_() {
+  var hoja = obtenerHoja_(HOJA_ACCESOS_GRUPO_, cabecerasAccesosGrupo_());
+  return leerFilasComoObjetos_(hoja).filter(function (f) {
+    var idGrupo = String(f.ID_GRUPO || "").trim();
+    return idGrupo && idGrupo !== "GRUPO-PRUEBA" && String(f.TOKEN || "").trim() && String(f.CODIGO_ACCESO || "").trim();
+  });
+}
+
+/**
+ * Envía el "recorrido de prueba" a cada una de las 8 direcciones fijas de
+ * DESTINATARIOS_RECORRIDO_PRUEBA_, cada una con un grupo real elegido al
+ * azar (con reemplazo — hay más destinatarios que grupos). Nunca envía a
+ * ningún correo institucional de una IE. Requiere que generarAccesosGrupo()
+ * ya se haya ejecutado.
+ */
+function enviarGrupoRecorridoPrueba() {
+  var remitente = remitenteValido_();
+  if (!remitente.ok) return remitente;
+
+  _asegurarUrlWebAppConfigurada_();
+
+  var accesos = _accesosGrupoDisponibles_();
+  if (!accesos.length) {
+    return { ok: false, mensaje: "No hay grupos con acceso generado todavía. Ejecute generarAccesosGrupo() primero." };
+  }
+
+  var resultados = DESTINATARIOS_RECORRIDO_PRUEBA_.map(function (destinatario) {
+    var acceso = accesos[Math.floor(Math.random() * accesos.length)];
+    var grupoNombre = acceso.GRUPO || acceso.ID_GRUPO;
+    var correo = _construirCorreoRecorridoPrueba_(grupoNombre, acceso.CODIGO_ACCESO, construirUrlAcceso_(acceso.TOKEN));
+    try {
+      GmailApp.sendEmail(destinatario, correo.asunto, correo.cuerpoTexto, {
+        htmlBody: correo.cuerpoHTML,
+        from: remitente.remitente,
+        name: "Secretaría de Educación de Neiva"
+      });
+      return { destinatario: destinatario, grupo: grupoNombre, ok: true };
+    } catch (error) {
+      return { destinatario: destinatario, grupo: grupoNombre, ok: false, mensaje: error.message };
+    }
+  });
+
+  Logger.log(JSON.stringify(resultados));
+  return { ok: true, resultados: resultados };
+}
+
+/**
+ * Mismo recorrido de prueba, pero un único envío a la dirección indicada
+ * (para una verificación final antes o después del envío masivo).
+ */
+function enviarGrupoRecorridoPruebaA(destinatario) {
+  var remitente = remitenteValido_();
+  if (!remitente.ok) return remitente;
+
+  _asegurarUrlWebAppConfigurada_();
+
+  var accesos = _accesosGrupoDisponibles_();
+  if (!accesos.length) {
+    return { ok: false, mensaje: "No hay grupos con acceso generado todavía. Ejecute generarAccesosGrupo() primero." };
+  }
+
+  var acceso = accesos[Math.floor(Math.random() * accesos.length)];
+  var grupoNombre = acceso.GRUPO || acceso.ID_GRUPO;
+  var correo = _construirCorreoRecorridoPrueba_(grupoNombre, acceso.CODIGO_ACCESO, construirUrlAcceso_(acceso.TOKEN));
+  try {
+    GmailApp.sendEmail(destinatario, correo.asunto, correo.cuerpoTexto, {
+      htmlBody: correo.cuerpoHTML,
+      from: remitente.remitente,
+      name: "Secretaría de Educación de Neiva"
+    });
+    return { ok: true, destinatario: destinatario, grupo: grupoNombre };
+  } catch (error) {
+    return { ok: false, mensaje: error.message };
+  }
+}
+
 /** Reintenta los envíos diferidos por cuota agotada (ejecutar vía trigger diario, p. ej. a medianoche). */
 function reintentarEnviosDiferidos() {
   var hoja = obtenerHoja_(HOJA_ENVIOS_DIFERIDOS_, ["ID_GRUPO", "FECHA_REGISTRO", "REINTENTADO"]);

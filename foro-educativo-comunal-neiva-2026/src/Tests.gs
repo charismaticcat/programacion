@@ -126,6 +126,16 @@ function testFlujoCompletoGrupoPrueba() {
   Logger.log("Flujo de prueba completado.");
 }
 
+/** Envío de grupo — recorrido de prueba: una asignación al azar de grupo real por cada dirección de la Alcaldía. */
+function testEnviarGrupoRecorridoPrueba() {
+  Logger.log(JSON.stringify(enviarGrupoRecorridoPrueba()));
+}
+
+/** Mismo recorrido de prueba, un único envío adicional de verificación. */
+function testEnviarGrupoRecorridoPruebaAutor() {
+  Logger.log(JSON.stringify(enviarGrupoRecorridoPruebaA("jhonefrainsanchez@gmail.com")));
+}
+
 /** Borra el GRUPO-PRUEBA y sus datos asociados (Sesión 1, ConectaEduca, participación, acceso, informe). */
 function testLimpiarDatosDePrueba() {
   ["GruposComunal", "AccesosGrupo", "ParticipacionComunal", "Sesion1Comunal", "ConectaEduca", "InformesComunal", "EnviosDiferidosComunal", "ResponsablesComunal"].forEach(

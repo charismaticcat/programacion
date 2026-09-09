@@ -25,6 +25,12 @@ var CONFIG_POR_DEFECTO_ = {
   SUBTITULO: "Encuentro de voces que construyen territorio",
   FECHA: "2026-09-24",
   CARPETA_DRIVE_ID: "",
+  // URL del deployment publicado (Implementar → Nueva implementación →
+  // copiar la URL /exec) — si se deja vacía, construirUrlAcceso_ recurre a
+  // ScriptApp.getService().getUrl(), que fuera de una petición web real
+  // (p. ej. al ejecutar una función desde el editor) devuelve el /dev del
+  // proyecto, inválido para cualquier persona sin permiso de edición.
+  URL_WEBAPP: "",
   PLANTILLA_INFORME: "",
   LOGO_ENCABEZADO_ID: "",
   LOGO_PIE_ID: "",
