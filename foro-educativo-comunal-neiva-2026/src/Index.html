@@ -89,7 +89,42 @@
     </div>
   </section>
 
-  <!-- 5. PARTICIPACIÓN -->
+  <!-- 5. CONSENTIMIENTO INFORMADO DEL GRUPO (sección 3.2 del Documento Orientador FEM2026) -->
+  <section id="pantallaConsentimientoGrupo" class="pantalla">
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">Consentimiento informado del grupo</h2>
+      <p>El <strong>Encuentro de voces que construyen territorio – ConectaEduca</strong> es una actividad
+        posterior a los Foros Educativos Institucionales, prevista en el Documento Orientador del Foro
+        Educativo Municipal FEM 2026 de la Secretaría de Educación de Neiva.</p>
+      <p>Este encuentro se desarrolla en dos momentos: primero, las instituciones educativas del grupo
+        comparten las principales reflexiones, conclusiones y propuestas construidas en sus respectivos
+        Foros Educativos Institucionales; luego, el grupo dialoga con representantes del sector
+        productivo y de la educación superior (ConectaEduca), con el propósito de fortalecer los
+        vínculos entre la educación y el desarrollo del territorio.</p>
+      <p><strong>La estructura que propone este aplicativo (sesiones, preguntas orientadoras, secciones)
+        es una sugerencia de apoyo, no un molde fijo.</strong> La construcción de cada realidad comunal
+        es de carácter autónomo: cada grupo puede adaptar el desarrollo del encuentro a sus propias
+        dinámicas y necesidades.</p>
+      <p><strong>Cada sección del aplicativo incluye además un espacio opcional para que el grupo agregue
+        los hallazgos, reflexiones o propuestas propias</strong> que surjan durante el encuentro y que no
+        estén contempladas en las preguntas orientadoras, para que la discusión pueda ampliarse más allá
+        de la estructura sugerida.</p>
+      <p class="ayuda">Al participar, el grupo acepta que la información aquí registrada (participación,
+        síntesis colectiva, resultados de ConectaEduca) sea utilizada por la Secretaría de Educación de
+        Neiva como insumo para la sistematización del Foro Educativo Comunal y para la construcción del
+        Foro Educativo Municipal FEM 2026.</p>
+      <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
+        <input type="checkbox" id="checkConsentimientoGrupo" style="width:auto;">
+        Confirmo, en representación del grupo, que hemos leído y entendemos esta información.
+      </label>
+      <div id="mensajeConsentimientoGrupo"></div>
+      <div class="fila-botones">
+        <button class="btn btn-primario" id="btnAceptarConsentimientoGrupo" disabled>Aceptar y continuar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. PARTICIPACIÓN -->
   <section id="pantallaParticipacion" class="pantalla">
     <!-- Método de asistencia — al inicio de la pantalla, como pide el flujo:
          cada grupo elige cómo se firma (QR/enlace, o listado físico +
@@ -111,6 +146,9 @@
           <button class="btn btn-secundario" id="btnCopiarEnlaceAsistencia">Copiar enlace</button>
         </div>
         <img id="imagenQRAsistencia" alt="Código QR de asistencia" style="max-width:220px;display:block;margin:14px auto;">
+        <div class="fila-botones">
+          <button class="btn btn-secundario" id="btnPantallaCompletaQR">👁 Ver en pantalla completa</button>
+        </div>
       </div>
 
       <div id="panelMetodoListado" class="oculto" style="margin-top:14px;">
@@ -132,37 +170,74 @@
       <h2 class="titulo-seccion">Participación y asistencia</h2>
       <p class="ayuda">Instituciones educativas de <strong id="nombreGrupoParticipacion"></strong>:</p>
       <div class="lista-instituciones" id="listaInstituciones"></div>
+    </div>
 
-      <h3 class="subtitulo-campo">Registrar mi asistencia</h3>
-      <label for="campoNombreParticipante">Nombre completo</label>
-      <input type="text" id="campoNombreParticipante">
-      <label for="campoIEParticipante">Institución educativa</label>
-      <select id="campoIEParticipante"></select>
-      <label for="campoRolParticipante">Rol</label>
-      <select id="campoRolParticipante">
-        <option>Rector(a)</option>
-        <option>Coordinador(a)</option>
-        <option>Docente</option>
-        <option>Orientador(a)</option>
-        <option>Estudiante</option>
-        <option>Padre/madre de familia</option>
-        <option>Personal administrativo</option>
-        <option>Sector productivo</option>
-        <option>Otro</option>
-      </select>
-      <label for="campoCorreoParticipante">Correo (opcional)</label>
-      <input type="email" id="campoCorreoParticipante">
-      <div id="mensajeParticipacion"></div>
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">Responsable de envío</h2>
+      <p class="ayuda">Esta persona recibirá por correo el informe final del grupo. Puedes agregar hasta
+        3 asistentes de envío adicionales que también lo reciban.</p>
+      <label for="campoNombreResponsable">Nombre completo</label>
+      <input type="text" id="campoNombreResponsable">
+      <label for="campoIEResponsable">Institución educativa</label>
+      <select id="campoIEResponsable"></select>
+      <label for="campoRolForoResponsable">Rol en el foro</label>
+      <select id="campoRolForoResponsable"></select>
+      <label for="campoCorreoResponsable">Correo electrónico</label>
+      <input type="email" id="campoCorreoResponsable">
+      <div id="mensajeResponsable"></div>
       <div class="fila-botones">
-        <button class="btn btn-primario" id="btnRegistrarParticipacion">Confirmar asistencia</button>
+        <button class="btn btn-primario" id="btnGuardarResponsable">Guardar responsable de envío</button>
+      </div>
+      <div id="fichaResponsablePrincipal"></div>
+
+      <h3 class="subtitulo-campo" style="margin-top:20px;">Asistentes de envío</h3>
+      <div id="listaAsistentesEnvio"></div>
+      <div class="fila-botones">
+        <button class="btn btn-secundario" id="btnMostrarFormAsistente">+ Agregar asistente de envío</button>
+      </div>
+      <div id="formularioAsistenteEnvio" class="oculto" style="margin-top:12px;">
+        <label for="campoNombreAsistente">Nombre completo</label>
+        <input type="text" id="campoNombreAsistente">
+        <label for="campoIEAsistente">Institución educativa</label>
+        <select id="campoIEAsistente"></select>
+        <label for="campoRolForoAsistente">Rol en el foro</label>
+        <select id="campoRolForoAsistente"></select>
+        <label for="campoCorreoAsistente">Correo electrónico</label>
+        <input type="email" id="campoCorreoAsistente">
+        <div id="mensajeAsistente"></div>
+        <div class="fila-botones">
+          <button class="btn btn-primario" id="btnGuardarAsistente">Agregar asistente</button>
+        </div>
       </div>
     </div>
+
+    <div class="tarjeta">
+      <h3 class="subtitulo-campo">Cantidad de asistentes por estamento e institución</h3>
+      <p class="ayuda">Se calcula automáticamente a partir de las firmas registradas (método QR/enlace).
+        Si el grupo usa listado físico, esta tabla no reflejará esas firmas en papel.</p>
+      <div id="contenedorMatrizParticipacion" style="overflow-x:auto;"></div>
+    </div>
+
     <div class="fila-botones">
-      <button class="btn btn-primario" data-ir="pantallaSesion1">Continuar a Sesión 1</button>
+      <button class="btn btn-primario" data-ir="pantallaConfirmacionCaracterizacion">Continuar</button>
     </div>
   </section>
 
-  <!-- 6. SESIÓN 1 -->
+  <!-- 7. CONFIRMACIÓN DE CARACTERIZACIÓN -->
+  <section id="pantallaConfirmacionCaracterizacion" class="pantalla">
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">Confirmación de caracterización</h2>
+      <p class="ayuda">Verifica que toda la información del grupo sea correcta antes de continuar a las
+        sesiones de trabajo.</p>
+      <div id="fichaCaracterizacionGrupo"></div>
+      <div class="fila-botones">
+        <button class="btn btn-secundario" data-ir="pantallaParticipacion">Atrás, corregir</button>
+        <button class="btn btn-primario" data-ir="pantallaSesion1">Confirmo que la información es correcta</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. SESIÓN 1 -->
   <section id="pantallaSesion1" class="pantalla">
     <div class="tarjeta">
       <h2 class="titulo-seccion">Sesión 1 — Socialización y construcción colectiva</h2>
@@ -202,6 +277,16 @@
       <h3 class="subtitulo-campo">Ruta de trabajo</h3>
       <textarea id="campo_RUTA" data-campo-sesion1="RUTA"></textarea>
 
+      <details class="desplegable-aporte">
+        <summary>➕ Aporte propio del grupo (opcional)</summary>
+        <p class="ayuda">Espacio libre para hallazgos, reflexiones o propuestas propias de la comunidad
+          que no encajen en las preguntas anteriores.</p>
+        <label for="campo_APORTE_PROPIO_S1_TITULO">Título</label>
+        <input type="text" id="campo_APORTE_PROPIO_S1_TITULO" data-campo-sesion1="APORTE_PROPIO_S1_TITULO">
+        <label for="campo_APORTE_PROPIO_S1_TEXTO">Descripción</label>
+        <textarea id="campo_APORTE_PROPIO_S1_TEXTO" data-campo-sesion1="APORTE_PROPIO_S1_TEXTO"></textarea>
+      </details>
+
       <div id="mensajeSesion1"></div>
       <div class="fila-botones">
         <button class="btn btn-secundario" id="btnGuardarSesion1">Guardar avance</button>
@@ -213,7 +298,7 @@
     </div>
   </section>
 
-  <!-- 7. SESIÓN 2 — CONECTAEDUCA -->
+  <!-- 9. SESIÓN 2 — CONECTAEDUCA -->
   <section id="pantallaSesion2" class="pantalla">
     <div class="tarjeta">
       <h2 class="titulo-seccion">Sesión 2 — ConectaEduca</h2>
@@ -255,6 +340,17 @@
         <tbody></tbody>
       </table>
 
+      <details class="desplegable-aporte">
+        <summary>➕ Aporte propio del grupo (opcional)</summary>
+        <p class="ayuda">Espacio libre para hallazgos, reflexiones o propuestas propias de la comunidad
+          sobre ConectaEduca que no encajen en el registro de actores.</p>
+        <label for="campo_APORTE_PROPIO_S2_TITULO">Título</label>
+        <input type="text" id="campo_APORTE_PROPIO_S2_TITULO" data-campo-sesion1="APORTE_PROPIO_S2_TITULO">
+        <label for="campo_APORTE_PROPIO_S2_TEXTO">Descripción</label>
+        <textarea id="campo_APORTE_PROPIO_S2_TEXTO" data-campo-sesion1="APORTE_PROPIO_S2_TEXTO"></textarea>
+        <p class="ayuda">Se guarda automáticamente, igual que el resto de Sesión 1 y Sesión 2.</p>
+      </details>
+
       <div class="fila-botones">
         <button class="btn btn-primario" id="btnEnviarSesion2">Enviar Sesión 2 definitiva</button>
       </div>
@@ -264,7 +360,7 @@
     </div>
   </section>
 
-  <!-- 8. REVISIÓN Y CIERRE -->
+  <!-- 10. REVISIÓN Y CIERRE -->
   <section id="pantallaRevisionCierre" class="pantalla">
     <div class="tarjeta">
       <h2 class="titulo-seccion">Revisión y cierre</h2>
@@ -278,7 +374,7 @@
     </div>
   </section>
 
-  <!-- 9. INFORME GENERADO -->
+  <!-- 11. INFORME GENERADO -->
   <section id="pantallaInformeGenerado" class="pantalla">
     <div class="resumen-informe">
       <div class="icono-check">✅</div>
@@ -293,7 +389,7 @@
     </div>
   </section>
 
-  <!-- 10. DESPEDIDA -->
+  <!-- 12. DESPEDIDA -->
   <section id="pantallaDespedida" class="pantalla">
     <div class="tarjeta" style="text-align:center;">
       <h2 class="titulo-seccion">Gracias por participar</h2>
@@ -306,6 +402,16 @@
 <footer class="marca-pie">
   <?!= NOMBRE_FORO ?> — Secretaría de Educación de Neiva
 </footer>
+
+<!-- Vista de pantalla completa del QR de asistencia — pensada para
+     proyectar en un monitor durante el evento (spec: "opción de pantalla
+     completa con el ojito"). -->
+<div id="pantallaCompletaQR" class="oculto pantalla-completa-qr">
+  <button type="button" class="btn btn-secundario" id="btnCerrarPantallaCompletaQR">✕ Cerrar</button>
+  <p class="contador-grande"><span id="contadorFirmantesPantallaCompleta">0</span> personas han firmado</p>
+  <img id="imagenQRPantallaCompleta" alt="Código QR de asistencia">
+  <p class="enlace-grande" id="enlacePantallaCompleta"></p>
+</div>
 
 <?!= include('Modal'); ?>
 

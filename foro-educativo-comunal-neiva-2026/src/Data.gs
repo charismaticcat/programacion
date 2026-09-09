@@ -184,12 +184,22 @@ function upsertFila_(nombreHoja, cabeceras, columnaClave, valorClave, valores, o
  * Participación y asistencia — integradas dentro de PARTICIPACIÓN (spec
  * sección 7), no como módulo aparte. Adaptado de actualizarParticipacion_ /
  * registrarAsistenciaQR de FEI 3.1 (docs/01-auditoria-fei-3.1.md §2.2).
+ *
+ * Dos clasificaciones distintas por persona (no confundir):
+ *   - ESTAMENTO: a qué comunidad educativa pertenece (Rector, Docente,
+ *     Estudiante, ...) — equivalente a las columnas de conteo de la hoja
+ *     Participacion de FEI 3.1 (auditoría §3.1), aquí registradas por
+ *     persona en vez de como conteo agregado.
+ *   - ROL_FORO: su rol operativo dentro del Foro (Líder, Dinamizador
+ *     Pedagógico, Relator, ...) — catálogo oficial del "Documento
+ *     Orientador FEM2026" (sección de roles del FEI, páginas 9-10),
+ *     ver ROLES_FORO_ en Responsables.gs.
  */
 var HOJA_PARTICIPACION_COMUNAL_ = "ParticipacionComunal";
 
 function cabecerasParticipacionComunal_() {
   return [
-    "ID_PARTICIPANTE", "ID_GRUPO", "ID_IE", "NOMBRE", "ROL", "CORREO",
+    "ID_PARTICIPANTE", "ID_GRUPO", "ID_IE", "NOMBRE", "ESTAMENTO", "ROL_FORO", "CORREO",
     "CONFIRMACION_ASISTENCIA", "FECHA", "ESTADO", "DISPOSITIVO_ID"
   ];
 }
@@ -200,7 +210,7 @@ function cabecerasParticipacionComunal_() {
  * deduplicación por documento de AsistenciaQR en 3.1 (auditoría §5.6): si
  * ya existe, devuelve el registro existente en vez de crear uno nuevo.
  */
-function registrarParticipante(idGrupo, idIE, nombre, rol, correo, dispositivoId) {
+function registrarParticipante(idGrupo, idIE, nombre, estamento, rolForo, correo, dispositivoId) {
   return conLock_(function () {
     idGrupo = String(idGrupo || "").trim();
     nombre = String(nombre || "").trim();
@@ -226,8 +236,9 @@ function registrarParticipante(idGrupo, idIE, nombre, rol, correo, dispositivoId
 
     var idParticipante = Utilities.getUuid();
     hoja.appendRow([
-      idParticipante, idGrupo, String(idIE || "").trim(), nombre, String(rol || "").trim(),
-      String(correo || "").trim(), "SI", new Date(), "REGISTRADO", String(dispositivoId || "").trim()
+      idParticipante, idGrupo, String(idIE || "").trim(), nombre, String(estamento || "").trim(),
+      String(rolForo || "").trim(), String(correo || "").trim(), "SI", new Date(), "REGISTRADO",
+      String(dispositivoId || "").trim()
     ]);
     return { ok: true, yaRegistrado: false, idParticipante: idParticipante };
   }, 10000);
@@ -238,7 +249,7 @@ function contarParticipantesGrupo(idGrupo) {
   return listarFirmantesGrupo(idGrupo).length;
 }
 
-/** Lista completa de firmantes de un grupo: nombre, institución, rol (más recientes primero). */
+/** Lista completa de firmantes de un grupo: nombre, institución, estamento, rol en el foro (más recientes primero). */
 function listarFirmantesGrupo(idGrupo) {
   var hoja = obtenerHoja_(HOJA_PARTICIPACION_COMUNAL_, cabecerasParticipacionComunal_());
   var filas = leerFilasComoObjetos_(hoja);
@@ -254,12 +265,56 @@ function listarFirmantesGrupo(idGrupo) {
     .map(function (f) {
       return {
         nombre: String(f.NOMBRE || "").trim(),
+        idIE: String(f.ID_IE || "").trim(),
         institucion: deIE[String(f.ID_IE || "").trim()] || "",
-        rol: String(f.ROL || "").trim(),
+        estamento: String(f.ESTAMENTO || "").trim(),
+        rolForo: String(f.ROL_FORO || "").trim(),
         fecha: f.FECHA
       };
     })
     .reverse();
+}
+
+/**
+ * Matriz de participación por ESTAMENTO (filas) e IE del grupo (columnas)
+ * — equivalente a la hoja Participacion de FEI 3.1 (conteo por estamento),
+ * pero calculada en vivo a partir de los firmantes ya registrados (QR o
+ * app), no como conteo capturado aparte. Se muestra directamente en la
+ * pantalla de Participación y se reutiliza en el informe del grupo.
+ */
+function obtenerMatrizParticipacionGrupo(idGrupo) {
+  var instituciones = obtenerInstitucionesDelGrupo(idGrupo);
+  var firmantes = listarFirmantesGrupo(idGrupo);
+
+  var estamentos = [];
+  var matriz = {};
+  var totalesPorIE = {};
+  var totalesPorEstamento = {};
+
+  instituciones.forEach(function (ie) {
+    totalesPorIE[ie.idIE] = 0;
+  });
+
+  firmantes.forEach(function (f) {
+    var estamento = f.estamento || "Sin estamento";
+    if (!matriz[estamento]) {
+      matriz[estamento] = {};
+      estamentos.push(estamento);
+      totalesPorEstamento[estamento] = 0;
+    }
+    matriz[estamento][f.idIE] = (matriz[estamento][f.idIE] || 0) + 1;
+    totalesPorEstamento[estamento]++;
+    if (f.idIE in totalesPorIE) totalesPorIE[f.idIE]++;
+  });
+
+  return {
+    instituciones: instituciones,
+    estamentos: estamentos,
+    matriz: matriz,
+    totalesPorIE: totalesPorIE,
+    totalesPorEstamento: totalesPorEstamento,
+    totalGeneral: firmantes.length
+  };
 }
 
 /** Ejecuta `fn` bajo LockService.getScriptLock(), liberando siempre el lock. */

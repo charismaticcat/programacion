@@ -140,6 +140,8 @@ function generarInformeGrupo(idGrupo) {
   var sesion1 = obtenerSesion1(idGrupo) || {};
   var conectaEduca = listarConectaEduca(idGrupo);
   var firmantes = listarFirmantesGrupo(idGrupo);
+  var responsables = listarResponsablesEnvio(idGrupo);
+  var matrizParticipacion = obtenerMatrizParticipacionGrupo(idGrupo);
 
   var carpetaGrupo = asegurarCarpetaGrupo_(grupoInfo.grupo);
   var nombreBase = "Informe " + grupoInfo.grupo;
@@ -208,22 +210,64 @@ function generarInformeGrupo(idGrupo) {
   titulo1_(body, "Participación y asistencia");
   parrafo_(body, "Total de personas registradas: " + firmantes.length + ".");
   if (firmantes.length) {
-    var tallyRoles = tallyOpciones_(firmantes, "rol");
-    var etiquetasRoles = Object.keys(tallyRoles);
-    if (etiquetasRoles.length) {
+    var tallyEstamentos = tallyOpciones_(firmantes, "estamento");
+    var etiquetasEstamentos = Object.keys(tallyEstamentos);
+    if (etiquetasEstamentos.length) {
       try {
-        var imagenRoles = construirGraficoColumnas_(
-          "Participación por rol",
-          etiquetasRoles,
-          etiquetasRoles.map(function (r) {
-            return tallyRoles[r];
+        var imagenEstamentos = construirGraficoColumnas_(
+          "Participación por estamento",
+          etiquetasEstamentos,
+          etiquetasEstamentos.map(function (r) {
+            return tallyEstamentos[r];
           })
         );
-        body.appendImage(imagenRoles);
+        body.appendImage(imagenEstamentos);
       } catch (e) {
         Logger.log("No se pudo generar el gráfico de participación: " + e.message);
       }
     }
+  }
+
+  // Matriz de participación por estamento e IE (equivalente a la hoja
+  // Participacion de 3.1, calculada en vivo — ver Data.gs).
+  if (matrizParticipacion.estamentos.length && matrizParticipacion.instituciones.length) {
+    subtitulo_(body, "Cantidad de asistentes por estamento e institución");
+    var encabezadoMatriz = ["Estamento"].concat(
+      matrizParticipacion.instituciones.map(function (ie) { return ie.institucion; }),
+      ["Total"]
+    );
+    var filasMatriz = matrizParticipacion.estamentos.map(function (estamento) {
+      var fila = [estamento];
+      matrizParticipacion.instituciones.forEach(function (ie) {
+        fila.push(String((matrizParticipacion.matriz[estamento][ie.idIE] || 0)));
+      });
+      fila.push(String(matrizParticipacion.totalesPorEstamento[estamento] || 0));
+      return fila;
+    });
+    tablaSimple_(body, [encabezadoMatriz].concat(filasMatriz));
+  }
+
+  // Responsable de envío y asistentes de envío.
+  subtitulo_(body, "Responsables de envío del grupo");
+  if (responsables.principal) {
+    parrafo_(
+      body,
+      "Principal: " + responsables.principal.nombre +
+        (responsables.principal.rolForo ? " — " + responsables.principal.rolForo : "") +
+        (responsables.principal.institucion ? " (" + responsables.principal.institucion + ")" : "") +
+        " — " + responsables.principal.correo
+    );
+  } else {
+    parrafo_(body, "El grupo todavía no registró un responsable de envío principal.");
+  }
+  if (responsables.asistentes.length) {
+    responsables.asistentes.forEach(function (a) {
+      parrafo_(
+        body,
+        "Asistente: " + a.nombre + (a.rolForo ? " — " + a.rolForo : "") +
+          (a.institucion ? " (" + a.institucion + ")" : "") + " — " + a.correo
+      );
+    });
   }
 
   // Síntesis Sesión 1 — socialización.
@@ -246,6 +290,12 @@ function generarInformeGrupo(idGrupo) {
     subtitulo_(body, par[0]);
     parrafo_(body, sesion1[par[1]]);
   });
+
+  // Aporte propio de la comunidad (opcional) para Sesión 1.
+  if (String(sesion1.APORTE_PROPIO_S1_TITULO || "").trim() || String(sesion1.APORTE_PROPIO_S1_TEXTO || "").trim()) {
+    subtitulo_(body, sesion1.APORTE_PROPIO_S1_TITULO || "Aporte propio del grupo");
+    parrafo_(body, sesion1.APORTE_PROPIO_S1_TEXTO);
+  }
 
   // ConectaEduca.
   titulo1_(body, "ConectaEduca — oportunidades de articulación");
@@ -274,6 +324,12 @@ function generarInformeGrupo(idGrupo) {
     });
   } else {
     parrafo_(body, "No se registraron actores de ConectaEduca para este grupo.");
+  }
+
+  // Aporte propio de la comunidad (opcional) para Sesión 2 / ConectaEduca.
+  if (String(sesion1.APORTE_PROPIO_S2_TITULO || "").trim() || String(sesion1.APORTE_PROPIO_S2_TEXTO || "").trim()) {
+    subtitulo_(body, sesion1.APORTE_PROPIO_S2_TITULO || "Aporte propio del grupo");
+    parrafo_(body, sesion1.APORTE_PROPIO_S2_TEXTO);
   }
 
   // Insumos para el FEM 2026.

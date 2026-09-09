@@ -18,12 +18,17 @@ var estado = {
   esPrincipal: false,
   instituciones: [],
   ultimosFirmantes: [],
-  metodoAsistencia: ""
+  metodoAsistencia: "",
+  logoId: "",
+  consentimientoGrupo: false,
+  rolesForo: [],
+  responsables: { principal: null, asistentes: [] }
 };
 
 var ORDEN_PANTALLAS = [
   "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia", "pantallaAcceso",
-  "pantallaParticipacion", "pantallaSesion1", "pantallaSesion2", "pantallaRevisionCierre",
+  "pantallaConsentimientoGrupo", "pantallaParticipacion", "pantallaConfirmacionCaracterizacion",
+  "pantallaSesion1", "pantallaSesion2", "pantallaRevisionCierre",
   "pantallaInformeGenerado", "pantallaDespedida"
 ];
 
@@ -68,7 +73,12 @@ function cambiarPantalla(idPantalla) {
   document.getElementById("barraProgresoRelleno").style.width = porcentaje + "%";
   window.scrollTo(0, 0);
 
-  if (idPantalla === "pantallaParticipacion") actualizarFirmantes();
+  if (idPantalla === "pantallaParticipacion") {
+    actualizarFirmantes();
+    cargarResponsables();
+    cargarMatrizParticipacion();
+  }
+  if (idPantalla === "pantallaConfirmacionCaracterizacion") cargarConfirmacionCaracterizacion();
   if (idPantalla === "pantallaSesion1") cargarSesion1();
   if (idPantalla === "pantallaSesion2") cargarConectaEduca();
   if (idPantalla === "pantallaRevisionCierre") prepararCierre();
@@ -83,6 +93,9 @@ document.addEventListener("click", function (evento) {
 
   var borrarActor = evento.target.closest("[data-borrar-actor]");
   if (borrarActor) borrarActorConectaEduca(borrarActor.getAttribute("data-borrar-actor"));
+
+  var quitarAsistente = evento.target.closest("[data-quitar-asistente]");
+  if (quitarAsistente) quitarAsistenteEnvio(quitarAsistente.getAttribute("data-quitar-asistente"));
 });
 
 function abrirModal(id) {
@@ -125,15 +138,21 @@ function intentarValidarAcceso(forzar) {
     estado.esPrincipal = r.esPrincipal;
     estado.instituciones = r.instituciones || [];
     estado.metodoAsistencia = r.metodoAsistencia || "";
+    estado.logoId = r.logoId || "";
+    estado.consentimientoGrupo = !!r.consentimientoGrupo;
 
     document.getElementById("nombreGrupoParticipacion").textContent = r.grupo;
+    poblarSelectInstituciones("campoIEResponsable", estado.instituciones);
+    poblarSelectInstituciones("campoIEAsistente", estado.instituciones);
     renderListaInstituciones(estado.instituciones);
     document.getElementById("panelFirmantes").classList.remove("oculto");
 
     mostrarPanelMetodoAsistencia(estado.metodoAsistencia);
     iniciarHeartbeat();
     iniciarPollingFirmantes();
-    cambiarPantalla("pantallaParticipacion");
+    cargarRolesForo();
+
+    cambiarPantalla(estado.consentimientoGrupo ? "pantallaParticipacion" : "pantallaConsentimientoGrupo");
   });
 }
 
@@ -143,6 +162,24 @@ document.getElementById("btnValidarAcceso").addEventListener("click", function (
 document.getElementById("btnForzarSesion").addEventListener("click", function () {
   cerrarModal("modalTomaSesion");
   intentarValidarAcceso(true);
+});
+
+/* ------------------------------------------------------------------ *
+ * Consentimiento informado del grupo (sección 3.2)
+ * ------------------------------------------------------------------ */
+document.getElementById("checkConsentimientoGrupo").addEventListener("change", function () {
+  document.getElementById("btnAceptarConsentimientoGrupo").disabled = !this.checked;
+});
+
+document.getElementById("btnAceptarConsentimientoGrupo").addEventListener("click", function () {
+  llamarServidor("rpcGuardarConsentimientoGrupo", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
+    if (!r.ok) {
+      mostrarMensaje("mensajeConsentimientoGrupo", r.mensaje || "No fue posible registrar el consentimiento.", "error");
+      return;
+    }
+    estado.consentimientoGrupo = true;
+    cambiarPantalla("pantallaParticipacion");
+  });
 });
 
 /* ------------------------------------------------------------------ *
@@ -202,6 +239,33 @@ document.getElementById("btnCopiarEnlaceAsistencia").addEventListener("click", f
   if (navigator.clipboard) navigator.clipboard.writeText(url);
 });
 
+/* ---- Vista de pantalla completa del QR (para proyectar en el evento) ---- */
+var intervaloPantallaCompletaQR = null;
+
+document.getElementById("btnPantallaCompletaQR").addEventListener("click", function () {
+  var url = document.getElementById("enlaceAsistenciaQR").href;
+  document.getElementById("imagenQRPantallaCompleta").src =
+    "https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=" + encodeURIComponent(url);
+  document.getElementById("enlacePantallaCompleta").textContent = url;
+  var overlay = document.getElementById("pantallaCompletaQR");
+  overlay.classList.remove("oculto");
+  if (overlay.requestFullscreen) overlay.requestFullscreen().catch(function () {});
+
+  var actualizarContadorGrande = function () {
+    llamarServidor("rpcEstadoFirmantes", [estado.idGrupo], function (r) {
+      document.getElementById("contadorFirmantesPantallaCompleta").textContent = r.total || 0;
+    }, function () {});
+  };
+  actualizarContadorGrande();
+  intervaloPantallaCompletaQR = setInterval(actualizarContadorGrande, 5000);
+});
+
+document.getElementById("btnCerrarPantallaCompletaQR").addEventListener("click", function () {
+  clearInterval(intervaloPantallaCompletaQR);
+  document.getElementById("pantallaCompletaQR").classList.add("oculto");
+  if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {});
+});
+
 function leerArchivoComoBase64_(archivo, callback) {
   var lector = new FileReader();
   lector.onload = function () {
@@ -250,28 +314,117 @@ document.getElementById("btnSubirEvidencia").addEventListener("click", function 
 });
 
 /* ------------------------------------------------------------------ *
- * Participación / firmantes
+ * Roles del foro (catálogo del Documento Orientador) e instituciones
  * ------------------------------------------------------------------ */
-document.getElementById("btnRegistrarParticipacion").addEventListener("click", function () {
-  var nombre = document.getElementById("campoNombreParticipante").value.trim();
-  var idIE = document.getElementById("campoIEParticipante").value;
-  var rol = document.getElementById("campoRolParticipante").value;
-  var correo = document.getElementById("campoCorreoParticipante").value.trim();
-  if (!nombre) {
-    mostrarMensaje("mensajeParticipacion", "El nombre es obligatorio.", "error");
+function cargarRolesForo() {
+  llamarServidor("rpcRolesForo", [], function (roles) {
+    estado.rolesForo = roles || [];
+    ["campoRolForoResponsable", "campoRolForoAsistente"].forEach(function (id) {
+      var select = document.getElementById(id);
+      if (!select) return;
+      select.innerHTML = "";
+      estado.rolesForo.forEach(function (rol) {
+        var opcion = document.createElement("option");
+        opcion.value = rol;
+        opcion.textContent = rol;
+        select.appendChild(opcion);
+      });
+    });
+  });
+}
+
+function poblarSelectInstituciones(idSelect, instituciones) {
+  var select = document.getElementById(idSelect);
+  if (!select) return;
+  select.innerHTML = "";
+  (instituciones || []).forEach(function (ie) {
+    var opcion = document.createElement("option");
+    opcion.value = ie.idIE;
+    opcion.textContent = ie.institucion;
+    select.appendChild(opcion);
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * Responsable de envío y asistentes de envío
+ * ------------------------------------------------------------------ */
+document.getElementById("btnGuardarResponsable").addEventListener("click", function () {
+  var datos = {
+    nombre: document.getElementById("campoNombreResponsable").value.trim(),
+    idIE: document.getElementById("campoIEResponsable").value,
+    rolForo: document.getElementById("campoRolForoResponsable").value,
+    correo: document.getElementById("campoCorreoResponsable").value.trim()
+  };
+  if (!datos.nombre || !datos.correo) {
+    mostrarMensaje("mensajeResponsable", "Nombre y correo son obligatorios.", "error");
     return;
   }
-  llamarServidor("rpcRegistrarParticipante", [estado.idGrupo, idIE, nombre, rol, correo, estado.dispositivoId], function (r) {
+  llamarServidor("rpcGuardarResponsable", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, "PRINCIPAL", datos], function (r) {
     if (!r.ok) {
-      mostrarMensaje("mensajeParticipacion", r.mensaje || "No fue posible registrar la asistencia.", "error");
+      mostrarMensaje("mensajeResponsable", r.mensaje || "No fue posible guardar.", "error");
       return;
     }
-    mostrarMensaje("mensajeParticipacion", r.yaRegistrado ? "Ya estabas registrado(a)." : "Asistencia registrada. ¡Gracias!", "exito");
-    document.getElementById("campoNombreParticipante").value = "";
-    actualizarFirmantes();
+    mostrarMensaje("mensajeResponsable", "Responsable de envío guardado.", "exito");
+    cargarResponsables();
   });
 });
 
+document.getElementById("btnMostrarFormAsistente").addEventListener("click", function () {
+  document.getElementById("formularioAsistenteEnvio").classList.remove("oculto");
+});
+
+document.getElementById("btnGuardarAsistente").addEventListener("click", function () {
+  var datos = {
+    nombre: document.getElementById("campoNombreAsistente").value.trim(),
+    idIE: document.getElementById("campoIEAsistente").value,
+    rolForo: document.getElementById("campoRolForoAsistente").value,
+    correo: document.getElementById("campoCorreoAsistente").value.trim()
+  };
+  if (!datos.nombre || !datos.correo) {
+    mostrarMensaje("mensajeAsistente", "Nombre y correo son obligatorios.", "error");
+    return;
+  }
+  llamarServidor("rpcGuardarResponsable", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, "ASISTENTE", datos], function (r) {
+    if (!r.ok) {
+      mostrarMensaje("mensajeAsistente", r.mensaje || "No fue posible agregar.", "error");
+      return;
+    }
+    ["campoNombreAsistente", "campoCorreoAsistente"].forEach(function (id) {
+      document.getElementById(id).value = "";
+    });
+    document.getElementById("formularioAsistenteEnvio").classList.add("oculto");
+    cargarResponsables();
+  });
+});
+
+function cargarResponsables() {
+  if (!estado.idGrupo) return;
+  llamarServidor("rpcListarResponsables", [estado.idGrupo], function (r) {
+    estado.responsables = r;
+    renderResponsables(r);
+    document.getElementById("btnMostrarFormAsistente").disabled = (r.asistentes || []).length >= 3;
+  });
+}
+
+function quitarAsistenteEnvio(idRegistro) {
+  llamarServidor("rpcEliminarResponsable", [estado.idGrupo, idRegistro, estado.tokenSesion, estado.dispositivoId], function (r) {
+    if (r.ok) cargarResponsables();
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * Matriz de participación por estamento e institución
+ * ------------------------------------------------------------------ */
+function cargarMatrizParticipacion() {
+  if (!estado.idGrupo) return;
+  llamarServidor("rpcMatrizParticipacion", [estado.idGrupo], function (matriz) {
+    renderMatrizParticipacion(matriz);
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * Participación / firmantes
+ * ------------------------------------------------------------------ */
 function actualizarFirmantes() {
   if (!estado.idGrupo) return;
   llamarServidor("rpcEstadoFirmantes", [estado.idGrupo], function (r) {
@@ -295,7 +448,8 @@ document.getElementById("btnVerTodosFirmantes").addEventListener("click", functi
  * ------------------------------------------------------------------ */
 var CAMPOS_SESION1 = [
   "REFLEXIONES", "CONCLUSIONES", "PROPUESTAS_IE", "EXPERIENCIAS", "RETOS", "APORTES_TERRITORIALES",
-  "CONVERGENCIAS", "APUESTAS", "DESAFIOS", "IDENTIDAD", "PRIORIDADES", "PROPUESTAS_COLECTIVAS", "ACUERDOS", "RUTA"
+  "CONVERGENCIAS", "APUESTAS", "DESAFIOS", "IDENTIDAD", "PRIORIDADES", "PROPUESTAS_COLECTIVAS", "ACUERDOS", "RUTA",
+  "APORTE_PROPIO_S1_TITULO", "APORTE_PROPIO_S1_TEXTO", "APORTE_PROPIO_S2_TITULO", "APORTE_PROPIO_S2_TEXTO"
 ];
 var temporizadorGuardadoSesion1 = null;
 
@@ -401,6 +555,18 @@ document.getElementById("btnEnviarSesion2").addEventListener("click", function (
     mostrarMensaje("mensajeConectaEduca", r.ok ? "Sesión 2 enviada." : (r.mensaje || "No fue posible enviar."), r.ok ? "exito" : "error");
   });
 });
+
+/* ------------------------------------------------------------------ *
+ * Confirmación de caracterización
+ * ------------------------------------------------------------------ */
+function cargarConfirmacionCaracterizacion() {
+  if (!estado.idGrupo) return;
+  llamarServidor("rpcMatrizParticipacion", [estado.idGrupo], function (matriz) {
+    llamarServidor("rpcListarResponsables", [estado.idGrupo], function (responsables) {
+      renderFichaCaracterizacion(estado.grupo, estado.instituciones, matriz, responsables);
+    });
+  });
+}
 
 /* ------------------------------------------------------------------ *
  * Revisión, cierre y generación del informe

@@ -114,7 +114,7 @@ function subirFotoEvidencia(idGrupo, tokenSesion, dispositivoId, datosBase64, no
  * de entrada de conveniencia, no un control de seguridad). Reutiliza la
  * misma tabla y el mismo deduplicado que registrarParticipante (Data.gs).
  */
-function registrarAsistenciaPublica(idGrupo, idIE, nombre, rol, correo) {
+function registrarAsistenciaPublica(idGrupo, idIE, nombre, estamento, correo) {
   idGrupo = String(idGrupo || "").trim();
   var hojaAccesos = obtenerHoja_(HOJA_ACCESOS_GRUPO_, cabecerasAccesosGrupo_());
   var mapaAccesos = obtenerMapaCabeceras_(hojaAccesos);
@@ -124,7 +124,9 @@ function registrarAsistenciaPublica(idGrupo, idIE, nombre, rol, correo) {
   if (estado === "BLOQUEADO" || estado === "INACTIVO") {
     return { ok: false, mensaje: "Este acceso ya no está disponible." };
   }
-  return registrarParticipante(idGrupo, idIE, nombre, rol, correo, "PUBLICO-QR");
+  // La página pública QR no pide "rol en el foro" (es para firma general,
+  // no para responsables) — queda vacío, distinto del estamento.
+  return registrarParticipante(idGrupo, idIE, nombre, estamento, "", correo, "PUBLICO-QR");
 }
 
 /**

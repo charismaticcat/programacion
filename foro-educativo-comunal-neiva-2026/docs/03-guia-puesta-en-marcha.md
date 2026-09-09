@@ -41,8 +41,32 @@ En el spreadsheet nuevo (no en el de 3.1):
   `LOGO_ENCABEZADO_ID`, `LOGO_PIE_ID` (subir los logos a Drive y pegar su ID de archivo),
   `CORREO_REMITENTE` (debe ser una cuenta o alias que la persona que ejecuta el script pueda usar en
   `GmailApp`), `COPIAS_CORREO`. `CARPETA_DRIVE_ID` y `ID_FORO_COMUNAL` ya quedan poblados por el paso 2.
-- **`AccesosGrupo`**: completar manualmente `EMAIL_RESPONSABLE_GRUPO` de cada grupo (para poder enviarle
-  el acceso y luego el informe) — las demás columnas las genera el paso 4.
+- **`AccesosGrupo`**: completar manualmente `EMAIL_RESPONSABLE_GRUPO` de cada grupo — es solo el correo
+  de arranque para enviarle el TOKEN+código inicial (paso 4). El informe final ya no se envía a este
+  correo por defecto: se envía al **responsable de envío** que el propio grupo registra dentro de la
+  app (hasta 4: 1 principal + 3 asistentes, ver `ResponsablesComunal`) — si el grupo no llega a
+  registrar ninguno, `enviarInformeGrupo` cae de vuelta a este correo de `AccesosGrupo`.
+- **`CaracterizacionIE`**: ya se pobló con `importarCaracterizacionRealDesdeFEI31()` (ver mensaje
+  anterior de esta guía) — no requiere carga manual.
+
+## 3.1 Consentimiento informado y flujo nuevo
+
+- La primera vez que un grupo entra, ve una pantalla de **consentimiento informado** (contenido de la
+  sección 3.2 del Documento Orientador FEM2026, sin fechas/horarios) que debe aceptar antes de
+  continuar — queda registrado en `AccesosGrupo.CONSENTIMIENTO_GRUPO` y no se vuelve a mostrar a otros
+  dispositivos del mismo grupo.
+- En Participación, cada grupo registra su **responsable de envío** (principal) y hasta **3 asistentes
+  de envío**, cada uno con nombre, IE, **rol en el foro** (catálogo oficial: Líder, Dinamizador
+  Pedagógico, Dinamizador de Mesas de Trabajo, Relator(a), Dinamizador del Tiempo, Dinamizador de la
+  Sistematización, Participante, Otro) y correo.
+- La misma pantalla muestra en vivo la **matriz de participación por estamento e institución**
+  (equivalente a la hoja `Participacion` de 3.1), calculada a partir de las firmas ya registradas.
+- Antes de pasar a Sesión 1, el grupo ve una pantalla de **confirmación de caracterización** con la
+  ficha completa (instituciones, matriz, responsables) para verificar antes de continuar.
+- Si el grupo elige el método QR, puede abrir una **vista de pantalla completa** (botón 👁) para
+  proyectar el código QR y el contador de firmantes en vivo durante el evento.
+- Cada sesión (1 y 2/ConectaEduca) tiene un desplegable opcional **"➕ Aporte propio del grupo"** para
+  hallazgos que no encajen en las preguntas orientadoras.
 
 ## 4. Generar accesos y publicar la web app
 

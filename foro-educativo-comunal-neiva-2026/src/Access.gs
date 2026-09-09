@@ -91,8 +91,30 @@ function validarAccesoGrupo(token, codigo, dispositivoId, forzar) {
     esPrincipal: sesion.esPrincipal,
     instituciones: obtenerInstitucionesDelGrupo(idGrupo),
     logoId: valorColumna("LOGO_ID"),
-    metodoAsistencia: valorColumna("METODO_ASISTENCIA")
+    metodoAsistencia: valorColumna("METODO_ASISTENCIA"),
+    consentimientoGrupo: valorColumna("CONSENTIMIENTO_GRUPO") === "SI"
   };
+}
+
+/**
+ * Registra que el grupo (como colectivo) confirmó el consentimiento
+ * informado (pantalla previa a Participación, contenido de la sección 3.2
+ * del Documento Orientador FEM2026). Una sola confirmación representa a
+ * todo el grupo — cualquier dispositivo con sesión activa puede darla, y
+ * una vez dada, ningún otro dispositivo vuelve a ver esa pantalla.
+ */
+function guardarConsentimientoGrupo(idGrupo, tokenSesion, dispositivoId) {
+  idGrupo = String(idGrupo || "").trim();
+  if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
+    return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión ya no está activa en este dispositivo." };
+  }
+  var hoja = obtenerHoja_(HOJA_ACCESOS_GRUPO_, cabecerasAccesosGrupo_());
+  var mapa = obtenerMapaCabeceras_(hoja);
+  var fila = buscarFilaPorColumna_(hoja, mapa, "ID_GRUPO", idGrupo);
+  if (fila === -1) return { ok: false, mensaje: "No existe acceso para este grupo." };
+  hoja.getRange(fila, mapa["CONSENTIMIENTO_GRUPO"]).setValue("SI");
+  hoja.getRange(fila, mapa["FECHA_CONSENTIMIENTO_GRUPO"]).setValue(new Date());
+  return { ok: true };
 }
 
 /** Único generador de código de acceso (evita caracteres ambiguos: sin I,O,0,1). */
@@ -127,7 +149,10 @@ function cabecerasAccesosGrupo_() {
     "FECHA_ENVIO_S1", "FECHA_ENVIO_S2", "FECHA_ENVIO_DEFINITIVO",
     // Asistencia (Asistencia.gs): logo propio del grupo + método elegido
     // (QR/enlace o listado físico) + referencias a lo subido.
-    "LOGO_ID", "METODO_ASISTENCIA", "ID_LISTADO_ASISTENCIA", "ID_FOTO_EVIDENCIA"
+    "LOGO_ID", "METODO_ASISTENCIA", "ID_LISTADO_ASISTENCIA", "ID_FOTO_EVIDENCIA",
+    // Consentimiento informado del grupo (sección 3.2 del Documento
+    // Orientador FEM2026) — se confirma una sola vez por grupo.
+    "CONSENTIMIENTO_GRUPO", "FECHA_CONSENTIMIENTO_GRUPO"
   ];
 }
 
@@ -178,7 +203,8 @@ function generarAccesosGrupo() {
         construirUrlAcceso_(token),
         "DISPONIBLE",
         "", "", new Date(), "", "NO", "NO", "", "", "",
-        "", "", "", ""
+        "", "", "", "",
+        "NO", ""
       ];
       hoja.appendRow(fila);
       creados.push(g.idGrupo);

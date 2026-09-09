@@ -14,9 +14,7 @@ function escapeHtml(texto) {
 
 function renderListaInstituciones(instituciones) {
   var contenedor = document.getElementById("listaInstituciones");
-  var selectIE = document.getElementById("campoIEParticipante");
   contenedor.innerHTML = "";
-  selectIE.innerHTML = "";
   (instituciones || []).forEach(function (ie) {
     var item = document.createElement("div");
     item.className = "item-institucion";
@@ -24,11 +22,6 @@ function renderListaInstituciones(instituciones) {
       "<span>" + escapeHtml(ie.institucion) + "</span>" +
       "<span class='comuna'>" + escapeHtml(ie.comuna || "") + "</span>";
     contenedor.appendChild(item);
-
-    var opcion = document.createElement("option");
-    opcion.value = ie.idIE;
-    opcion.textContent = ie.institucion;
-    selectIE.appendChild(opcion);
   });
 }
 
@@ -49,9 +42,87 @@ function renderTablaTodosFirmantes(firmantes) {
     fila.innerHTML =
       "<td>" + escapeHtml(f.nombre) + "</td>" +
       "<td>" + escapeHtml(f.institucion) + "</td>" +
-      "<td>" + escapeHtml(f.rol) + "</td>";
+      "<td>" + escapeHtml(f.estamento) + "</td>";
     tbody.appendChild(fila);
   });
+}
+
+/** Ficha del responsable principal + lista de asistentes de envío, con botón para quitar. */
+function renderResponsables(responsables) {
+  var fichaPrincipal = document.getElementById("fichaResponsablePrincipal");
+  if (fichaPrincipal) {
+    var p = responsables.principal;
+    fichaPrincipal.innerHTML = p
+      ? "<div class='tarjeta-responsable'><span>✅ <strong>" + escapeHtml(p.nombre) + "</strong>" +
+        (p.rolForo ? " — " + escapeHtml(p.rolForo) : "") +
+        (p.institucion ? " (" + escapeHtml(p.institucion) + ")" : "") +
+        " — " + escapeHtml(p.correo) + "</span></div>"
+      : "";
+  }
+
+  var listaAsistentes = document.getElementById("listaAsistentesEnvio");
+  if (listaAsistentes) {
+    listaAsistentes.innerHTML = "";
+    (responsables.asistentes || []).forEach(function (a) {
+      var item = document.createElement("div");
+      item.className = "tarjeta-responsable";
+      item.innerHTML =
+        "<span>" + escapeHtml(a.nombre) + (a.rolForo ? " — " + escapeHtml(a.rolForo) : "") +
+        (a.institucion ? " (" + escapeHtml(a.institucion) + ")" : "") + " — " + escapeHtml(a.correo) + "</span>" +
+        "<button type='button' class='btn btn-secundario' data-quitar-asistente='" + a.idRegistro + "'>Quitar</button>";
+      listaAsistentes.appendChild(item);
+    });
+  }
+}
+
+/** Tabla de la matriz de participación por estamento (filas) e IE del grupo (columnas). */
+function renderMatrizParticipacion(matriz) {
+  var contenedor = document.getElementById("contenedorMatrizParticipacion");
+  if (!contenedor) return;
+  if (!matriz || !matriz.estamentos.length || !matriz.instituciones.length) {
+    contenedor.innerHTML = "<p class='ayuda'>Todavía no hay firmas registradas para calcular esta tabla.</p>";
+    return;
+  }
+  var html = "<table class='tabla-simple'><thead><tr><th>Estamento</th>";
+  matriz.instituciones.forEach(function (ie) {
+    html += "<th>" + escapeHtml(ie.institucion) + "</th>";
+  });
+  html += "<th>Total</th></tr></thead><tbody>";
+  matriz.estamentos.forEach(function (estamento) {
+    html += "<tr><td>" + escapeHtml(estamento) + "</td>";
+    matriz.instituciones.forEach(function (ie) {
+      html += "<td>" + (matriz.matriz[estamento][ie.idIE] || 0) + "</td>";
+    });
+    html += "<td><strong>" + (matriz.totalesPorEstamento[estamento] || 0) + "</strong></td></tr>";
+  });
+  html += "</tbody></table>";
+  contenedor.innerHTML = html;
+}
+
+/** Ficha de caracterización del grupo: instituciones + resumen de participación, para confirmar antes de continuar. */
+function renderFichaCaracterizacion(grupo, instituciones, matriz, responsables) {
+  var contenedor = document.getElementById("fichaCaracterizacionGrupo");
+  if (!contenedor) return;
+
+  var html = "<table class='ficha-caracterizacion'><caption>" + escapeHtml(grupo) + "</caption>";
+  html += "<tr><th>Institución educativa</th><th>Comuna</th><th>Dirección</th><th>Rector(a)</th></tr>";
+  (instituciones || []).forEach(function (ie) {
+    html += "<tr><td>" + escapeHtml(ie.institucion) + "</td><td>" + escapeHtml(ie.comuna || "—") + "</td>" +
+      "<td>" + escapeHtml(ie.direccion || "—") + "</td><td>" + escapeHtml(ie.rector || "—") + "</td></tr>";
+  });
+  html += "</table>";
+
+  html += "<table class='ficha-caracterizacion'><caption>Participación</caption>";
+  html += "<tr><td>Total de firmantes</td><td><strong>" + (matriz.totalGeneral || 0) + "</strong></td></tr>";
+  html += "<tr><td>Responsable de envío</td><td>" +
+    (responsables.principal ? escapeHtml(responsables.principal.nombre) + " — " + escapeHtml(responsables.principal.correo) : "Sin registrar") +
+    "</td></tr>";
+  html += "<tr><td>Asistentes de envío</td><td>" +
+    ((responsables.asistentes || []).length ? responsables.asistentes.map(function (a) { return escapeHtml(a.nombre); }).join(", ") : "Ninguno") +
+    "</td></tr>";
+  html += "</table>";
+
+  contenedor.innerHTML = html;
 }
 
 function renderTablaConectaEduca(registros) {

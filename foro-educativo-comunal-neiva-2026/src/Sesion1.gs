@@ -16,18 +16,36 @@ function cabecerasSesion1Comunal_() {
   return [
     "ID_GRUPO", "REFLEXIONES", "CONCLUSIONES", "PROPUESTAS_IE", "EXPERIENCIAS", "RETOS",
     "APORTES_TERRITORIALES", "CONVERGENCIAS", "APUESTAS", "DESAFIOS", "IDENTIDAD",
-    "PRIORIDADES", "PROPUESTAS_COLECTIVAS", "ACUERDOS", "RUTA", "ULTIMA_ACTUALIZACION"
+    "PRIORIDADES", "PROPUESTAS_COLECTIVAS", "ACUERDOS", "RUTA",
+    // Espacio libre y opcional por sesión para hallazgos propios de la
+    // comunidad que no encajan en las preguntas orientadoras — mismo
+    // espíritu que la Sesión Propia/4 (opcional) de FEI 3.1
+    // (docs/01-auditoria-fei-3.1.md §2.6), aquí uno por Sesión 1 y otro
+    // por Sesión 2/ConectaEduca (se guardan aquí por simplicidad: ambas
+    // sesiones ya usan el mismo UPSERT-por-grupo con fusión de campos).
+    "APORTE_PROPIO_S1_TITULO", "APORTE_PROPIO_S1_TEXTO",
+    "APORTE_PROPIO_S2_TITULO", "APORTE_PROPIO_S2_TEXTO",
+    "ULTIMA_ACTUALIZACION"
   ];
 }
 
+/** Campos obligatorios para el envío definitivo de Sesión 1 (la síntesis colectiva). */
+var CAMPOS_SESION1_OBLIGATORIOS_ = [
+  "REFLEXIONES", "CONCLUSIONES", "PROPUESTAS_IE", "EXPERIENCIAS", "RETOS",
+  "APORTES_TERRITORIALES", "CONVERGENCIAS", "APUESTAS", "DESAFIOS", "IDENTIDAD",
+  "PRIORIDADES", "PROPUESTAS_COLECTIVAS", "ACUERDOS", "RUTA"
+];
+
+/** Todos los campos de contenido que se pueden guardar (obligatorios + aportes propios, opcionales). */
 var CAMPOS_SESION1_ = cabecerasSesion1Comunal_().filter(function (c) {
   return c !== "ID_GRUPO" && c !== "ULTIMA_ACTUALIZACION";
 });
 
 /**
- * Guarda (UPSERT con fusión) los campos de Sesión 1 recibidos del cliente.
- * `campos` es un objeto parcial {NOMBRE_CAMPO: texto} — el cliente puede
- * enviar solo los campos que su dispositivo tiene abiertos/editados.
+ * Guarda (UPSERT con fusión) los campos de Sesión 1 (y/o los aportes
+ * propios de Sesión 1/Sesión 2) recibidos del cliente. `campos` es un
+ * objeto parcial {NOMBRE_CAMPO: texto} — el cliente puede enviar solo los
+ * campos que su dispositivo tiene abiertos/editados.
  */
 function guardarSesion1(idGrupo, tokenSesion, dispositivoId, campos) {
   idGrupo = String(idGrupo || "").trim();
@@ -70,7 +88,7 @@ function enviarSesion1Definitiva(idGrupo, tokenSesion, dispositivoId) {
   }
 
   var datos = obtenerSesion1(idGrupo);
-  var vacios = CAMPOS_SESION1_.filter(function (c) {
+  var vacios = CAMPOS_SESION1_OBLIGATORIOS_.filter(function (c) {
     return !datos || !String(datos[c] || "").trim();
   });
   if (vacios.length) {

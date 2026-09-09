@@ -85,8 +85,17 @@ function enviarInformeGrupo(idGrupo) {
   var hojaAccesos = obtenerHoja_(HOJA_ACCESOS_GRUPO_, cabecerasAccesosGrupo_());
   var mapaAccesos = obtenerMapaCabeceras_(hojaAccesos);
   var filaAcceso = buscarFilaPorColumna_(hojaAccesos, mapaAccesos, "ID_GRUPO", idGrupo);
-  var destinatario = filaAcceso === -1 ? "" : String(hojaAccesos.getRange(filaAcceso, mapaAccesos["EMAIL_RESPONSABLE_GRUPO"]).getValue() || "").trim();
-  if (!destinatario) return { ok: false, mensaje: "El grupo no tiene EMAIL_RESPONSABLE_GRUPO registrado." };
+
+  // El informe va al responsable de envío + asistentes registrados desde
+  // la app (Responsables.gs); si el grupo todavía no registró a nadie,
+  // se usa el correo de acceso inicial como respaldo.
+  var responsables = listarResponsablesEnvio(idGrupo);
+  var destinatario = responsables.principal ? responsables.principal.correo : "";
+  var copiasAsistentes = responsables.asistentes.map(function (a) { return a.correo; }).filter(Boolean);
+  if (!destinatario) {
+    destinatario = filaAcceso === -1 ? "" : String(hojaAccesos.getRange(filaAcceso, mapaAccesos["EMAIL_RESPONSABLE_GRUPO"]).getValue() || "").trim();
+  }
+  if (!destinatario) return { ok: false, mensaje: "El grupo no tiene un responsable de envío ni EMAIL_RESPONSABLE_GRUPO registrado." };
 
   var remitente = remitenteValido_();
   if (!remitente.ok) return remitente;
@@ -107,11 +116,13 @@ function enviarInformeGrupo(idGrupo) {
     "Enlace de descarga: " + informe.URL + "\n\n" +
     "Secretaría de Educación de Neiva — " + config.NOMBRE_FORO;
 
+  var copias = copiasAsistentes.concat([String(config.COPIAS_CORREO || "").trim()]).filter(Boolean).join(",");
+
   try {
     GmailApp.sendEmail(destinatario, asunto, cuerpo, {
       from: remitente.remitente,
       name: "Secretaría de Educación de Neiva",
-      cc: String(config.COPIAS_CORREO || "").trim(),
+      cc: copias,
       attachments: [pdfFile.getBlob()]
     });
   } catch (error) {

@@ -80,7 +80,13 @@ function testFlujoCompletoGrupoPrueba() {
 
   var tokenSesion = validacion.tokenSesion;
 
-  Logger.log(JSON.stringify(registrarParticipante("GRUPO-PRUEBA", "IE-PRUEBA-1", "Persona de Prueba", "Docente", "", dispositivoId)));
+  Logger.log(JSON.stringify(registrarParticipante("GRUPO-PRUEBA", "IE-PRUEBA-1", "Persona de Prueba", "Docente", "Participante", "", dispositivoId)));
+
+  Logger.log(JSON.stringify(guardarConsentimientoGrupo("GRUPO-PRUEBA", tokenSesion, dispositivoId)));
+
+  Logger.log(JSON.stringify(guardarResponsableEnvio("GRUPO-PRUEBA", tokenSesion, dispositivoId, "PRINCIPAL", {
+    nombre: "Responsable de Prueba", idIE: "IE-PRUEBA-1", rolForo: "Líder (Rector/Rectora)", correo: "prueba@example.org"
+  })));
 
   var guardado = guardarSesion1("GRUPO-PRUEBA", tokenSesion, dispositivoId, {
     REFLEXIONES: "Texto de prueba — reflexiones.",
@@ -122,7 +128,7 @@ function testFlujoCompletoGrupoPrueba() {
 
 /** Borra el GRUPO-PRUEBA y sus datos asociados (Sesión 1, ConectaEduca, participación, acceso, informe). */
 function testLimpiarDatosDePrueba() {
-  ["GruposComunal", "AccesosGrupo", "ParticipacionComunal", "Sesion1Comunal", "ConectaEduca", "InformesComunal", "EnviosDiferidosComunal"].forEach(
+  ["GruposComunal", "AccesosGrupo", "ParticipacionComunal", "Sesion1Comunal", "ConectaEduca", "InformesComunal", "EnviosDiferidosComunal", "ResponsablesComunal"].forEach(
     function (nombreHoja) {
       var ss = abrirSpreadsheet_();
       var hoja = ss.getSheetByName(nombreHoja);

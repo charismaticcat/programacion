@@ -77,12 +77,44 @@ function rpcTransferirPrincipal(idGrupo, dispositivoId, tokenSesion) {
  * RPC — Participación / firmantes
  * ------------------------------------------------------------------ */
 
-function rpcRegistrarParticipante(idGrupo, idIE, nombre, rol, correo, dispositivoId) {
-  return registrarParticipante(idGrupo, idIE, nombre, rol, correo, dispositivoId);
+function rpcRegistrarParticipante(idGrupo, idIE, nombre, estamento, rolForo, correo, dispositivoId) {
+  return registrarParticipante(idGrupo, idIE, nombre, estamento, rolForo, correo, dispositivoId);
 }
 
 function rpcEstadoFirmantes(idGrupo) {
   return { total: contarParticipantesGrupo(idGrupo), firmantes: listarFirmantesGrupo(idGrupo).slice(0, 50) };
+}
+
+function rpcMatrizParticipacion(idGrupo) {
+  return obtenerMatrizParticipacionGrupo(idGrupo);
+}
+
+function rpcRolesForo() {
+  return ROLES_FORO_;
+}
+
+/* ------------------------------------------------------------------ *
+ * RPC — Responsable de envío y asistentes de envío
+ * ------------------------------------------------------------------ */
+
+function rpcGuardarResponsable(idGrupo, tokenSesion, dispositivoId, tipo, datos) {
+  return guardarResponsableEnvio(idGrupo, tokenSesion, dispositivoId, tipo, datos);
+}
+
+function rpcListarResponsables(idGrupo) {
+  return listarResponsablesEnvio(idGrupo);
+}
+
+function rpcEliminarResponsable(idGrupo, idRegistro, tokenSesion, dispositivoId) {
+  return eliminarResponsableEnvio(idGrupo, idRegistro, tokenSesion, dispositivoId);
+}
+
+/* ------------------------------------------------------------------ *
+ * RPC — Consentimiento informado del grupo (sección 3.2)
+ * ------------------------------------------------------------------ */
+
+function rpcGuardarConsentimientoGrupo(idGrupo, tokenSesion, dispositivoId) {
+  return guardarConsentimientoGrupo(idGrupo, tokenSesion, dispositivoId);
 }
 
 /* ------------------------------------------------------------------ *
@@ -106,8 +138,8 @@ function rpcSubirFotoEvidencia(idGrupo, tokenSesion, dispositivoId, datosBase64,
 }
 
 /** Usada desde AsistenciaPublica.html (página pública QR, sin token/código). */
-function rpcRegistrarAsistenciaPublica(idGrupo, idIE, nombre, rol, correo) {
-  return registrarAsistenciaPublica(idGrupo, idIE, nombre, rol, correo);
+function rpcRegistrarAsistenciaPublica(idGrupo, idIE, nombre, estamento, correo) {
+  return registrarAsistenciaPublica(idGrupo, idIE, nombre, estamento, correo);
 }
 
 /* ------------------------------------------------------------------ *
