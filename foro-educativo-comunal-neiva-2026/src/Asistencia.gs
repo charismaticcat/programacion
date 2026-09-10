@@ -161,6 +161,13 @@ function registrarAsistenciaPublica(idGrupo, idIE, nombre, estamento, correo) {
   if (estado === "BLOQUEADO" || estado === "INACTIVO") {
     return { ok: false, mensaje: "Este acceso ya no está disponible." };
   }
+  // La firma por QR solo se habilita hasta la pantalla anterior a "Generar
+  // informe" (spec: "habilitar firma QR solamente hasta pantalla antes de
+  // generar el informe") — una vez generado el informe del grupo, ya no se
+  // aceptan más firmas.
+  if (estado === "INFORME_GENERADO") {
+    return { ok: false, mensaje: "La firma de asistencia de este grupo ya se cerró: el informe del grupo ya fue generado." };
+  }
   // La página pública QR no pide "rol en el foro" (es para firma general,
   // no para responsables) — queda vacío, distinto del estamento.
   return registrarParticipante(idGrupo, idIE, nombre, estamento, "", correo, "PUBLICO-QR");
@@ -177,6 +184,24 @@ function paginaAsistenciaGrupo_(idGrupo) {
   template.ID_GRUPO = idGrupo;
   template.NOMBRE_GRUPO = grupoInfo ? grupoInfo.grupo : "";
   template.EXISTE_GRUPO = !!grupoInfo;
+  // La firma por QR se cierra en cuanto el informe del grupo ya fue
+  // generado (spec: "habilitar firma QR solamente hasta pantalla antes de
+  // generar el informe") — a partir de ahí la página pública ya no ofrece
+  // el formulario, solo un aviso.
+  template.ASISTENCIA_CERRADA = false;
+  if (grupoInfo) {
+    try {
+      var hojaAccesos = obtenerHoja_(HOJA_ACCESOS_GRUPO_, cabecerasAccesosGrupo_());
+      var mapaAccesos = obtenerMapaCabeceras_(hojaAccesos);
+      var filaAcceso = buscarFilaPorColumna_(hojaAccesos, mapaAccesos, "ID_GRUPO", String(idGrupo || "").trim());
+      if (filaAcceso !== -1) {
+        var estadoAcceso = String(hojaAccesos.getRange(filaAcceso, mapaAccesos["ESTADO"]).getValue() || "").toUpperCase();
+        template.ASISTENCIA_CERRADA = estadoAcceso === "INFORME_GENERADO";
+      }
+    } catch (e) {
+      Logger.log("paginaAsistenciaGrupo_: no fue posible leer el estado del acceso: " + e.message);
+    }
+  }
   template.LOGO_GRUPO_URL = "";
   var logoId = obtenerLogoGrupo_(idGrupo);
   if (logoId) {

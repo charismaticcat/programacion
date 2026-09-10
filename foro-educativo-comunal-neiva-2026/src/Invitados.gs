@@ -27,9 +27,13 @@
  * las preguntas del invitado ya NO se prellenan con el resumen sugerido
  * del Informe Ejecutivo (spec del usuario: "No se tiene en cuenta el
  * informe de cada IE, es construcción libre") — en su lugar,
- * PREGUNTAS_PREPARACION_INVITADO_ da, para cada pregunta (mismo título
- * que la versión oficial, sin modificar su redacción), una explicación y
- * un ejemplo pensados para alguien sin acceso al Informe Ejecutivo.
+ * preguntasPreparacionInvitado_(tipoInvitado) da, para cada pregunta
+ * (mismo título que la versión oficial, sin modificar su redacción), una
+ * explicación con un ejemplo de respuesta afirmativa Y uno de respuesta
+ * negativa (para no sugerir una sola "respuesta correcta"), distinta para
+ * el perfil "estudiante o egresado(a)" y para "adulto responsable de
+ * un(a) estudiante" — nunca remite al Informe Ejecutivo, que el invitado
+ * no tiene por qué conocer.
  */
 
 var HOJA_INVITADOS_ = "InvitadosPreparacion";
@@ -48,57 +52,83 @@ function cabecerasAportesInvitadosPreparacion_() {
 }
 
 /**
- * Mismas 6 preguntas que PREGUNTAS_PREPARACION_ (Preparacion.gs) — MISMO
- * título, sin modificar su redacción (spec: "no se modifican las
- * preguntas") — pero con una ayuda distinta: en vez de remitir al
- * Informe Ejecutivo de la IE (que el invitado no tiene por qué conocer),
- * explica la pregunta en lenguaje sencillo y da un ejemplo de respuesta
- * (spec: "se explican y se dan ejemplos para ayuda").
+ * Ayuda de cada pregunta para el perfil "estudiante o egresado(a)": un
+ * ejemplo de respuesta afirmativa y uno de respuesta negativa — ninguno
+ * es "la respuesta correcta", solo referencias de cómo se ve una
+ * respuesta completa en cada sentido — y la instrucción de escribir "no
+ * sé" en vez de dejar la pregunta en blanco cuando no se tiene
+ * información sobre el tema.
  */
-var PREGUNTAS_PREPARACION_INVITADO_ = [
-  {
-    clave: "P1",
-    titulo: "Avances en el logro de retos y propósitos del SEM 2025",
-    ayuda: "Cuenta, con tus propias palabras, qué cambios o mejoras has notado en tu institución en los " +
-      "últimos años: nuevas actividades, mejoras en la enseñanza, proyectos que se hayan logrado, etc. " +
-      "Ejemplo: “He notado que ahora hay más actividades deportivas y que los profesores usan más la " +
-      "tecnología en las clases.”"
-  },
-  {
-    clave: "P2",
-    titulo: "Implementación de niveles de preescolar (Jardín, Pre-jardín)",
-    ayuda: "Cuenta si conoces o has visto avances en la atención a los niños y niñas más pequeños (jardín, " +
-      "prejardín) en tu institución. Ejemplo: “Sé que abrieron un salón nuevo para los niños pequeños este " +
-      "año.” Si no tienes información sobre este tema, puedes dejarlo en blanco."
-  },
-  {
-    clave: "P3",
-    titulo: "Pertinencia curricular con las realidades de la comunidad",
-    ayuda: "¿Sientes que lo que se enseña en tu institución tiene que ver con la vida real de tu barrio o " +
-      "comunidad? ¿Por qué? Ejemplo: “Sí, porque en la clase de sociales hablamos de los problemas de " +
-      "nuestro barrio.”"
-  },
-  {
-    clave: "P4",
-    titulo: "Acciones pedagógicas para articular el currículo con la comunidad",
-    ayuda: "Menciona alguna actividad, proyecto o clase que haya conectado lo aprendido en la institución " +
-      "con la comunidad o el entorno. Ejemplo: “Hicimos un proyecto de reciclaje con los vecinos del " +
-      "barrio.”"
-  },
-  {
-    clave: "P5",
-    titulo: "Equipos de trabajo para articular con la comunidad",
-    ayuda: "¿Conoces algún grupo, comité o equipo (de padres, estudiantes, profesores) que trabaje por " +
-      "mejorar la relación entre la institución y la comunidad? Cuéntanos cuál y qué hace. Ejemplo: “El " +
-      "Consejo de Padres organiza reuniones para hablar de las necesidades del colegio.”"
-  },
-  {
-    clave: "P6",
-    titulo: "Democracia institucional",
-    ayuda: "¿Sientes que en tu institución las decisiones se toman escuchando a estudiantes y familias? " +
-      "Cuenta un ejemplo. Ejemplo: “Sí, porque elegimos al personero y al Consejo Estudiantil entre todos.”"
-  }
-];
+var AYUDA_PREPARACION_INVITADO_ESTUDIANTE_ = {
+  P1: "Cuenta, con tus propias palabras, qué cambios o mejoras has notado en tu institución en los últimos " +
+    "años: nuevas actividades, mejoras en la enseñanza, proyectos que se hayan logrado, etc. Ejemplo: “Sí, " +
+    "he notado que ahora hay más actividades deportivas y que los profesores usan más la tecnología en las " +
+    "clases.” También puede ser: “No, no he notado cambios grandes, las clases siguen igual que antes.” Si " +
+    "no sabes sobre este tema, escribe que no sabes — no dejes la pregunta en blanco.",
+  P2: "Cuenta si conoces o has visto avances en la atención a los niños y niñas más pequeños (jardín, " +
+    "prejardín) en tu institución. Ejemplo: “Sí, sé que abrieron un salón nuevo para los niños pequeños " +
+    "este año.” También puede ser: “No, en mi institución no hay ni jardín ni prejardín.” Si no sabes sobre " +
+    "este tema, escríbelo así — no dejes la pregunta en blanco.",
+  P3: "¿Sientes que lo que se enseña en tu institución tiene que ver con la vida real de tu barrio o " +
+    "comunidad? ¿Por qué? Ejemplo: “Sí, porque en la clase de sociales hablamos de los problemas de " +
+    "nuestro barrio.” También puede ser: “No, porque las clases no hablan de lo que pasa aquí en la " +
+    "comuna.” Si no sabes qué responder, dilo con tus palabras — no dejes la pregunta en blanco.",
+  P4: "Menciona alguna actividad, proyecto o clase que haya conectado lo aprendido en la institución con " +
+    "la comunidad o el entorno. Ejemplo: “Sí, hicimos un proyecto de reciclaje con los vecinos del barrio.” " +
+    "También puede ser: “No recuerdo ninguna actividad así.” Si no sabes, escribe que no sabes — no dejes " +
+    "la pregunta en blanco.",
+  P5: "¿Conoces algún grupo, comité o equipo (de padres, estudiantes, profesores) que trabaje por mejorar " +
+    "la relación entre la institución y la comunidad? Cuéntanos cuál y qué hace. Ejemplo: “Sí, el Consejo " +
+    "Estudiantil organiza actividades con la comunidad.” También puede ser: “No conozco ningún grupo así " +
+    "en mi institución.” Si no sabes, dilo — no dejes la pregunta en blanco.",
+  P6: "¿Sientes que en tu institución las decisiones se toman escuchando a estudiantes y familias? Cuenta " +
+    "un ejemplo. Ejemplo: “Sí, porque elegimos al personero y al Consejo Estudiantil entre todos.” También " +
+    "puede ser: “No, porque no hay elecciones de personero ni se nos pregunta nuestra opinión.” Si no " +
+    "sabes, escríbelo así — no dejes la pregunta en blanco."
+};
+
+/** Igual que AYUDA_PREPARACION_INVITADO_ESTUDIANTE_, para el perfil "adulto responsable de un(a) estudiante". */
+var AYUDA_PREPARACION_INVITADO_ADULTO_ = {
+  P1: "Cuente, como adulto responsable, qué cambios o mejoras ha notado en la institución educativa en los " +
+    "últimos años: nuevas actividades, mejoras en la comunicación con las familias, proyectos que se hayan " +
+    "logrado, etc. Ejemplo: “Sí, he notado que ahora nos informan más seguido sobre las actividades del " +
+    "colegio.” También puede ser: “No, no he notado cambios importantes.” Si no sabe sobre este tema, " +
+    "escriba que no sabe — no deje la pregunta en blanco.",
+  P2: "Cuente si conoce o ha visto avances en la atención a los niños y niñas más pequeños (jardín, " +
+    "prejardín) en la institución. Ejemplo: “Sí, sé que este año abrieron un grado nuevo para los más " +
+    "pequeños.” También puede ser: “No, en esta institución no hay jardín ni prejardín.” Si no sabe sobre " +
+    "este tema, escríbalo así — no deje la pregunta en blanco.",
+  P3: "¿Siente que lo que se enseña en la institución tiene que ver con la vida real del barrio o la " +
+    "comunidad? ¿Por qué? Ejemplo: “Sí, porque los proyectos que hacen se relacionan con lo que vivimos en " +
+    "el barrio.” También puede ser: “No, siento que las clases no tienen relación con nuestra realidad.” Si " +
+    "no sabe qué responder, dígalo con sus palabras — no deje la pregunta en blanco.",
+  P4: "Mencione alguna actividad, proyecto o iniciativa que haya conectado lo que se enseña en la " +
+    "institución con la comunidad o las familias. Ejemplo: “Sí, participamos en una jornada de aseo del " +
+    "barrio organizada por el colegio.” También puede ser: “No conozco ninguna actividad así.” Si no sabe, " +
+    "escríbalo — no deje la pregunta en blanco.",
+  P5: "¿Conoce algún grupo, comité o equipo (de padres, estudiantes, profesores) que trabaje por mejorar la " +
+    "relación entre la institución y la comunidad? Cuéntenos cuál y qué hace. Ejemplo: “Sí, el Consejo de " +
+    "Padres organiza reuniones para hablar de las necesidades del colegio.” También puede ser: “No conozco " +
+    "ningún grupo así.” Si no sabe, dígalo — no deje la pregunta en blanco.",
+  P6: "¿Siente que en la institución las decisiones se toman escuchando a las familias y estudiantes? " +
+    "Cuente un ejemplo. Ejemplo: “Sí, porque nos consultan en las reuniones del Consejo de Padres.” También " +
+    "puede ser: “No, siento que las decisiones se toman sin consultarnos.” Si no sabe, escríbalo así — no " +
+    "deje la pregunta en blanco."
+};
+
+/**
+ * Las 6 preguntas de preparación para el invitado, con el MISMO título
+ * que PREGUNTAS_PREPARACION_ (Preparacion.gs — nunca se modifica su
+ * redacción) pero con la ayuda propia de su perfil.
+ */
+function preguntasPreparacionInvitado_(tipoInvitado) {
+  var ayudas = String(tipoInvitado || "").toUpperCase() === "ESTUDIANTE"
+    ? AYUDA_PREPARACION_INVITADO_ESTUDIANTE_
+    : AYUDA_PREPARACION_INVITADO_ADULTO_;
+  return PREGUNTAS_PREPARACION_.map(function (p) {
+    return { clave: p.clave, titulo: p.titulo, ayuda: ayudas[p.clave] || "" };
+  });
+}
 
 /**
  * Inicia una sesión de invitado para una IE concreta — sin código de
@@ -166,13 +196,14 @@ function obtenerPreparacionIEInvitado(tokenInvitado, idIE, dispositivoId) {
   var fila = buscarFilaPorColumna_(hoja, mapa, "TOKEN_INVITADO", String(tokenInvitado || "").trim());
   var guardado = fila === -1 ? null : leerFilaComoObjeto_(hoja, fila, mapa);
 
+  var preguntas = preguntasPreparacionInvitado_(sesion.TIPO_INVITADO);
   var respuestas = {};
-  PREGUNTAS_PREPARACION_INVITADO_.forEach(function (p) {
+  preguntas.forEach(function (p) {
     respuestas[p.clave] = guardado ? String(guardado[p.clave] || "") : "";
   });
 
   return {
-    preguntas: PREGUNTAS_PREPARACION_INVITADO_,
+    preguntas: preguntas,
     respuestas: respuestas,
     enviado: guardado ? String(guardado.ENVIADO || "") === "SI" : false
   };
@@ -193,7 +224,7 @@ function guardarPreparacionIEInvitado(tokenInvitado, idIE, tipoInvitado, disposi
     TIPO_INVITADO: String(sesion.TIPO_INVITADO || tipoInvitado || "").toUpperCase(),
     ULTIMA_ACTUALIZACION: new Date()
   };
-  PREGUNTAS_PREPARACION_INVITADO_.forEach(function (p) {
+  PREGUNTAS_PREPARACION_.forEach(function (p) {
     datos[p.clave] = String((respuestas || {})[p.clave] || "");
   });
 
@@ -224,7 +255,7 @@ function marcarPreparacionEnviadaInvitado(tokenInvitado, idIE, dispositivoId) {
   var tieneAlgo = false;
   if (fila !== -1) {
     var guardado = leerFilaComoObjeto_(hoja, fila, mapa);
-    tieneAlgo = PREGUNTAS_PREPARACION_INVITADO_.some(function (p) {
+    tieneAlgo = PREGUNTAS_PREPARACION_.some(function (p) {
       return String(guardado[p.clave] || "").trim() !== "";
     });
   }
@@ -263,7 +294,7 @@ function obtenerAportesInvitadosIE(idGrupo, idIE) {
     if (String(f.ID_IE || "").trim() !== idIE) return;
     if (String(f.ENVIADO || "") !== "SI") return;
     var secciones = [];
-    PREGUNTAS_PREPARACION_INVITADO_.forEach(function (p) {
+    PREGUNTAS_PREPARACION_.forEach(function (p) {
       var texto = String(f[p.clave] || "").trim();
       if (texto) secciones.push({ clave: p.clave, titulo: p.titulo, texto: texto });
     });
@@ -279,4 +310,34 @@ function obtenerAportesInvitadosIE(idGrupo, idIE) {
     return a.tipoInvitado === "ESTUDIANTE" ? -1 : 1;
   });
   return resultado;
+}
+
+/**
+ * Resumen (conteo) de aportes de invitados ya enviados, por IE del grupo
+ * — para la sección "Invitados" al final de la pantalla de selección de
+ * IE de la Sesión de preparación (informativo, no navega a ningún lado:
+ * el acceso de invitado es siempre sin código, desde su propio enlace).
+ */
+function obtenerResumenInvitadosGrupo(idGrupo) {
+  idGrupo = String(idGrupo || "").trim();
+  var hoja = obtenerHoja_(HOJA_APORTES_INVITADOS_, cabecerasAportesInvitadosPreparacion_());
+  var filas = leerFilasComoObjetos_(hoja);
+  var conteos = {};
+  filas.forEach(function (f) {
+    if (String(f.ID_GRUPO || "").trim() !== idGrupo) return;
+    if (String(f.ENVIADO || "") !== "SI") return;
+    var idIE = String(f.ID_IE || "").trim();
+    if (!conteos[idIE]) conteos[idIE] = { estudiantes: 0, adultos: 0 };
+    if (String(f.TIPO_INVITADO || "").toUpperCase() === "ESTUDIANTE") conteos[idIE].estudiantes++;
+    else conteos[idIE].adultos++;
+  });
+
+  return obtenerInstitucionesDelGrupo(idGrupo)
+    .map(function (ie) {
+      var c = conteos[ie.idIE] || { estudiantes: 0, adultos: 0 };
+      return { idIE: ie.idIE, institucion: ie.institucion, estudiantes: c.estudiantes, adultos: c.adultos };
+    })
+    .filter(function (r) {
+      return r.estudiantes > 0 || r.adultos > 0;
+    });
 }

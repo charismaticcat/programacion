@@ -185,6 +185,13 @@ function rpcObtenerAportesInvitadosIE(idGrupo, idIE) {
   });
 }
 
+/** Resumen de aportes de invitados por IE del grupo — sección "Invitados" en Selección de IE (Invitados.gs). */
+function rpcResumenInvitadosGrupo(idGrupo) {
+  return ejecutarRpcSeguro_(function () {
+    return obtenerResumenInvitadosGrupo(idGrupo);
+  });
+}
+
 /* ------------------------------------------------------------------ *
  * RPC — Acceso de invitado (estudiante/acudiente, sin código de acceso)
  * ------------------------------------------------------------------ */

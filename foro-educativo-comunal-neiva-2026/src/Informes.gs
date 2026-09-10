@@ -237,6 +237,17 @@ function generarInformeGrupo(idGrupo) {
         Logger.log("No se pudo generar el gráfico de participación: " + e.message);
       }
     }
+
+    // Listado nominal de asistentes que firmaron (spec: "incluir
+    // asistentes en el informe") — cada persona, no solo el conteo/gráfico
+    // agregado de arriba.
+    subtitulo_(body, "Listado de asistentes que firmaron");
+    var filasFirmantes = [["Nombre", "Institución", "Estamento"]].concat(
+      firmantes.map(function (f) {
+        return [f.nombre || "—", f.institucion || "—", f.estamento || "—"];
+      })
+    );
+    tablaSimple_(body, filasFirmantes);
   }
 
   // Matriz de participación por estamento e IE (equivalente a la hoja

@@ -31,6 +31,12 @@
       <p class="ayuda">👥 <span class="contador"><span id="contadorFirmantes">0</span> personas han firmado</span></p>
     </div>
 
+    <? if (ASISTENCIA_CERRADA) { ?>
+      <div class="tarjeta">
+        <div class="mensaje info">🔒 La firma de asistencia de este grupo ya se cerró: el informe del grupo ya
+          fue generado. Si asististe y no alcanzaste a firmar, informa a la persona responsable del grupo.</div>
+      </div>
+    <? } else { ?>
     <div class="tarjeta" id="tarjetaFormulario">
       <h2 class="titulo-seccion">Registrar mi asistencia</h2>
       <label for="campoNombre">Nombre completo</label>
@@ -63,6 +69,7 @@
         <button class="btn btn-primario" id="btnFirmar" disabled>Confirmar asistencia</button>
       </div>
     </div>
+    <? } ?>
   <? } ?>
 
   <footer class="marca-pie"><?!= NOMBRE_FORO ?></footer>

@@ -214,18 +214,29 @@ table.tabla-simple th { color: var(--verde-oscuro); }
 .barra-progreso > div { height: 100%; background: var(--amarillo); transition: width 0.3s ease; }
 
 /* ---------- Modal ---------- */
+@keyframes aparecerModal { from { opacity: 0; transform: scale(0.96) translateY(6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 .modal-fondo {
-  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5);
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55);
   display: flex; align-items: center; justify-content: center;
-  z-index: 100; padding: 16px;
+  /* Por encima del overlay de invitado (z-index 260, ver .overlay-invitado)
+     — antes quedaba DEBAJO, así que el modal de confirmación era
+     invisible/inaccesible dentro del flujo de invitado. */
+  z-index: 300; padding: 16px;
+  animation: aparecerMensaje 0.15s ease-out;
 }
 .modal-caja {
   background: var(--blanco); border-radius: var(--radio);
   max-width: 520px; width: 100%; max-height: 85vh; overflow-y: auto;
-  padding: 22px 24px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  padding: 22px 24px; box-shadow: 0 12px 36px rgba(0, 0, 0, 0.3);
+  animation: aparecerModal 0.2s ease-out;
 }
 .modal-caja h3 { color: var(--verde); margin-top: 0; }
 .modal-cerrar { float: right; background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--gris-texto); }
+
+/* Modal de confirmación genérico (#modalConfirmar, reemplaza a confirm()) */
+#modalConfirmar .modal-caja { text-align: center; }
+#modalConfirmar #mensajeModalConfirmar { font-size: 1rem; line-height: 1.5; margin: 6px 0 18px; }
+#modalConfirmar .fila-botones { justify-content: center; }
 
 footer.marca-pie {
   text-align: center; color: var(--gris-texto); font-size: 0.8rem;
@@ -257,10 +268,6 @@ details.desplegable-aporte[open] summary { margin-bottom: 8px; }
 }
 .celda-rector { display: flex; align-items: center; gap: 6px; }
 .celda-rector .input-rector { flex: 1; min-width: 140px; padding: 6px 8px; font-size: 0.9rem; }
-.btn-guardar-rector {
-  background: none; border: 1px solid var(--gris-borde); border-radius: 6px;
-  padding: 4px 8px; cursor: pointer; font-size: 1rem;
-}
 .estado-rector { font-size: 0.8rem; color: var(--verde-oscuro); }
 
 /* ---------- Fichas de responsable/asistente de envío ---------- */
@@ -385,6 +392,13 @@ table.tabla-participacion-horizontal .td-estamento {
   font-weight: 600;
 }
 table.tabla-participacion-horizontal thead .th-estamento { background: var(--verde-claro); z-index: 1; }
+table.tabla-participacion-horizontal .th-ie {
+  white-space: normal;
+  min-width: 100px;
+  max-width: 130px;
+}
+.nombre-ie-columna { display: block; font-size: 0.72rem; line-height: 1.2; }
+.comuna-ie-columna { display: block; font-size: 0.68rem; font-weight: 400; color: var(--gris-texto); margin-top: 2px; }
 table.tabla-participacion-horizontal .th-total,
 table.tabla-participacion-horizontal .total-fila-estamento {
   background: var(--gris-fondo);
@@ -497,6 +511,36 @@ details.socializacion-ie[open] summary { margin-bottom: 8px; }
 .contenido-pantalla-completa-texto { max-width: 720px; width: 100%; }
 .contenido-pantalla-completa-texto h2 { margin-top: 40px; }
 .contenido-pantalla-completa-texto p { white-space: pre-wrap; line-height: 1.6; }
+#areaPantallaCompletaEdicion {
+  width: 100%;
+  min-height: 55vh;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  padding: 14px;
+  border-radius: 8px;
+  border: none;
+}
+
+/* ---------- Barra de acciones bajo cada pregunta de texto largo (👁️ pantalla completa, 💾 guardar) ---------- */
+.barra-acciones-textarea {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: -10px 0 14px;
+}
+.btn-accion-textarea {
+  background: var(--gris-fondo);
+  border: 1px solid var(--gris-borde);
+  border-radius: 6px;
+  padding: 4px 9px;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.btn-accion-textarea:hover { background: var(--verde-claro); }
+.estado-guardado-campo { font-size: 0.82rem; font-weight: 600; }
+.estado-guardado-campo.estado-guardado-ok { color: var(--verde-oscuro); }
+.estado-guardado-campo.estado-guardado-error { color: var(--rojo); }
 
 /* ---------- Acceso de invitado (estudiante/acudiente, sin código) ---------- */
 .overlay-invitado {
@@ -504,6 +548,24 @@ details.socializacion-ie[open] summary { margin-bottom: 8px; }
   display: flex; align-items: center; justify-content: center; padding: 24px; overflow-y: auto;
 }
 .overlay-invitado .tarjeta { max-width: 520px; width: 100%; margin: auto; }
+.boton-cerrar-invitado-finalizado {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 270;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: var(--blanco);
+  color: var(--verde-oscuro);
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+.boton-cerrar-invitado-finalizado:hover { background: var(--gris-fondo); }
 
 /* ---------- Contador de palabras (Sesión 1 y 2) ---------- */
 .contador-palabras {
@@ -546,6 +608,16 @@ details.socializacion-ie[open] summary { margin-bottom: 8px; }
   margin: 0 0 14px;
 }
 .contador-participantes-tarjeta strong { font-size: 1.2rem; }
+.comparativo-firmantes-qr {
+  background: var(--verde-claro);
+  color: var(--verde-oscuro);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.95rem;
+  margin: 0 0 14px;
+  text-align: center;
+}
+.comparativo-firmantes-qr strong { font-size: 1.1rem; }
 
 /* ---------- Foto general del grupo (Participación, pantalla final, y su pie en Confirmación de caracterización) ---------- */
 #previaFotoGrupo img, #previaFotoGrupoFinal img, #pieFotoCaracterizacion img {

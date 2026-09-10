@@ -390,6 +390,49 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   cliente como `{ok:false, mensaje:"Ocurrió un error inesperado en el servidor..."}`, un mensaje que cada
   pantalla ya sabe mostrar en su propio contenedor de mensaje.
 
+## 4.13 Segundo lote de correcciones en uso real: invitados, matriz de participación, asistencia QR, informe, pantalla completa editable y guardado inline
+
+- **Invitados — mensaje del Informe Ejecutivo, perfiles y ayuda con ejemplos de contraste**: el aviso "No se
+  encontró el Informe Ejecutivo..." se reformuló en tono propositivo (solo queda en la pantalla de
+  Preparación oficial de la IE, ya no en la de invitado). Los perfiles pasan a llamarse "Estudiantes y
+  egresados" y "Adulto responsable de un(a) estudiante" en toda la interfaz. `AYUDA_PREPARACION_INVITADO_ESTUDIANTE_`/
+  `AYUDA_PREPARACION_INVITADO_ADULTO_` (`Invitados.gs`) dan, para cada pregunta y cada perfil, un ejemplo de
+  respuesta afirmativa Y uno negativo (para no insinuar una única "respuesta correcta"), y piden escribir
+  "no sé" en vez de dejar la pregunta en blanco.
+- **Modal de confirmación e invitado finalizado**: `.modal-fondo` subía de z-index (300, por encima de
+  `.overlay-invitado`, 260) — antes el modal de confirmación quedaba invisible/inaccesible dentro del flujo
+  de invitado, causa más probable de que "no hiciera nada". La pantalla final de invitado agrega un botón
+  "✕" grande (`window.close()`, mejor esfuerzo — límite del navegador si la pestaña no fue abierta por
+  script) y cambia el texto a "Espera a que se inicie la socialización para que puedas leer tus aportes a
+  este foro."
+- **Sección "Invitados" en Selección de IE**: nueva hoja consultada vía `obtenerResumenInvitadosGrupo`
+  (`Invitados.gs`) — resumen (conteo) de aportes ya enviados por estudiantes/egresados y adultos
+  responsables, por IE, puramente informativo. Título de la pantalla actualizado a "¿Qué institución o
+  participante va a preparar sus aportes?".
+- **Matriz de participación por estamento**: cada columna ahora muestra el nombre de la IE (no solo la
+  comuna) — `.th-ie`/`.nombre-ie-columna`/`.comuna-ie-columna` (`Components.html`/`CSS.html`). Al hacer clic
+  en "Continuar" desde Participación, si alguna IE quedó con la columna en cero, se pregunta con el modal de
+  confirmación (`confirmarAccion`, ahora con etiquetas de botón personalizables) si la información es
+  correcta o si hay que corregirla.
+- **Rector(a) sin ícono de guardado**: el botón 💾 se quitó; el campo se guarda solo al salir de él (evento
+  `change`, delegado en `document`), igual patrón de autoguardado que el resto de la app.
+- **Asistencia QR**: arriba del panel aparece "Firmantes / participantes declarados" (comparación rápida,
+  `actualizarComparativoFirmantesQR_`); el botón "Ver QR en pantalla completa" queda en el centro, y tanto
+  el panel normal como la vista de pantalla completa ahora incluyen el enlace y un botón "Copiar enlace". La
+  firma por QR se cierra en cuanto el informe del grupo se genera (`ESTADO = "INFORME_GENERADO"`,
+  verificado en `registrarAsistenciaPublica` y en `paginaAsistenciaGrupo_`, que oculta el formulario público
+  y muestra un aviso de cierre).
+- **Informe generado**: se agregó un listado nominal de asistentes que firmaron (nombre, institución,
+  estamento) además del conteo/gráfico agregado que ya existía.
+- **Pantalla completa editable (👁️) y guardado inline (💾)**: `agregarAccionesTextareas_` (`JS.html`)
+  agrega, después de cada pregunta de texto largo (Sesión 1, Sesión 2, Preparación IE, invitado), un botón
+  👁️ que abre un editor de pantalla completa (mismo campo, sincronizado en vivo; se cierra con "✕" o con
+  ESC) y, solo para Sesión 1/2, un botón 💾 que guarda esa pregunta de inmediato con un texto auxiliar de
+  confirmación (verde si fue exitoso). El botón "Guardar avance" al final de Sesión 1 se eliminó — el
+  guardado sigue siendo automático (debounce de 2s) y ahora también inmediato por pregunta.
+- **Texto de apoyo por pregunta**: las 8 preguntas del Consolidado de Socialización/Construcción colectiva
+  (Sesión 1) ahora tienen una explicación breve debajo del título, igual que ya tenían las de ConectaEduca.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

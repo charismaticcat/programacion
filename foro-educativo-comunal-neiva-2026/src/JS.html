@@ -130,9 +130,6 @@ document.addEventListener("click", function (evento) {
   var quitarAsistente = evento.target.closest("[data-quitar-asistente]");
   if (quitarAsistente) quitarAsistenteEnvio(quitarAsistente.getAttribute("data-quitar-asistente"));
 
-  var guardarRector = evento.target.closest("[data-guardar-rector]");
-  if (guardarRector) guardarRectorIE(guardarRector.getAttribute("data-guardar-rector"));
-
   var elegirIEPreparacion = evento.target.closest("[data-preparar-ie]");
   if (elegirIEPreparacion) abrirModalResponsablePreparacion(elegirIEPreparacion.getAttribute("data-preparar-ie"));
 
@@ -141,6 +138,14 @@ document.addEventListener("click", function (evento) {
 
   var alternarSocializacionIE = evento.target.closest("[data-alternar-socializacion]");
   if (alternarSocializacionIE) alternarTodosDesplegablesSocializacion();
+});
+
+// Rector(a) editable (Confirmación de caracterización): se guarda solo,
+// al salir del campo (evento "change", sin icono ni botón de guardado
+// aparte — el mismo patrón de autoguardado que el resto de la app).
+document.addEventListener("change", function (evento) {
+  var campoRector = evento.target.closest("[data-ie-rector]");
+  if (campoRector) guardarRectorIE(campoRector.getAttribute("data-ie-rector"));
 });
 
 function abrirModal(id) {
@@ -159,19 +164,34 @@ function cerrarModal(id) {
  * en Modal.html) es DOM puro, así que nunca queda bloqueado por el sandbox.
  */
 var _callbackModalConfirmar_ = null;
-function confirmarAccion(mensaje, callback, tituloOpcional) {
+var _callbackCancelarModalConfirmar_ = null;
+/**
+ * `opciones.textoConfirmar`/`opciones.textoCancelar` permiten reusar este
+ * mismo modal para preguntas de sí/no con etiquetas propias (p.ej. "Es
+ * correcto" / "No es correcto, corregir") en vez de "Confirmar"/"Cancelar"
+ * — se restauran al valor por defecto en cada llamada, así que no hace
+ * falta "resetearlos" a mano en cada sitio que use el modal genérico.
+ */
+function confirmarAccion(mensaje, callback, tituloOpcional, opciones) {
   document.getElementById("tituloModalConfirmar").textContent = tituloOpcional || "Confirmar";
   document.getElementById("mensajeModalConfirmar").textContent = mensaje;
+  document.getElementById("btnAceptarModalConfirmar").textContent = (opciones && opciones.textoConfirmar) || "Confirmar";
+  document.getElementById("btnCancelarModalConfirmar").textContent = (opciones && opciones.textoCancelar) || "Cancelar";
   _callbackModalConfirmar_ = callback;
+  _callbackCancelarModalConfirmar_ = (opciones && opciones.alCancelar) || null;
   abrirModal("modalConfirmar");
 }
 document.getElementById("btnCancelarModalConfirmar").addEventListener("click", function () {
+  var alCancelar = _callbackCancelarModalConfirmar_;
   _callbackModalConfirmar_ = null;
+  _callbackCancelarModalConfirmar_ = null;
   cerrarModal("modalConfirmar");
+  if (alCancelar) alCancelar();
 });
 document.getElementById("btnAceptarModalConfirmar").addEventListener("click", function () {
   var callback = _callbackModalConfirmar_;
   _callbackModalConfirmar_ = null;
+  _callbackCancelarModalConfirmar_ = null;
   cerrarModal("modalConfirmar");
   if (callback) callback();
 });
@@ -360,6 +380,8 @@ function intentarValidarAcceso(forzar) {
     estado.fotoGrupoId = r.fotoGrupoId || "";
 
     document.getElementById("nombreGrupoParticipacion").textContent = r.grupo;
+    var elNombreGrupoAviso = document.getElementById("nombreGrupoAvisoPlazoFirmas");
+    if (elNombreGrupoAviso) elNombreGrupoAviso.textContent = r.grupo;
     poblarSelectInstituciones("campoIEResponsable", estado.instituciones);
     poblarSelectInstituciones("campoIEAsistente", estado.instituciones);
     renderListaInstituciones(estado.instituciones);
@@ -464,7 +486,7 @@ document.getElementById("btnContinuarInvitadoIE").addEventListener("click", func
 function abrirPreparacionInvitado_() {
   document.getElementById("nombreIEInvitadoPrep").textContent = estadoInvitado.institucion;
   document.getElementById("tipoInvitadoTexto").textContent =
-    estadoInvitado.tipoInvitado === "ESTUDIANTE" ? "Estudiante" : "Acudiente / padre de familia";
+    estadoInvitado.tipoInvitado === "ESTUDIANTE" ? "Estudiante o egresado(a)" : "Adulto responsable de un(a) estudiante";
   llamarServidor(
     "rpcObtenerPreparacionIEInvitado",
     [estadoInvitado.tokenInvitado, estadoInvitado.idIE, estado.dispositivoId],
@@ -536,6 +558,15 @@ document.getElementById("btnEnviarPreparacionInvitado").addEventListener("click"
       );
     });
   });
+});
+
+// Botón "✕" de la pantalla final de invitado: intenta cerrar la pestaña
+// (solo funciona si el navegador la abrió por script; si no, no hace
+// nada visible — límite del navegador, no del aplicativo) y, si no puede
+// cerrarla, al menos deja claro con el texto de la pantalla que ya no
+// hay nada más que hacer aquí.
+document.getElementById("btnCerrarInvitadoFinalizado").addEventListener("click", function () {
+  window.close();
 });
 
 /* ------------------------------------------------------------------ *
@@ -632,8 +663,30 @@ document.getElementById("btnContinuarAParticipacion").addEventListener("click", 
     document.getElementById("mensajeSeleccionMetodo").scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }
+  var institucionesSinMarcar = institucionesSinParticipacionMarcada_();
+  if (institucionesSinMarcar.length) {
+    confirmarAccion(
+      "Estas instituciones no tienen ninguna persona registrada en el cuadro de \"Cantidad de asistentes " +
+        "por estamento e institución\": " + institucionesSinMarcar.join(", ") + ". ¿La información es correcta?",
+      function () {
+        cambiarPantalla("pantallaConfirmacionCaracterizacion");
+      },
+      "Verifique la participación por institución",
+      { textoConfirmar: "Es correcto", textoCancelar: "No es correcto, voy a corregir" }
+    );
+    return;
+  }
   cambiarPantalla("pantallaConfirmacionCaracterizacion");
 });
+
+/** Instituciones del grupo cuya columna en la matriz de participación por estamento quedó en cero. */
+function institucionesSinParticipacionMarcada_() {
+  var datos = estado.participacionEstamento;
+  if (!datos || !datos.instituciones) return [];
+  return datos.instituciones
+    .filter(function (ie) { return !ie.total; })
+    .map(function (ie) { return ie.institucion; });
+}
 
 document.getElementById("btnCopiarEnlaceAsistencia").addEventListener("click", function () {
   var url = document.getElementById("enlaceAsistenciaQR").href;
@@ -665,6 +718,11 @@ document.getElementById("btnCerrarPantallaCompletaQR").addEventListener("click",
   clearInterval(intervaloPantallaCompletaQR);
   document.getElementById("pantallaCompletaQR").classList.add("oculto");
   if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {});
+});
+
+document.getElementById("btnCopiarEnlacePantallaCompleta").addEventListener("click", function () {
+  var url = document.getElementById("enlacePantallaCompleta").textContent;
+  if (navigator.clipboard && url) navigator.clipboard.writeText(url);
 });
 
 function leerArchivoComoBase64_(archivo, callback) {
@@ -745,7 +803,7 @@ document.getElementById("btnFotoGrupoMasTarde").addEventListener("click", functi
   mostrarMensaje(
     "mensajeFotoGrupo",
     "De acuerdo — puedes continuar con el instrumento. Se te volverá a pedir la fotografía al finalizar, " +
-      "cuando se descargue el informe.",
+      "antes de descargar el informe y enviar el consolidado del " + (estado.grupo || "grupo") + ".",
     "info"
   );
 });
@@ -948,6 +1006,7 @@ function cargarParticipacionEstamento(alTerminar) {
       if (document.getElementById(idContenedor)) renderParticipacionEstamento(datos, idContenedor);
     });
     renderResumenParticipacionEstamentoTodo();
+    actualizarComparativoFirmantesQR_();
     if (alTerminar) alTerminar();
   }, function (error) {
     console.error("rpcObtenerParticipacionEstamento", error);
@@ -1033,7 +1092,16 @@ function actualizarFirmantes() {
     estado.totalFirmantes = r.total || 0;
     renderResumenFirmantes(r);
     renderResumenParticipacionEstamentoTodo();
+    actualizarComparativoFirmantesQR_();
   });
+}
+
+/** "Firmantes (N) / Participantes declarados: (N)" arriba del panel QR — comparación rápida de ambos conteos. */
+function actualizarComparativoFirmantesQR_() {
+  var elFirmantes = document.getElementById("firmantesComparativoQR");
+  var elDeclarados = document.getElementById("declaradosComparativoQR");
+  if (elFirmantes) elFirmantes.textContent = estado.totalFirmantes || 0;
+  if (elDeclarados) elDeclarados.textContent = (estado.participacionEstamento && estado.participacionEstamento.totalGeneral) || 0;
 }
 
 function iniciarPollingFirmantes() {
@@ -1083,10 +1151,11 @@ function cargarSesion1() {
   });
 }
 
-function guardarSesion1(manual) {
+function guardarSesion1(manual, callback) {
   if (!estado.idGrupo) return;
   llamarServidor("rpcGuardarSesion1", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, recolectarCamposSesion1()], function (r) {
     if (manual) mostrarMensaje("mensajeSesion1", r.ok ? "Avance guardado." : (r.mensaje || "No fue posible guardar."), r.ok ? "exito" : "error");
+    if (callback) callback(r);
   });
 }
 
@@ -1101,10 +1170,6 @@ document.querySelectorAll("[data-campo-sesion1]").forEach(function (campo) {
 setInterval(function () {
   if (estado.idGrupo) guardarSesion1(false);
 }, 30000);
-
-document.getElementById("btnGuardarSesion1").addEventListener("click", function () {
-  guardarSesion1(true);
-});
 
 document.getElementById("btnEnviarSesion1").addEventListener("click", function () {
   confirmarAccion("¿Enviar Sesión 1 de forma definitiva? Verifique que todos los campos estén completos.", function () {
@@ -1260,6 +1325,9 @@ function cargarListaIEPreparacion() {
     (enviadas || []).forEach(function (e) { idsEnviados[e.idIE] = true; });
     renderListaIEPreparacion(estado.instituciones, idsEnviados);
     mostrarMensajePreparacionFaltante_(idsEnviados);
+  });
+  llamarServidor("rpcResumenInvitadosGrupo", [estado.idGrupo], function (resumen) {
+    renderResumenInvitadosPreparacion(resumen || []);
   });
 }
 
@@ -1487,6 +1555,115 @@ function abrirPantallaCompletaTexto(clave) {
 document.getElementById("btnCerrarPantallaCompletaTexto").addEventListener("click", function () {
   document.getElementById("pantallaCompletaTexto").classList.add("oculto");
 });
+
+/* ------------------------------------------------------------------ *
+ * Pantalla completa EDITABLE (👁️) + guardado inline (💾) para cualquier
+ * pregunta de texto largo (Sesión 1, Sesión 2, Preparación IE, invitado):
+ * más cómodo que escribir en una caja pequeña, especialmente en celular.
+ * ------------------------------------------------------------------ */
+var textareaEdicionCompletaActual_ = null;
+
+/** Deduce un título legible para la pantalla completa a partir del H3/label/summary que antecede al textarea. */
+function tituloParaTextarea_(ta) {
+  var previo = ta.previousElementSibling;
+  while (previo && previo.tagName === "P" && previo.classList.contains("ayuda")) {
+    previo = previo.previousElementSibling;
+  }
+  if (previo && (previo.tagName === "H3" || previo.tagName === "LABEL")) return previo.textContent.trim();
+  var detalles = ta.closest("details");
+  if (detalles) {
+    var resumen = detalles.querySelector("summary");
+    if (resumen) return resumen.textContent.replace("✓", "").trim();
+  }
+  return "Editar respuesta";
+}
+
+function abrirEdicionPantallaCompleta(ta) {
+  textareaEdicionCompletaActual_ = ta;
+  document.getElementById("tituloPantallaCompletaEdicion").textContent = tituloParaTextarea_(ta);
+  var area = document.getElementById("areaPantallaCompletaEdicion");
+  area.value = ta.value;
+  document.getElementById("pantallaCompletaEdicion").classList.remove("oculto");
+  area.focus();
+}
+function cerrarEdicionPantallaCompleta() {
+  document.getElementById("pantallaCompletaEdicion").classList.add("oculto");
+  textareaEdicionCompletaActual_ = null;
+}
+document.getElementById("btnCerrarPantallaCompletaEdicion").addEventListener("click", cerrarEdicionPantallaCompleta);
+document.getElementById("areaPantallaCompletaEdicion").addEventListener("input", function () {
+  if (!textareaEdicionCompletaActual_) return;
+  textareaEdicionCompletaActual_.value = this.value;
+  // Dispara el evento "input" en el textarea real para que el autoguardado
+  // y el contador de palabras normales sigan funcionando sin duplicar esa
+  // lógica aquí.
+  textareaEdicionCompletaActual_.dispatchEvent(new Event("input", { bubbles: true }));
+});
+document.addEventListener("keydown", function (evento) {
+  if (evento.key === "Escape" && !document.getElementById("pantallaCompletaEdicion").classList.contains("oculto")) {
+    cerrarEdicionPantallaCompleta();
+  }
+});
+
+/**
+ * Agrega, después de cada textarea de pregunta larga, una barra con 👁️
+ * (pantalla completa editable) y, solo para las de Sesión 1/2
+ * (data-campo-sesion1), también 💾 (guardar esa pregunta ya, sin esperar
+ * el autoguardado) con un texto auxiliar de confirmación. Idempotente:
+ * se puede llamar varias veces sobre el mismo contenedor (p.ej. después
+ * de un render dinámico) sin duplicar nada.
+ */
+function agregarAccionesTextareas_(raiz) {
+  var root = raiz || document;
+  var selector = "textarea[data-campo-sesion1], textarea[data-prep-pregunta], textarea[data-inv-prep-pregunta]";
+  root.querySelectorAll(selector).forEach(function (ta) {
+    if (ta.dataset.accionesListas) return;
+    ta.dataset.accionesListas = "1";
+
+    var barra = document.createElement("div");
+    barra.className = "barra-acciones-textarea";
+
+    var botonOjo = document.createElement("button");
+    botonOjo.type = "button";
+    botonOjo.className = "btn-accion-textarea";
+    botonOjo.title = "Ver y editar en pantalla completa";
+    botonOjo.textContent = "👁️";
+    botonOjo.addEventListener("click", function () {
+      abrirEdicionPantallaCompleta(ta);
+    });
+    barra.appendChild(botonOjo);
+
+    if (ta.hasAttribute("data-campo-sesion1")) {
+      var estadoSpan = document.createElement("span");
+      estadoSpan.className = "estado-guardado-campo";
+
+      var botonGuardar = document.createElement("button");
+      botonGuardar.type = "button";
+      botonGuardar.className = "btn-accion-textarea";
+      botonGuardar.title = "Guardar esta respuesta ahora";
+      botonGuardar.textContent = "💾";
+      botonGuardar.addEventListener("click", function () {
+        clearTimeout(temporizadorGuardadoSesion1);
+        estadoSpan.textContent = "Guardando…";
+        estadoSpan.className = "estado-guardado-campo";
+        guardarSesion1(false, function (r) {
+          estadoSpan.textContent = r.ok ? "✓ Guardado" : (r.mensaje || "No fue posible guardar.");
+          estadoSpan.className = "estado-guardado-campo " + (r.ok ? "estado-guardado-ok" : "estado-guardado-error");
+          if (r.ok) setTimeout(function () { estadoSpan.textContent = ""; }, 4000);
+        });
+      });
+      barra.appendChild(botonGuardar);
+      barra.appendChild(estadoSpan);
+    }
+
+    ta.insertAdjacentElement("afterend", barra);
+  });
+}
+// Textareas estáticos de Sesión 1/Sesión 2 (ya presentes al cargar la
+// página); las de Preparación IE/invitado se agregan tras cada render
+// dinámico (ver renderPreguntasPreparacionIE/renderPreguntasInvitado en
+// Components.html).
+agregarAccionesTextareas_(document);
 
 function alternarTodosDesplegablesSocializacion() {
   var todos = document.querySelectorAll("#listaSocializacionPreparacion details.socializacion-ie");

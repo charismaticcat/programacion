@@ -123,7 +123,10 @@ function renderParticipacionEstamento(datos, idContenedor) {
   var html = "<table id='tabla_" + idContenedor + "' class='tabla-participacion-horizontal'>";
   html += "<thead><tr><th class='th-estamento'>Estamento</th>";
   datos.instituciones.forEach(function (ie) {
-    html += "<th title='" + escapeHtml(ie.institucion) + "'>" + escapeHtml(formatearComuna(ie.comuna)) + "</th>";
+    html += "<th class='th-ie' title='" + escapeHtml(ie.institucion) + "'>" +
+      "<span class='nombre-ie-columna'>" + escapeHtml(ie.institucion) + "</span>" +
+      "<span class='comuna-ie-columna'>" + escapeHtml(formatearComuna(ie.comuna)) + "</span>" +
+      "</th>";
   });
   html += "<th class='th-total'>Total</th></tr></thead>";
 
@@ -185,7 +188,6 @@ function renderFichaCaracterizacion(grupo, instituciones, estadoFirmantes, respo
     html += "<tr><td>" + escapeHtml(ie.institucion) + "</td><td>" + escapeHtml(ie.idIE) + "</td>" +
       "<td class='celda-rector'>" +
       "<input type='text' class='input-rector' data-ie-rector='" + escapeHtml(ie.idIE) + "' value='" + escapeHtml(ie.rector || "") + "' placeholder='Nombre del rector(a)'>" +
-      "<button type='button' class='btn-guardar-rector' data-guardar-rector='" + escapeHtml(ie.idIE) + "' title='Guardar'>💾</button>" +
       "<span class='estado-rector' id='estadoRector_" + escapeHtml(ie.idIE) + "'></span>" +
       "</td></tr>";
   });
@@ -323,6 +325,33 @@ function renderListaIEPreparacion(instituciones, idsEnviados) {
   });
 }
 
+/**
+ * Sección "Invitados" al final de Selección de IE: resumen (conteo) de
+ * aportes ya enviados por estudiantes/egresados y adultos responsables
+ * invitados, por IE — puramente informativo (no navega a ningún lado: el
+ * acceso de invitado siempre es sin código, desde su propio enlace).
+ */
+function renderResumenInvitadosPreparacion(datos) {
+  var contenedor = document.getElementById("listaInvitadosPreparacion");
+  if (!contenedor) return;
+  if (!datos || !datos.length) {
+    contenedor.innerHTML = "<p class='ayuda'>Todavía no hay aportes de invitados en ninguna institución de este grupo.</p>";
+    return;
+  }
+  contenedor.innerHTML = "";
+  datos.forEach(function (r) {
+    var item = document.createElement("div");
+    item.className = "btn-ie-preparacion ie-preparacion-completa";
+    var partes = [];
+    if (r.estudiantes) partes.push(r.estudiantes + " estudiante(s)/egresado(s)");
+    if (r.adultos) partes.push(r.adultos + " adulto(s) responsable(s)");
+    item.innerHTML =
+      "<span class='nombre-ie-preparacion'>" + escapeHtml(r.institucion) + "</span>" +
+      "<span class='estado-ie-preparacion estado-ie-completa'>🧑‍🎓👨‍👩‍👧 " + escapeHtml(partes.join(" · ")) + "</span>";
+    contenedor.appendChild(item);
+  });
+}
+
 /** Las 6 preguntas editables de la Sesión de preparación de una IE (título + ayuda + textarea). */
 /**
  * Cada pregunta de preparación en un <details> colapsable (spec: "amplía
@@ -346,6 +375,7 @@ function renderPreguntasPreparacionIE(preguntas, respuestas) {
     html += "</details>";
   });
   contenedor.innerHTML = html;
+  agregarAccionesTextareas_(contenedor);
 }
 
 /** Igual que renderPreguntasPreparacionIE, para el acceso de invitado (sin código) — ids/atributos propios. */
@@ -364,6 +394,7 @@ function renderPreguntasInvitado(preguntas, respuestas) {
     html += "</details>";
   });
   contenedor.innerHTML = html;
+  agregarAccionesTextareas_(contenedor);
 }
 
 /**
@@ -410,7 +441,7 @@ function renderAportesInvitadosPreparacionIE(datos) {
   }
   var html = "";
   datos.forEach(function (aporte) {
-    var etiqueta = aporte.tipoInvitado === "ESTUDIANTE" ? "🧑‍🎓 Un(a) estudiante" : "👨‍👩‍👧 Un(a) acudiente";
+    var etiqueta = aporte.tipoInvitado === "ESTUDIANTE" ? "🧑‍🎓 Un(a) estudiante o egresado(a)" : "👨‍👩‍👧 Un adulto responsable de un(a) estudiante";
     html += "<details class='pregunta-preparacion-colapsable'>";
     html += "<summary>" + etiqueta + "</summary>";
     aporte.secciones.forEach(function (seccion) {
