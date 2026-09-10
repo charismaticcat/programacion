@@ -124,3 +124,24 @@ function escapeHtml_(texto) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
+
+/**
+ * Envuelve toda función RPC (Code.gs) para que una excepción no prevista
+ * (p. ej. un límite de cuota, un timeout, un bug real del servidor) se
+ * convierta en una respuesta {ok:false, mensaje:...} legible en el
+ * cliente, en vez de propagarse como el genérico "Ocurrió un error de
+ * comunicación con el servidor" que dispara el withFailureHandler de
+ * llamarServidor() (JS.html). El error real queda en los logs de Apps
+ * Script (Ejecuciones) para depuración.
+ */
+function ejecutarRpcSeguro_(fn) {
+  try {
+    return fn();
+  } catch (error) {
+    Logger.log("Error no controlado en RPC: " + (error && error.stack ? error.stack : error));
+    return {
+      ok: false,
+      mensaje: "Ocurrió un error inesperado en el servidor. Intente de nuevo en unos segundos."
+    };
+  }
+}

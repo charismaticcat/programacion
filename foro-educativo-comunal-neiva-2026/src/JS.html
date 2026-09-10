@@ -150,6 +150,32 @@ function cerrarModal(id) {
   document.getElementById(id).classList.add("oculto");
 }
 
+/**
+ * Reemplazo de window.confirm() (nativo): dentro del iframe con sandbox
+ * de HtmlService, confirm() puede verse feo (diálogo nativo del
+ * navegador, fuera de todo control de diseño) o directamente no
+ * mostrarse/no hacer nada según el navegador — bloqueado en silencio, lo
+ * que hace que el botón "no haga nada". Este modal propio (#modalConfirmar
+ * en Modal.html) es DOM puro, así que nunca queda bloqueado por el sandbox.
+ */
+var _callbackModalConfirmar_ = null;
+function confirmarAccion(mensaje, callback, tituloOpcional) {
+  document.getElementById("tituloModalConfirmar").textContent = tituloOpcional || "Confirmar";
+  document.getElementById("mensajeModalConfirmar").textContent = mensaje;
+  _callbackModalConfirmar_ = callback;
+  abrirModal("modalConfirmar");
+}
+document.getElementById("btnCancelarModalConfirmar").addEventListener("click", function () {
+  _callbackModalConfirmar_ = null;
+  cerrarModal("modalConfirmar");
+});
+document.getElementById("btnAceptarModalConfirmar").addEventListener("click", function () {
+  var callback = _callbackModalConfirmar_;
+  _callbackModalConfirmar_ = null;
+  cerrarModal("modalConfirmar");
+  if (callback) callback();
+});
+
 /* ------------------------------------------------------------------ *
  * Transición inicial (splash: logo del Foro, luego logo de la SEM Neiva,
  * uno a la vez con crossfade)
@@ -337,6 +363,7 @@ function intentarValidarAcceso(forzar) {
     poblarSelectInstituciones("campoIEResponsable", estado.instituciones);
     poblarSelectInstituciones("campoIEAsistente", estado.instituciones);
     renderListaInstituciones(estado.instituciones);
+    actualizarEtiquetasConectaEducaGrupo();
     renderFotoGrupo(estado.fotoGrupoId, "previaFotoGrupo", "formularioFotoGrupo", estado.grupo);
     document.getElementById("panelFirmantes").classList.remove("oculto");
 
@@ -444,16 +471,6 @@ function abrirPreparacionInvitado_() {
     function (datos) {
       if (!datos) return;
       renderPreguntasInvitado(datos.preguntas, datos.respuestas);
-      var enlace = document.getElementById("enlaceInformeEjecutivoInvitado");
-      var aviso = document.getElementById("avisoSinInformeEjecutivoInvitado");
-      if (datos.urlInformeEjecutivo) {
-        document.getElementById("btnVerInformeEjecutivoInvitado").href = datos.urlInformeEjecutivo;
-        enlace.classList.remove("oculto");
-        aviso.classList.add("oculto");
-      } else {
-        enlace.classList.add("oculto");
-        aviso.classList.remove("oculto");
-      }
     }
   );
   document.getElementById("overlayInvitadoPreparacion").classList.remove("oculto");
@@ -497,26 +514,27 @@ document.getElementById("btnGuardarPreparacionInvitado").addEventListener("click
 });
 
 document.getElementById("btnEnviarPreparacionInvitado").addEventListener("click", function () {
-  if (!confirm("¿Enviar tus aportes para " + estadoInvitado.institucion + "?")) return;
-  guardarPreparacionInvitadoActual_(false, function (guardadoOk) {
-    if (!guardadoOk) {
-      mostrarMensaje("mensajePreparacionInvitado", "No fue posible guardar antes de enviar. Intenta de nuevo.", "error");
-      return;
-    }
-    llamarServidor(
-      "rpcMarcarPreparacionEnviadaInvitado",
-      [estadoInvitado.tokenInvitado, estadoInvitado.idIE, estado.dispositivoId],
-      function (r) {
-        if (!r.ok) {
-          mostrarMensaje("mensajePreparacionInvitado", r.mensaje || "No fue posible enviar.", "error");
-          return;
-        }
-        // "envía aportes y no tiene más acceso" — se cierra la preparación
-        // y se muestra una pantalla final sin ningún camino de vuelta a la app.
-        document.getElementById("overlayInvitadoPreparacion").classList.add("oculto");
-        document.getElementById("overlayInvitadoFinalizado").classList.remove("oculto");
+  confirmarAccion("¿Enviar tus aportes para " + estadoInvitado.institucion + "?", function () {
+    guardarPreparacionInvitadoActual_(false, function (guardadoOk) {
+      if (!guardadoOk) {
+        mostrarMensaje("mensajePreparacionInvitado", "No fue posible guardar antes de enviar. Intenta de nuevo.", "error");
+        return;
       }
-    );
+      llamarServidor(
+        "rpcMarcarPreparacionEnviadaInvitado",
+        [estadoInvitado.tokenInvitado, estadoInvitado.idIE, estado.dispositivoId],
+        function (r) {
+          if (!r.ok) {
+            mostrarMensaje("mensajePreparacionInvitado", r.mensaje || "No fue posible enviar.", "error");
+            return;
+          }
+          // "envía aportes y no tiene más acceso" — se cierra la preparación
+          // y se muestra una pantalla final sin ningún camino de vuelta a la app.
+          document.getElementById("overlayInvitadoPreparacion").classList.add("oculto");
+          document.getElementById("overlayInvitadoFinalizado").classList.remove("oculto");
+        }
+      );
+    });
   });
 });
 
@@ -541,17 +559,23 @@ document.getElementById("btnAceptarConsentimientoGrupo").addEventListener("click
 /* ------------------------------------------------------------------ *
  * Heartbeat de sesión (mantiene el cupo de dispositivo activo)
  * ------------------------------------------------------------------ */
+/**
+ * El heartbeat mantiene vivo el cupo de este dispositivo en segundo
+ * plano; ya NO interrumpe con un mensaje de error si un tick falla (ni
+ * siquiera si el cupo se perdió) — con el tope de sesiones ampliado y la
+ * poda automática de cupos inactivos (Session.gs, podarSesionesInactivas_)
+ * esto ya no debería ocurrir en uso normal, y si de verdad ocurre, la
+ * PRÓXIMA acción de escritura (guardar/enviar) lo reporta con un mensaje
+ * concreto y accionable en el contexto donde ocurre, en vez de una alerta
+ * genérica y alarmante que interrumpe a mitad de cualquier pantalla.
+ */
 function iniciarHeartbeat() {
   setInterval(function () {
     if (!estado.idGrupo) return;
     llamarServidor(
       "rpcMantenerSesion",
       [estado.idGrupo, estado.dispositivoId, estado.tokenSesion],
-      function (r) {
-        if (!r.ok) {
-          mostrarMensaje("mensajeGlobal", "Esta sesión ya no está activa en este dispositivo (otro dispositivo tomó el cupo). Vuelva a ingresar.", "error");
-        }
-      },
+      function () {},
       function () {}
     );
   }, 30000);
@@ -758,6 +782,55 @@ function poblarSelectInstituciones(idSelect, instituciones) {
   });
 }
 
+/** Número real del grupo (p.ej. "Grupo 3" -> "3"), para reemplazar los "(#)" de las etiquetas. */
+function numeroGrupoActual_() {
+  var m = String(estado.grupo || "").match(/\d+/);
+  return m ? m[0] : String(estado.grupo || "").trim();
+}
+
+/**
+ * Lista de comunas (y "zona rural" si aplica) de las IE del grupo, en
+ * texto natural sin paréntesis — p.ej. "1 y 2" o "1, 2 y zona rural".
+ */
+function textoComunasGrupoActual_() {
+  var numericas = [];
+  var tieneRural = false;
+  (estado.instituciones || []).forEach(function (ie) {
+    var c = String(ie.comuna || "").trim();
+    if (!c) return;
+    if (/^\d+$/.test(c)) {
+      if (numericas.indexOf(c) === -1) numericas.push(c);
+    } else {
+      tieneRural = true;
+    }
+  });
+  numericas.sort(function (a, b) {
+    return Number(a) - Number(b);
+  });
+  var partes = numericas.map(function (n) {
+    return n;
+  });
+  if (tieneRural) partes.push("zona rural");
+  if (!partes.length) return "comunas del grupo";
+  if (partes.length === 1) return "comuna " + partes[0];
+  return "comunas " + partes.slice(0, -1).join(", ") + " y " + partes[partes.length - 1];
+}
+
+/**
+ * Reemplaza los "grupo (#)" / "(comunas # y rural)" fijos de las etiquetas
+ * de la segunda parte de ConectaEduca por el número de grupo y las
+ * comunas reales del grupo actual — ya sin paréntesis.
+ */
+function actualizarEtiquetasConectaEducaGrupo() {
+  var numeroGrupo = numeroGrupoActual_();
+  ["numeroGrupoCE_PRIORIDADES", "numeroGrupoCE_PROPUESTAS", "numeroGrupoCE_RUTA"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = "Grupo " + numeroGrupo;
+  });
+  var elComunas = document.getElementById("comunasGrupoCE_ACUERDOS");
+  if (elComunas) elComunas.textContent = textoComunasGrupoActual_();
+}
+
 /* ------------------------------------------------------------------ *
  * Responsable de envío y asistentes de envío
  * ------------------------------------------------------------------ */
@@ -778,8 +851,29 @@ document.getElementById("btnGuardarResponsable").addEventListener("click", funct
       return;
     }
     mostrarMensaje("mensajeResponsable", "Responsable de envío guardado.", "exito");
+    document.getElementById("formularioResponsablePrincipal").classList.add("oculto");
     cargarResponsables();
   });
+});
+
+// Una vez hay responsable principal, el formulario se colapsa y solo
+// queda la ficha + el botón "Cambiar responsable de envío" — evita que
+// parezca un formulario en blanco listo para agregar OTRO principal
+// (solo puede haber uno) y deja claro cómo editarlo si hace falta.
+document.getElementById("btnCambiarResponsable").addEventListener("click", function () {
+  var p = (estado.responsables && estado.responsables.principal) || null;
+  document.getElementById("campoNombreResponsable").value = p ? p.nombre || "" : "";
+  document.getElementById("campoCorreoResponsable").value = p ? p.correo || "" : "";
+  if (p && p.rolForo) document.getElementById("campoRolForoResponsable").value = p.rolForo;
+  if (p && p.institucion) {
+    var selectIE = document.getElementById("campoIEResponsable");
+    var opcion = Array.prototype.find.call(selectIE.options, function (o) {
+      return o.textContent === p.institucion;
+    });
+    if (opcion) selectIE.value = opcion.value;
+  }
+  document.getElementById("formularioResponsablePrincipal").classList.remove("oculto");
+  document.getElementById("filaBotonCambiarResponsable").classList.add("oculto");
 });
 
 document.getElementById("btnMostrarFormAsistente").addEventListener("click", function () {
@@ -816,6 +910,13 @@ function cargarResponsables() {
     estado.responsables = r;
     renderResponsables(r);
     document.getElementById("btnMostrarFormAsistente").disabled = (r.asistentes || []).length >= 3;
+    // Si ya hay responsable principal, el formulario se colapsa (evita
+    // que parezca un formulario en blanco listo para "agregar otro") y
+    // se muestra el botón "Cambiar responsable de envío" para reabrirlo
+    // ya con sus datos actuales cargados (ver btnCambiarResponsable).
+    var hayPrincipal = !!(r && r.principal);
+    document.getElementById("formularioResponsablePrincipal").classList.toggle("oculto", hayPrincipal);
+    document.getElementById("filaBotonCambiarResponsable").classList.toggle("oculto", !hayPrincipal);
   });
 }
 
@@ -1006,10 +1107,11 @@ document.getElementById("btnGuardarSesion1").addEventListener("click", function 
 });
 
 document.getElementById("btnEnviarSesion1").addEventListener("click", function () {
-  if (!confirm("¿Enviar Sesión 1 de forma definitiva? Verifique que todos los campos estén completos.")) return;
-  guardarSesion1(false);
-  llamarServidor("rpcEnviarSesion1", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
-    mostrarMensaje("mensajeSesion1", r.ok ? "Sesión 1 enviada." : (r.mensaje || "No fue posible enviar."), r.ok ? "exito" : "error");
+  confirmarAccion("¿Enviar Sesión 1 de forma definitiva? Verifique que todos los campos estén completos.", function () {
+    guardarSesion1(false);
+    llamarServidor("rpcEnviarSesion1", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
+      mostrarMensaje("mensajeSesion1", r.ok ? "Sesión 1 enviada." : (r.mensaje || "No fue posible enviar."), r.ok ? "exito" : "error");
+    });
   });
 });
 
@@ -1088,9 +1190,10 @@ function borrarActorConectaEduca(idRegistro) {
 }
 
 document.getElementById("btnEnviarSesion2").addEventListener("click", function () {
-  if (!confirm("¿Enviar Sesión 2 (ConectaEduca) de forma definitiva?")) return;
-  llamarServidor("rpcEnviarSesion2", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
-    mostrarMensaje("mensajeConectaEduca", r.ok ? "Sesión 2 enviada." : (r.mensaje || "No fue posible enviar."), r.ok ? "exito" : "error");
+  confirmarAccion("¿Enviar Sesión 2 (ConectaEduca) de forma definitiva?", function () {
+    llamarServidor("rpcEnviarSesion2", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
+      mostrarMensaje("mensajeConectaEduca", r.ok ? "Sesión 2 enviada." : (r.mensaje || "No fue posible enviar."), r.ok ? "exito" : "error");
+    });
   });
 });
 
@@ -1273,6 +1376,15 @@ function cargarPreparacionIE() {
     if (banner) banner.classList.toggle("oculto", !datos.enviado);
     mostrarMensaje("mensajePreparacionIE", "");
   });
+  cargarAportesInvitadosPreparacionIE();
+}
+
+/** Aportes ya enviados por estudiantes/acudientes invitados de esta IE — visibles durante la preparación. */
+function cargarAportesInvitadosPreparacionIE() {
+  if (!estado.idGrupo || !estado.prepIdIE) return;
+  llamarServidor("rpcObtenerAportesInvitadosIE", [estado.idGrupo, estado.prepIdIE], function (datos) {
+    renderAportesInvitadosPreparacionIE(datos || []);
+  });
 }
 
 function recolectarRespuestasPreparacionIE() {
@@ -1324,28 +1436,29 @@ document.getElementById("btnGuardarPreparacionIE").addEventListener("click", fun
 });
 
 document.getElementById("btnEnviarPreparacionIE").addEventListener("click", function () {
-  if (!confirm("¿Enviar los aportes de " + estado.prepInstitucion + " para socializar con el grupo?")) return;
-  // Guardar PRIMERO y esperar a que termine antes de enviar — evita la
-  // condición de carrera que mostraba "Responda al menos una pregunta
-  // antes de enviar" aunque el resumen sugerido ya estuviera en pantalla.
-  guardarPreparacionIEActual(false, function (guardadoOk) {
-    if (!guardadoOk) {
-      mostrarMensaje("mensajePreparacionIE", "No fue posible guardar antes de enviar. Intente de nuevo.", "error");
-      return;
-    }
-    llamarServidor("rpcMarcarPreparacionEnviada", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, estado.prepIdIE], function (r) {
-      if (!r.ok) {
-        mostrarMensaje("mensajePreparacionIE", r.mensaje || "No fue posible enviar.", "error");
+  confirmarAccion("¿Enviar los aportes de " + estado.prepInstitucion + " para socializar con el grupo?", function () {
+    // Guardar PRIMERO y esperar a que termine antes de enviar — evita la
+    // condición de carrera que mostraba "Responda al menos una pregunta
+    // antes de enviar" aunque el resumen sugerido ya estuviera en pantalla.
+    guardarPreparacionIEActual(false, function (guardadoOk) {
+      if (!guardadoOk) {
+        mostrarMensaje("mensajePreparacionIE", "No fue posible guardar antes de enviar. Intente de nuevo.", "error");
         return;
       }
-      mostrarMensaje(
-        "mensajePreparacionIE",
-        "✅ Aportes de la IE " + estado.prepInstitucion + " enviados para socializar oralmente con el grupo " +
-          estado.grupo + " y la comunidad asistente.",
-        "exito"
-      );
-      var banner = document.getElementById("bannerPreparacionYaCompletada");
-      if (banner) banner.classList.remove("oculto");
+      llamarServidor("rpcMarcarPreparacionEnviada", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, estado.prepIdIE], function (r) {
+        if (!r.ok) {
+          mostrarMensaje("mensajePreparacionIE", r.mensaje || "No fue posible enviar.", "error");
+          return;
+        }
+        mostrarMensaje(
+          "mensajePreparacionIE",
+          "✅ Aportes de la IE " + estado.prepInstitucion + " enviados para socializar oralmente con el grupo " +
+            estado.grupo + " y la comunidad asistente.",
+          "exito"
+        );
+        var banner = document.getElementById("bannerPreparacionYaCompletada");
+        if (banner) banner.classList.remove("oculto");
+      });
     });
   });
 });
@@ -1516,19 +1629,20 @@ function actualizarBotonGenerarInforme() {
 })();
 
 document.getElementById("btnGenerarInforme").addEventListener("click", function () {
-  if (!confirm("¿Generar el informe definitivo del grupo? Esta acción crea el documento único que verán todas las IE del grupo.")) return;
-  document.getElementById("btnGenerarInforme").disabled = true;
-  llamarServidor("rpcGenerarInforme", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
-    document.getElementById("btnGenerarInforme").disabled = false;
-    if (!r.ok) {
-      mostrarMensaje("mensajeCierre", r.mensaje || "No fue posible generar el informe.", "error");
-      return;
-    }
-    document.getElementById("enlaceInformeGenerado").href = r.url;
-    document.getElementById("btnEnviarInformePorCorreo").disabled = true;
-    mostrarMensaje("mensajeEnvioInforme", "", "");
-    document.getElementById("notaEnvioInforme").textContent = "Descargue el informe (botón de arriba) para habilitar el envío por correo al responsable del grupo.";
-    cambiarPantalla("pantallaInformeGenerado");
+  confirmarAccion("¿Generar el informe definitivo del grupo? Esta acción crea el documento único que verán todas las IE del grupo.", function () {
+    document.getElementById("btnGenerarInforme").disabled = true;
+    llamarServidor("rpcGenerarInforme", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
+      document.getElementById("btnGenerarInforme").disabled = false;
+      if (!r.ok) {
+        mostrarMensaje("mensajeCierre", r.mensaje || "No fue posible generar el informe.", "error");
+        return;
+      }
+      document.getElementById("enlaceInformeGenerado").href = r.url;
+      document.getElementById("btnEnviarInformePorCorreo").disabled = true;
+      mostrarMensaje("mensajeEnvioInforme", "", "");
+      document.getElementById("notaEnvioInforme").textContent = "Descargue el informe (botón de arriba) para habilitar el envío por correo al responsable del grupo.";
+      cambiarPantalla("pantallaInformeGenerado");
+    });
   });
 });
 

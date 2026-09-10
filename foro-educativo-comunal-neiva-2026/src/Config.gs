@@ -38,11 +38,21 @@ var CONFIG_POR_DEFECTO_ = {
   // ConfiguracionComunal (no hace falta tocar código).
   LOGO_ENCABEZADO_ID: "1mFOOUZ5aFAuwM-JMxNUaDnPPznDlQ2bj",
   LOGO_PIE_ID: "1Cmx7c3ec2gQCjRc8kcNeUbZt5LiURyD5",
+  // Bandera de una sola vez: "SI" cuando ya se confirmó que ambos logos
+  // son visibles para cualquiera con el enlace (ver asegurarLogosSplashPublicos_ en Drive.gs).
+  LOGOS_SPLASH_PUBLICOS: "",
   CORREO_REMITENTE: "",
   COPIAS_CORREO: "",
   TIEMPO_SESION: "90",
   TIEMPO_MAXIMO_SOCIALIZACION: "10",
-  MAX_SESIONES_SIMULTANEAS_GRUPO: "4",
+  // Un GRUPO agrupa hasta 6 IE, cada una potencialmente con su propio
+  // dispositivo durante toda la jornada — 4 se quedaba corto y expulsaba
+  // dispositivos activos (ver Session.gs, podarSesionesInactivas_).
+  MAX_SESIONES_SIMULTANEAS_GRUPO: "10",
+  // Bandera de una sola vez: si una instalación ya tenía el tope antiguo
+  // (4) guardado en ConfiguracionComunal, se sube automáticamente una
+  // vez (ver asegurarLimiteSesionesGrupoRazonable_ en Session.gs).
+  LIMITE_SESIONES_AJUSTADO: "",
   ACTIVO: "SI"
 };
 
@@ -158,6 +168,7 @@ function inicializarHojasBase_(ss) {
   crear(HOJA_PARTICIPACION_ESTAMENTO_, cabecerasParticipacionEstamentoIE_());
   crear(HOJA_PREPARACION_IE_, cabecerasPreparacionIE_());
   crear(HOJA_INVITADOS_, cabecerasInvitadosPreparacion_());
+  crear(HOJA_APORTES_INVITADOS_, cabecerasAportesInvitadosPreparacion_());
   crear("EnviosDiferidosComunal", ["ID_GRUPO", "FECHA_REGISTRO", "REINTENTADO"]);
 
   var hojaConfig = crear("ConfiguracionComunal", CABECERAS_CONFIGURACION_);

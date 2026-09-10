@@ -13,17 +13,92 @@
  * Es una sesión de privilegio mínimo y de un solo uso: el token de
  * invitado NUNCA pasa por sesionActivaPorIdGrupo_ (el mecanismo de
  * sesión completa del grupo, ligado al código de acceso) — solo
- * autoriza, mediante sesionInvitadoValida_(), guardar y enviar la
- * preparación de la IE concreta que el invitado eligió al entrar. No da
- * acceso a Participación, Sesión 1, Sesión 2, ni a ninguna otra escritura
- * del grupo.
+ * autoriza, mediante sesionInvitadoValida_(), guardar y enviar SU PROPIO
+ * aporte de preparación de la IE concreta que el invitado eligió al
+ * entrar. No da acceso a Participación, Sesión 1, Sesión 2, ni a ninguna
+ * otra escritura del grupo.
+ *
+ * El aporte del invitado se guarda en AportesInvitadosPreparacion, una
+ * hoja PROPIA e independiente de PreparacionIE (la oficial de cada IE,
+ * ver Preparacion.gs): cada envío de invitado es su propia fila (clave
+ * TOKEN_INVITADO), nunca se fusiona con la respuesta institucional. Esto
+ * corrige dos problemas del diseño anterior: (a) un invitado ya no
+ * sobrescribe/comparte la fila que la propia IE está construyendo, y (b)
+ * las preguntas del invitado ya NO se prellenan con el resumen sugerido
+ * del Informe Ejecutivo (spec del usuario: "No se tiene en cuenta el
+ * informe de cada IE, es construcción libre") — en su lugar,
+ * PREGUNTAS_PREPARACION_INVITADO_ da, para cada pregunta (mismo título
+ * que la versión oficial, sin modificar su redacción), una explicación y
+ * un ejemplo pensados para alguien sin acceso al Informe Ejecutivo.
  */
 
 var HOJA_INVITADOS_ = "InvitadosPreparacion";
+var HOJA_APORTES_INVITADOS_ = "AportesInvitadosPreparacion";
 
 function cabecerasInvitadosPreparacion_() {
   return ["TOKEN_INVITADO", "ID_GRUPO", "ID_IE", "TIPO_INVITADO", "DISPOSITIVO_ID", "FECHA_INGRESO", "ENVIADO"];
 }
+
+function cabecerasAportesInvitadosPreparacion_() {
+  return [
+    "TOKEN_INVITADO", "ID_GRUPO", "ID_IE", "TIPO_INVITADO",
+    "P1", "P2", "P3", "P4", "P5", "P6",
+    "ENVIADO", "FECHA_ENVIO", "ULTIMA_ACTUALIZACION"
+  ];
+}
+
+/**
+ * Mismas 6 preguntas que PREGUNTAS_PREPARACION_ (Preparacion.gs) — MISMO
+ * título, sin modificar su redacción (spec: "no se modifican las
+ * preguntas") — pero con una ayuda distinta: en vez de remitir al
+ * Informe Ejecutivo de la IE (que el invitado no tiene por qué conocer),
+ * explica la pregunta en lenguaje sencillo y da un ejemplo de respuesta
+ * (spec: "se explican y se dan ejemplos para ayuda").
+ */
+var PREGUNTAS_PREPARACION_INVITADO_ = [
+  {
+    clave: "P1",
+    titulo: "Avances en el logro de retos y propósitos del SEM 2025",
+    ayuda: "Cuenta, con tus propias palabras, qué cambios o mejoras has notado en tu institución en los " +
+      "últimos años: nuevas actividades, mejoras en la enseñanza, proyectos que se hayan logrado, etc. " +
+      "Ejemplo: “He notado que ahora hay más actividades deportivas y que los profesores usan más la " +
+      "tecnología en las clases.”"
+  },
+  {
+    clave: "P2",
+    titulo: "Implementación de niveles de preescolar (Jardín, Pre-jardín)",
+    ayuda: "Cuenta si conoces o has visto avances en la atención a los niños y niñas más pequeños (jardín, " +
+      "prejardín) en tu institución. Ejemplo: “Sé que abrieron un salón nuevo para los niños pequeños este " +
+      "año.” Si no tienes información sobre este tema, puedes dejarlo en blanco."
+  },
+  {
+    clave: "P3",
+    titulo: "Pertinencia curricular con las realidades de la comunidad",
+    ayuda: "¿Sientes que lo que se enseña en tu institución tiene que ver con la vida real de tu barrio o " +
+      "comunidad? ¿Por qué? Ejemplo: “Sí, porque en la clase de sociales hablamos de los problemas de " +
+      "nuestro barrio.”"
+  },
+  {
+    clave: "P4",
+    titulo: "Acciones pedagógicas para articular el currículo con la comunidad",
+    ayuda: "Menciona alguna actividad, proyecto o clase que haya conectado lo aprendido en la institución " +
+      "con la comunidad o el entorno. Ejemplo: “Hicimos un proyecto de reciclaje con los vecinos del " +
+      "barrio.”"
+  },
+  {
+    clave: "P5",
+    titulo: "Equipos de trabajo para articular con la comunidad",
+    ayuda: "¿Conoces algún grupo, comité o equipo (de padres, estudiantes, profesores) que trabaje por " +
+      "mejorar la relación entre la institución y la comunidad? Cuéntanos cuál y qué hace. Ejemplo: “El " +
+      "Consejo de Padres organiza reuniones para hablar de las necesidades del colegio.”"
+  },
+  {
+    clave: "P6",
+    titulo: "Democracia institucional",
+    ayuda: "¿Sientes que en tu institución las decisiones se toman escuchando a estudiantes y familias? " +
+      "Cuenta un ejemplo. Ejemplo: “Sí, porque elegimos al personero y al Consejo Estudiantil entre todos.”"
+  }
+];
 
 /**
  * Inicia una sesión de invitado para una IE concreta — sin código de
@@ -75,29 +150,66 @@ function sesionInvitadoValida_(tokenInvitado, idIE, dispositivoId) {
   return obj;
 }
 
-/** Estado de preparación de la IE del invitado — misma información que obtenerPreparacionIE, autenticada distinto. */
+/**
+ * Preparación del invitado, lista para pintar en pantalla: preguntas en
+ * blanco por defecto (construcción libre, NUNCA se prellenan con el
+ * resumen sugerido del Informe Ejecutivo) salvo que el propio invitado ya
+ * haya guardado un avance con este mismo token, caso en el que se
+ * recupera SU propio borrador.
+ */
 function obtenerPreparacionIEInvitado(tokenInvitado, idIE, dispositivoId) {
   var sesion = sesionInvitadoValida_(tokenInvitado, idIE, dispositivoId);
   if (!sesion) return null;
-  return obtenerPreparacionIE(sesion.ID_GRUPO, idIE);
-}
 
-/** Guarda las respuestas de preparación del invitado — mismo almacenamiento que Preparacion.gs, autenticación de invitado. */
-function guardarPreparacionIEInvitado(tokenInvitado, idIE, tipoInvitado, dispositivoId, respuestas) {
-  var sesion = sesionInvitadoValida_(tokenInvitado, idIE, dispositivoId);
-  if (!sesion) return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión de invitado ya no es válida." };
-  var etiqueta = String(sesion.TIPO_INVITADO || tipoInvitado || "").toUpperCase() === "ESTUDIANTE"
-    ? "Un(a) estudiante invitado(a)"
-    : "Un(a) acudiente invitado(a)";
-  return _guardarPreparacionIEInterno_(sesion.ID_GRUPO, idIE, etiqueta, respuestas);
+  var hoja = obtenerHoja_(HOJA_APORTES_INVITADOS_, cabecerasAportesInvitadosPreparacion_());
+  var mapa = obtenerMapaCabeceras_(hoja);
+  var fila = buscarFilaPorColumna_(hoja, mapa, "TOKEN_INVITADO", String(tokenInvitado || "").trim());
+  var guardado = fila === -1 ? null : leerFilaComoObjeto_(hoja, fila, mapa);
+
+  var respuestas = {};
+  PREGUNTAS_PREPARACION_INVITADO_.forEach(function (p) {
+    respuestas[p.clave] = guardado ? String(guardado[p.clave] || "") : "";
+  });
+
+  return {
+    preguntas: PREGUNTAS_PREPARACION_INVITADO_,
+    respuestas: respuestas,
+    enviado: guardado ? String(guardado.ENVIADO || "") === "SI" : false
+  };
 }
 
 /**
- * Envío definitivo de un invitado: marca la preparación como enviada y
- * cierra su sesión de invitado (ENVIADO=SI en InvitadosPreparacion) — a
- * partir de aquí sesionInvitadoValida_ lo sigue reconociendo (para poder
- * mostrarle la confirmación), pero cualquier intento de volver a guardar
- * o enviar debe rechazarse: ya cumplió su única tarea.
+ * Guarda las respuestas del invitado — en SU PROPIA fila de
+ * AportesInvitadosPreparacion (clave TOKEN_INVITADO), independiente de la
+ * fila oficial de la IE en PreparacionIE.
+ */
+function guardarPreparacionIEInvitado(tokenInvitado, idIE, tipoInvitado, dispositivoId, respuestas) {
+  var sesion = sesionInvitadoValida_(tokenInvitado, idIE, dispositivoId);
+  if (!sesion) return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión de invitado ya no es válida." };
+
+  var datos = {
+    ID_GRUPO: sesion.ID_GRUPO,
+    ID_IE: idIE,
+    TIPO_INVITADO: String(sesion.TIPO_INVITADO || tipoInvitado || "").toUpperCase(),
+    ULTIMA_ACTUALIZACION: new Date()
+  };
+  PREGUNTAS_PREPARACION_INVITADO_.forEach(function (p) {
+    datos[p.clave] = String((respuestas || {})[p.clave] || "");
+  });
+
+  return conLock_(function () {
+    upsertFila_(HOJA_APORTES_INVITADOS_, cabecerasAportesInvitadosPreparacion_(), "TOKEN_INVITADO", String(tokenInvitado || "").trim(), datos);
+    return { ok: true };
+  }, 10000);
+}
+
+/**
+ * Envío definitivo de un invitado: marca su propio aporte como enviado
+ * (AportesInvitadosPreparacion) y cierra su sesión de invitado (ENVIADO=SI
+ * en InvitadosPreparacion) — a partir de aquí sesionInvitadoValida_ lo
+ * sigue reconociendo (para poder mostrarle la confirmación), pero
+ * cualquier intento de volver a guardar o enviar debe rechazarse: ya
+ * cumplió su única tarea.
  */
 function marcarPreparacionEnviadaInvitado(tokenInvitado, idIE, dispositivoId) {
   var sesion = sesionInvitadoValida_(tokenInvitado, idIE, dispositivoId);
@@ -105,11 +217,66 @@ function marcarPreparacionEnviadaInvitado(tokenInvitado, idIE, dispositivoId) {
   if (String(sesion.ENVIADO || "") === "SI") {
     return { ok: false, mensaje: "Ya enviaste tus aportes con esta sesión de invitado." };
   }
-  var resultado = _marcarPreparacionEnviadaInterno_(sesion.ID_GRUPO, idIE);
-  if (resultado.ok) {
+
+  var hoja = obtenerHoja_(HOJA_APORTES_INVITADOS_, cabecerasAportesInvitadosPreparacion_());
+  var mapa = obtenerMapaCabeceras_(hoja);
+  var fila = buscarFilaPorColumna_(hoja, mapa, "TOKEN_INVITADO", String(tokenInvitado || "").trim());
+  var tieneAlgo = false;
+  if (fila !== -1) {
+    var guardado = leerFilaComoObjeto_(hoja, fila, mapa);
+    tieneAlgo = PREGUNTAS_PREPARACION_INVITADO_.some(function (p) {
+      return String(guardado[p.clave] || "").trim() !== "";
+    });
+  }
+  if (!tieneAlgo) {
+    return { ok: false, mensaje: "Responde al menos una pregunta antes de enviar." };
+  }
+
+  return conLock_(function () {
+    upsertFila_(HOJA_APORTES_INVITADOS_, cabecerasAportesInvitadosPreparacion_(), "TOKEN_INVITADO", String(tokenInvitado || "").trim(), {
+      ENVIADO: "SI",
+      FECHA_ENVIO: new Date()
+    });
     upsertFila_(HOJA_INVITADOS_, cabecerasInvitadosPreparacion_(), "TOKEN_INVITADO", String(tokenInvitado || "").trim(), {
       ENVIADO: "SI"
     });
-  }
+    return { ok: true };
+  }, 10000);
+}
+
+/**
+ * Aportes ya enviados por estudiantes y acudientes invitados para una IE
+ * del grupo — para mostrarse DURANTE la etapa de preparación (spec:
+ * "deben aparecer los aportes de acudientes y de estudiantes"), como
+ * insumo de referencia para quien construye libremente la respuesta
+ * oficial de la IE. Un párrafo con título por cada pregunta que el
+ * invitado haya diligenciado (las vacías se omiten).
+ */
+function obtenerAportesInvitadosIE(idGrupo, idIE) {
+  idGrupo = String(idGrupo || "").trim();
+  idIE = String(idIE || "").trim();
+  var hoja = obtenerHoja_(HOJA_APORTES_INVITADOS_, cabecerasAportesInvitadosPreparacion_());
+  var filas = leerFilasComoObjetos_(hoja);
+  var resultado = [];
+  filas.forEach(function (f) {
+    if (String(f.ID_GRUPO || "").trim() !== idGrupo) return;
+    if (String(f.ID_IE || "").trim() !== idIE) return;
+    if (String(f.ENVIADO || "") !== "SI") return;
+    var secciones = [];
+    PREGUNTAS_PREPARACION_INVITADO_.forEach(function (p) {
+      var texto = String(f[p.clave] || "").trim();
+      if (texto) secciones.push({ clave: p.clave, titulo: p.titulo, texto: texto });
+    });
+    if (!secciones.length) return;
+    resultado.push({
+      tipoInvitado: String(f.TIPO_INVITADO || "").toUpperCase(),
+      secciones: secciones
+    });
+  });
+  // Estudiantes primero, luego acudientes — orden estable de lectura.
+  resultado.sort(function (a, b) {
+    if (a.tipoInvitado === b.tipoInvitado) return 0;
+    return a.tipoInvitado === "ESTUDIANTE" ? -1 : 1;
+  });
   return resultado;
 }

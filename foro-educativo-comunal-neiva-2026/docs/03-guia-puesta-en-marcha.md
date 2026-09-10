@@ -330,6 +330,66 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   icono, sombra y animación de entrada, y se agregó `.spinner-cargando` (spinner CSS) como indicador de
   carga en vez de un gif.
 
+## 4.12 Correcciones reportadas en uso real (logo, responsable de envío, invitados, orden de Sesión 1, etiquetas de ConectaEduca, modal de confirmación y sesiones de grupo)
+
+- **Logo de Foro no cargaba**: el archivo de Drive de `LOGO_ENCABEZADO_ID`/`LOGO_PIE_ID` solo era visible
+  para quien lo cargó, así que la miniatura (`urlImagenDrive`) fallaba para cualquier otro visitante.
+  `asegurarLogosSplashPublicos_()` (`Drive.gs`) llama `setSharing(ANYONE_WITH_LINK, VIEW)` sobre ambos
+  archivos una sola vez por instalación (bandera `LOGOS_SPLASH_PUBLICOS`), invocada desde `doGet`.
+- **Responsable de envío — botón "Cambiar responsable de envío"**: cuando ya hay un principal guardado, el
+  formulario (`formularioResponsablePrincipal`) se colapsa y solo se ve la ficha + el botón
+  "✏️ Cambiar responsable de envío" (`filaBotonCambiarResponsable`), que reabre el formulario precargado
+  con los datos actuales para editarlos y volver a guardar (sigue siendo un UPSERT en
+  `guardarResponsableEnvio`, solo puede haber un principal).
+- **Aportes de invitados (estudiantes/acudientes) — ya NO comparten fila con la IE, ni se prellenan del
+  informe**: antes, `guardarPreparacionIEInvitado` escribía en la MISMA fila de `PreparacionIE` que la
+  respuesta oficial de la IE (riesgo de que se sobrescribieran entre sí) y `obtenerPreparacionIEInvitado`
+  heredaba el prellenado con el resumen sugerido del Informe Ejecutivo. Ahora:
+  - Nueva hoja `AportesInvitadosPreparacion` (una fila por sesión de invitado, clave `TOKEN_INVITADO`),
+    completamente independiente de `PreparacionIE`.
+  - `PREGUNTAS_PREPARACION_INVITADO_` (`Invitados.gs`) usa el MISMO título de cada pregunta (no se
+    modifica la redacción) pero con una `ayuda` propia — explicación en lenguaje sencillo + un ejemplo de
+    respuesta — en vez de remitir al Informe Ejecutivo; las preguntas del invitado arrancan siempre en
+    blanco (construcción libre).
+  - `obtenerAportesInvitadosIE(idGrupo, idIE)` expone los aportes YA ENVIADOS por estudiantes/acudientes
+    de esa IE; se muestran en la propia pantalla de Preparación de la IE (`listaAportesInvitadosPreparacionIE`,
+    tarjeta "🧑‍🎓👨‍👩‍👧 Aportes de estudiantes y acudientes invitados"), como insumo de referencia — no se
+    copian automáticamente en la respuesta oficial.
+- **Sesión 1 — orden de tarjetas**: "📎 Archivos de apoyo" ahora aparece ANTES de "🗣️ Aportes de
+  preparación por institución" (antes era al revés).
+- **ConectaEduca — etiquetas dinámicas sin "(#)"**: los 4 campos de la segunda parte ("Prioridades...",
+  "Acuerdos...", "Propuestas...", "Ruta de trabajo...") mostraban literalmente "grupo (#)" / "(comunas #
+  y rural)". Ahora `actualizarEtiquetasConectaEducaGrupo()` (`JS.html`) reemplaza esos `<span>` con el
+  número real del grupo (extraído de `estado.grupo`, p.ej. "Grupo 3") y la lista real de comunas de las
+  IE del grupo (`textoComunasGrupoActual_()`, p.ej. "comunas 1, 2 y zona rural"), sin paréntesis.
+- **Modal de confirmación propio, en vez de `window.confirm()`**: dentro del iframe con sandbox de
+  HtmlService, `confirm()` puede verse feo (diálogo nativo del navegador) o directamente no mostrarse/no
+  hacer nada según el navegador (bloqueado en silencio) — causa más probable de "clic en Enviar Sesión 2 y
+  no pasa nada". Se agregó `#modalConfirmar` (`Modal.html`, estilo del propio aplicativo) y el helper
+  `confirmarAccion(mensaje, callback, tituloOpcional)` (`JS.html`), que reemplaza los 5 `confirm()` que
+  quedaban (enviar aportes de invitado, Sesión 1, Sesión 2/ConectaEduca, preparación de una IE, generar
+  informe).
+- **"Esta sesión ya no está activa en este dispositivo" espurio**: el cupo de sesión por grupo
+  (`Session.gs`) tenía un tope fijo de 4 dispositivos SIN expiración por inactividad — insuficiente para
+  un GRUPO de hasta 6 IE, cada una conectada desde su propio dispositivo durante toda la jornada, así que
+  dispositivos activos pero más antiguos terminaban siendo expulsados por dispositivos nuevos. Ahora:
+  - `podarSesionesInactivas_()` quita del arreglo los cupos NO PRINCIPALES sin actividad en los últimos
+    `TIEMPO_SESION` minutos (antes un valor muerto, ahora usado) antes de evaluar el tope — se llama en
+    cada `reclamarSesionGrupo_`/`mantenerSesionGrupo` (heartbeat cada 30s), así que el tope casi nunca se
+    llega a activar en uso normal.
+  - `MAX_SESIONES_SIMULTANEAS_GRUPO` sube de 4 a 10 por defecto; `asegurarLimiteSesionesGrupoRazonable_()`
+    (llamada desde `doGet`) sube automáticamente, una sola vez, las instalaciones que ya tenían el valor
+    antiguo (4) guardado en `ConfiguracionComunal`.
+  - El heartbeat (`iniciarHeartbeat`, `JS.html`) ya NO interrumpe con un mensaje de error si un tick falla
+    — si de verdad se perdió el cupo, la siguiente acción de escritura (guardar/enviar) lo reporta con un
+    mensaje concreto en su propio contexto, en vez de una alerta genérica en cualquier pantalla.
+- **"Ocurrió un error de comunicación con el servidor" al enviar**: cualquier excepción no controlada del
+  servidor (timeout, bug real) llegaba al cliente como ese mensaje genérico, sin pista de la causa. Se
+  agregó `ejecutarRpcSeguro_(fn)` (`Utils.gs`) y se envolvió CADA función `rpcXxx` de `Code.gs` con ella:
+  ahora una excepción no prevista se registra en los logs de Apps Script (Ejecuciones) y se devuelve al
+  cliente como `{ok:false, mensaje:"Ocurrió un error inesperado en el servidor..."}`, un mensaje que cada
+  pantalla ya sabe mostrar en su propio contenedor de mensaje.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

@@ -38,6 +38,28 @@ function hacerPublicoSiEsPosible_(file) {
   }
 }
 
+/**
+ * Asegura que los logos del splash inicial (Foro y SEM Neiva) sean
+ * visibles para cualquier persona con el enlace — si el archivo de Drive
+ * solo era visible para quien lo cargó, la miniatura (urlImagenDrive en
+ * el cliente) no carga para nadie más ("Logo de Foro no carga"). Se
+ * ejecuta una sola vez por instalación (bandera LOGOS_SPLASH_PUBLICOS en
+ * ConfiguracionComunal), no en cada carga de página.
+ */
+function asegurarLogosSplashPublicos_() {
+  var config = getConfig();
+  if (String(config.LOGOS_SPLASH_PUBLICOS || "") === "SI") return;
+  [config.LOGO_ENCABEZADO_ID, config.LOGO_PIE_ID].forEach(function (fileId) {
+    if (!fileId) return;
+    try {
+      hacerPublicoSiEsPosible_(DriveApp.getFileById(fileId));
+    } catch (e) {
+      Logger.log("No se pudo asegurar el logo público " + fileId + ": " + e.message);
+    }
+  });
+  escribirConfig_("LOGOS_SPLASH_PUBLICOS", "SI");
+}
+
 /** Carpeta raíz del proyecto: la autoprovisiona si ConfiguracionComunal.CARPETA_DRIVE_ID está vacío. */
 function obtenerCarpetaRaiz_() {
   var config = getConfig();

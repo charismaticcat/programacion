@@ -8,7 +8,11 @@
  * InformeStyles).
  *
  * Este archivo también reúne los "RPC wrappers" que el cliente invoca vía
- * google.script.run — son la única superficie pública del backend.
+ * google.script.run — son la única superficie pública del backend. Cada
+ * uno está envuelto en ejecutarRpcSeguro_ (Utils.gs) para que cualquier
+ * excepción no prevista llegue al cliente como un mensaje legible
+ * (r.mensaje) en vez del genérico "Ocurrió un error de comunicación con
+ * el servidor" del withFailureHandler.
  */
 
 function include(nombre) {
@@ -35,6 +39,16 @@ function doGet(e) {
   template.SUBTITULO_FORO = getConfig().SUBTITULO;
   template.LOGO_ENCABEZADO_ID = getConfig().LOGO_ENCABEZADO_ID;
   template.LOGO_PIE_ID = getConfig().LOGO_PIE_ID;
+  try {
+    asegurarLogosSplashPublicos_();
+  } catch (err) {
+    Logger.log("doGet: no fue posible asegurar los logos públicos: " + err.message);
+  }
+  try {
+    asegurarLimiteSesionesGrupoRazonable_();
+  } catch (err) {
+    Logger.log("doGet: no fue posible ajustar el límite de sesiones por grupo: " + err.message);
+  }
 
   if (token) {
     try {
@@ -65,19 +79,27 @@ function doGet(e) {
  * ------------------------------------------------------------------ */
 
 function rpcValidarAcceso(token, codigo, dispositivoId, forzar) {
-  return validarAccesoGrupo(token, codigo, dispositivoId, forzar);
+  return ejecutarRpcSeguro_(function () {
+    return validarAccesoGrupo(token, codigo, dispositivoId, forzar);
+  });
 }
 
 function rpcMantenerSesion(idGrupo, dispositivoId, tokenSesion) {
-  return mantenerSesionGrupo(idGrupo, dispositivoId, tokenSesion);
+  return ejecutarRpcSeguro_(function () {
+    return mantenerSesionGrupo(idGrupo, dispositivoId, tokenSesion);
+  });
 }
 
 function rpcLiberarSesion(idGrupo, dispositivoId, tokenSesion) {
-  return liberarSesionGrupo_(idGrupo, dispositivoId, tokenSesion);
+  return ejecutarRpcSeguro_(function () {
+    return liberarSesionGrupo_(idGrupo, dispositivoId, tokenSesion);
+  });
 }
 
 function rpcTransferirPrincipal(idGrupo, dispositivoId, tokenSesion) {
-  return transferirResponsablePrincipalGrupo(idGrupo, dispositivoId, tokenSesion);
+  return ejecutarRpcSeguro_(function () {
+    return transferirResponsablePrincipalGrupo(idGrupo, dispositivoId, tokenSesion);
+  });
 }
 
 /* ------------------------------------------------------------------ *
@@ -85,72 +107,109 @@ function rpcTransferirPrincipal(idGrupo, dispositivoId, tokenSesion) {
  * ------------------------------------------------------------------ */
 
 function rpcRegistrarParticipante(idGrupo, idIE, nombre, estamento, rolForo, correo, dispositivoId) {
-  return registrarParticipante(idGrupo, idIE, nombre, estamento, rolForo, correo, dispositivoId);
+  return ejecutarRpcSeguro_(function () {
+    return registrarParticipante(idGrupo, idIE, nombre, estamento, rolForo, correo, dispositivoId);
+  });
 }
 
 function rpcEstadoFirmantes(idGrupo) {
-  return { total: contarParticipantesGrupo(idGrupo), firmantes: listarFirmantesGrupo(idGrupo).slice(0, 50) };
+  return ejecutarRpcSeguro_(function () {
+    return { total: contarParticipantesGrupo(idGrupo), firmantes: listarFirmantesGrupo(idGrupo).slice(0, 50) };
+  });
 }
 
 function rpcMatrizParticipacion(idGrupo) {
-  return obtenerMatrizParticipacionGrupo(idGrupo);
+  return ejecutarRpcSeguro_(function () {
+    return obtenerMatrizParticipacionGrupo(idGrupo);
+  });
 }
 
 /** Conteo manual de participantes por estamento e IE (ParticipacionEstamento.gs — mismo formato que Participación de 3.1). */
 function rpcObtenerParticipacionEstamento(idGrupo) {
-  return obtenerParticipacionEstamentoGrupo(idGrupo);
+  return ejecutarRpcSeguro_(function () {
+    return obtenerParticipacionEstamentoGrupo(idGrupo);
+  });
 }
 
 function rpcGuardarParticipacionEstamentoIE(idGrupo, tokenSesion, dispositivoId, idIE, valores) {
-  return guardarParticipacionEstamentoIE(idGrupo, tokenSesion, dispositivoId, idIE, valores);
+  return ejecutarRpcSeguro_(function () {
+    return guardarParticipacionEstamentoIE(idGrupo, tokenSesion, dispositivoId, idIE, valores);
+  });
 }
 
 function rpcRolesForo() {
-  return ROLES_FORO_;
+  return ejecutarRpcSeguro_(function () {
+    return ROLES_FORO_;
+  });
 }
 
 /** Rector(a) editable en la ficha de Confirmación de caracterización (igual que en FEI 3.1). */
 function rpcActualizarRectorIE(idGrupo, tokenSesion, dispositivoId, idIE, nombreRector) {
-  return actualizarRectorIE(idGrupo, tokenSesion, dispositivoId, idIE, nombreRector);
+  return ejecutarRpcSeguro_(function () {
+    return actualizarRectorIE(idGrupo, tokenSesion, dispositivoId, idIE, nombreRector);
+  });
 }
 
 /* ------------------------------------------------------------------ *
  * RPC — Sesión de preparación (pre-socialización, Preparacion.gs)
  * ------------------------------------------------------------------ */
 function rpcObtenerPreparacionIE(idGrupo, idIE) {
-  return obtenerPreparacionIE(idGrupo, idIE);
+  return ejecutarRpcSeguro_(function () {
+    return obtenerPreparacionIE(idGrupo, idIE);
+  });
 }
 
 function rpcGuardarPreparacionIE(idGrupo, tokenSesion, dispositivoId, idIE, responsable, respuestas) {
-  return guardarPreparacionIE(idGrupo, tokenSesion, dispositivoId, idIE, responsable, respuestas);
+  return ejecutarRpcSeguro_(function () {
+    return guardarPreparacionIE(idGrupo, tokenSesion, dispositivoId, idIE, responsable, respuestas);
+  });
 }
 
 function rpcMarcarPreparacionEnviada(idGrupo, tokenSesion, dispositivoId, idIE) {
-  return marcarPreparacionEnviada(idGrupo, tokenSesion, dispositivoId, idIE);
+  return ejecutarRpcSeguro_(function () {
+    return marcarPreparacionEnviada(idGrupo, tokenSesion, dispositivoId, idIE);
+  });
 }
 
 /** Aportes de preparación ya enviados por todas las IE del grupo, para la sección de socialización de Sesión 1. */
 function rpcPreparacionesEnviadasGrupo(idGrupo) {
-  return obtenerPreparacionesEnviadasGrupo(idGrupo);
+  return ejecutarRpcSeguro_(function () {
+    return obtenerPreparacionesEnviadasGrupo(idGrupo);
+  });
+}
+
+/** Aportes ya enviados por estudiantes/acudientes invitados de una IE — visibles durante la preparación (Invitados.gs). */
+function rpcObtenerAportesInvitadosIE(idGrupo, idIE) {
+  return ejecutarRpcSeguro_(function () {
+    return obtenerAportesInvitadosIE(idGrupo, idIE);
+  });
 }
 
 /* ------------------------------------------------------------------ *
  * RPC — Acceso de invitado (estudiante/acudiente, sin código de acceso)
  * ------------------------------------------------------------------ */
 function rpcIniciarAccesoInvitado(idIE, tipoInvitado, dispositivoId) {
-  return iniciarAccesoInvitado(idIE, tipoInvitado, dispositivoId);
+  return ejecutarRpcSeguro_(function () {
+    return iniciarAccesoInvitado(idIE, tipoInvitado, dispositivoId);
+  });
 }
 
 function rpcObtenerPreparacionIEInvitado(tokenInvitado, idIE, dispositivoId) {
-  return obtenerPreparacionIEInvitado(tokenInvitado, idIE, dispositivoId);
+  return ejecutarRpcSeguro_(function () {
+    return obtenerPreparacionIEInvitado(tokenInvitado, idIE, dispositivoId);
+  });
 }
 
 function rpcGuardarPreparacionIEInvitado(tokenInvitado, idIE, tipoInvitado, dispositivoId, respuestas) {
-  return guardarPreparacionIEInvitado(tokenInvitado, idIE, tipoInvitado, dispositivoId, respuestas);
+  return ejecutarRpcSeguro_(function () {
+    return guardarPreparacionIEInvitado(tokenInvitado, idIE, tipoInvitado, dispositivoId, respuestas);
+  });
 }
 
 function rpcMarcarPreparacionEnviadaInvitado(tokenInvitado, idIE, dispositivoId) {
-  return marcarPreparacionEnviadaInvitado(tokenInvitado, idIE, dispositivoId);
+  return ejecutarRpcSeguro_(function () {
+    return marcarPreparacionEnviadaInvitado(tokenInvitado, idIE, dispositivoId);
+  });
 }
 
 /* ------------------------------------------------------------------ *
@@ -158,15 +217,21 @@ function rpcMarcarPreparacionEnviadaInvitado(tokenInvitado, idIE, dispositivoId)
  * ------------------------------------------------------------------ */
 
 function rpcGuardarResponsable(idGrupo, tokenSesion, dispositivoId, tipo, datos) {
-  return guardarResponsableEnvio(idGrupo, tokenSesion, dispositivoId, tipo, datos);
+  return ejecutarRpcSeguro_(function () {
+    return guardarResponsableEnvio(idGrupo, tokenSesion, dispositivoId, tipo, datos);
+  });
 }
 
 function rpcListarResponsables(idGrupo) {
-  return listarResponsablesEnvio(idGrupo);
+  return ejecutarRpcSeguro_(function () {
+    return listarResponsablesEnvio(idGrupo);
+  });
 }
 
 function rpcEliminarResponsable(idGrupo, idRegistro, tokenSesion, dispositivoId) {
-  return eliminarResponsableEnvio(idGrupo, idRegistro, tokenSesion, dispositivoId);
+  return ejecutarRpcSeguro_(function () {
+    return eliminarResponsableEnvio(idGrupo, idRegistro, tokenSesion, dispositivoId);
+  });
 }
 
 /* ------------------------------------------------------------------ *
@@ -174,7 +239,9 @@ function rpcEliminarResponsable(idGrupo, idRegistro, tokenSesion, dispositivoId)
  * ------------------------------------------------------------------ */
 
 function rpcGuardarConsentimientoGrupo(idGrupo, tokenSesion, dispositivoId) {
-  return guardarConsentimientoGrupo(idGrupo, tokenSesion, dispositivoId);
+  return ejecutarRpcSeguro_(function () {
+    return guardarConsentimientoGrupo(idGrupo, tokenSesion, dispositivoId);
+  });
 }
 
 /* ------------------------------------------------------------------ *
@@ -182,29 +249,41 @@ function rpcGuardarConsentimientoGrupo(idGrupo, tokenSesion, dispositivoId) {
  * ------------------------------------------------------------------ */
 
 function rpcGuardarMetodoAsistencia(idGrupo, tokenSesion, dispositivoId, metodo) {
-  return guardarMetodoAsistencia(idGrupo, tokenSesion, dispositivoId, metodo);
+  return ejecutarRpcSeguro_(function () {
+    return guardarMetodoAsistencia(idGrupo, tokenSesion, dispositivoId, metodo);
+  });
 }
 
 function rpcUrlAsistencia(idGrupo) {
-  return construirUrlAsistencia_(idGrupo);
+  return ejecutarRpcSeguro_(function () {
+    return construirUrlAsistencia_(idGrupo);
+  });
 }
 
 function rpcSubirListadoAsistencia(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType) {
-  return subirListadoAsistencia(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType);
+  return ejecutarRpcSeguro_(function () {
+    return subirListadoAsistencia(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType);
+  });
 }
 
 function rpcSubirFotoEvidencia(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType) {
-  return subirFotoEvidencia(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType);
+  return ejecutarRpcSeguro_(function () {
+    return subirFotoEvidencia(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType);
+  });
 }
 
 /** Foto general del grupo (Participación) — independiente del método de asistencia elegido. */
 function rpcSubirFotoGrupo(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType) {
-  return subirFotoGrupo(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType);
+  return ejecutarRpcSeguro_(function () {
+    return subirFotoGrupo(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType);
+  });
 }
 
 /** Usada desde AsistenciaPublica.html (página pública QR, sin token/código). */
 function rpcRegistrarAsistenciaPublica(idGrupo, idIE, nombre, estamento, correo) {
-  return registrarAsistenciaPublica(idGrupo, idIE, nombre, estamento, correo);
+  return ejecutarRpcSeguro_(function () {
+    return registrarAsistenciaPublica(idGrupo, idIE, nombre, estamento, correo);
+  });
 }
 
 /* ------------------------------------------------------------------ *
@@ -212,20 +291,28 @@ function rpcRegistrarAsistenciaPublica(idGrupo, idIE, nombre, estamento, correo)
  * ------------------------------------------------------------------ */
 
 function rpcGuardarSesion1(idGrupo, tokenSesion, dispositivoId, campos) {
-  return guardarSesion1(idGrupo, tokenSesion, dispositivoId, campos);
+  return ejecutarRpcSeguro_(function () {
+    return guardarSesion1(idGrupo, tokenSesion, dispositivoId, campos);
+  });
 }
 
 function rpcObtenerSesion1(idGrupo) {
-  return obtenerSesion1(idGrupo);
+  return ejecutarRpcSeguro_(function () {
+    return obtenerSesion1(idGrupo);
+  });
 }
 
 function rpcEnviarSesion1(idGrupo, tokenSesion, dispositivoId) {
-  return enviarSesion1Definitiva(idGrupo, tokenSesion, dispositivoId);
+  return ejecutarRpcSeguro_(function () {
+    return enviarSesion1Definitiva(idGrupo, tokenSesion, dispositivoId);
+  });
 }
 
 /** Archivos descargables necesarios antes de iniciar Sesión 1 (Recursos.gs). */
 function rpcObtenerRecursosSesion1(idGrupo) {
-  return obtenerRecursosSesion1(idGrupo);
+  return ejecutarRpcSeguro_(function () {
+    return obtenerRecursosSesion1(idGrupo);
+  });
 }
 
 /* ------------------------------------------------------------------ *
@@ -233,19 +320,27 @@ function rpcObtenerRecursosSesion1(idGrupo) {
  * ------------------------------------------------------------------ */
 
 function rpcGuardarActorConectaEduca(idGrupo, tokenSesion, dispositivoId, registro) {
-  return guardarActorConectaEduca(idGrupo, tokenSesion, dispositivoId, registro);
+  return ejecutarRpcSeguro_(function () {
+    return guardarActorConectaEduca(idGrupo, tokenSesion, dispositivoId, registro);
+  });
 }
 
 function rpcListarConectaEduca(idGrupo) {
-  return listarConectaEduca(idGrupo);
+  return ejecutarRpcSeguro_(function () {
+    return listarConectaEduca(idGrupo);
+  });
 }
 
 function rpcEliminarActorConectaEduca(idGrupo, idRegistro, tokenSesion, dispositivoId) {
-  return eliminarActorConectaEduca(idGrupo, idRegistro, tokenSesion, dispositivoId);
+  return ejecutarRpcSeguro_(function () {
+    return eliminarActorConectaEduca(idGrupo, idRegistro, tokenSesion, dispositivoId);
+  });
 }
 
 function rpcEnviarSesion2(idGrupo, tokenSesion, dispositivoId) {
-  return enviarSesion2Definitiva(idGrupo, tokenSesion, dispositivoId);
+  return ejecutarRpcSeguro_(function () {
+    return enviarSesion2Definitiva(idGrupo, tokenSesion, dispositivoId);
+  });
 }
 
 /* ------------------------------------------------------------------ *
@@ -260,25 +355,35 @@ function rpcEnviarSesion2(idGrupo, tokenSesion, dispositivoId) {
  * de generar (Grupos.gs).
  */
 function rpcGenerarInforme(idGrupo, tokenSesion, dispositivoId) {
-  return generarInformeCompletoGrupo(idGrupo, tokenSesion, dispositivoId);
+  return ejecutarRpcSeguro_(function () {
+    return generarInformeCompletoGrupo(idGrupo, tokenSesion, dispositivoId);
+  });
 }
 
 function rpcObtenerInforme(idGrupo) {
-  return obtenerInformeGrupo(idGrupo);
+  return ejecutarRpcSeguro_(function () {
+    return obtenerInformeGrupo(idGrupo);
+  });
 }
 
 /** Se llama al hacer clic en el enlace de descarga del informe (habilita el envío por correo). */
 function rpcMarcarInformeDescargado(idGrupo, tokenSesion, dispositivoId) {
-  return marcarInformeDescargado(idGrupo, tokenSesion, dispositivoId);
+  return ejecutarRpcSeguro_(function () {
+    return marcarInformeDescargado(idGrupo, tokenSesion, dispositivoId);
+  });
 }
 
 /** Envía el informe por correo — exige valoración enviada y descarga registrada (Correo.gs). */
 function rpcEnviarInformePorCorreo(idGrupo, tokenSesion, dispositivoId) {
-  return enviarInformeSiCorresponde(idGrupo, tokenSesion, dispositivoId);
+  return ejecutarRpcSeguro_(function () {
+    return enviarInformeSiCorresponde(idGrupo, tokenSesion, dispositivoId);
+  });
 }
 
 function rpcEstadoGrupo(idGrupo) {
-  return obtenerEstadoGrupo(idGrupo);
+  return ejecutarRpcSeguro_(function () {
+    return obtenerEstadoGrupo(idGrupo);
+  });
 }
 
 /* ------------------------------------------------------------------ *
@@ -286,11 +391,15 @@ function rpcEstadoGrupo(idGrupo) {
  * ------------------------------------------------------------------ */
 
 function rpcGuardarValoracion(idGrupo, tokenSesion, dispositivoId, respuestas) {
-  return guardarValoracionGrupo(idGrupo, tokenSesion, dispositivoId, respuestas);
+  return ejecutarRpcSeguro_(function () {
+    return guardarValoracionGrupo(idGrupo, tokenSesion, dispositivoId, respuestas);
+  });
 }
 
 function rpcObtenerValoracion(idGrupo) {
-  return obtenerValoracionGrupo(idGrupo);
+  return ejecutarRpcSeguro_(function () {
+    return obtenerValoracionGrupo(idGrupo);
+  });
 }
 
 /**
@@ -298,7 +407,9 @@ function rpcObtenerValoracion(idGrupo) {
  * bienvenida solo para un enlace de acceso genérico, sin token de grupo.
  */
 function rpcTodasLasInstituciones() {
-  return obtenerTodasLasInstitucionesActivas();
+  return ejecutarRpcSeguro_(function () {
+    return obtenerTodasLasInstitucionesActivas();
+  });
 }
 
 /**
@@ -307,5 +418,7 @@ function rpcTodasLasInstituciones() {
  * para no mostrar las IE de los demás grupos.
  */
 function rpcInstitucionesDelGrupo(idGrupo) {
-  return obtenerInstitucionesDelGrupo(idGrupo);
+  return ejecutarRpcSeguro_(function () {
+    return obtenerInstitucionesDelGrupo(idGrupo);
+  });
 }

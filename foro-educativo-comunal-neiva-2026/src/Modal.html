@@ -3,6 +3,20 @@
      (equivalente al "forzar" de FEI 3.1, ver docs/01-auditoria-fei-3.1.md
      §5.3). El open/close vive en JS.html (abrirModal/cerrarModal). -->
 
+<!-- Confirmación genérica: reemplaza a window.confirm() (nativo), que
+     dentro del iframe con sandbox de HtmlService puede verse feo o
+     directamente no mostrarse/no hacer nada según el navegador. -->
+<div class="modal-fondo oculto" id="modalConfirmar">
+  <div class="modal-caja">
+    <h3 id="tituloModalConfirmar">Confirmar</h3>
+    <p id="mensajeModalConfirmar"></p>
+    <div class="fila-botones">
+      <button type="button" class="btn btn-secundario" id="btnCancelarModalConfirmar">Cancelar</button>
+      <button type="button" class="btn btn-primario" id="btnAceptarModalConfirmar">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-fondo oculto" id="modalFirmantes">
   <div class="modal-caja">
     <button type="button" class="modal-cerrar" data-cerrar-modal="modalFirmantes">&times;</button>

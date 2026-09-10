@@ -395,6 +395,35 @@ function renderSocializacionPreparacion(datos) {
   contenedor.innerHTML = html;
 }
 
+/**
+ * Aportes ya enviados por estudiantes y acudientes invitados de la IE que
+ * se está preparando — visibles DURANTE la etapa de preparación (no solo
+ * en la socialización de Sesión 1), como insumo de referencia para quien
+ * construye libremente la respuesta oficial de la institución.
+ */
+function renderAportesInvitadosPreparacionIE(datos) {
+  var contenedor = document.getElementById("listaAportesInvitadosPreparacionIE");
+  if (!contenedor) return;
+  if (!datos || !datos.length) {
+    contenedor.innerHTML = "<p class='ayuda'>Todavía no hay aportes de estudiantes ni acudientes invitados para esta institución.</p>";
+    return;
+  }
+  var html = "";
+  datos.forEach(function (aporte) {
+    var etiqueta = aporte.tipoInvitado === "ESTUDIANTE" ? "🧑‍🎓 Un(a) estudiante" : "👨‍👩‍👧 Un(a) acudiente";
+    html += "<details class='pregunta-preparacion-colapsable'>";
+    html += "<summary>" + etiqueta + "</summary>";
+    aporte.secciones.forEach(function (seccion) {
+      html += "<div class='socializacion-seccion'>";
+      html += "<h4>" + escapeHtml(seccion.titulo) + "</h4>";
+      html += "<p>" + escapeHtml(seccion.texto) + "</p>";
+      html += "</div>";
+    });
+    html += "</details>";
+  });
+  contenedor.innerHTML = html;
+}
+
 function mostrarMensaje(idContenedor, texto, tipo) {
   var contenedor = document.getElementById(idContenedor);
   if (!contenedor) return;
