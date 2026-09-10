@@ -10,6 +10,26 @@
   body { display: flex; justify-content: center; }
   main.asistencia { max-width: 480px; width: 100%; padding: 24px 16px 60px; }
   .logo-grupo { display: block; max-width: 140px; max-height: 140px; margin: 0 auto 14px; border-radius: 10px; }
+  /* Consentimiento como botón grande (no un checkbox diminuto en el celular), con tick verde al aceptar. */
+  .boton-consentimiento {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    text-align: left;
+    padding: 16px;
+    margin-top: 16px;
+    border: 2px solid var(--gris-borde);
+    border-radius: 10px;
+    background: var(--blanco);
+    font: inherit;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    cursor: pointer;
+  }
+  .boton-consentimiento.aceptado { border-color: var(--verde); background: var(--verde-claro); }
+  .check-consentimiento { font-size: 1.8rem; line-height: 1; flex-shrink: 0; }
+  .boton-consentimiento.aceptado .check-consentimiento { color: var(--verde-oscuro); }
 </style>
 </head>
 <body>
@@ -47,26 +67,42 @@
       <select id="campoEstamento">
         <option>Rector(a)</option>
         <option>Coordinador(a)</option>
-        <option>Docentes</option>
+        <option>Docente</option>
         <option>Tutor PTA PFI/3.0</option>
         <option>Orientador(a)</option>
-        <option>Estudiantes</option>
-        <option>Padres/madres/acudientes</option>
+        <option>Estudiante</option>
+        <option>Padre/madre/acudiente</option>
         <option>Personal administrativo</option>
-        <option>Egresados</option>
+        <option>Egresado(a)</option>
         <option>Sector productivo</option>
-        <option>Otros</option>
+        <option>Otro</option>
       </select>
       <label for="campoCorreo">Correo (opcional)</label>
-      <input type="email" id="campoCorreo">
-      <label style="display:flex;align-items:center;gap:8px;font-weight:400;margin-top:14px;">
-        <input type="checkbox" id="checkConsentimientoAsistencia" style="width:auto;">
-        Acepto que mi nombre, institución y estamento se usen para la sistematización del Foro
-        Educativo Comunal Neiva 2026.
-      </label>
+      <input type="email" id="campoCorreo" autocomplete="email" inputmode="email">
+      <div id="mensajeCorreo"></div>
+
+      <button type="button" class="boton-consentimiento" id="btnConsentimientoAsistencia" aria-pressed="false">
+        <span class="check-consentimiento" id="checkConsentimientoAsistencia" aria-hidden="true">☐</span>
+        <span>Acepto que mi nombre, institución y estamento se usen para la sistematización del Foro
+          Educativo Comunal Neiva 2026.</span>
+      </button>
+
       <div id="mensajeFirma"></div>
       <div class="fila-botones">
         <button class="btn btn-primario" id="btnFirmar" disabled>Confirmar asistencia</button>
+      </div>
+    </div>
+
+    <div class="tarjeta oculto" id="tarjetaGraciasAsistencia" style="text-align:center;">
+      <div class="icono-check">✅</div>
+      <h2 class="titulo-seccion">¡Gracias por su asistencia!</h2>
+      <p class="ayuda" id="detalleGraciasAsistencia"></p>
+      <p>Puede continuar en la preparación del Foro Comunal 2026.</p>
+      <div class="fila-botones" style="justify-content:center;">
+        <a class="btn btn-primario" id="enlaceContinuarPreparacion" href="#" target="_blank" rel="noopener">Ir a la preparación del Foro</a>
+      </div>
+      <div class="fila-botones" style="justify-content:center;">
+        <button type="button" class="btn btn-secundario" id="btnOtraAsistencia">➕ Registrar otra asistencia</button>
       </div>
     </div>
     <? } ?>
@@ -78,12 +114,16 @@
 <script>
   var ID_GRUPO = <?!= JSON.stringify(ID_GRUPO || "") ?>;
   var INSTITUCIONES = <?!= JSON.stringify(instituciones || []) ?>;
+  var URL_APP_BASE = <?!= JSON.stringify(URL_APP_BASE || "") ?>;
 
   function escapeHtml(t) {
     var d = document.createElement("div");
     d.textContent = t == null ? "" : String(t);
     return d.innerHTML;
   }
+
+  var enlaceContinuarPreparacion = document.getElementById("enlaceContinuarPreparacion");
+  if (enlaceContinuarPreparacion && URL_APP_BASE) enlaceContinuarPreparacion.href = URL_APP_BASE;
 
   (function poblarInstituciones() {
     var select = document.getElementById("campoIE");
@@ -106,13 +146,62 @@
   actualizarContador();
   setInterval(actualizarContador, 5000);
 
+  /* ---- Consentimiento: botón grande (no un checkbox diminuto en el celular), con tick verde al aceptar ---- */
   var btnFirmar = document.getElementById("btnFirmar");
-  var checkConsentimiento = document.getElementById("checkConsentimientoAsistencia");
-  if (checkConsentimiento && btnFirmar) {
-    checkConsentimiento.addEventListener("change", function () {
-      btnFirmar.disabled = !checkConsentimiento.checked;
+  var btnConsentimiento = document.getElementById("btnConsentimientoAsistencia");
+  var iconoConsentimiento = document.getElementById("checkConsentimientoAsistencia");
+  var consentimientoAceptado = false;
+  if (btnConsentimiento && btnFirmar) {
+    btnConsentimiento.addEventListener("click", function () {
+      consentimientoAceptado = !consentimientoAceptado;
+      btnConsentimiento.setAttribute("aria-pressed", String(consentimientoAceptado));
+      btnConsentimiento.classList.toggle("aceptado", consentimientoAceptado);
+      iconoConsentimiento.textContent = consentimientoAceptado ? "✅" : "☐";
+      btnFirmar.disabled = !consentimientoAceptado;
     });
   }
+
+  /* ---- Correo: autocompleta @g -> @gmail.com, @h -> @hotmail.com, y valida el formato ---- */
+  var campoCorreo = document.getElementById("campoCorreo");
+  var mensajeCorreo = document.getElementById("mensajeCorreo");
+  var REGEX_CORREO_ = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (campoCorreo) {
+    campoCorreo.addEventListener("input", function () {
+      var m = /^([^@\s]+)@(g|h)$/i.exec(campoCorreo.value);
+      if (m) {
+        campoCorreo.value = m[1] + "@" + (m[2].toLowerCase() === "g" ? "gmail.com" : "hotmail.com");
+      }
+      if (mensajeCorreo) mensajeCorreo.innerHTML = "";
+    });
+    campoCorreo.addEventListener("blur", function () {
+      var valor = campoCorreo.value.trim();
+      if (mensajeCorreo) {
+        mensajeCorreo.innerHTML = (valor && !REGEX_CORREO_.test(valor))
+          ? "<div class='mensaje error'>Corrige el formato del correo electrónico (ejemplo: nombre@correo.com).</div>"
+          : "";
+      }
+    });
+  }
+
+  function reiniciarFormularioAsistencia_() {
+    document.getElementById("campoNombre").value = "";
+    document.getElementById("campoCorreo").value = "";
+    if (mensajeCorreo) mensajeCorreo.innerHTML = "";
+    consentimientoAceptado = false;
+    if (btnConsentimiento) {
+      btnConsentimiento.setAttribute("aria-pressed", "false");
+      btnConsentimiento.classList.remove("aceptado");
+    }
+    if (iconoConsentimiento) iconoConsentimiento.textContent = "☐";
+    if (btnFirmar) btnFirmar.disabled = true;
+    document.getElementById("mensajeFirma").innerHTML = "";
+    document.getElementById("tarjetaGraciasAsistencia").classList.add("oculto");
+    document.getElementById("tarjetaFormulario").classList.remove("oculto");
+    document.getElementById("campoNombre").focus();
+  }
+  var btnOtraAsistencia = document.getElementById("btnOtraAsistencia");
+  if (btnOtraAsistencia) btnOtraAsistencia.addEventListener("click", reiniciarFormularioAsistencia_);
+
   if (btnFirmar) {
     btnFirmar.addEventListener("click", function () {
       var nombre = document.getElementById("campoNombre").value.trim();
@@ -120,7 +209,7 @@
       var estamento = document.getElementById("campoEstamento").value;
       var correo = document.getElementById("campoCorreo").value.trim();
       var mensaje = document.getElementById("mensajeFirma");
-      if (!checkConsentimiento.checked) {
+      if (!consentimientoAceptado) {
         mensaje.innerHTML = "<div class='mensaje error'>Debes aceptar el consentimiento para firmar.</div>";
         return;
       }
@@ -128,20 +217,29 @@
         mensaje.innerHTML = "<div class='mensaje error'>El nombre es obligatorio.</div>";
         return;
       }
+      if (correo && !REGEX_CORREO_.test(correo)) {
+        mensaje.innerHTML = "";
+        if (mensajeCorreo) mensajeCorreo.innerHTML = "<div class='mensaje error'>Corrige el formato del correo electrónico (ejemplo: nombre@correo.com).</div>";
+        campoCorreo.focus();
+        return;
+      }
+      mensaje.innerHTML = "";
       btnFirmar.disabled = true;
       google.script.run
         .withSuccessHandler(function (r) {
-          btnFirmar.disabled = !checkConsentimiento.checked;
+          btnFirmar.disabled = !consentimientoAceptado;
           if (!r.ok) {
             mensaje.innerHTML = "<div class='mensaje error'>" + escapeHtml(r.mensaje || "No fue posible registrar la asistencia.") + "</div>";
             return;
           }
-          mensaje.innerHTML = "<div class='mensaje exito'>" + (r.yaRegistrado ? "Ya estabas registrado(a). ¡Gracias!" : "¡Asistencia registrada! Gracias por participar.") + "</div>";
-          document.getElementById("campoNombre").value = "";
           actualizarContador();
+          var detalle = document.getElementById("detalleGraciasAsistencia");
+          if (detalle) detalle.textContent = r.yaRegistrado ? "Ya estabas registrado(a)." : "Tu asistencia fue registrada.";
+          document.getElementById("tarjetaFormulario").classList.add("oculto");
+          document.getElementById("tarjetaGraciasAsistencia").classList.remove("oculto");
         })
         .withFailureHandler(function () {
-          btnFirmar.disabled = !checkConsentimiento.checked;
+          btnFirmar.disabled = !consentimientoAceptado;
           mensaje.innerHTML = "<div class='mensaje error'>Ocurrió un error de comunicación. Intenta de nuevo.</div>";
         })
         .rpcRegistrarAsistenciaPublica(ID_GRUPO, idIE, nombre, estamento, correo);

@@ -213,6 +213,11 @@ function paginaAsistenciaGrupo_(idGrupo) {
   }
   template.NOMBRE_FORO = getConfig().NOMBRE_FORO;
   template.instituciones = grupoInfo ? obtenerInstitucionesDelGrupo(idGrupo) : [];
+  // Enlace al aplicativo principal (spec: "puede continuar en la
+  // preparación del Foro Comunal 2026" tras confirmar asistencia) — no
+  // hace falta token de grupo, desde ahí cualquiera puede entrar como
+  // invitado (estudiante/adulto responsable) sin código.
+  template.URL_APP_BASE = getConfig().URL_WEBAPP || ScriptApp.getService().getUrl();
   return template
     .evaluate()
     .setTitle("Asistencia — " + (grupoInfo ? grupoInfo.grupo : getConfig().NOMBRE_FORO))

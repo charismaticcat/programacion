@@ -433,6 +433,27 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
 - **Texto de apoyo por pregunta**: las 8 preguntas del Consolidado de Socialización/Construcción colectiva
   (Sesión 1) ahora tienen una explicación breve debajo del título, igual que ya tenían las de ConectaEduca.
 
+## 4.14 Página pública de asistencia QR: estamentos en singular, consentimiento grande, correo con autocompletado/validación, y pantalla de agradecimiento
+
+- **Estamentos en singular**: el `<select>` de estamento de `AsistenciaPublica.html` pasa de "Docentes",
+  "Estudiantes", "Padres/madres/acudientes", "Egresados", "Otros" a "Docente", "Estudiante",
+  "Padre/madre/acudiente", "Egresado(a)", "Otro" — cada persona firma por sí misma, no por su categoría (la
+  hoja `ESTAMENTOS_PARTICIPACION_` de `ParticipacionEstamento.gs`, que sí es un conteo por categoría, se
+  deja igual).
+- **Consentimiento como botón grande**: el checkbox nativo (diminuto en celular) se reemplazó por un botón
+  ancho `.boton-consentimiento` con un ícono grande que cambia a ✅ (y fondo/borde verdes) al aceptar.
+- **Correo — autocompletado y validación**: al escribir `@g` se completa a `@gmail.com`, al escribir `@h` a
+  `@hotmail.com` (según el patrón exacto `usuario@g`/`usuario@h`, para no interferir con otros dominios).
+  Si el correo no tiene formato válido (regex simple `usuario@dominio.algo`), se avisa "Corrige el formato
+  del correo electrónico" tanto al salir del campo como al intentar confirmar — el correo sigue siendo
+  opcional, la validación solo aplica si se escribió algo.
+- **Pantalla de agradecimiento y "registrar otra asistencia"**: al confirmar, el formulario se reemplaza por
+  una tarjeta "¡Gracias por su asistencia!" con "Puede continuar en la preparación del Foro Comunal 2026."
+  y un enlace a la app principal (`URL_APP_BASE`, agregado por `paginaAsistenciaGrupo_` en `Asistencia.gs` —
+  ahí cualquiera puede entrar como invitado sin código), más un botón "➕ Registrar otra asistencia" que
+  reinicia el formulario para la siguiente persona en el mismo dispositivo (uso típico: alguien pasa el
+  celular de mano en mano para firmar).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:
