@@ -454,6 +454,40 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   reinicia el formulario para la siguiente persona en el mismo dispositivo (uso típico: alguien pasa el
   celular de mano en mano para firmar).
 
+## 4.15 Tercer lote de correcciones en uso real: firmantes visibles, correo en responsable de envío, matriz más ancha, gate de preparación reintroducido, rol del responsable de preparación, y guardado inline en Preparación IE/invitado
+
+- **Firmantes visibles tras confirmar (AsistenciaPublica.html)**: la tarjeta de agradecimiento ahora muestra
+  "👥 N personas han firmado en este grupo hasta el momento" (actualizado por el mismo `actualizarContador()`
+  que ya refrescaba el contador de arriba) — antes solo se actualizaba fuera de la vista, sin que quien
+  acaba de firmar lo notara.
+- **Responsable de envío — correo con autocompletado y validación**: `activarAutocompletadoCorreo_`/
+  `correoValido_` (`JS.html`) reutilizan el mismo patrón de `AsistenciaPublica.html` (`@g` → `@gmail.com`,
+  `@h` → `@hotmail.com`, validación de formato) en `campoCorreoResponsable` y `campoCorreoAsistente`.
+- **Matriz de participación — estructura más ancha**: `main { max-width: 1100px; }` (antes 780px) para que la
+  tabla de participación por estamento e institución (hasta 6 IE + Estamento + Total) quepa sin
+  desplazamiento horizontal en pantallas medianas/grandes. La advertencia de columna en cero
+  (`confirmarAccion`) se agregó también al botón "Confirmo que la información es correcta" de Confirmación
+  de caracterización (antes solo estaba en el botón Continuar de Participación, pero la tabla es editable en
+  ambas pantallas).
+- **Gate de preparación reintroducido**: "Continuar a Sesión 1" (desde Selección de IE y desde Preparación de
+  una IE) vuelve a estar oculto hasta que TODAS las IE del grupo enviaron sus aportes de preparación
+  (`todasLasIEPrepararon_`/`actualizarBotonesContinuarSesion1_`, `JS.html`) — revierte la decisión "ya NO
+  bloquea" de la sección 4.11, a pedido explícito del usuario.
+- **Rol de quien prepara los aportes**: el modal "¿Quién va a diligenciar los aportes?" (`modalResponsablePreparacion`,
+  `Modal.html`) agrega un select de rol (mismo catálogo `ROLES_FORO_`) debajo del nombre; el campo
+  `RESPONSABLE` guardado combina "Nombre — Rol".
+- **Aportes de invitados — texto más directo**: el aviso de la tarjeta de aportes de invitados en
+  Preparación IE cambia a "Los aportes de los invitados no se han incluido en los aportes institucionales.
+  Estos serán leídos de manera independiente."
+- **Preparación IE e invitado — guardado inline**: se eliminaron los botones "Guardar avance" de ambas
+  pantallas (igual que ya se había hecho en Sesión 1); `agregarAccionesTextareas_`/`configGuardadoParaTextarea_`
+  (`JS.html`) generalizan el botón 💾 + texto de confirmación para las tres clases de pregunta
+  (`data-campo-sesion1`, `data-prep-pregunta`, `data-inv-prep-pregunta`), cada una usando su propia función
+  de guardado y su propio temporizador de autoguardado.
+- **Editor de pantalla completa más amplio**: `#pantallaCompletaEdicion` pasa a ocupar el 80% del ancho de
+  pantalla (antes 720px fijos) y el `<textarea>` el 80% del alto, para escribir más cómodo — el visor de
+  solo lectura de la socialización (`pantallaCompletaTexto`) se deja igual, más angosto para lectura.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

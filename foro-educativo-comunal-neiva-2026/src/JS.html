@@ -531,10 +531,6 @@ document.addEventListener("input", function (evento) {
   }, 2000);
 });
 
-document.getElementById("btnGuardarPreparacionInvitado").addEventListener("click", function () {
-  guardarPreparacionInvitadoActual_(true);
-});
-
 document.getElementById("btnEnviarPreparacionInvitado").addEventListener("click", function () {
   confirmarAccion("¿Enviar tus aportes para " + estadoInvitado.institucion + "?", function () {
     guardarPreparacionInvitadoActual_(false, function (guardadoOk) {
@@ -688,6 +684,27 @@ function institucionesSinParticipacionMarcada_() {
     .map(function (ie) { return ie.institucion; });
 }
 
+// La matriz de participación también es editable en Confirmación de
+// caracterización (misma tabla, otro contenedor) — se repite ahí la
+// misma advertencia antes de continuar, por si se vació una columna
+// después de haber pasado por Participación.
+document.getElementById("btnConfirmarCaracterizacion").addEventListener("click", function () {
+  var institucionesSinMarcar = institucionesSinParticipacionMarcada_();
+  if (institucionesSinMarcar.length) {
+    confirmarAccion(
+      "Estas instituciones no tienen ninguna persona registrada en el cuadro de \"Participación por " +
+        "estamento e institución\": " + institucionesSinMarcar.join(", ") + ". ¿La información es correcta?",
+      function () {
+        cambiarPantalla("pantallaPreSocializacion");
+      },
+      "Verifique la participación por institución",
+      { textoConfirmar: "Es correcto", textoCancelar: "No es correcto, voy a corregir" }
+    );
+    return;
+  }
+  cambiarPantalla("pantallaPreSocializacion");
+});
+
 document.getElementById("btnCopiarEnlaceAsistencia").addEventListener("click", function () {
   var url = document.getElementById("enlaceAsistenciaQR").href;
   if (navigator.clipboard) navigator.clipboard.writeText(url);
@@ -814,7 +831,7 @@ document.getElementById("btnFotoGrupoMasTarde").addEventListener("click", functi
 function cargarRolesForo() {
   llamarServidor("rpcRolesForo", [], function (roles) {
     estado.rolesForo = roles || [];
-    ["campoRolForoResponsable", "campoRolForoAsistente"].forEach(function (id) {
+    ["campoRolForoResponsable", "campoRolForoAsistente", "campoRolPreparacionIE"].forEach(function (id) {
       var select = document.getElementById(id);
       if (!select) return;
       select.innerHTML = "";
@@ -890,6 +907,33 @@ function actualizarEtiquetasConectaEducaGrupo() {
 }
 
 /* ------------------------------------------------------------------ *
+ * Correo: mismo autocompletado (@g -> @gmail.com, @h -> @hotmail.com) y
+ * validación de formato que la página pública de asistencia
+ * (AsistenciaPublica.html) — reutilizado aquí para responsable/asistentes
+ * de envío.
+ * ------------------------------------------------------------------ */
+var REGEX_CORREO_ = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function activarAutocompletadoCorreo_(idCampo) {
+  var campo = document.getElementById(idCampo);
+  if (!campo) return;
+  campo.addEventListener("input", function () {
+    var m = /^([^@\s]+)@(g|h)$/i.exec(campo.value);
+    if (m) campo.value = m[1] + "@" + (m[2].toLowerCase() === "g" ? "gmail.com" : "hotmail.com");
+  });
+}
+/** true si el campo tiene un correo con formato válido; si no, lo reporta en idMensaje y enfoca el campo. */
+function correoValido_(idCampo, idMensaje) {
+  var campo = document.getElementById(idCampo);
+  var valor = campo ? campo.value.trim() : "";
+  if (REGEX_CORREO_.test(valor)) return true;
+  mostrarMensaje(idMensaje, "Corrige el formato del correo electrónico (ejemplo: nombre@correo.com).", "error");
+  if (campo) campo.focus();
+  return false;
+}
+activarAutocompletadoCorreo_("campoCorreoResponsable");
+activarAutocompletadoCorreo_("campoCorreoAsistente");
+
+/* ------------------------------------------------------------------ *
  * Responsable de envío y asistentes de envío
  * ------------------------------------------------------------------ */
 document.getElementById("btnGuardarResponsable").addEventListener("click", function () {
@@ -903,6 +947,7 @@ document.getElementById("btnGuardarResponsable").addEventListener("click", funct
     mostrarMensaje("mensajeResponsable", "Nombre y correo son obligatorios.", "error");
     return;
   }
+  if (!correoValido_("campoCorreoResponsable", "mensajeResponsable")) return;
   llamarServidor("rpcGuardarResponsable", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, "PRINCIPAL", datos], function (r) {
     if (!r.ok) {
       mostrarMensaje("mensajeResponsable", r.mensaje || "No fue posible guardar.", "error");
@@ -949,6 +994,7 @@ document.getElementById("btnGuardarAsistente").addEventListener("click", functio
     mostrarMensaje("mensajeAsistente", "Nombre y correo son obligatorios.", "error");
     return;
   }
+  if (!correoValido_("campoCorreoAsistente", "mensajeAsistente")) return;
   llamarServidor("rpcGuardarResponsable", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, "ASISTENTE", datos], function (r) {
     if (!r.ok) {
       mostrarMensaje("mensajeAsistente", r.mensaje || "No fue posible agregar.", "error");
@@ -1323,8 +1369,10 @@ function cargarListaIEPreparacion() {
   llamarServidor("rpcPreparacionesEnviadasGrupo", [estado.idGrupo], function (enviadas) {
     var idsEnviados = {};
     (enviadas || []).forEach(function (e) { idsEnviados[e.idIE] = true; });
+    estado.idsPreparacionEnviados = idsEnviados;
     renderListaIEPreparacion(estado.instituciones, idsEnviados);
     mostrarMensajePreparacionFaltante_(idsEnviados);
+    actualizarBotonesContinuarSesion1_();
   });
   llamarServidor("rpcResumenInvitadosGrupo", [estado.idGrupo], function (resumen) {
     renderResumenInvitadosPreparacion(resumen || []);
@@ -1334,33 +1382,46 @@ function cargarListaIEPreparacion() {
 /**
  * La Sesión de preparación NO es opcional: es condición para continuar a
  * Sesión 1 (spec: "La preparación no es opcional, es condición para
- * continuar a la sesión uno"). Verifica que TODAS las IE del grupo hayan
- * enviado sus aportes antes de permitir avanzar.
+ * continuar a la sesión uno" — "Continuar a Sesión 1 no puede aparecer
+ * hasta que los aportes de todas las IE aparezcan"). Los botones
+ * "Continuar a Sesión 1" (desde Selección de IE y desde Preparación de
+ * una IE) permanecen ocultos hasta que TODAS las IE del grupo hayan
+ * enviado sus aportes.
  */
-/**
- * Aviso puramente informativo (NUNCA bloquea el paso a Sesión 1): la IE
- * que ya terminó su preparación puede seguir a la siguiente etapa sin
- * esperar a las demás. Solo se recuerda, sin frenar a nadie, cuáles
- * instituciones aún no han diligenciado la suya.
- */
+function todasLasIEPrepararon_() {
+  var idsEnviados = estado.idsPreparacionEnviados || {};
+  return !!estado.instituciones.length && estado.instituciones.every(function (ie) {
+    return !!idsEnviados[ie.idIE];
+  });
+}
+function actualizarBotonesContinuarSesion1_() {
+  var listo = todasLasIEPrepararon_();
+  ["btnContinuarASesion1DesdeSeleccion", "btnContinuarASesion1DesdePreparacionIE"].forEach(function (id) {
+    var boton = document.getElementById(id);
+    if (boton) boton.classList.toggle("oculto", !listo);
+  });
+}
+
 function mostrarMensajePreparacionFaltante_(idsEnviados) {
   var faltantes = estado.instituciones.filter(function (ie) { return !idsEnviados[ie.idIE]; });
   var contenedor = document.getElementById("mensajePreparacionPendiente");
   if (!contenedor) return;
   if (!faltantes.length) {
-    contenedor.innerHTML = "<div class='mensaje exito'>✅ Todas las instituciones completaron su preparación.</div>";
+    contenedor.innerHTML = "<div class='mensaje exito'>✅ Todas las instituciones completaron su preparación. Ya pueden continuar a Sesión 1.</div>";
   } else {
     contenedor.innerHTML =
       "<div class='mensaje info'>Aún falta por diligenciar la preparación de la socialización: <strong>" +
       faltantes.map(function (ie) { return escapeHtml(ie.institucion); }).join("</strong>, <strong>") +
-      "</strong>. La institución que ya terminó puede continuar a la siguiente etapa sin esperar a las demás.</div>";
+      "</strong>. No se puede continuar a Sesión 1 hasta que todas las instituciones envíen sus aportes.</div>";
   }
 }
 
 document.getElementById("btnContinuarASesion1DesdeSeleccion").addEventListener("click", function () {
+  if (!todasLasIEPrepararon_()) return;
   cambiarPantalla("pantallaSesion1");
 });
 document.getElementById("btnContinuarASesion1DesdePreparacionIE").addEventListener("click", function () {
+  if (!todasLasIEPrepararon_()) return;
   cambiarPantalla("pantallaSesion1");
 });
 
@@ -1371,6 +1432,8 @@ function abrirModalResponsablePreparacion(idIE) {
   estado.prepInstitucion = ie.institucion;
   document.getElementById("nombreIEResponsablePreparacion").textContent = ie.institucion;
   document.getElementById("campoResponsablePreparacion").value = "";
+  var selectRolPreparacion = document.getElementById("campoRolPreparacionIE");
+  if (selectRolPreparacion) selectRolPreparacion.selectedIndex = 0;
   mostrarMensaje("mensajeResponsablePreparacion", "");
   abrirModal("modalResponsablePreparacion");
 }
@@ -1381,7 +1444,8 @@ document.getElementById("btnComenzarPreparacionIE").addEventListener("click", fu
     mostrarMensaje("mensajeResponsablePreparacion", "Ingrese el nombre de quien va a diligenciar.", "error");
     return;
   }
-  estado.prepResponsable = nombre;
+  var rol = document.getElementById("campoRolPreparacionIE").value;
+  estado.prepResponsable = rol ? nombre + " — " + rol : nombre;
   cerrarModal("modalResponsablePreparacion");
   var ie = estado.instituciones.find(function (i) { return i.idIE === estado.prepIdIE; });
   ejecutarTransicionLogoIE(ie, function () {
@@ -1421,6 +1485,7 @@ function cargarPreparacionIE() {
   if (!estado.idGrupo || !estado.prepIdIE) return;
   document.getElementById("nombreIEPreparacion").textContent = estado.prepInstitucion;
   document.getElementById("responsablePreparacionIE").textContent = estado.prepResponsable;
+  actualizarBotonesContinuarSesion1_();
   llamarServidor("rpcObtenerPreparacionIE", [estado.idGrupo, estado.prepIdIE], function (datos) {
     if (!datos) return;
     if (datos.responsable) {
@@ -1499,10 +1564,6 @@ document.addEventListener("input", function (evento) {
   }, 2000);
 });
 
-document.getElementById("btnGuardarPreparacionIE").addEventListener("click", function () {
-  guardarPreparacionIEActual(true);
-});
-
 document.getElementById("btnEnviarPreparacionIE").addEventListener("click", function () {
   confirmarAccion("¿Enviar los aportes de " + estado.prepInstitucion + " para socializar con el grupo?", function () {
     // Guardar PRIMERO y esperar a que termine antes de enviar — evita la
@@ -1526,6 +1587,12 @@ document.getElementById("btnEnviarPreparacionIE").addEventListener("click", func
         );
         var banner = document.getElementById("bannerPreparacionYaCompletada");
         if (banner) banner.classList.remove("oculto");
+        // Actualiza en el momento el estado local de "quién ya envió" para
+        // que el botón "Continuar a Sesión 1" reaccione sin esperar a
+        // volver a la pantalla de selección.
+        estado.idsPreparacionEnviados = estado.idsPreparacionEnviados || {};
+        estado.idsPreparacionEnviados[estado.prepIdIE] = true;
+        actualizarBotonesContinuarSesion1_();
       });
     });
   });
@@ -1606,10 +1673,47 @@ document.addEventListener("keydown", function (evento) {
 });
 
 /**
+ * Cómo guardar y qué debounce cancelar según el tipo de pregunta —
+ * Sesión 1/2 (data-campo-sesion1), Preparación IE oficial
+ * (data-prep-pregunta) o invitado (data-inv-prep-pregunta). Cada flujo ya
+ * tenía su propia función de guardado y su propio temporizador de
+ * autoguardado; aquí solo se homogeniza cómo el botón 💾 los usa.
+ */
+function configGuardadoParaTextarea_(ta) {
+  if (ta.hasAttribute("data-campo-sesion1")) {
+    return {
+      cancelarDebounce: function () { clearTimeout(temporizadorGuardadoSesion1); },
+      guardar: function (callback) { guardarSesion1(false, callback); }
+    };
+  }
+  if (ta.hasAttribute("data-prep-pregunta")) {
+    return {
+      cancelarDebounce: function () { clearTimeout(temporizadorGuardadoPreparacion); },
+      guardar: function (callback) {
+        guardarPreparacionIEActual(false, function (ok) {
+          callback({ ok: ok, mensaje: ok ? "" : "No fue posible guardar." });
+        });
+      }
+    };
+  }
+  if (ta.hasAttribute("data-inv-prep-pregunta")) {
+    return {
+      cancelarDebounce: function () { clearTimeout(temporizadorGuardadoInvitado_); },
+      guardar: function (callback) {
+        guardarPreparacionInvitadoActual_(false, function (ok) {
+          callback({ ok: ok, mensaje: ok ? "" : "No fue posible guardar." });
+        });
+      }
+    };
+  }
+  return null;
+}
+
+/**
  * Agrega, después de cada textarea de pregunta larga, una barra con 👁️
- * (pantalla completa editable) y, solo para las de Sesión 1/2
- * (data-campo-sesion1), también 💾 (guardar esa pregunta ya, sin esperar
- * el autoguardado) con un texto auxiliar de confirmación. Idempotente:
+ * (pantalla completa editable) y 💾 (guardar esa pregunta ya, sin esperar
+ * el autoguardado) con un texto auxiliar de confirmación — para las tres
+ * clases de pregunta (Sesión 1/2, Preparación IE, invitado). Idempotente:
  * se puede llamar varias veces sobre el mismo contenedor (p.ej. después
  * de un render dinámico) sin duplicar nada.
  */
@@ -1633,7 +1737,8 @@ function agregarAccionesTextareas_(raiz) {
     });
     barra.appendChild(botonOjo);
 
-    if (ta.hasAttribute("data-campo-sesion1")) {
+    var config = configGuardadoParaTextarea_(ta);
+    if (config) {
       var estadoSpan = document.createElement("span");
       estadoSpan.className = "estado-guardado-campo";
 
@@ -1643,10 +1748,10 @@ function agregarAccionesTextareas_(raiz) {
       botonGuardar.title = "Guardar esta respuesta ahora";
       botonGuardar.textContent = "💾";
       botonGuardar.addEventListener("click", function () {
-        clearTimeout(temporizadorGuardadoSesion1);
+        config.cancelarDebounce();
         estadoSpan.textContent = "Guardando…";
         estadoSpan.className = "estado-guardado-campo";
-        guardarSesion1(false, function (r) {
+        config.guardar(function (r) {
           estadoSpan.textContent = r.ok ? "✓ Guardado" : (r.mensaje || "No fue posible guardar.");
           estadoSpan.className = "estado-guardado-campo " + (r.ok ? "estado-guardado-ok" : "estado-guardado-error");
           if (r.ok) setTimeout(function () { estadoSpan.textContent = ""; }, 4000);

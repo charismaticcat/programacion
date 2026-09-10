@@ -97,6 +97,7 @@
       <div class="icono-check">✅</div>
       <h2 class="titulo-seccion">¡Gracias por su asistencia!</h2>
       <p class="ayuda" id="detalleGraciasAsistencia"></p>
+      <p class="ayuda">👥 <span id="totalFirmantesGracias">0</span> personas han firmado en este grupo hasta el momento.</p>
       <p>Puede continuar en la preparación del Foro Comunal 2026.</p>
       <div class="fila-botones" style="justify-content:center;">
         <a class="btn btn-primario" id="enlaceContinuarPreparacion" href="#" target="_blank" rel="noopener">Ir a la preparación del Foro</a>
@@ -141,6 +142,8 @@
     google.script.run.withSuccessHandler(function (r) {
       var el = document.getElementById("contadorFirmantes");
       if (el) el.textContent = r.total || 0;
+      var elGracias = document.getElementById("totalFirmantesGracias");
+      if (elGracias) elGracias.textContent = r.total || 0;
     }).rpcEstadoFirmantes(ID_GRUPO);
   }
   actualizarContador();
