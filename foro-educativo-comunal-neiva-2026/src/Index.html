@@ -10,13 +10,25 @@
 </head>
 <body>
 
-<!-- Transición inicial: primero el logo del Foro, luego el de la SEM Neiva
-     (uno a la vez, con crossfade), menos de 5 segundos en total, se puede
-     saltar tocando la pantalla. Se muestra antes que cualquier otra cosa;
-     debajo queda la pantalla de bienvenida lista. -->
+<!-- Transición inicial: primero el logo de la Alcaldía/SEM Neiva, luego el
+     del Foro (#FORO) (uno a la vez, con crossfade), menos de 5 segundos en
+     total, se puede saltar tocando la pantalla. Se muestra antes que
+     cualquier otra cosa; debajo queda la pantalla de bienvenida lista. -->
 <div id="pantallaSplashInicial" class="pantalla-splash">
   <img id="imagenSplashActual" class="imagen-splash" alt="<?!= NOMBRE_FORO ?>">
   <p class="toque-continuar">Toque para continuar</p>
+</div>
+
+<!-- Overlay de carga con imagen/gif propio, reutilizado en 3 momentos:
+     validar código de acceso, subir foto del grupo (los dos momentos
+     disponibles) y guardar responsable de envío — ver mostrarCargaAccion_
+     en JS.html. -->
+<div id="overlayCargaAccion" class="overlay-carga-accion oculto">
+  <img id="imagenCargaAccion" class="imagen-carga-accion oculto" alt="">
+  <div id="emojiCargaAccion" class="emoji-carga-accion oculto"></div>
+  <span class="spinner-cargando"></span>
+  <p class="texto-carga-accion" id="textoCargaAccion">Cargando…</p>
+  <div class="barra-carga-indeterminada"><span></span></div>
 </div>
 
 <!-- Panel permanente de firmantes (spec sección 8) — visible desde Participación en adelante -->

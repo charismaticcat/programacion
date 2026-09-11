@@ -198,14 +198,15 @@ document.getElementById("btnAceptarModalConfirmar").addEventListener("click", fu
 });
 
 /* ------------------------------------------------------------------ *
- * Transición inicial (splash: logo del Foro, luego logo de la SEM Neiva,
- * uno a la vez con crossfade)
+ * Transición inicial (splash: logo de la Alcaldía/SEM Neiva primero,
+ * luego el logo del Foro (#FORO), uno a la vez con crossfade — spec del
+ * usuario: "usar imagen de transición luego de logo de la alcaldía").
  * ------------------------------------------------------------------ */
 function iniciarSplashInicial() {
   var splash = document.getElementById("pantallaSplashInicial");
   if (!splash) return;
   var img = document.getElementById("imagenSplashActual");
-  var secuencia = [LOGO_ENCABEZADO_ID, LOGO_PIE_ID].filter(Boolean);
+  var secuencia = [LOGO_PIE_ID, LOGO_ENCABEZADO_ID].filter(Boolean);
 
   var cerrado = false;
   var temporizador = null;
@@ -241,6 +242,50 @@ function iniciarSplashInicial() {
   mostrarSiguiente();
 }
 iniciarSplashInicial();
+
+/* ------------------------------------------------------------------ *
+ * Overlay de carga con imagen propia — 3 momentos concretos (spec del
+ * usuario, verbatim): 1) al ingresar, justo después del código de
+ * acceso; 2) al subir la foto del grupo, en cualquiera de los dos
+ * momentos disponibles (Participación / Informe generado); 3) al
+ * guardar el responsable de envío. Para (1) y (2) no fue posible
+ * recuperar como archivo los dos gifs que el usuario adjuntó en el
+ * chat (un entorno de código no tiene acceso a imágenes pegadas en la
+ * conversación, solo a archivos/enlaces reales) — se usa en su lugar
+ * una animación propia con emoji + barra de progreso indeterminada,
+ * mismo overlay y estilo; si el usuario comparte un enlace de Drive
+ * para esos dos gifs se pueden sustituir por la imagen real. Para (3)
+ * sí se usa la imagen real: el sticker de Giphy "Cargando Sticker by
+ * dipielbella" (con reserva automática al spinner si no llega a
+ * cargar en el navegador de quien usa la app).
+ * ------------------------------------------------------------------ */
+var URL_STICKER_CARGANDO_RESPONSABLE_ = "https://media.giphy.com/media/SYIu9YMtvUc6tBzDH6/giphy.gif";
+var EMOJI_CARGA_ACCION_ = { acceso: "🏃", foto: "📷" };
+
+function mostrarCargaAccion_(tipo, texto) {
+  var overlay = document.getElementById("overlayCargaAccion");
+  if (!overlay) return;
+  var img = document.getElementById("imagenCargaAccion");
+  var emoji = document.getElementById("emojiCargaAccion");
+  overlay.classList.remove("con-imagen-caida");
+
+  if (tipo === "responsable") {
+    img.onerror = function () { overlay.classList.add("con-imagen-caida"); };
+    img.src = URL_STICKER_CARGANDO_RESPONSABLE_;
+    img.classList.remove("oculto");
+    emoji.classList.add("oculto");
+  } else {
+    img.classList.add("oculto");
+    emoji.textContent = EMOJI_CARGA_ACCION_[tipo] || "⏳";
+    emoji.className = "emoji-carga-accion" + (tipo === "acceso" ? " emoji-corriendo" : tipo === "foto" ? " emoji-camara" : "");
+  }
+  document.getElementById("textoCargaAccion").textContent = texto || "Cargando…";
+  overlay.classList.remove("oculto");
+}
+function ocultarCargaAccion_() {
+  var overlay = document.getElementById("overlayCargaAccion");
+  if (overlay) overlay.classList.add("oculto");
+}
 
 /* ------------------------------------------------------------------ *
  * Carrusel de bienvenida — cada I.E. del grupo aparece una a una (1s
@@ -360,7 +405,9 @@ function intentarValidarAcceso(forzar) {
     mostrarMensaje("mensajeAcceso", "Ingrese el código de acceso.", "error");
     return;
   }
+  mostrarCargaAccion_("acceso", "Validando código de acceso…");
   llamarServidor("rpcValidarAcceso", [TOKEN_ACCESO, codigo, estado.dispositivoId, !!forzar], function (r) {
+    ocultarCargaAccion_();
     if (!r.ok) {
       if (r.codigo === "SESION_YA_ABIERTA") {
         document.getElementById("mensajeTomaSesion").textContent = r.mensaje;
@@ -404,6 +451,10 @@ function intentarValidarAcceso(forzar) {
     mostrarCarruselIE(function () {
       cambiarPantalla("pantallaInicio");
     });
+  }, function (error) {
+    ocultarCargaAccion_();
+    console.error("rpcValidarAcceso", error);
+    mostrarMensaje("mensajeAcceso", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
   });
 }
 
@@ -805,10 +856,12 @@ function subirFotoGrupoDesde_(idInput, idMensaje) {
     return;
   }
   leerArchivoComoBase64_(archivo, function (base64) {
+    mostrarCargaAccion_("foto", "Subiendo fotografía…");
     llamarServidor(
       "rpcSubirFotoGrupo",
       [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, base64, archivo.name, archivo.type],
       function (r) {
+        ocultarCargaAccion_();
         mostrarMensaje(idMensaje, r.ok ? "Fotografía subida correctamente." : (r.mensaje || "No fue posible subir la fotografía."), r.ok ? "exito" : "error");
         if (r.ok) {
           input.value = "";
@@ -817,6 +870,11 @@ function subirFotoGrupoDesde_(idInput, idMensaje) {
           renderFotoGrupo(estado.fotoGrupoId, "previaFotoGrupoFinal", "formularioFotoGrupoFinal", estado.grupo);
           mostrarMensaje("mensajeFaltaFotoFinalizar", "");
         }
+      },
+      function (error) {
+        ocultarCargaAccion_();
+        console.error("rpcSubirFotoGrupo", error);
+        mostrarMensaje(idMensaje, "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
       }
     );
   });
@@ -966,7 +1024,9 @@ document.getElementById("btnGuardarResponsable").addEventListener("click", funct
     return;
   }
   if (!correoValido_("campoCorreoResponsable", "mensajeResponsable")) return;
+  mostrarCargaAccion_("responsable", "Guardando responsable de envío…");
   llamarServidor("rpcGuardarResponsable", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, "PRINCIPAL", datos], function (r) {
+    ocultarCargaAccion_();
     if (!r.ok) {
       mostrarMensaje("mensajeResponsable", r.mensaje || "No fue posible guardar.", "error");
       return;
@@ -974,6 +1034,10 @@ document.getElementById("btnGuardarResponsable").addEventListener("click", funct
     mostrarMensaje("mensajeResponsable", "Responsable de envío guardado.", "exito");
     document.getElementById("formularioResponsablePrincipal").classList.add("oculto");
     cargarResponsables();
+  }, function (error) {
+    ocultarCargaAccion_();
+    console.error("rpcGuardarResponsable", error);
+    mostrarMensaje("mensajeResponsable", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
   });
 });
 
@@ -1384,16 +1448,42 @@ function guardarRectorIE(idIE) {
  * ------------------------------------------------------------------ */
 function cargarListaIEPreparacion() {
   if (!estado.idGrupo) return;
-  llamarServidor("rpcPreparacionesEnviadasGrupo", [estado.idGrupo], function (enviadas) {
-    var idsEnviados = {};
-    (enviadas || []).forEach(function (e) { idsEnviados[e.idIE] = true; });
-    estado.idsPreparacionEnviados = idsEnviados;
-    renderListaIEPreparacion(estado.instituciones, idsEnviados);
-    mostrarMensajePreparacionFaltante_(idsEnviados);
-    actualizarBotonesContinuarSesion1_();
-  });
+  llamarServidor(
+    "rpcPreparacionesEnviadasGrupo",
+    [estado.idGrupo],
+    function (enviadas) {
+      // rpcPreparacionesEnviadasGrupo normalmente devuelve un arreglo
+      // (no el objeto {ok, mensaje} de las demás RPC): si el servidor
+      // atrapó una excepción (ejecutarRpcSeguro_), `enviadas` llega como
+      // {ok:false, ...} en vez de arreglo. Sin esta guarda, el
+      // .forEach de abajo lanzaría un TypeError silencioso que dejaba a
+      // medias el pintado de la pantalla — y con él, el botón
+      // "Continuar a Sesión 1" nunca se actualizaba. Se protege con
+      // try/catch además, para que un error en el pintado (p. ej. un
+      // dato inesperado de una IE puntual) tampoco impida que el botón
+      // se actualice.
+      try {
+        var idsEnviados = {};
+        (Array.isArray(enviadas) ? enviadas : []).forEach(function (e) { idsEnviados[e.idIE] = true; });
+        estado.idsPreparacionEnviados = idsEnviados;
+        renderListaIEPreparacion(estado.instituciones, idsEnviados);
+        mostrarMensajePreparacionFaltante_(idsEnviados);
+        if (enviadas && enviadas.ok === false) {
+          mostrarMensaje("mensajePreparacionPendiente", enviadas.mensaje || "No fue posible cargar el estado de preparación. Intente de nuevo.", "error");
+        }
+      } catch (error) {
+        console.error("cargarListaIEPreparacion", error);
+      }
+      actualizarBotonesContinuarSesion1_();
+    },
+    function (error) {
+      console.error("rpcPreparacionesEnviadasGrupo", error);
+      mostrarMensaje("mensajePreparacionPendiente", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+      actualizarBotonesContinuarSesion1_();
+    }
+  );
   llamarServidor("rpcAportesInvitadosGrupo", [estado.idGrupo], function (datos) {
-    renderAportesInvitadosGrupo(datos || []);
+    renderAportesInvitadosGrupo(Array.isArray(datos) ? datos : []);
   });
 }
 
@@ -1505,6 +1595,10 @@ function cargarPreparacionIE() {
   actualizarBotonesContinuarSesion1_();
   llamarServidor("rpcObtenerPreparacionIE", [estado.idGrupo, estado.prepIdIE], function (datos) {
     if (!datos) return;
+    if (datos.ok === false) {
+      mostrarMensaje("mensajePreparacionIE", datos.mensaje || "No fue posible cargar la preparación de esta institución. Intente de nuevo.", "error");
+      return;
+    }
     if (datos.responsable) {
       estado.prepResponsable = datos.responsable;
       document.getElementById("responsablePreparacionIE").textContent = datos.responsable;

@@ -512,6 +512,42 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   de una IE, el botón aparece en cuanto ESA IE envía sus aportes; desde Selección de IE, aparece en cuanto
   al menos una IE del grupo ya envió (`algunaIEPreparo_`, `JS.html`) — ya no exige que todas terminen.
 
+## 4.17 Quinto lote: transición de logos invertida, overlay de carga con imagen propia en 3 momentos, y blindaje del botón "Continuar a Sesión 1"/mensaje de error en la pantalla de aportes
+
+- **Splash inicial — orden invertido (alcaldía primero, #Foro después)**: `iniciarSplashInicial()` (`JS.html`)
+  mostraba `[LOGO_ENCABEZADO_ID, LOGO_PIE_ID]` (Foro primero); pasa a `[LOGO_PIE_ID, LOGO_ENCABEZADO_ID]` —
+  el usuario compartió el enlace de Drive del logo "#Foro" (mismo `fileId` que `LOGO_ENCABEZADO_ID` en
+  `Config.gs`) pidiendo que se muestre "luego de logo de la alcaldía".
+- **Overlay de carga con imagen propia en 3 momentos concretos** (`overlayCargaAccion`, `Index.html`;
+  `mostrarCargaAccion_`/`ocultarCargaAccion_`, `JS.html`; `.overlay-carga-accion`, `CSS.html`):
+  1. Al validar el código de acceso (`intentarValidarAcceso`).
+  2. Al subir la foto del grupo, en los dos momentos disponibles — Participación y pantalla de Informe
+     generado (`subirFotoGrupoDesde_`, función compartida por ambos botones).
+  3. Al guardar el responsable de envío (`rpcGuardarResponsable` con tipo `PRINCIPAL`).
+
+  Para el tercer momento se usa el sticker real pedido por el usuario ("Cargando Sticker by dipielbella",
+  `https://media.giphy.com/media/SYIu9YMtvUc6tBzDH6/giphy.gif` — localizado por búsqueda web; el entorno
+  de código no pudo verificar la carga del CDN de Giphy por una política de red propia del sandbox, no
+  del navegador de quien usa la app; si no carga, `img.onerror` hace caer el overlay de vuelta al spinner
+  genérico ya existente). Para el primer y segundo momento el usuario adjuntó dos imágenes directamente en
+  el chat (un gif de una carrera y un ícono de obturador de cámara) que un entorno de código no puede leer
+  como archivo — solo enlaces o archivos reales son accesibles — así que se usan animaciones propias con
+  emoji (🏃 y 📷) + una barra de progreso indeterminada, mismo overlay y estilo; quedan listas para
+  sustituirse por las imágenes reales en cuanto el usuario comparta un enlace de Drive para cada una.
+- **Diagnóstico de "Ocurrió un error de comunicación con el servidor" y "Continuar" ausente en Selección de
+  IE (Preparación)**: se auditó exhaustivamente cada nombre de RPC llamado desde el cliente contra los
+  definidos en `Code.gs` (sin discrepancias — se descarta un nombre de función obsoleto) y se revisó la
+  serialización de todas las RPC involucradas (todas envueltas en `ejecutarRpcSeguro_`). La causa más
+  probable identificada: `rpcPreparacionesEnviadasGrupo` devuelve un arreglo en el camino normal, pero
+  `{ok:false, mensaje}` si el servidor atrapó una excepción — sin protección, el `.forEach` posterior
+  lanzaba un `TypeError` silencioso (no capturado por `withFailureHandler`, que solo actúa en fallos de
+  transporte) que dejaba a medias el pintado de la pantalla, y con él, `actualizarBotonesContinuarSesion1_()`
+  nunca se ejecutaba — explicando por qué "Continuar" seguía sin aparecer pese a la lógica por IE ya
+  implementada. `cargarListaIEPreparacion()` (`JS.html`) ahora valida `Array.isArray`, envuelve el pintado
+  en `try/catch`, garantiza que `actualizarBotonesContinuarSesion1_()` se ejecute siempre (incluso en el
+  `onError` de transporte) y muestra el mensaje de error real en `mensajePreparacionPendiente` cuando
+  `ok === false`. `cargarPreparacionIE()` recibió la misma guarda para `rpcObtenerPreparacionIE`.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

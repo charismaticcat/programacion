@@ -190,6 +190,40 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 @keyframes girarSpinner { to { transform: rotate(360deg); } }
 .texto-cargando { display: flex; align-items: center; gap: 8px; }
 
+/* ---------- Overlay de carga con imagen/gif propio para 3 momentos concretos:
+   1) validar código de acceso, 2) subir foto del grupo (ambos momentos),
+   3) guardar responsable de envío. Si la imagen no carga (data URL
+   inválida o sin conexión a un CDN externo) cae de vuelta al spinner de
+   arriba mediante la clase .con-imagen-caida (ver mostrarCargaAccion_ en
+   JS.html). ---------- */
+.overlay-carga-accion {
+  position: fixed; inset: 0; z-index: 320; background: rgba(8, 77, 50, 0.82); color: var(--blanco);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+  text-align: center; padding: 24px;
+}
+.overlay-carga-accion img.imagen-carga-accion {
+  max-height: 22vh; max-width: 60vw; border-radius: 12px;
+}
+.overlay-carga-accion .spinner-cargando {
+  display: none; width: 40px; height: 40px; border-width: 5px;
+}
+.overlay-carga-accion.con-imagen-caida img.imagen-carga-accion { display: none; }
+.overlay-carga-accion.con-imagen-caida .spinner-cargando { display: inline-block; }
+.overlay-carga-accion p.texto-carga-accion { font-size: 1rem; font-weight: 600; margin: 0; }
+.overlay-carga-accion .emoji-carga-accion { font-size: 4.5rem; line-height: 1; }
+.overlay-carga-accion .emoji-carga-accion.emoji-corriendo { animation: correrEmojiCarga 0.9s ease-in-out infinite; }
+@keyframes correrEmojiCarga { 0%, 100% { transform: translateX(-16px) scaleX(-1); } 50% { transform: translateX(16px) scaleX(-1); } }
+.overlay-carga-accion .emoji-carga-accion.emoji-camara { animation: pulsarEmojiCarga 1s ease-in-out infinite; }
+@keyframes pulsarEmojiCarga { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.82); opacity: 0.55; } }
+.overlay-carga-accion .barra-carga-indeterminada {
+  width: min(220px, 60vw); height: 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.25); overflow: hidden;
+}
+.overlay-carga-accion .barra-carga-indeterminada span {
+  display: block; width: 40%; height: 100%; background: var(--blanco); border-radius: 4px;
+  animation: deslizarBarraCarga 1.1s ease-in-out infinite;
+}
+@keyframes deslizarBarraCarga { 0% { transform: translateX(-120%); } 100% { transform: translateX(350%); } }
+
 /* ---------- Instituciones / tarjetas de lista ---------- */
 .lista-instituciones { display: grid; gap: 8px; margin: 12px 0; }
 .item-institucion {
