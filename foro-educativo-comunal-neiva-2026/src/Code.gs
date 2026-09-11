@@ -200,6 +200,12 @@ function rpcObtenerPreparacionIEInvitado(tokenInvitado, idIE, dispositivoId) {
   });
 }
 
+function rpcGuardarCaracterizacionInvitado(tokenInvitado, idIE, dispositivoId, datos) {
+  return ejecutarRpcSeguro_(function () {
+    return guardarCaracterizacionInvitado(tokenInvitado, idIE, dispositivoId, datos);
+  });
+}
+
 function rpcGuardarPreparacionIEInvitado(tokenInvitado, idIE, tipoInvitado, dispositivoId, respuestas) {
   return ejecutarRpcSeguro_(function () {
     return guardarPreparacionIEInvitado(tokenInvitado, idIE, tipoInvitado, dispositivoId, respuestas);
@@ -393,6 +399,13 @@ function rpcEstadoGrupo(idGrupo) {
 function rpcGuardarValoracion(idGrupo, tokenSesion, dispositivoId, respuestas) {
   return ejecutarRpcSeguro_(function () {
     return guardarValoracionGrupo(idGrupo, tokenSesion, dispositivoId, respuestas);
+  });
+}
+
+/** Valoración pública, sin código de acceso — ver comentario en Valoracion.gs. */
+function rpcGuardarValoracionAsistentePublica(idGrupo, respuestas) {
+  return ejecutarRpcSeguro_(function () {
+    return guardarValoracionAsistentePublica(idGrupo, respuestas);
   });
 }
 

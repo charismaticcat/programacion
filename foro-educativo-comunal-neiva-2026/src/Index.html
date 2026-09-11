@@ -34,10 +34,12 @@
 <!-- Panel permanente de firmantes (spec sección 8) — visible desde Participación en adelante -->
 <div id="panelFirmantes" class="oculto">
   <div class="info">
-    <span class="icono">👥</span>
-    <span>PARTICIPACIÓN —</span>
-    <span class="contador"><span id="contadorFirmantes">0</span> personas han firmado</span>
-    <span class="ultimos" id="ultimosFirmantes"></span>
+    <span class="icono texto-firmantes-abierto">👥</span>
+    <span class="texto-firmantes-abierto">PARTICIPACIÓN —</span>
+    <span class="contador texto-firmantes-abierto"><span id="contadorFirmantes">0</span> personas han firmado</span>
+    <span class="ultimos texto-firmantes-abierto" id="ultimosFirmantes"></span>
+    <span class="icono texto-firmantes-cerrado oculto">🔒</span>
+    <span class="texto-firmantes-cerrado oculto">La asistencia se ha cerrado</span>
   </div>
   <button type="button" id="btnVerTodosFirmantes">Ver todos</button>
 </div>
@@ -290,6 +292,16 @@
       <div id="contenedorParticipacionEstamentoCaracterizacion" class="tabla-horizontal-desplazable"></div>
 
       <div id="pieFotoCaracterizacion" class="pie-foto-grupo oculto"></div>
+      <div class="fila-botones" style="justify-content:center;">
+        <button type="button" class="btn btn-secundario" id="btnCambiarFotoCaracterizacion">✏️ Cambiar fotografía</button>
+      </div>
+      <div id="formularioFotoGrupoCaracterizacion" class="oculto">
+        <input type="file" id="campoFotoGrupoCaracterizacion" accept="image/*">
+        <div class="fila-botones">
+          <button class="btn btn-secundario" id="btnSubirFotoGrupoCaracterizacion">Subir fotografía del grupo</button>
+        </div>
+        <div id="mensajeFotoGrupoCaracterizacion"></div>
+      </div>
 
       <p class="ayuda texto-cargando" id="avisoCargandoCaracterizacion"><span class="spinner-cargando"></span> Cargando información…</p>
       <div class="fila-botones">
@@ -391,10 +403,17 @@
       <div class="tarjeta-socializacion" id="tarjetaSocializacionPreparacion">
         <h3 class="subtitulo-campo">🗣️ Aportes de preparación por institución</h3>
         <p class="ayuda">Lo que cada institución envió en la Sesión de preparación, para socializar
-          oralmente con el grupo y la comunidad asistente.</p>
+          oralmente con el grupo y la comunidad asistente. Si durante la socialización surgen cambios frente
+          a lo aquí escrito, estos podrán discutirse en la siguiente sesión.</p>
+        <p class="ayuda">💡 Al seleccionar una parte del texto de cualquier institución, queda copiada y
+          puede pegarse en cualquiera de las preguntas de "Construcción colectiva del grupo", más abajo.</p>
         <div id="listaSocializacionPreparacion"></div>
       </div>
 
+    </div>
+
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">Construcción colectiva del grupo</h2>
       <h3 class="subtitulo-campo">Reflexiones</h3>
       <p class="ayuda">Ideas centrales que dejó la socialización: qué aprendizajes, coincidencias o tensiones
         surgieron al escuchar a las instituciones del grupo.</p>
@@ -421,10 +440,7 @@
         <label for="campo_APORTE_PROPIO_S1_TEXTO">Descripción</label>
         <textarea id="campo_APORTE_PROPIO_S1_TEXTO" data-campo-sesion1="APORTE_PROPIO_S1_TEXTO"></textarea>
       </details>
-    </div>
 
-    <div class="tarjeta">
-      <h2 class="titulo-seccion">Construcción colectiva del grupo</h2>
       <h3 class="subtitulo-campo">Prioridades</h3>
       <p class="ayuda">Asuntos que el grupo considera más urgentes o importantes de atender.</p>
       <textarea id="campo_PRIORIDADES" data-campo-sesion1="PRIORIDADES"></textarea>
@@ -446,8 +462,10 @@
     </div>
     <div class="fila-botones">
       <button class="btn btn-secundario" data-ir="pantallaSeleccionIEPreparacion">Atrás</button>
-      <button class="btn btn-primario" data-ir="pantallaSesion2">Continuar a Sesión 2</button>
+      <button class="btn btn-primario" id="btnContinuarASesion2" data-ir="pantallaSesion2" disabled title="Envíe primero Sesión 1 de forma definitiva">Continuar a Sesión 2</button>
     </div>
+    <p class="ayuda oculto" id="avisoSesion1NoEnviada" style="text-align:center;">Envíe Sesión 1 de forma
+      definitiva (botón de arriba) para poder continuar a Sesión 2.</p>
   </section>
 
   <!-- 9. SESIÓN 2 — CONECTAEDUCA -->
@@ -539,16 +557,17 @@
   <section id="pantallaRevisionCierre" class="pantalla">
     <div class="tarjeta" id="tarjetaValoracion">
       <h2 class="titulo-seccion">💬 Valoración del Foro Educativo Comunal</h2>
-      <p class="ayuda">Antes de generar el informe, respondan estas 5 preguntas breves sobre la
-        actividad. Este espacio lo responde únicamente quien diligenció (o quienes diligenciaron, si son
+      <p class="ayuda">Antes de generar el informe, respondan estas 4 preguntas de satisfacción sobre la
+        manera en que se desarrolló el Foro y la comunicación entre pares (más una pregunta abierta
+        opcional). Este espacio lo responde únicamente quien diligenció (o quienes diligenciaron, si son
         más de una persona) el formulario.</p>
 
       <div id="valoracionYaEnviada" class="oculto"></div>
 
       <div id="valoracionFormulario">
         <div class="valoracion-pregunta" data-pregunta="p1">
-          <p>🏫 ¿El Foro Educativo Comunal permitió generar espacios de diálogo y reflexión sobre los
-            retos y oportunidades de la educación en nuestro territorio?</p>
+          <p>😊 ¿Qué tan satisfecho(a) está con la forma en que se organizó y desarrolló el Foro Educativo
+            Comunal (tiempos, metodología, moderación)?</p>
           <div class="valoracion-corazones" role="radiogroup" aria-label="Pregunta 1">
             <button type="button" class="corazon-valoracion" data-valor="1" aria-label="1 corazón">🤍</button>
             <button type="button" class="corazon-valoracion" data-valor="2" aria-label="2 corazones">🤍</button>
@@ -564,8 +583,8 @@
         </div>
 
         <div class="valoracion-pregunta" data-pregunta="p2">
-          <p>🤝 ¿Considera que el Foro Educativo Comunal permitió la participación activa de estudiantes,
-            docentes, familias y demás integrantes de la comunidad educativa del grupo?</p>
+          <p>🗣️ ¿Qué tan satisfecho(a) está con la comunicación y el diálogo entre las instituciones
+            educativas del grupo durante el Foro?</p>
           <div class="valoracion-corazones" role="radiogroup" aria-label="Pregunta 2">
             <button type="button" class="corazon-valoracion" data-valor="1" aria-label="1 corazón">🤍</button>
             <button type="button" class="corazon-valoracion" data-valor="2" aria-label="2 corazones">🤍</button>
@@ -581,8 +600,8 @@
         </div>
 
         <div class="valoracion-pregunta" data-pregunta="p3">
-          <p>💡 ¿Los temas abordados durante el Foro Educativo Comunal aportaron ideas o propuestas que
-            pueden contribuir al mejoramiento de nuestro territorio?</p>
+          <p>🤝 ¿Qué tan satisfecho(a) está con el ambiente de participación y escucha entre pares
+            (docentes, estudiantes, familias) durante el desarrollo del Foro?</p>
           <div class="valoracion-corazones" role="radiogroup" aria-label="Pregunta 3">
             <button type="button" class="corazon-valoracion" data-valor="1" aria-label="1 corazón">🤍</button>
             <button type="button" class="corazon-valoracion" data-valor="2" aria-label="2 corazones">🤍</button>
@@ -598,9 +617,7 @@
         </div>
 
         <div class="valoracion-pregunta" data-pregunta="p4">
-          <p>😊 ¿Qué tan satisfecho(a) se encuentra con el instrumento utilizado para recoger la
-            información y conocer la percepción de la comunidad educativa sobre el Foro Educativo
-            Comunal?</p>
+          <p>⭐ En general, ¿qué tan satisfecho(a) está con el desarrollo del Foro Educativo Comunal?</p>
           <div class="valoracion-corazones" role="radiogroup" aria-label="Pregunta 4">
             <button type="button" class="corazon-valoracion" data-valor="1" aria-label="1 corazón">🤍</button>
             <button type="button" class="corazon-valoracion" data-valor="2" aria-label="2 corazones">🤍</button>
@@ -636,6 +653,15 @@
       <h2 class="titulo-seccion">Revisión y cierre</h2>
       <p>Al generar el informe se crea el documento único del grupo, disponible para todas sus
         instituciones educativas.</p>
+
+      <h3 class="subtitulo-campo">Verifique que todos los participantes hayan firmado la asistencia</h3>
+      <p class="ayuda"><strong id="totalParticipantesCierre">0</strong> participantes registrados —
+        <strong id="totalFirmantesCierre">0</strong> han firmado.</p>
+      <div id="panelQRCierre" class="oculto">
+        <img id="imagenQRAsistenciaCierre" alt="Código QR de asistencia" style="max-width:200px;display:block;margin:10px auto;">
+        <p style="word-break:break-all;text-align:center;"><a id="enlaceAsistenciaQRCierre" href="#" target="_blank"></a></p>
+      </div>
+
       <p class="ayuda" id="avisoResponsablePrincipal"></p>
       <div id="mensajeCierre"></div>
       <div class="fila-botones">
@@ -651,6 +677,7 @@
       <h2>Informe generado</h2>
       <p>El informe del grupo ya está disponible. Todas las instituciones educativas del grupo pueden
         consultarlo con el mismo enlace.</p>
+      <p class="mensaje info">🔒 La asistencia se ha cerrado.</p>
       <a class="btn btn-primario enlace-informe" id="enlaceInformeGenerado" href="#" target="_blank">Descargar informe</a>
       <div id="mensajeEnvioInforme"></div>
       <div class="fila-botones">
@@ -660,22 +687,19 @@
         por correo al responsable del grupo.</p>
     </div>
 
-    <div class="tarjeta" id="tarjetaFotoGrupoFinal">
-      <h2 class="titulo-seccion">Fotografía general del grupo</h2>
-      <p class="ayuda">Es obligatoria para poder finalizar el Foro. Este es el último momento para subirla.</p>
-      <div id="previaFotoGrupoFinal"></div>
-      <div id="formularioFotoGrupoFinal">
-        <input type="file" id="campoFotoGrupoFinal" accept="image/*">
-        <div class="fila-botones">
-          <button class="btn btn-secundario" id="btnSubirFotoGrupoFinal">Subir fotografía del grupo</button>
-        </div>
+    <div class="tarjeta" id="tarjetaPasosFinales">
+      <h2 class="titulo-seccion">Para terminar, complete estos pasos</h2>
+      <ol class="lista-pasos-finales">
+        <li>Verifique que todos los participantes hayan firmado la asistencia (arriba, en el encabezado
+          permanente — botón "Ver listado de asistencia").</li>
+        <li>Descargue el informe (botón de arriba).</li>
+        <li>Envíe el informe al correo del responsable (botón de arriba — se habilita al descargarlo).</li>
+        <li>Dé clic en "Finalizar Foro Comunal Educativo 2026" (abajo).</li>
+      </ol>
+      <div id="mensajeFaltaFotoFinalizar"></div>
+      <div class="fila-botones">
+        <button class="btn btn-primario" id="btnFinalizarForo">Finalizar Foro Comunal Educativo 2026</button>
       </div>
-      <div id="mensajeFotoGrupoFinal"></div>
-    </div>
-
-    <div id="mensajeFaltaFotoFinalizar"></div>
-    <div class="fila-botones">
-      <button class="btn btn-primario" id="btnFinalizarForo">Continuar</button>
     </div>
   </section>
 
@@ -761,16 +785,80 @@
   </div>
 </div>
 
+<div id="overlayInvitadoGrupo" class="oculto overlay-invitado">
+  <div class="tarjeta">
+    <h2 class="titulo-seccion">Tu grupo</h2>
+    <p class="ayuda">Selecciona el grupo al que pertenece tu institución educativa.</p>
+    <label for="campoGrupoInvitado">Grupo</label>
+    <select id="campoGrupoInvitado"></select>
+    <div id="mensajeInvitadoGrupo"></div>
+    <div class="fila-botones">
+      <button class="btn btn-secundario" id="btnCerrarInvitadoGrupo">Cancelar</button>
+      <button class="btn btn-primario" id="btnContinuarInvitadoGrupo">Continuar</button>
+    </div>
+  </div>
+</div>
+
 <div id="overlayInvitadoIE" class="oculto overlay-invitado">
   <div class="tarjeta">
     <h2 class="titulo-seccion">Tu institución educativa</h2>
-    <p class="ayuda">Selecciona tu institución para continuar con la preparación.</p>
+    <p class="ayuda">Selecciona tu institución, dentro del <strong id="nombreGrupoInvitadoIE"></strong>, para
+      continuar con la preparación.</p>
     <label for="campoIEInvitado">Institución educativa</label>
     <select id="campoIEInvitado"></select>
     <div id="mensajeInvitadoIE"></div>
     <div class="fila-botones">
-      <button class="btn btn-secundario" id="btnCerrarInvitadoIE">Cancelar</button>
+      <button class="btn btn-secundario" id="btnCerrarInvitadoIE">Atrás</button>
       <button class="btn btn-primario" id="btnContinuarInvitadoIE">Continuar</button>
+    </div>
+  </div>
+</div>
+
+<div id="overlayInvitadoCaracterizacion" class="oculto overlay-invitado">
+  <div class="tarjeta">
+    <h2 class="titulo-seccion">Antes de empezar</h2>
+    <p class="ayuda">Estos datos <strong>no se muestran en ningún momento durante el Foro</strong> — solo
+      aparecerán, junto con tu nombre, al final del proceso en el informe consolidado del grupo.</p>
+    <label for="campoNombreInvitado">Nombre completo</label>
+    <input type="text" id="campoNombreInvitado">
+    <label for="campoEdadInvitado">Edad</label>
+    <input type="number" id="campoEdadInvitado" min="1" max="120">
+    <label for="campoSexoInvitado">Sexo</label>
+    <select id="campoSexoInvitado">
+      <option value="">Selecciona…</option>
+      <option value="Femenino">Femenino</option>
+      <option value="Masculino">Masculino</option>
+      <option value="Otro">Otro</option>
+    </select>
+
+    <div id="camposInvitadoEstudiante" class="oculto">
+      <label for="campoRolEstudianteInvitado">¿Eres estudiante actual o egresado(a)?</label>
+      <select id="campoRolEstudianteInvitado">
+        <option value="ESTUDIANTE">Estudiante actual</option>
+        <option value="GRADUADO">Graduado(a)</option>
+      </select>
+      <label for="campoAniosEstudiandoInvitado">Años estudiando en la institución (o que estudiaste, si eres graduado/a)</label>
+      <input type="number" id="campoAniosEstudiandoInvitado" min="0" max="30">
+    </div>
+
+    <div id="camposInvitadoAcudiente" class="oculto">
+      <label for="campoVinculoIEInvitado">Vínculo con la institución educativa</label>
+      <select id="campoVinculoIEInvitado">
+        <option value="Padre de estudiante">Padre de estudiante</option>
+        <option value="Madre de estudiante">Madre de estudiante</option>
+        <option value="Adulto responsable de un(a) estudiante">Adulto responsable de un(a) estudiante</option>
+      </select>
+      <label for="campoRolIEInvitado">Rol dentro de la institución educativa</label>
+      <select id="campoRolIEInvitado">
+        <option value="Acudiente">Acudiente</option>
+        <option value="Representante de uno de los comités institucionales">Representante de uno de los comités institucionales</option>
+      </select>
+    </div>
+
+    <div id="mensajeInvitadoCaracterizacion"></div>
+    <div class="fila-botones">
+      <button class="btn btn-secundario" id="btnCerrarInvitadoCaracterizacion">Atrás</button>
+      <button class="btn btn-primario" id="btnContinuarInvitadoCaracterizacion">Continuar</button>
     </div>
   </div>
 </div>
@@ -798,6 +886,9 @@
     <h2 class="titulo-seccion">¡Gracias por tu aporte!</h2>
     <p>Tus respuestas fueron enviadas y se usarán para la socialización de tu institución educativa.</p>
     <p class="ayuda">Espera a que se inicie la socialización para que puedas leer tus aportes a este foro.</p>
+    <p class="ayuda oculto" id="mensajeInvitadoFinalizadoCierre">Tu navegador no permite cerrar esta pestaña
+      automáticamente — es una restricción del navegador, no de esta aplicación. Ya puedes cerrarla
+      manualmente cuando quieras, o simplemente dejarla así.</p>
   </div>
 </div>
 

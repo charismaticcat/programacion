@@ -548,6 +548,66 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   `onError` de transporte) y muestra el mensaje de error real en `mensajePreparacionPendiente` cuando
   `ok === false`. `cargarPreparacionIE()` recibió la misma guarda para `rpcObtenerPreparacionIE`.
 
+## 4.18 Sexto lote: cambiar fotografía en caracterización, gifs reales adicionales, acceso invitado por grupo, caracterización de invitados + informe consolidado, gates de Sesión 2, valoración de 4 preguntas también pública, y rediseño de Revisión/Informe generado/última pantalla
+
+- **Confirmación de caracterización — cambiar/agregar fotografía**: nuevo botón "✏️ Cambiar fotografía" /
+  "📷 Agregar fotografía" (según haya o no una ya subida) con su propio formulario (`formularioFotoGrupoCaracterizacion`),
+  reutiliza `subirFotoGrupoDesde_` y `refrescarVistasFotoGrupo_` (`JS.html`).
+- **"Verifique la participación por institución" — solo en la confirmación, no antes**: se quitó la
+  comprobación de `btnContinuarAParticipacion` (Participación); queda únicamente en
+  `btnConfirmarCaracterizacion` (Confirmación de caracterización).
+- **6 gifs reales de Drive con texto de apoyo**, reemplazando/ampliando el overlay de carga del lote
+  anterior (`GIFS_CARGA_ACCION_`, `JS.html`; todos con permiso público "cualquiera con el enlace"):
+  acceso (tras el código), foto (subir/cambiar), aportes (enviar preparación IE/invitado), sesionDefinitiva
+  (enviar Sesión 1/2), valoracionAsistencia (valoración y listado de asistencia PDF), informe (generar
+  informe). El de responsable de envío sigue usando el sticker de Giphy del lote anterior.
+- **Acceso invitado — Grupo primero, IE después**: nuevo paso `overlayInvitadoGrupo` (spec: "no debe
+  aparecer IE en el listado... si no grupos 1 a 6") entre elegir tipo de invitado y elegir institución; la
+  IE se filtra por el grupo elegido.
+- **Caracterización de invitados + informe consolidado**: nuevo paso `overlayInvitadoCaracterizacion`
+  (nombre, edad, sexo y, según el perfil, rol/años estudiando o vínculo/rol en la IE) — nunca se muestra en
+  pantalla, solo al final en el informe del grupo (`guardarCaracterizacionInvitado`,
+  `obtenerCaracterizacionInvitadosGrupo_`, `Invitados.gs`; nueva sección "Informe consolidado de invitados"
+  en `Informes.gs` con conteos de estudiantes/graduados/adultos y la tabla nominal).
+- **Documentos de apoyo — solo en Preparación, no en Socialización**: se quitó el `abrirModal("modalRecursosSesion1")`
+  automático de `pantallaSesion1`; ahora se abre al entrar a `pantallaPreparacionIE`. En Sesión 1 queda
+  solo la sección "Archivos de apoyo para esta sesión" (sin ventana emergente).
+- **Aportes de preparación — aviso de cambios + instrucción de copiar/pegar**: el texto de
+  "🗣️ Aportes de preparación por institución" añade que los cambios surgidos en la socialización se
+  discuten en la siguiente sesión, y que seleccionar un fragmento de cualquier IE lo deja listo para pegar
+  en las preguntas de "Construcción colectiva del grupo".
+- **"Construcción colectiva del grupo" — título único de Reflexiones a Ruta de trabajo**: se fusionaron las
+  dos tarjetas de preguntas de Sesión 1 en una sola, con un único `<h2>` que cubre las 8 preguntas.
+- **Gates de Sesión 2**: "Continuar a Sesión 2" (`btnContinuarASesion2`) permanece deshabilitado hasta que
+  `rpcEstadoGrupo` confirme `sesion1Enviada`; el envío de Sesión 2 valida en cliente
+  (`camposSesion2Faltantes_`) los 4 campos que el servidor ya exigía (`CAMPOS_SESION2_OBLIGATORIOS_`,
+  `ConectaEduca.gs`), evitando un viaje al servidor solo para el mismo rechazo.
+- **Valoración — 4 preguntas de satisfacción sobre el desarrollo del Foro y la comunicación entre pares**:
+  se reescribió el enunciado de las 4 preguntas de corazones (antes copiadas de FEI 3.1); misma valoración,
+  anónima y por asistente, disponible ahora también en la página pública de asistencia QR
+  (`ValoracionAsistentesPublica`, `guardarValoracionAsistentePublica`, `Valoracion.gs`;
+  `rpcGuardarValoracionAsistentePublica`, `Code.gs`; formulario en `AsistenciaPublica.html`).
+- **Método de asistencia — bloqueo de QR a PDF**: una vez elegido QR ya no se puede cambiar a listado en
+  PDF (validado en cliente, `actualizarBloqueoMetodoAsistencia_`, y en servidor, `guardarMetodoAsistencia`,
+  `Asistencia.gs`); de PDF a QR sigue permitido en cualquier momento.
+- **Revisión y cierre — verificación de firmantes**: nueva sección "Verifique que todos los participantes
+  hayan firmado la asistencia" con conteos y, si el método es QR, el visor del código y el enlace de nuevo
+  (`cargarVerificacionFirmantesCierre_`, `JS.html`).
+- **Asistencia cerrada al generar el informe**: el encabezado permanente de firmantes (`panelFirmantes`)
+  pasa a mostrar "🔒 La asistencia se ha cerrado" y el botón cambia a "Ver listado de asistencia"
+  (`actualizarPanelFirmantesCerrado_`, disparado al generar el informe y restaurado con `rpcEstadoGrupo`
+  al reingresar); la página pública de asistencia ya mostraba este mismo mensaje cuando el estado es
+  `INFORME_GENERADO`.
+- **Fotografía — ya no se pide en "Informe generado", último punto de exigencia es "Generar informe"**: se
+  quitó la tarjeta de foto de `pantallaInformeGenerado`; el gate pasó a `generarInformeCompletoGrupo`
+  (`Grupos.gs`, nuevo `obtenerFotoGrupoId_`, `Asistencia.gs`) y a un aviso en cliente antes de la
+  confirmación de generar informe. La fotografía se incluye ahora dentro del documento del informe, junto
+  al listado de asistentes (`Informes.gs`).
+- **Última pantalla — 4 pasos y "Finalizar Foro Comunal Educativo 2026"**: `pantallaInformeGenerado`
+  reemplaza el botón genérico "Continuar" por una lista de 4 pasos (verificar asistentes, descargar
+  informe, enviarlo por correo, finalizar) y el botón "Finalizar Foro Comunal Educativo 2026"
+  (`btnFinalizarForo`), que se deshabilita tras el primer clic.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

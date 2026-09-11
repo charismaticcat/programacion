@@ -71,3 +71,33 @@ function guardarValoracionGrupo(idGrupo, tokenSesion, dispositivoId, respuestas)
     return { ok: true, notaPromedio: nota };
   }, 15000);
 }
+
+/**
+ * Valoración pública (sin código de acceso) — mismas 4 preguntas de
+ * satisfacción de arriba, pero diligenciada por cualquier asistente desde
+ * la página pública de asistencia QR (spec del usuario: "La valoración
+ * del foro debe aparecer en la asistencia del código QR con las mismas
+ * preguntas"). A diferencia de ValoracionComunal (una sola fila por
+ * grupo, la del responsable), aquí CADA asistente que la diligencia deja
+ * su propia fila — no hay upsert ni clave única, es anónima y opcional.
+ */
+var HOJA_VALORACION_ASISTENTES_PUBLICA_ = "ValoracionAsistentesPublica";
+
+function cabecerasValoracionAsistentesPublica_() {
+  return ["ID_GRUPO", "P1", "P2", "P3", "P4", "FECHA"];
+}
+
+function guardarValoracionAsistentePublica(idGrupo, respuestas) {
+  idGrupo = String(idGrupo || "").trim();
+  if (!idGrupo) return { ok: false, mensaje: "Falta el grupo." };
+  respuestas = respuestas || {};
+  var p1 = Number(respuestas.p1), p2 = Number(respuestas.p2), p3 = Number(respuestas.p3), p4 = Number(respuestas.p4);
+  if (!p1 || !p2 || !p3 || !p4 || p1 < 1 || p1 > 5 || p2 < 1 || p2 > 5 || p3 < 1 || p3 > 5 || p4 < 1 || p4 > 5) {
+    return { ok: false, mensaje: "Seleccione de 1 a 5 corazones en las cuatro preguntas antes de enviar." };
+  }
+  return conLock_(function () {
+    var hoja = obtenerHoja_(HOJA_VALORACION_ASISTENTES_PUBLICA_, cabecerasValoracionAsistentesPublica_());
+    hoja.appendRow([idGrupo, p1, p2, p3, p4, new Date()]);
+    return { ok: true };
+  }, 10000);
+}

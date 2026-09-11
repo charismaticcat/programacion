@@ -57,6 +57,14 @@ function guardarMetodoAsistencia(idGrupo, tokenSesion, dispositivoId, metodo) {
   var mapa = obtenerMapaCabeceras_(hoja);
   var fila = buscarFilaPorColumna_(hoja, mapa, "ID_GRUPO", idGrupo);
   if (fila === -1) return { ok: false, mensaje: "No existe acceso para este grupo." };
+  // Una vez elegido QR, ya no se puede cambiar a listado en PDF (spec del
+  // usuario); si tienen PDF, sí pueden pasarse a QR cuando quieran —
+  // validado también aquí, no solo en el cliente (JS.html
+  // actualizarBloqueoMetodoAsistencia_).
+  var metodoActual = String(hoja.getRange(fila, mapa["METODO_ASISTENCIA"]).getValue() || "").toUpperCase();
+  if (metodoActual === "QR" && metodo === "LISTADO") {
+    return { ok: false, mensaje: "Este grupo ya eligió QR/enlace: no es posible cambiar a listado en PDF." };
+  }
   hoja.getRange(fila, mapa["METODO_ASISTENCIA"]).setValue(metodo);
   return { ok: true };
 }
@@ -143,6 +151,15 @@ function subirFotoGrupo(idGrupo, tokenSesion, dispositivoId, datosBase64, nombre
     if (fila !== -1) hoja.getRange(fila, mapa["FOTO_GRUPO_ID"]).setValue(file.getId());
     return { ok: true, fileId: file.getId(), url: file.getUrl() };
   }, 30000);
+}
+
+/** ID de Drive de la fotografía general del grupo, o "" si todavía no se subió — usado por Informes.gs para incluirla en el informe. */
+function obtenerFotoGrupoId_(idGrupo) {
+  var hoja = obtenerHoja_(HOJA_ACCESOS_GRUPO_, cabecerasAccesosGrupo_());
+  var mapa = obtenerMapaCabeceras_(hoja);
+  var fila = buscarFilaPorColumna_(hoja, mapa, "ID_GRUPO", String(idGrupo || "").trim());
+  if (fila === -1) return "";
+  return String(hoja.getRange(fila, mapa["FOTO_GRUPO_ID"]).getValue() || "").trim();
 }
 
 /**

@@ -46,6 +46,12 @@ function cabecerasInvitadosPreparacion_() {
 function cabecerasAportesInvitadosPreparacion_() {
   return [
     "TOKEN_INVITADO", "ID_GRUPO", "ID_IE", "TIPO_INVITADO",
+    // Caracterización (spec del usuario) — nunca se muestra en pantalla
+    // durante el Foro, solo se usa para el informe consolidado final
+    // (ver obtenerCaracterizacionInvitadosGrupo_ e Informes.gs).
+    // ROL_ESTUDIANTE/ANIOS_ESTUDIANDO son propios del perfil estudiante;
+    // VINCULO_IE/ROL_IE_ACUDIENTE, del perfil adulto responsable.
+    "NOMBRE", "EDAD", "SEXO", "ROL_ESTUDIANTE", "ANIOS_ESTUDIANDO", "VINCULO_IE", "ROL_IE_ACUDIENTE",
     "P1", "P2", "P3", "P4", "P5", "P6",
     "ENVIADO", "FECHA_ENVIO", "ULTIMA_ACTUALIZACION"
   ];
@@ -178,6 +184,47 @@ function sesionInvitadoValida_(tokenInvitado, idIE, dispositivoId) {
   if (String(obj.ID_IE || "").trim() !== String(idIE || "").trim()) return null;
   if (String(obj.DISPOSITIVO_ID || "").trim() !== String(dispositivoId || "").trim()) return null;
   return obj;
+}
+
+/**
+ * Guarda los datos de caracterización de un invitado (nombre, edad, sexo
+ * y, según el perfil, rol de estudiante/años estudiando o vínculo/rol
+ * dentro de la IE) — en SU PROPIA fila de AportesInvitadosPreparacion
+ * (misma clave TOKEN_INVITADO que sus respuestas P1-P6, puede crearse
+ * antes de que existan). Estos datos NUNCA se muestran en pantalla
+ * durante el Foro (spec del usuario) — solo se usan al final, en el
+ * informe consolidado del grupo (ver obtenerCaracterizacionInvitadosGrupo_).
+ */
+function guardarCaracterizacionInvitado(tokenInvitado, idIE, dispositivoId, datos) {
+  var sesion = sesionInvitadoValida_(tokenInvitado, idIE, dispositivoId);
+  if (!sesion) return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión de invitado ya no es válida." };
+
+  datos = datos || {};
+  var nombre = String(datos.nombre || "").trim();
+  if (!nombre) return { ok: false, mensaje: "Ingresa tu nombre completo." };
+
+  var tipoInvitado = String(sesion.TIPO_INVITADO || "").toUpperCase();
+  var campos = {
+    ID_GRUPO: sesion.ID_GRUPO,
+    ID_IE: idIE,
+    TIPO_INVITADO: tipoInvitado,
+    NOMBRE: nombre,
+    EDAD: String(datos.edad || "").trim(),
+    SEXO: String(datos.sexo || "").trim(),
+    ULTIMA_ACTUALIZACION: new Date()
+  };
+  if (tipoInvitado === "ESTUDIANTE") {
+    campos.ROL_ESTUDIANTE = String(datos.rolEstudiante || "").trim();
+    campos.ANIOS_ESTUDIANDO = String(datos.aniosEstudiando || "").trim();
+  } else {
+    campos.VINCULO_IE = String(datos.vinculoIE || "").trim();
+    campos.ROL_IE_ACUDIENTE = String(datos.rolIEAcudiente || "").trim();
+  }
+
+  return conLock_(function () {
+    upsertFila_(HOJA_APORTES_INVITADOS_, cabecerasAportesInvitadosPreparacion_(), "TOKEN_INVITADO", String(tokenInvitado || "").trim(), campos);
+    return { ok: true };
+  }, 10000);
 }
 
 /**
@@ -315,4 +362,55 @@ function obtenerAportesInvitadosGrupo(idGrupo) {
       });
       return { idIE: ie.idIE, institucion: ie.institucion, aportes: aportes };
     });
+}
+
+/**
+ * Caracterización de todos los invitados (estudiantes/egresados y
+ * adultos responsables) que ya enviaron sus aportes en el grupo — SOLO
+ * para el informe consolidado final (Informes.gs), spec del usuario:
+ * "los nombres de los estudiantes y padres de familia aparecerán
+ * únicamente al final del foro en un informe consolidado". En ningún
+ * otro lugar de la aplicación se muestra el nombre de un invitado.
+ */
+function obtenerCaracterizacionInvitadosGrupo_(idGrupo) {
+  idGrupo = String(idGrupo || "").trim();
+  var hoja = obtenerHoja_(HOJA_APORTES_INVITADOS_, cabecerasAportesInvitadosPreparacion_());
+  var filas = leerFilasComoObjetos_(hoja);
+  var institucionesPorId = {};
+  obtenerInstitucionesDelGrupo(idGrupo).forEach(function (ie) { institucionesPorId[ie.idIE] = ie.institucion; });
+
+  var personas = [];
+  var totalEstudiantes = 0;
+  var totalGraduados = 0;
+  var totalAdultos = 0;
+  filas.forEach(function (f) {
+    if (String(f.ID_GRUPO || "").trim() !== idGrupo) return;
+    if (String(f.ENVIADO || "") !== "SI") return;
+    var tipo = String(f.TIPO_INVITADO || "").toUpperCase();
+    var persona = {
+      nombre: String(f.NOMBRE || "").trim() || "(sin nombre registrado)",
+      institucion: institucionesPorId[String(f.ID_IE || "").trim()] || "",
+      edad: String(f.EDAD || "").trim(),
+      sexo: String(f.SEXO || "").trim(),
+      tipoInvitado: tipo
+    };
+    if (tipo === "ESTUDIANTE") {
+      var rolEstudiante = String(f.ROL_ESTUDIANTE || "").toUpperCase();
+      persona.rol = rolEstudiante === "GRADUADO" ? "Graduado(a)" : "Estudiante";
+      persona.aniosEstudiando = String(f.ANIOS_ESTUDIANDO || "").trim();
+      if (rolEstudiante === "GRADUADO") totalGraduados++; else totalEstudiantes++;
+    } else {
+      persona.vinculoIE = String(f.VINCULO_IE || "").trim();
+      persona.rolIE = String(f.ROL_IE_ACUDIENTE || "").trim();
+      totalAdultos++;
+    }
+    personas.push(persona);
+  });
+
+  return {
+    personas: personas,
+    totalEstudiantes: totalEstudiantes,
+    totalGraduados: totalGraduados,
+    totalAdultos: totalAdultos
+  };
 }

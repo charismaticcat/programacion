@@ -51,6 +51,64 @@
       <p class="ayuda">👥 <span class="contador"><span id="contadorFirmantes">0</span> personas han firmado</span></p>
     </div>
 
+    <div class="tarjeta" id="tarjetaValoracionPublica">
+      <h2 class="titulo-seccion">💬 Valoración del Foro Educativo Comunal</h2>
+      <p class="ayuda">4 preguntas breves de satisfacción sobre la manera en que se desarrolló el Foro y la
+        comunicación entre pares — opcional, para cualquier persona que haya asistido.</p>
+      <div id="valoracionPublicaYaEnviada" class="oculto">
+        <div class="mensaje exito">✅ ¡Gracias! Tu valoración fue enviada.</div>
+      </div>
+      <div id="valoracionPublicaFormulario">
+        <div class="valoracion-pregunta" data-pregunta-pub="p1">
+          <p>😊 ¿Qué tan satisfecho(a) está con la forma en que se organizó y desarrolló el Foro Educativo
+            Comunal (tiempos, metodología, moderación)?</p>
+          <div class="valoracion-corazones" role="radiogroup" aria-label="Pregunta 1">
+            <button type="button" class="corazon-valoracion" data-valor="1" aria-label="1 corazón">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="2" aria-label="2 corazones">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="3" aria-label="3 corazones">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="4" aria-label="4 corazones">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="5" aria-label="5 corazones">🤍</button>
+          </div>
+        </div>
+        <div class="valoracion-pregunta" data-pregunta-pub="p2">
+          <p>🗣️ ¿Qué tan satisfecho(a) está con la comunicación y el diálogo entre las instituciones
+            educativas del grupo durante el Foro?</p>
+          <div class="valoracion-corazones" role="radiogroup" aria-label="Pregunta 2">
+            <button type="button" class="corazon-valoracion" data-valor="1" aria-label="1 corazón">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="2" aria-label="2 corazones">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="3" aria-label="3 corazones">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="4" aria-label="4 corazones">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="5" aria-label="5 corazones">🤍</button>
+          </div>
+        </div>
+        <div class="valoracion-pregunta" data-pregunta-pub="p3">
+          <p>🤝 ¿Qué tan satisfecho(a) está con el ambiente de participación y escucha entre pares
+            (docentes, estudiantes, familias) durante el desarrollo del Foro?</p>
+          <div class="valoracion-corazones" role="radiogroup" aria-label="Pregunta 3">
+            <button type="button" class="corazon-valoracion" data-valor="1" aria-label="1 corazón">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="2" aria-label="2 corazones">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="3" aria-label="3 corazones">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="4" aria-label="4 corazones">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="5" aria-label="5 corazones">🤍</button>
+          </div>
+        </div>
+        <div class="valoracion-pregunta" data-pregunta-pub="p4">
+          <p>⭐ En general, ¿qué tan satisfecho(a) está con el desarrollo del Foro Educativo Comunal?</p>
+          <div class="valoracion-corazones" role="radiogroup" aria-label="Pregunta 4">
+            <button type="button" class="corazon-valoracion" data-valor="1" aria-label="1 corazón">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="2" aria-label="2 corazones">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="3" aria-label="3 corazones">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="4" aria-label="4 corazones">🤍</button>
+            <button type="button" class="corazon-valoracion" data-valor="5" aria-label="5 corazones">🤍</button>
+          </div>
+        </div>
+        <div id="mensajeValoracionPublica"></div>
+        <div class="fila-botones">
+          <button type="button" class="btn btn-primario" id="btnEnviarValoracionPublica">Enviar valoración</button>
+        </div>
+      </div>
+    </div>
+
     <? if (ASISTENCIA_CERRADA) { ?>
       <div class="tarjeta">
         <div class="mensaje info">🔒 La firma de asistencia de este grupo ya se cerró: el informe del grupo ya
@@ -248,6 +306,51 @@
         .rpcRegistrarAsistenciaPublica(ID_GRUPO, idIE, nombre, estamento, correo);
     });
   }
+
+  /* ---- Valoración pública del Foro — mismas 4 preguntas de satisfacción de la app principal ---- */
+  (function () {
+    var puntajes = {};
+    document.querySelectorAll(".valoracion-pregunta[data-pregunta-pub]").forEach(function (bloque) {
+      var pregunta = bloque.dataset.preguntaPub;
+      var corazones = Array.prototype.slice.call(bloque.querySelectorAll(".corazon-valoracion"));
+      corazones.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var valor = Number(this.dataset.valor);
+          puntajes[pregunta] = valor;
+          corazones.forEach(function (b) {
+            b.textContent = Number(b.dataset.valor) <= valor ? "❤️" : "🤍";
+          });
+        });
+      });
+    });
+
+    var btnEnviar = document.getElementById("btnEnviarValoracionPublica");
+    if (!btnEnviar) return;
+    btnEnviar.addEventListener("click", function () {
+      var mensaje = document.getElementById("mensajeValoracionPublica");
+      if (!puntajes.p1 || !puntajes.p2 || !puntajes.p3 || !puntajes.p4) {
+        mensaje.innerHTML = "<div class='mensaje error'>Seleccione de 1 a 5 corazones en las cuatro preguntas antes de enviar.</div>";
+        return;
+      }
+      mensaje.innerHTML = "";
+      btnEnviar.disabled = true;
+      google.script.run
+        .withSuccessHandler(function (r) {
+          btnEnviar.disabled = false;
+          if (!r.ok) {
+            mensaje.innerHTML = "<div class='mensaje error'>" + escapeHtml(r.mensaje || "No fue posible enviar la valoración.") + "</div>";
+            return;
+          }
+          document.getElementById("valoracionPublicaFormulario").classList.add("oculto");
+          document.getElementById("valoracionPublicaYaEnviada").classList.remove("oculto");
+        })
+        .withFailureHandler(function () {
+          btnEnviar.disabled = false;
+          mensaje.innerHTML = "<div class='mensaje error'>Ocurrió un error de comunicación. Intenta de nuevo.</div>";
+        })
+        .rpcGuardarValoracionAsistentePublica(ID_GRUPO, puntajes);
+    });
+  })();
 </script>
 </body>
 </html>

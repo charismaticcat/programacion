@@ -92,6 +92,16 @@ function generarInformeCompletoGrupo(idGrupo, tokenSesion, dispositivoId) {
         mensaje: "Debe completar la valoración del Foro antes de generar el informe."
       };
     }
+    // La fotografía ya no se pide en la pantalla de "Informe generado"
+    // (spec del usuario) — este es ahora el último punto donde se exige,
+    // antes de generar el documento (que la incluye, ver Informes.gs).
+    if (!obtenerFotoGrupoId_(idGrupo)) {
+      return {
+        ok: false,
+        codigo: "FOTO_REQUERIDA",
+        mensaje: "Debe subir la fotografía general del grupo antes de generar el informe."
+      };
+    }
     var resultado = generarInformeGrupo(idGrupo);
     if (!resultado.ok) return resultado;
 

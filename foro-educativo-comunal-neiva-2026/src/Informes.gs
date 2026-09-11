@@ -250,6 +250,21 @@ function generarInformeGrupo(idGrupo) {
     tablaSimple_(body, filasFirmantes);
   }
 
+  // Fotografía general del grupo — ya no se muestra en la pantalla de
+  // "Informe generado" de la app (spec del usuario), queda únicamente
+  // aquí, junto con el listado de asistentes.
+  var fotoGrupoId = obtenerFotoGrupoId_(idGrupo);
+  if (fotoGrupoId) {
+    subtitulo_(body, "Fotografía general del grupo");
+    try {
+      var pFoto = body.appendParagraph("");
+      pFoto.appendInlineImage(DriveApp.getFileById(fotoGrupoId).getBlob()).setWidth(400).setHeight(300);
+      pFoto.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    } catch (e) {
+      Logger.log("No se pudo insertar la fotografía general del grupo: " + e.message);
+    }
+  }
+
   // Matriz de participación por estamento e IE (equivalente a la hoja
   // Participacion de 3.1, calculada en vivo — ver Data.gs).
   if (matrizParticipacion.estamentos.length && matrizParticipacion.instituciones.length) {
@@ -352,6 +367,33 @@ function generarInformeGrupo(idGrupo) {
   if (String(sesion1.APORTE_PROPIO_S2_TITULO || "").trim() || String(sesion1.APORTE_PROPIO_S2_TEXTO || "").trim()) {
     subtitulo_(body, sesion1.APORTE_PROPIO_S2_TITULO || "Aporte propio del grupo");
     parrafo_(body, sesion1.APORTE_PROPIO_S2_TEXTO);
+  }
+
+  // Caracterización de invitados (estudiantes/egresados y adultos
+  // responsables) — SOLO aparece aquí, en el informe consolidado final
+  // (spec del usuario: "los nombres... aparecerán únicamente al final
+  // del foro en un informe consolidado"); en ningún otro momento del
+  // Foro se muestra el nombre de un invitado.
+  var caracterizacionInvitados = obtenerCaracterizacionInvitadosGrupo_(idGrupo);
+  titulo1_(body, "Informe consolidado de invitados (estudiantes y adultos responsables)");
+  parrafo_(
+    body,
+    "Estudiantes actuales que diligenciaron aportes: " + caracterizacionInvitados.totalEstudiantes +
+      ". Graduados(as) que diligenciaron aportes: " + caracterizacionInvitados.totalGraduados +
+      ". Adultos responsables que diligenciaron aportes: " + caracterizacionInvitados.totalAdultos + "."
+  );
+  if (caracterizacionInvitados.personas.length) {
+    var filasInvitados = [["Nombre", "Institución", "Rol / vínculo", "Edad", "Sexo"]].concat(
+      caracterizacionInvitados.personas.map(function (p) {
+        var rolTexto = p.tipoInvitado === "ESTUDIANTE"
+          ? p.rol + (p.aniosEstudiando ? " (" + p.aniosEstudiando + " años en la IE)" : "")
+          : [p.vinculoIE, p.rolIE].filter(Boolean).join(" — ");
+        return [p.nombre, p.institucion || "—", rolTexto || "—", p.edad || "—", p.sexo || "—"];
+      })
+    );
+    tablaSimple_(body, filasInvitados);
+  } else {
+    parrafo_(body, "Ningún estudiante, egresado(a) o adulto responsable invitado diligenció aportes en este grupo.");
   }
 
   // Insumos para el FEM 2026.

@@ -106,6 +106,14 @@ function cambiarPantalla(idPantalla) {
     cargarSesion1();
     cargarRecursosSesion1();
     cargarSocializacionPreparacion();
+    // "Continuar a Sesión 2" no se habilita hasta que Sesión 1 se envió
+    // de forma definitiva (spec del usuario) — se refresca cada vez que
+    // se entra a esta pantalla, no solo tras hacer clic en Enviar, para
+    // que también quede correcto al retomar desde otro dispositivo/día.
+    llamarServidor("rpcEstadoGrupo", [estado.idGrupo], function (estadoGrupo) {
+      estado.sesion1Enviada = !!(estadoGrupo && estadoGrupo.sesion1Enviada);
+      actualizarGateSesion2_();
+    }, function () {});
   }
   if (idPantalla === "pantallaSesion2") {
     cargarConectaEduca();
@@ -113,7 +121,6 @@ function cambiarPantalla(idPantalla) {
   }
   if (idPantalla === "pantallaRevisionCierre") prepararCierre();
   if (idPantalla === "pantallaInformeGenerado") {
-    renderFotoGrupo(estado.fotoGrupoId, "previaFotoGrupoFinal", "formularioFotoGrupoFinal", estado.grupo);
     mostrarMensaje("mensajeFaltaFotoFinalizar", "");
   }
 }
@@ -244,23 +251,36 @@ function iniciarSplashInicial() {
 iniciarSplashInicial();
 
 /* ------------------------------------------------------------------ *
- * Overlay de carga con imagen propia — 3 momentos concretos (spec del
- * usuario, verbatim): 1) al ingresar, justo después del código de
- * acceso; 2) al subir la foto del grupo, en cualquiera de los dos
- * momentos disponibles (Participación / Informe generado); 3) al
- * guardar el responsable de envío. Para (1) y (2) no fue posible
- * recuperar como archivo los dos gifs que el usuario adjuntó en el
- * chat (un entorno de código no tiene acceso a imágenes pegadas en la
- * conversación, solo a archivos/enlaces reales) — se usa en su lugar
- * una animación propia con emoji + barra de progreso indeterminada,
- * mismo overlay y estilo; si el usuario comparte un enlace de Drive
- * para esos dos gifs se pueden sustituir por la imagen real. Para (3)
- * sí se usa la imagen real: el sticker de Giphy "Cargando Sticker by
- * dipielbella" (con reserva automática al spinner si no llega a
- * cargar en el navegador de quien usa la app).
+ * Overlay de carga con imagen propia — un gif real (compartido por el
+ * usuario vía Drive, todos con permiso público) por cada momento
+ * concreto, siempre acompañado de un texto de apoyo:
+ *   - acceso: justo después de validar el código, antes de entrar al Foro.
+ *   - foto: al subir o cambiar la fotografía del grupo.
+ *   - aportes: al enviar los aportes de Preparación (IE o invitado).
+ *   - sesionDefinitiva: al enviar Sesión 1 o Sesión 2 de forma definitiva.
+ *   - valoracionAsistencia: al enviar la valoración del Foro o al firmar
+ *     la asistencia.
+ *   - informe: al generar el informe del grupo.
+ *   - responsable: al guardar el responsable de envío — sticker de Giphy
+ *     "Cargando Sticker by dipielbella" (no es un gif de Drive del
+ *     usuario, se mantiene del lote anterior).
+ * Si el gif no llega a cargar en el navegador de quien usa la app
+ * (img.onerror), el overlay cae de vuelta al spinner genérico.
  * ------------------------------------------------------------------ */
 var URL_STICKER_CARGANDO_RESPONSABLE_ = "https://media.giphy.com/media/SYIu9YMtvUc6tBzDH6/giphy.gif";
-var EMOJI_CARGA_ACCION_ = { acceso: "🏃", foto: "📷" };
+var GIFS_CARGA_ACCION_ = {
+  acceso: { id: "1d8VJxXlucpBkjX_zjlamQJ6lydzoUcvy", texto: "Ingresando al Foro…" },
+  foto: { id: "1Ez9V-24Nrz59uswcRgTlylCwFDZZqYNz", texto: "Subiendo fotografía…" },
+  aportes: { id: "1c-EvVqMPDnXvUdL6plhkinJPM1DN2icV", texto: "Enviando aportes…" },
+  sesionDefinitiva: { id: "1fdXRNvlMXsn4ZDtFFaJhERnk1QR7F11E", texto: "Enviando de forma definitiva…" },
+  valoracionAsistencia: { id: "1XQ72aSWv3pMwETcbMGC8_lP1-IbdT2Fp", texto: "Enviando…" },
+  informe: { id: "1mUCyCuFQQfjOFyOifKCibso0soTtqjuT", texto: "Generando el informe…" }
+};
+
+/** URL de descarga directa (no la miniatura de urlImagenDrive) — necesaria para que un gif se vea animado, no una sola imagen fija. */
+function urlGifDrive_(idArchivo) {
+  return "https://drive.google.com/uc?export=view&id=" + encodeURIComponent(idArchivo);
+}
 
 function mostrarCargaAccion_(tipo, texto) {
   var overlay = document.getElementById("overlayCargaAccion");
@@ -268,18 +288,23 @@ function mostrarCargaAccion_(tipo, texto) {
   var img = document.getElementById("imagenCargaAccion");
   var emoji = document.getElementById("emojiCargaAccion");
   overlay.classList.remove("con-imagen-caida");
+  img.onerror = function () { overlay.classList.add("con-imagen-caida"); };
 
+  var gif = GIFS_CARGA_ACCION_[tipo];
   if (tipo === "responsable") {
-    img.onerror = function () { overlay.classList.add("con-imagen-caida"); };
     img.src = URL_STICKER_CARGANDO_RESPONSABLE_;
+    img.classList.remove("oculto");
+    emoji.classList.add("oculto");
+  } else if (gif) {
+    img.src = urlGifDrive_(gif.id);
     img.classList.remove("oculto");
     emoji.classList.add("oculto");
   } else {
     img.classList.add("oculto");
-    emoji.textContent = EMOJI_CARGA_ACCION_[tipo] || "⏳";
-    emoji.className = "emoji-carga-accion" + (tipo === "acceso" ? " emoji-corriendo" : tipo === "foto" ? " emoji-camara" : "");
+    emoji.textContent = "⏳";
+    emoji.className = "emoji-carga-accion";
   }
-  document.getElementById("textoCargaAccion").textContent = texto || "Cargando…";
+  document.getElementById("textoCargaAccion").textContent = texto || (gif && gif.texto) || "Cargando…";
   overlay.classList.remove("oculto");
 }
 function ocultarCargaAccion_() {
@@ -376,15 +401,16 @@ function inicializarContadoresPalabras() {
 inicializarContadoresPalabras();
 
 /* ------------------------------------------------------------------ *
- * Recursos descargables antes de Sesión 1
+ * Recursos descargables (Informe Ejecutivo, etc.) — la ventana emergente
+ * con estos archivos solo aparece automáticamente en Preparación (para
+ * la IE, ver cargarPreparacionIE), nunca en Socialización/Sesión 1 (spec
+ * del usuario). En Sesión 1 se deja únicamente la sección en pantalla
+ * "📎 Archivos de apoyo para esta sesión" (listaRecursosSesion1Botones),
+ * sin ventana emergente.
  * ------------------------------------------------------------------ */
 function cargarRecursosSesion1() {
   llamarServidor("rpcObtenerRecursosSesion1", [estado.idGrupo], function (recursos) {
     renderRecursosSesion1(recursos || []);
-    if (!estado.recursosSesion1Mostrado) {
-      estado.recursosSesion1Mostrado = true;
-      abrirModal("modalRecursosSesion1");
-    }
   });
 }
 
@@ -441,6 +467,10 @@ function intentarValidarAcceso(forzar) {
     iniciarHeartbeat();
     iniciarPollingFirmantes();
     cargarRolesForo();
+    llamarServidor("rpcEstadoGrupo", [estado.idGrupo], function (estadoGrupo) {
+      estado.asistenciaCerrada = !!(estadoGrupo && estadoGrupo.informeGenerado);
+      actualizarPanelFirmantesCerrado_();
+    }, function () {});
 
     // El "recorrido" de logos de las IE del grupo va justo después de
     // validar el código de acceso (spec), no antes — en ese punto ya se
@@ -479,6 +509,8 @@ document.getElementById("btnForzarSesion").addEventListener("click", function ()
  * ------------------------------------------------------------------ */
 var estadoInvitado = {
   tipoInvitado: "",
+  grupoSeleccionado: "",
+  institucionesDelGrupoSeleccionado: [],
   tokenInvitado: "",
   idIE: "",
   institucion: "",
@@ -492,26 +524,62 @@ document.getElementById("btnSoyInvitado").addEventListener("click", function () 
 document.getElementById("btnCerrarInvitadoTipo").addEventListener("click", function () {
   document.getElementById("overlayInvitadoTipo").classList.add("oculto");
 });
+document.getElementById("btnCerrarInvitadoGrupo").addEventListener("click", function () {
+  document.getElementById("overlayInvitadoGrupo").classList.add("oculto");
+});
 document.getElementById("btnCerrarInvitadoIE").addEventListener("click", function () {
   document.getElementById("overlayInvitadoIE").classList.add("oculto");
+  document.getElementById("overlayInvitadoGrupo").classList.remove("oculto");
 });
 
+// Paso 1 tras elegir el tipo de invitado: elegir el GRUPO (1 a 6), no la
+// institución directamente (spec del usuario: "no debe aparecer IE en el
+// listado de IE para invitados, si no grupos 1 a 6") — la institución se
+// elige en un segundo paso, ya acotada a ese grupo.
 document.querySelectorAll("[data-invitado-tipo]").forEach(function (boton) {
   boton.addEventListener("click", function () {
     estadoInvitado.tipoInvitado = boton.getAttribute("data-invitado-tipo");
     document.getElementById("overlayInvitadoTipo").classList.add("oculto");
-    document.getElementById("overlayInvitadoIE").classList.remove("oculto");
+    document.getElementById("overlayInvitadoGrupo").classList.remove("oculto");
     llamarServidor("rpcTodasLasInstituciones", [], function (instituciones) {
-      var select = document.getElementById("campoIEInvitado");
-      select.innerHTML = "";
+      estadoInvitado.todasLasInstituciones_ = instituciones || [];
+      var grupos = [];
       (instituciones || []).forEach(function (ie) {
+        if (ie.grupo && grupos.indexOf(ie.grupo) === -1) grupos.push(ie.grupo);
+      });
+      grupos.sort();
+      var select = document.getElementById("campoGrupoInvitado");
+      select.innerHTML = "";
+      grupos.forEach(function (grupo) {
         var opcion = document.createElement("option");
-        opcion.value = ie.idIE;
-        opcion.textContent = ie.institucion + (ie.grupo ? " — " + ie.grupo : "");
+        opcion.value = grupo;
+        opcion.textContent = grupo;
         select.appendChild(opcion);
       });
     });
   });
+});
+
+document.getElementById("btnContinuarInvitadoGrupo").addEventListener("click", function () {
+  var grupo = document.getElementById("campoGrupoInvitado").value;
+  if (!grupo) {
+    mostrarMensaje("mensajeInvitadoGrupo", "Selecciona tu grupo.", "error");
+    return;
+  }
+  estadoInvitado.grupoSeleccionado = grupo;
+  estadoInvitado.institucionesDelGrupoSeleccionado = (estadoInvitado.todasLasInstituciones_ || [])
+    .filter(function (ie) { return ie.grupo === grupo; });
+  document.getElementById("nombreGrupoInvitadoIE").textContent = grupo;
+  var select = document.getElementById("campoIEInvitado");
+  select.innerHTML = "";
+  estadoInvitado.institucionesDelGrupoSeleccionado.forEach(function (ie) {
+    var opcion = document.createElement("option");
+    opcion.value = ie.idIE;
+    opcion.textContent = ie.institucion;
+    select.appendChild(opcion);
+  });
+  document.getElementById("overlayInvitadoGrupo").classList.add("oculto");
+  document.getElementById("overlayInvitadoIE").classList.remove("oculto");
 });
 
 document.getElementById("btnContinuarInvitadoIE").addEventListener("click", function () {
@@ -531,8 +599,70 @@ document.getElementById("btnContinuarInvitadoIE").addEventListener("click", func
     estadoInvitado.idGrupo = r.idGrupo;
     estadoInvitado.grupo = r.grupo;
     document.getElementById("overlayInvitadoIE").classList.add("oculto");
-    abrirPreparacionInvitado_();
+    abrirCaracterizacionInvitado_();
   });
+});
+
+/**
+ * Antes de responder las preguntas, cada invitado (estudiante/egresado o
+ * adulto responsable) diligencia unos datos de caracterización — spec del
+ * usuario: nombre, IE (ya elegida), edad, sexo, rol y (para estudiantes)
+ * años estudiando en la IE; o (para adultos) vínculo y rol dentro de la
+ * IE. Nunca se muestran en pantalla, solo quedan disponibles al final en
+ * el informe consolidado del grupo (Informes.gs).
+ */
+function abrirCaracterizacionInvitado_() {
+  document.getElementById("campoNombreInvitado").value = "";
+  document.getElementById("campoEdadInvitado").value = "";
+  document.getElementById("campoSexoInvitado").selectedIndex = 0;
+  document.getElementById("campoRolEstudianteInvitado").selectedIndex = 0;
+  document.getElementById("campoAniosEstudiandoInvitado").value = "";
+  document.getElementById("campoVinculoIEInvitado").selectedIndex = 0;
+  document.getElementById("campoRolIEInvitado").selectedIndex = 0;
+  var esEstudiante = estadoInvitado.tipoInvitado === "ESTUDIANTE";
+  document.getElementById("camposInvitadoEstudiante").classList.toggle("oculto", !esEstudiante);
+  document.getElementById("camposInvitadoAcudiente").classList.toggle("oculto", esEstudiante);
+  mostrarMensaje("mensajeInvitadoCaracterizacion", "");
+  document.getElementById("overlayInvitadoCaracterizacion").classList.remove("oculto");
+}
+document.getElementById("btnCerrarInvitadoCaracterizacion").addEventListener("click", function () {
+  document.getElementById("overlayInvitadoCaracterizacion").classList.add("oculto");
+  document.getElementById("overlayInvitadoIE").classList.remove("oculto");
+});
+document.getElementById("btnContinuarInvitadoCaracterizacion").addEventListener("click", function () {
+  var nombre = document.getElementById("campoNombreInvitado").value.trim();
+  if (!nombre) {
+    mostrarMensaje("mensajeInvitadoCaracterizacion", "Ingresa tu nombre completo.", "error");
+    return;
+  }
+  var datos = {
+    nombre: nombre,
+    edad: document.getElementById("campoEdadInvitado").value,
+    sexo: document.getElementById("campoSexoInvitado").value
+  };
+  if (estadoInvitado.tipoInvitado === "ESTUDIANTE") {
+    datos.rolEstudiante = document.getElementById("campoRolEstudianteInvitado").value;
+    datos.aniosEstudiando = document.getElementById("campoAniosEstudiandoInvitado").value;
+  } else {
+    datos.vinculoIE = document.getElementById("campoVinculoIEInvitado").value;
+    datos.rolIEAcudiente = document.getElementById("campoRolIEInvitado").value;
+  }
+  llamarServidor(
+    "rpcGuardarCaracterizacionInvitado",
+    [estadoInvitado.tokenInvitado, estadoInvitado.idIE, estado.dispositivoId, datos],
+    function (r) {
+      if (!r.ok) {
+        mostrarMensaje("mensajeInvitadoCaracterizacion", r.mensaje || "No fue posible guardar. Intenta de nuevo.", "error");
+        return;
+      }
+      document.getElementById("overlayInvitadoCaracterizacion").classList.add("oculto");
+      abrirPreparacionInvitado_();
+    },
+    function (error) {
+      console.error("rpcGuardarCaracterizacionInvitado", error);
+      mostrarMensaje("mensajeInvitadoCaracterizacion", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+    }
+  );
 });
 
 function abrirPreparacionInvitado_() {
@@ -590,10 +720,12 @@ document.getElementById("btnEnviarPreparacionInvitado").addEventListener("click"
         mostrarMensaje("mensajePreparacionInvitado", "No fue posible guardar antes de enviar. Intenta de nuevo.", "error");
         return;
       }
+      mostrarCargaAccion_("aportes");
       llamarServidor(
         "rpcMarcarPreparacionEnviadaInvitado",
         [estadoInvitado.tokenInvitado, estadoInvitado.idIE, estado.dispositivoId],
         function (r) {
+          ocultarCargaAccion_();
           if (!r.ok) {
             mostrarMensaje("mensajePreparacionInvitado", r.mensaje || "No fue posible enviar.", "error");
             return;
@@ -602,19 +734,31 @@ document.getElementById("btnEnviarPreparacionInvitado").addEventListener("click"
           // y se muestra una pantalla final sin ningún camino de vuelta a la app.
           document.getElementById("overlayInvitadoPreparacion").classList.add("oculto");
           document.getElementById("overlayInvitadoFinalizado").classList.remove("oculto");
+        },
+        function (error) {
+          ocultarCargaAccion_();
+          console.error("rpcMarcarPreparacionEnviadaInvitado", error);
+          mostrarMensaje("mensajePreparacionInvitado", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
         }
       );
     });
   });
 });
 
-// Botón "✕" de la pantalla final de invitado: intenta cerrar la pestaña
-// (solo funciona si el navegador la abrió por script; si no, no hace
-// nada visible — límite del navegador, no del aplicativo) y, si no puede
-// cerrarla, al menos deja claro con el texto de la pantalla que ya no
-// hay nada más que hacer aquí.
+// Botón "✕" de la pantalla final de invitado: intenta cerrar la pestaña,
+// pero la mayoría de navegadores (sobre todo en celular, cuando la
+// pestaña se abrió desde un enlace y no por script) IGNORAN
+// window.close() en silencio — no hay forma de forzarlo desde
+// JavaScript. Antes el botón no daba ninguna señal de que "no funciona"
+// era justamente eso (una restricción del navegador); ahora, si sigue
+// aquí un instante después del intento, se lo decimos explícitamente en
+// vez de dejar un botón que parece no hacer nada.
 document.getElementById("btnCerrarInvitadoFinalizado").addEventListener("click", function () {
   window.close();
+  setTimeout(function () {
+    var aviso = document.getElementById("mensajeInvitadoFinalizadoCierre");
+    if (aviso) aviso.classList.remove("oculto");
+  }, 300);
 });
 
 /* ------------------------------------------------------------------ *
@@ -673,6 +817,21 @@ function mostrarPanelMetodoAsistencia(metodo) {
   var filaContador = document.getElementById("filaContadorParticipantesTarjeta");
   if (filaContador) filaContador.classList.toggle("oculto", ocultarConteoFirmas);
   if (metodo === "QR") cargarEnlaceAsistencia();
+  actualizarBloqueoMetodoAsistencia_();
+}
+
+/**
+ * Una vez elegido QR, ya no se puede cambiar a listado en PDF (spec del
+ * usuario: "no pueden pasarse a PDF"); si tienen PDF, sí pueden pasarse a
+ * QR cuando quieran ("pero si tienen PDF y quieren cambiarse a QR si lo
+ * pueden hacer").
+ */
+function actualizarBloqueoMetodoAsistencia_() {
+  var btnListado = document.getElementById("btnMetodoListado");
+  if (!btnListado) return;
+  var bloqueado = estado.metodoAsistencia === "QR";
+  btnListado.disabled = bloqueado;
+  btnListado.title = bloqueado ? "Ya se eligió QR/enlace para este grupo: no es posible cambiar a listado en PDF." : "";
 }
 
 function cargarEnlaceAsistencia() {
@@ -727,19 +886,10 @@ document.getElementById("btnContinuarAParticipacion").addEventListener("click", 
     document.getElementById("formularioFotoGrupo").scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }
-  var institucionesSinMarcar = institucionesSinParticipacionMarcada_();
-  if (institucionesSinMarcar.length) {
-    confirmarAccion(
-      "Estas instituciones no tienen ninguna persona registrada en el cuadro de \"Cantidad de asistentes " +
-        "por estamento e institución\": " + institucionesSinMarcar.join(", ") + ". ¿La información es correcta?",
-      function () {
-        cambiarPantalla("pantallaConfirmacionCaracterizacion");
-      },
-      "Verifique la participación por institución",
-      { textoConfirmar: "Es correcto", textoCancelar: "No es correcto, voy a corregir" }
-    );
-    return;
-  }
+  // La advertencia de "Verifique la participación por institución" ya NO
+  // se muestra aquí (spec del usuario: "solo debe aparecer en la
+  // confirmación de autorización [de caracterización], no antes") — queda
+  // únicamente en btnConfirmarCaracterizacion, más abajo.
   cambiarPantalla("pantallaConfirmacionCaracterizacion");
 });
 
@@ -752,10 +902,9 @@ function institucionesSinParticipacionMarcada_() {
     .map(function (ie) { return ie.institucion; });
 }
 
-// La matriz de participación también es editable en Confirmación de
-// caracterización (misma tabla, otro contenedor) — se repite ahí la
-// misma advertencia antes de continuar, por si se vació una columna
-// después de haber pasado por Participación.
+// La advertencia "Verifique la participación por institución" solo se
+// muestra aquí, en la confirmación de caracterización (spec del
+// usuario) — no antes, en Participación (ver btnContinuarAParticipacion).
 document.getElementById("btnConfirmarCaracterizacion").addEventListener("click", function () {
   var institucionesSinMarcar = institucionesSinParticipacionMarcada_();
   if (institucionesSinMarcar.length) {
@@ -831,12 +980,19 @@ document.getElementById("btnSubirListado").addEventListener("click", function ()
     return;
   }
   leerArchivoComoBase64_(archivo, function (base64) {
+    mostrarCargaAccion_("valoracionAsistencia", "Enviando el listado de asistencia…");
     llamarServidor(
       "rpcSubirListadoAsistencia",
       [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, base64, archivo.name, archivo.type],
       function (r) {
+        ocultarCargaAccion_();
         mostrarMensaje("mensajeMetodoAsistencia", r.ok ? "Listado subido correctamente." : (r.mensaje || "No fue posible subir el listado."), r.ok ? "exito" : "error");
         if (r.ok) input.value = "";
+      },
+      function (error) {
+        ocultarCargaAccion_();
+        console.error("rpcSubirListadoAsistencia", error);
+        mostrarMensaje("mensajeMetodoAsistencia", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
       }
     );
   });
@@ -866,8 +1022,7 @@ function subirFotoGrupoDesde_(idInput, idMensaje) {
         if (r.ok) {
           input.value = "";
           estado.fotoGrupoId = r.fileId;
-          renderFotoGrupo(estado.fotoGrupoId, "previaFotoGrupo", "formularioFotoGrupo", estado.grupo);
-          renderFotoGrupo(estado.fotoGrupoId, "previaFotoGrupoFinal", "formularioFotoGrupoFinal", estado.grupo);
+          refrescarVistasFotoGrupo_();
           mostrarMensaje("mensajeFaltaFotoFinalizar", "");
         }
       },
@@ -880,11 +1035,39 @@ function subirFotoGrupoDesde_(idInput, idMensaje) {
   });
 }
 
+/**
+ * Refresca las vistas de la fotografía del grupo (Participación y
+ * Confirmación de caracterización) tras subirla/cambiarla. Ya no incluye
+ * la pantalla de Informe generado: la fotografía se dejó de pedir/mostrar
+ * ahí (spec del usuario) — el último punto donde se exige es "Generar
+ * informe" (Revisión y cierre), y queda incluida dentro del informe
+ * mismo (ver Informes.gs), no en pantalla.
+ */
+function refrescarVistasFotoGrupo_() {
+  renderFotoGrupo(estado.fotoGrupoId, "previaFotoGrupo", "formularioFotoGrupo", estado.grupo);
+  renderPieFotoCaracterizacion(
+    estado.fotoGrupoId,
+    estado.grupo,
+    (estado.participacionEstamento && estado.participacionEstamento.totalGeneral) || 0
+  );
+  var btnCambiarFoto = document.getElementById("btnCambiarFotoCaracterizacion");
+  if (btnCambiarFoto) btnCambiarFoto.textContent = estado.fotoGrupoId ? "✏️ Cambiar fotografía" : "📷 Agregar fotografía";
+  var formCaracterizacion = document.getElementById("formularioFotoGrupoCaracterizacion");
+  if (formCaracterizacion) formCaracterizacion.classList.add("oculto");
+}
+
 document.getElementById("btnSubirFotoGrupo").addEventListener("click", function () {
   subirFotoGrupoDesde_("campoFotoGrupo", "mensajeFotoGrupo");
 });
-document.getElementById("btnSubirFotoGrupoFinal").addEventListener("click", function () {
-  subirFotoGrupoDesde_("campoFotoGrupoFinal", "mensajeFotoGrupoFinal");
+// Confirmación de caracterización: puede cambiar la fotografía sin volver
+// a Participación (spec: "pon la opción de cambiar fotografía en la
+// confirmación de caracterización") — reutiliza el mismo RPC/flujo, solo
+// que el formulario empieza oculto y se revela al pedir el cambio.
+document.getElementById("btnCambiarFotoCaracterizacion").addEventListener("click", function () {
+  document.getElementById("formularioFotoGrupoCaracterizacion").classList.remove("oculto");
+});
+document.getElementById("btnSubirFotoGrupoCaracterizacion").addEventListener("click", function () {
+  subirFotoGrupoDesde_("campoFotoGrupoCaracterizacion", "mensajeFotoGrupoCaracterizacion");
 });
 
 // "Subir más tarde" no sube nada: solo tranquiliza a quien diligencia de
@@ -1224,6 +1407,23 @@ function actualizarFirmantes() {
   });
 }
 
+/**
+ * Una vez generado el informe, la asistencia queda cerrada (spec del
+ * usuario): el encabezado permanente de firmantes deja de mostrar el
+ * conteo en vivo y muestra "La asistencia se ha cerrado" — el botón
+ * sigue funcionando, solo cambia su texto a "Ver listado de asistencia".
+ */
+function actualizarPanelFirmantesCerrado_() {
+  document.querySelectorAll(".texto-firmantes-abierto").forEach(function (el) {
+    el.classList.toggle("oculto", !!estado.asistenciaCerrada);
+  });
+  document.querySelectorAll(".texto-firmantes-cerrado").forEach(function (el) {
+    el.classList.toggle("oculto", !estado.asistenciaCerrada);
+  });
+  var boton = document.getElementById("btnVerTodosFirmantes");
+  if (boton) boton.textContent = estado.asistenciaCerrada ? "Ver listado de asistencia" : "Ver todos";
+}
+
 /** "Firmantes (N) / Participantes declarados: (N)" arriba del panel QR — comparación rápida de ambos conteos. */
 function actualizarComparativoFirmantesQR_() {
   var elFirmantes = document.getElementById("firmantesComparativoQR");
@@ -1279,6 +1479,37 @@ function cargarSesion1() {
   });
 }
 
+/** "Continuar a Sesión 2" solo se habilita cuando Sesión 1 ya se envió de forma definitiva (spec del usuario). */
+function actualizarGateSesion2_() {
+  var boton = document.getElementById("btnContinuarASesion2");
+  var aviso = document.getElementById("avisoSesion1NoEnviada");
+  if (boton) boton.disabled = !estado.sesion1Enviada;
+  if (aviso) aviso.classList.toggle("oculto", !!estado.sesion1Enviada);
+}
+
+/**
+ * Campos obligatorios para el envío definitivo de Sesión 2 — mismos 4 de
+ * la segunda parte de ConectaEduca que valida el servidor
+ * (CAMPOS_SESION2_OBLIGATORIOS_, ConectaEduca.gs): revisar aquí antes de
+ * enviar evita un viaje al servidor solo para recibir el mismo rechazo
+ * (spec del usuario: "no se debe permitir envío de sesión 2 sino se ha
+ * llenado todos los espacios").
+ */
+var CAMPOS_SESION2_OBLIGATORIOS_CLIENTE_ = [
+  ["PRIORIDADES_CE", "Prioridades de las instituciones del grupo"],
+  ["ACUERDOS_CE", "Acuerdos entre instituciones de las comunas"],
+  ["PROPUESTAS_CE", "Propuestas de las instituciones del grupo"],
+  ["RUTA_CE", "Ruta de trabajo sugerida por las IE del grupo"]
+];
+function camposSesion2Faltantes_() {
+  return CAMPOS_SESION2_OBLIGATORIOS_CLIENTE_
+    .filter(function (par) {
+      var el = document.getElementById("campo_" + par[0]);
+      return !el || !el.value.trim();
+    })
+    .map(function (par) { return par[1]; });
+}
+
 function guardarSesion1(manual, callback) {
   if (!estado.idGrupo) return;
   llamarServidor("rpcGuardarSesion1", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, recolectarCamposSesion1()], function (r) {
@@ -1302,8 +1533,16 @@ setInterval(function () {
 document.getElementById("btnEnviarSesion1").addEventListener("click", function () {
   confirmarAccion("¿Enviar Sesión 1 de forma definitiva? Verifique que todos los campos estén completos.", function () {
     guardarSesion1(false);
+    mostrarCargaAccion_("sesionDefinitiva");
     llamarServidor("rpcEnviarSesion1", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
+      ocultarCargaAccion_();
       mostrarMensaje("mensajeSesion1", r.ok ? "Sesión 1 enviada." : (r.mensaje || "No fue posible enviar."), r.ok ? "exito" : "error");
+      if (r.ok) estado.sesion1Enviada = true;
+      actualizarGateSesion2_();
+    }, function (error) {
+      ocultarCargaAccion_();
+      console.error("rpcEnviarSesion1", error);
+      mostrarMensaje("mensajeSesion1", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
     });
   });
 });
@@ -1383,9 +1622,20 @@ function borrarActorConectaEduca(idRegistro) {
 }
 
 document.getElementById("btnEnviarSesion2").addEventListener("click", function () {
+  var faltantes = camposSesion2Faltantes_();
+  if (faltantes.length) {
+    mostrarMensaje("mensajeConectaEduca", "Complete todos los campos antes de enviar: " + faltantes.join(", ") + ".", "error");
+    return;
+  }
   confirmarAccion("¿Enviar Sesión 2 (ConectaEduca) de forma definitiva?", function () {
+    mostrarCargaAccion_("sesionDefinitiva");
     llamarServidor("rpcEnviarSesion2", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
+      ocultarCargaAccion_();
       mostrarMensaje("mensajeConectaEduca", r.ok ? "Sesión 2 enviada." : (r.mensaje || "No fue posible enviar."), r.ok ? "exito" : "error");
+    }, function (error) {
+      ocultarCargaAccion_();
+      console.error("rpcEnviarSesion2", error);
+      mostrarMensaje("mensajeConectaEduca", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
     });
   });
 });
@@ -1409,11 +1659,7 @@ function cargarConfirmacionCaracterizacion() {
     if (pendientes <= 0) {
       boton.classList.remove("oculto");
       if (aviso) aviso.classList.add("oculto");
-      renderPieFotoCaracterizacion(
-        estado.fotoGrupoId,
-        estado.grupo,
-        (estado.participacionEstamento && estado.participacionEstamento.totalGeneral) || 0
-      );
+      refrescarVistasFotoGrupo_();
     }
   };
 
@@ -1593,6 +1839,18 @@ function cargarPreparacionIE() {
   document.getElementById("nombreIEPreparacion").textContent = estado.prepInstitucion;
   document.getElementById("responsablePreparacionIE").textContent = estado.prepResponsable;
   actualizarBotonesContinuarSesion1_();
+
+  // La ventana emergente de documentos de apoyo (Informe Ejecutivo, etc.)
+  // solo aparece aquí, en Preparación de la IE — una sola vez por sesión
+  // (spec del usuario: "deben aparecer en la preparación solo para las
+  // IE, no aparecer en socialización").
+  llamarServidor("rpcObtenerRecursosSesion1", [estado.idGrupo], function (recursos) {
+    renderRecursosSesion1(recursos || []);
+    if (!estado.recursosSesion1Mostrado) {
+      estado.recursosSesion1Mostrado = true;
+      abrirModal("modalRecursosSesion1");
+    }
+  });
   llamarServidor("rpcObtenerPreparacionIE", [estado.idGrupo, estado.prepIdIE], function (datos) {
     if (!datos) return;
     if (datos.ok === false) {
@@ -1676,7 +1934,9 @@ document.getElementById("btnEnviarPreparacionIE").addEventListener("click", func
         mostrarMensaje("mensajePreparacionIE", "No fue posible guardar antes de enviar. Intente de nuevo.", "error");
         return;
       }
+      mostrarCargaAccion_("aportes");
       llamarServidor("rpcMarcarPreparacionEnviada", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, estado.prepIdIE], function (r) {
+        ocultarCargaAccion_();
         if (!r.ok) {
           mostrarMensaje("mensajePreparacionIE", r.mensaje || "No fue posible enviar.", "error");
           return;
@@ -1695,6 +1955,10 @@ document.getElementById("btnEnviarPreparacionIE").addEventListener("click", func
         estado.idsPreparacionEnviados = estado.idsPreparacionEnviados || {};
         estado.idsPreparacionEnviados[estado.prepIdIE] = true;
         actualizarBotonesContinuarSesion1_();
+      }, function (error) {
+        ocultarCargaAccion_();
+        console.error("rpcMarcarPreparacionEnviada", error);
+        mostrarMensaje("mensajePreparacionIE", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
       });
     });
   });
@@ -1888,6 +2152,31 @@ estado.valoracionCompletada = false;
 
 function prepararCierre() {
   cargarValoracion();
+  cargarVerificacionFirmantesCierre_();
+}
+
+/** "Revise que todos los participantes hayan firmado la asistencia" — conteos + visor QR/link, otra vez, justo antes de generar el informe. */
+function cargarVerificacionFirmantesCierre_() {
+  if (!estado.idGrupo) return;
+  llamarServidor("rpcEstadoFirmantes", [estado.idGrupo], function (r) {
+    document.getElementById("totalFirmantesCierre").textContent = (r && r.total) || 0;
+  }, function () {});
+  document.getElementById("totalParticipantesCierre").textContent =
+    (estado.participacionEstamento && estado.participacionEstamento.totalGeneral) || 0;
+
+  var panelQR = document.getElementById("panelQRCierre");
+  if (estado.metodoAsistencia === "QR") {
+    panelQR.classList.remove("oculto");
+    llamarServidor("rpcUrlAsistencia", [estado.idGrupo], function (url) {
+      var enlace = document.getElementById("enlaceAsistenciaQRCierre");
+      enlace.href = url;
+      enlace.textContent = url;
+      document.getElementById("imagenQRAsistenciaCierre").src =
+        "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=" + encodeURIComponent(url);
+    }, function () {});
+  } else {
+    panelQR.classList.add("oculto");
+  }
 }
 
 function cargarValoracion() {
@@ -1998,7 +2287,9 @@ function actualizarBotonGenerarInforme() {
       mejoraP3: document.getElementById("valoracionMejoraP3").value,
       mejoraP4: document.getElementById("valoracionMejoraP4").value
     };
+    mostrarCargaAccion_("valoracionAsistencia", "Enviando valoración…");
     llamarServidor("rpcGuardarValoracion", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, respuestas], function (r) {
+      ocultarCargaAccion_();
       boton.disabled = false;
       if (!r.ok) {
         mostrarMensaje("mensajeValoracion", r.mensaje || "No fue posible guardar la valoración.", "error");
@@ -2008,14 +2299,35 @@ function actualizarBotonGenerarInforme() {
       estado.valoracionCompletada = true;
       mostrarEstadoValoracion({ NOTA_PROMEDIO: r.notaPromedio });
       actualizarBotonGenerarInforme();
+    }, function (error) {
+      ocultarCargaAccion_();
+      boton.disabled = false;
+      console.error("rpcGuardarValoracion", error);
+      mostrarMensaje("mensajeValoracion", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
     });
   });
 })();
 
 document.getElementById("btnGenerarInforme").addEventListener("click", function () {
+  // La fotografía ya no se pide en la pantalla de "Informe generado"
+  // (spec del usuario: "la fotografía debe desaparecer de la pantalla de
+  // informe generado") — este es ahora el último punto donde se exige,
+  // antes de generar el documento (queda incluida en él, ver Informes.gs).
+  if (!estado.fotoGrupoId) {
+    mostrarMensaje(
+      "mensajeCierre",
+      "Falta subir la fotografía general del grupo antes de generar el informe. Puede hacerlo desde " +
+        "\"Atrás\" (arriba) — en Participación, o en el botón \"Agregar fotografía\" de Confirmación de " +
+        "caracterización.",
+      "error"
+    );
+    return;
+  }
   confirmarAccion("¿Generar el informe definitivo del grupo? Esta acción crea el documento único que verán todas las IE del grupo.", function () {
     document.getElementById("btnGenerarInforme").disabled = true;
+    mostrarCargaAccion_("informe");
     llamarServidor("rpcGenerarInforme", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
+      ocultarCargaAccion_();
       document.getElementById("btnGenerarInforme").disabled = false;
       if (!r.ok) {
         mostrarMensaje("mensajeCierre", r.mensaje || "No fue posible generar el informe.", "error");
@@ -2025,7 +2337,16 @@ document.getElementById("btnGenerarInforme").addEventListener("click", function 
       document.getElementById("btnEnviarInformePorCorreo").disabled = true;
       mostrarMensaje("mensajeEnvioInforme", "", "");
       document.getElementById("notaEnvioInforme").textContent = "Descargue el informe (botón de arriba) para habilitar el envío por correo al responsable del grupo.";
+      // Al generar el informe, la asistencia queda cerrada (spec del
+      // usuario) — se refleja de inmediato en el encabezado permanente.
+      estado.asistenciaCerrada = true;
+      actualizarPanelFirmantesCerrado_();
       cambiarPantalla("pantallaInformeGenerado");
+    }, function (error) {
+      ocultarCargaAccion_();
+      document.getElementById("btnGenerarInforme").disabled = false;
+      console.error("rpcGenerarInforme", error);
+      mostrarMensaje("mensajeCierre", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
     });
   });
 });
@@ -2052,19 +2373,13 @@ document.getElementById("btnEnviarInformePorCorreo").addEventListener("click", f
   });
 });
 
-// No se puede finalizar el Foro sin haber subido la fotografía general
-// del grupo (spec: "No permitir finalizar el foro si no se sube la
-// foto") — este es el último punto donde se pide, para quien la aplazó.
+// La fotografía ya se exigió antes de poder generar el informe (ver
+// btnGenerarInforme más arriba), así que aquí ya no hace falta volver a
+// pedirla. "Finalizar Foro Comunal Educativo 2026" reemplaza al antiguo
+// botón genérico "Continuar" (spec del usuario) y solo se puede accionar
+// una vez — se deshabilita de inmediato al hacer clic.
 document.getElementById("btnFinalizarForo").addEventListener("click", function () {
-  if (!estado.fotoGrupoId) {
-    mostrarMensaje(
-      "mensajeFaltaFotoFinalizar",
-      "No se puede finalizar el Foro sin subir la fotografía general del grupo. Súbela arriba para continuar.",
-      "error"
-    );
-    document.getElementById("tarjetaFotoGrupoFinal").scrollIntoView({ behavior: "smooth", block: "center" });
-    return;
-  }
+  this.disabled = true;
   cambiarPantalla("pantallaDespedida");
 });
 </script>
