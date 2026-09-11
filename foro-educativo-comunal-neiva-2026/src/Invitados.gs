@@ -276,22 +276,23 @@ function marcarPreparacionEnviadaInvitado(tokenInvitado, idIE, dispositivoId) {
 }
 
 /**
- * Aportes ya enviados por estudiantes y acudientes invitados para una IE
- * del grupo — para mostrarse DURANTE la etapa de preparación (spec:
- * "deben aparecer los aportes de acudientes y de estudiantes"), como
- * insumo de referencia para quien construye libremente la respuesta
- * oficial de la IE. Un párrafo con título por cada pregunta que el
- * invitado haya diligenciado (las vacías se omiten).
+ * Todos los aportes de invitados ya enviados en el grupo, agrupados por
+ * IE — para la sección de invitados al final de la pantalla de
+ * selección de IE de la Sesión de preparación (spec: "los aportes de
+ * estudiantes deben aparecer con el mismo formato que las IE"; ya NO se
+ * muestra dentro de la pantalla de cada IE individual, solo aquí, en el
+ * listado agregado). Mismo formato de datos que
+ * obtenerPreparacionesEnviadasGrupo (Preparacion.gs) — un párrafo con
+ * título por cada pregunta diligenciada — para poder reutilizar el mismo
+ * estilo visual que los aportes institucionales.
  */
-function obtenerAportesInvitadosIE(idGrupo, idIE) {
+function obtenerAportesInvitadosGrupo(idGrupo) {
   idGrupo = String(idGrupo || "").trim();
-  idIE = String(idIE || "").trim();
   var hoja = obtenerHoja_(HOJA_APORTES_INVITADOS_, cabecerasAportesInvitadosPreparacion_());
   var filas = leerFilasComoObjetos_(hoja);
-  var resultado = [];
+  var porIE = {};
   filas.forEach(function (f) {
     if (String(f.ID_GRUPO || "").trim() !== idGrupo) return;
-    if (String(f.ID_IE || "").trim() !== idIE) return;
     if (String(f.ENVIADO || "") !== "SI") return;
     var secciones = [];
     PREGUNTAS_PREPARACION_.forEach(function (p) {
@@ -299,45 +300,19 @@ function obtenerAportesInvitadosIE(idGrupo, idIE) {
       if (texto) secciones.push({ clave: p.clave, titulo: p.titulo, texto: texto });
     });
     if (!secciones.length) return;
-    resultado.push({
-      tipoInvitado: String(f.TIPO_INVITADO || "").toUpperCase(),
-      secciones: secciones
-    });
-  });
-  // Estudiantes primero, luego acudientes — orden estable de lectura.
-  resultado.sort(function (a, b) {
-    if (a.tipoInvitado === b.tipoInvitado) return 0;
-    return a.tipoInvitado === "ESTUDIANTE" ? -1 : 1;
-  });
-  return resultado;
-}
-
-/**
- * Resumen (conteo) de aportes de invitados ya enviados, por IE del grupo
- * — para la sección "Invitados" al final de la pantalla de selección de
- * IE de la Sesión de preparación (informativo, no navega a ningún lado:
- * el acceso de invitado es siempre sin código, desde su propio enlace).
- */
-function obtenerResumenInvitadosGrupo(idGrupo) {
-  idGrupo = String(idGrupo || "").trim();
-  var hoja = obtenerHoja_(HOJA_APORTES_INVITADOS_, cabecerasAportesInvitadosPreparacion_());
-  var filas = leerFilasComoObjetos_(hoja);
-  var conteos = {};
-  filas.forEach(function (f) {
-    if (String(f.ID_GRUPO || "").trim() !== idGrupo) return;
-    if (String(f.ENVIADO || "") !== "SI") return;
     var idIE = String(f.ID_IE || "").trim();
-    if (!conteos[idIE]) conteos[idIE] = { estudiantes: 0, adultos: 0 };
-    if (String(f.TIPO_INVITADO || "").toUpperCase() === "ESTUDIANTE") conteos[idIE].estudiantes++;
-    else conteos[idIE].adultos++;
+    if (!porIE[idIE]) porIE[idIE] = [];
+    porIE[idIE].push({ tipoInvitado: String(f.TIPO_INVITADO || "").toUpperCase(), secciones: secciones });
   });
 
   return obtenerInstitucionesDelGrupo(idGrupo)
+    .filter(function (ie) { return !!porIE[ie.idIE]; })
     .map(function (ie) {
-      var c = conteos[ie.idIE] || { estudiantes: 0, adultos: 0 };
-      return { idIE: ie.idIE, institucion: ie.institucion, estudiantes: c.estudiantes, adultos: c.adultos };
-    })
-    .filter(function (r) {
-      return r.estudiantes > 0 || r.adultos > 0;
+      // Estudiantes primero, luego adultos responsables — orden estable de lectura.
+      var aportes = porIE[ie.idIE].sort(function (a, b) {
+        if (a.tipoInvitado === b.tipoInvitado) return 0;
+        return a.tipoInvitado === "ESTUDIANTE" ? -1 : 1;
+      });
+      return { idIE: ie.idIE, institucion: ie.institucion, aportes: aportes };
     });
 }

@@ -326,30 +326,38 @@ function renderListaIEPreparacion(instituciones, idsEnviados) {
 }
 
 /**
- * Sección "Invitados" al final de Selección de IE: resumen (conteo) de
- * aportes ya enviados por estudiantes/egresados y adultos responsables
- * invitados, por IE — puramente informativo (no navega a ningún lado: el
- * acceso de invitado siempre es sin código, desde su propio enlace).
+ * Sección de invitados al final de Selección de IE: los aportes YA
+ * ENVIADOS por estudiantes/egresados y adultos responsables invitados,
+ * agrupados por IE — con el MISMO formato visual que los aportes
+ * institucionales (renderSocializacionPreparacion: <details> por
+ * institución, un bloque con título por pregunta diligenciada). Solo
+ * aparece aquí, en el listado agregado — ya no se repite dentro de la
+ * pantalla de cada IE individual.
  */
-function renderResumenInvitadosPreparacion(datos) {
+function renderAportesInvitadosGrupo(datos) {
   var contenedor = document.getElementById("listaInvitadosPreparacion");
   if (!contenedor) return;
   if (!datos || !datos.length) {
     contenedor.innerHTML = "<p class='ayuda'>Todavía no hay aportes de invitados en ninguna institución de este grupo.</p>";
     return;
   }
-  contenedor.innerHTML = "";
-  datos.forEach(function (r) {
-    var item = document.createElement("div");
-    item.className = "btn-ie-preparacion ie-preparacion-completa";
-    var partes = [];
-    if (r.estudiantes) partes.push(r.estudiantes + " estudiante(s)/egresado(s)");
-    if (r.adultos) partes.push(r.adultos + " adulto(s) responsable(s)");
-    item.innerHTML =
-      "<span class='nombre-ie-preparacion'>" + escapeHtml(r.institucion) + "</span>" +
-      "<span class='estado-ie-preparacion estado-ie-completa'>🧑‍🎓👨‍👩‍👧 " + escapeHtml(partes.join(" · ")) + "</span>";
-    contenedor.appendChild(item);
+  var html = "";
+  datos.forEach(function (ie) {
+    html += "<details class='socializacion-ie'>";
+    html += "<summary>" + escapeHtml(ie.institucion) + "</summary>";
+    ie.aportes.forEach(function (aporte) {
+      var etiqueta = aporte.tipoInvitado === "ESTUDIANTE" ? "🧑‍🎓 Un(a) estudiante o egresado(a)" : "👨‍👩‍👧 Un adulto responsable de un(a) estudiante";
+      html += "<p class='ayuda' style='font-weight:600;margin-top:12px;'>" + etiqueta + "</p>";
+      aporte.secciones.forEach(function (seccion) {
+        html += "<div class='socializacion-seccion'>";
+        html += "<h4>" + escapeHtml(seccion.titulo) + "</h4>";
+        html += "<p>" + escapeHtml(seccion.texto) + "</p>";
+        html += "</div>";
+      });
+    });
+    html += "</details>";
   });
+  contenedor.innerHTML = html;
 }
 
 /** Las 6 preguntas editables de la Sesión de preparación de una IE (título + ayuda + textarea). */
@@ -419,35 +427,6 @@ function renderSocializacionPreparacion(datos) {
       html += "<h4>" + escapeHtml(seccion.titulo) + "</h4>";
       html += "<p>" + escapeHtml(seccion.texto) + "</p>";
       html += "<button type='button' class='btn-recurso' data-ver-completo='" + escapeHtml(ie.idIE) + "|" + escapeHtml(seccion.clave) + "'>🔍 Pantalla completa</button>";
-      html += "</div>";
-    });
-    html += "</details>";
-  });
-  contenedor.innerHTML = html;
-}
-
-/**
- * Aportes ya enviados por estudiantes y acudientes invitados de la IE que
- * se está preparando — visibles DURANTE la etapa de preparación (no solo
- * en la socialización de Sesión 1), como insumo de referencia para quien
- * construye libremente la respuesta oficial de la institución.
- */
-function renderAportesInvitadosPreparacionIE(datos) {
-  var contenedor = document.getElementById("listaAportesInvitadosPreparacionIE");
-  if (!contenedor) return;
-  if (!datos || !datos.length) {
-    contenedor.innerHTML = "<p class='ayuda'>Todavía no hay aportes de estudiantes ni acudientes invitados para esta institución.</p>";
-    return;
-  }
-  var html = "";
-  datos.forEach(function (aporte) {
-    var etiqueta = aporte.tipoInvitado === "ESTUDIANTE" ? "🧑‍🎓 Un(a) estudiante o egresado(a)" : "👨‍👩‍👧 Un adulto responsable de un(a) estudiante";
-    html += "<details class='pregunta-preparacion-colapsable'>";
-    html += "<summary>" + etiqueta + "</summary>";
-    aporte.secciones.forEach(function (seccion) {
-      html += "<div class='socializacion-seccion'>";
-      html += "<h4>" + escapeHtml(seccion.titulo) + "</h4>";
-      html += "<p>" + escapeHtml(seccion.texto) + "</p>";
       html += "</div>";
     });
     html += "</details>";

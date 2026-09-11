@@ -488,6 +488,30 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   pantalla (antes 720px fijos) y el `<textarea>` el 80% del alto, para escribir más cómodo — el visor de
   solo lectura de la socialización (`pantallaCompletaTexto`) se deja igual, más angosto para lectura.
 
+## 4.16 Cuarto lote: foto obligatoria con aviso, aportes de invitados agregados, ayuda con el nombre real de la IE, y "Continuar a Sesión 1" por institución
+
+- **Foto general del grupo — aviso explícito si no se decide**: al hacer clic en "Continuar" desde
+  Participación sin haber subido la foto NI haber confirmado "Subir más tarde", aparece un
+  `confirmarAccion` preguntando "¿Deseas subirla ahora o continuar y subirla más adelante?" — clic en
+  "Subir ahora" desplaza la pantalla al formulario de foto; clic en "Continuar, subirla más adelante"
+  marca la decisión (`estado.fotoGrupoMasTardeConfirmado`) y reintenta el mismo botón.
+- **Aportes de invitados — agregados por grupo, mismo formato que las IE, ya no se repiten por
+  institución**: `obtenerAportesInvitadosGrupo` (`Invitados.gs`, reemplaza a `obtenerResumenInvitadosGrupo`
+  + `obtenerAportesInvitadosIE`) devuelve el contenido completo (no solo conteos) agrupado por IE;
+  `renderAportesInvitadosGrupo` (`Components.html`) lo pinta con el mismo `<details class="socializacion-ie">`
+  que los aportes institucionales de Sesión 1, sin el encabezado "Invitados" (queda solo el texto
+  explicativo). La tarjeta que antes se repetía dentro de la pantalla de cada IE individual
+  (`tarjetaAportesInvitadosPreparacionIE`) se eliminó — los aportes de invitados ahora solo aparecen en
+  este listado agregado de Selección de IE.
+- **Ayuda de las preguntas — nombre real de la institución**: las ayudas de `PREGUNTAS_PREPARACION_`
+  (`Preparacion.gs`) que mencionan el Informe Ejecutivo llevan el marcador `{{IE}}`, sustituido por
+  `preguntasPreparacionConNombreIE_()` con el nombre real de la institución en `obtenerPreparacionIE` — p.
+  ej. "(Informe Ejecutivo (IE) 2026)" pasa a "(Informe Ejecutivo de la SANTA LIBRADA 2026)".
+- **"Continuar a Sesión 1" — por institución, sin esperar a las demás**: revierte la sección 4.15 (aclarado
+  explícitamente por el usuario: "aparece por IE individual, sin esperar a las demás"). Desde la pantalla
+  de una IE, el botón aparece en cuanto ESA IE envía sus aportes; desde Selección de IE, aparece en cuanto
+  al menos una IE del grupo ya envió (`algunaIEPreparo_`, `JS.html`) — ya no exige que todas terminen.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

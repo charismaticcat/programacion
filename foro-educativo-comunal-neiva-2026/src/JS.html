@@ -31,7 +31,8 @@ var estado = {
   prepInstitucion: "",
   prepResponsable: "",
   socializacionPreparacion: [],
-  explicacionConectaEducaVista: false
+  explicacionConectaEducaVista: false,
+  fotoGrupoMasTardeConfirmado: false
 };
 
 /** URL de imagen para un archivo de Drive público (logos) — mismo patrón usado para el QR de asistencia. */
@@ -659,6 +660,22 @@ document.getElementById("btnContinuarAParticipacion").addEventListener("click", 
     document.getElementById("mensajeSeleccionMetodo").scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }
+  // Ni se subió la foto ni se confirmó "más tarde" — antes de dejar
+  // avanzar, se pregunta explícitamente qué se quiere hacer (spec: "debe
+  // aparecer anuncio diciendo que si desea subir foto ahora o más adelante").
+  if (!estado.fotoGrupoId && !estado.fotoGrupoMasTardeConfirmado) {
+    confirmarAccion(
+      "Todavía no has subido la fotografía general del grupo. ¿Deseas subirla ahora o continuar y subirla más adelante?",
+      function () {
+        estado.fotoGrupoMasTardeConfirmado = true;
+        document.getElementById("btnContinuarAParticipacion").click();
+      },
+      "Fotografía del grupo",
+      { textoConfirmar: "Continuar, subirla más adelante", textoCancelar: "Subir ahora" }
+    );
+    document.getElementById("formularioFotoGrupo").scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
   var institucionesSinMarcar = institucionesSinParticipacionMarcada_();
   if (institucionesSinMarcar.length) {
     confirmarAccion(
@@ -817,6 +834,7 @@ document.getElementById("btnSubirFotoGrupoFinal").addEventListener("click", func
 // pedir al final, cuando se descargue el informe (obligatoria para
 // finalizar el Foro).
 document.getElementById("btnFotoGrupoMasTarde").addEventListener("click", function () {
+  estado.fotoGrupoMasTardeConfirmado = true;
   mostrarMensaje(
     "mensajeFotoGrupo",
     "De acuerdo — puedes continuar con el instrumento. Se te volverá a pedir la fotografía al finalizar, " +
@@ -1374,32 +1392,33 @@ function cargarListaIEPreparacion() {
     mostrarMensajePreparacionFaltante_(idsEnviados);
     actualizarBotonesContinuarSesion1_();
   });
-  llamarServidor("rpcResumenInvitadosGrupo", [estado.idGrupo], function (resumen) {
-    renderResumenInvitadosPreparacion(resumen || []);
+  llamarServidor("rpcAportesInvitadosGrupo", [estado.idGrupo], function (datos) {
+    renderAportesInvitadosGrupo(datos || []);
   });
 }
 
 /**
  * La Sesión de preparación NO es opcional: es condición para continuar a
  * Sesión 1 (spec: "La preparación no es opcional, es condición para
- * continuar a la sesión uno" — "Continuar a Sesión 1 no puede aparecer
- * hasta que los aportes de todas las IE aparezcan"). Los botones
- * "Continuar a Sesión 1" (desde Selección de IE y desde Preparación de
- * una IE) permanecen ocultos hasta que TODAS las IE del grupo hayan
- * enviado sus aportes.
+ * continuar a la sesión uno"). Cada IE avanza por su cuenta apenas
+ * envía sus propios aportes — SIN esperar a que las demás instituciones
+ * del grupo terminen (spec: "debe dar botón continuar si ya la IE hizo
+ * sus aportes", "aparece por IE individual, sin esperar a las demás"):
+ *   - Desde la pantalla de una IE, "Continuar a Sesión 1" aparece en
+ *     cuanto ESA IE ya envió.
+ *   - Desde la pantalla de Selección, aparece en cuanto AL MENOS UNA IE
+ *     del grupo ya envió (hay algo que socializar).
  */
-function todasLasIEPrepararon_() {
+function algunaIEPreparo_() {
   var idsEnviados = estado.idsPreparacionEnviados || {};
-  return !!estado.instituciones.length && estado.instituciones.every(function (ie) {
-    return !!idsEnviados[ie.idIE];
-  });
+  return Object.keys(idsEnviados).some(function (id) { return !!idsEnviados[id]; });
 }
 function actualizarBotonesContinuarSesion1_() {
-  var listo = todasLasIEPrepararon_();
-  ["btnContinuarASesion1DesdeSeleccion", "btnContinuarASesion1DesdePreparacionIE"].forEach(function (id) {
-    var boton = document.getElementById(id);
-    if (boton) boton.classList.toggle("oculto", !listo);
-  });
+  var idsEnviados = estado.idsPreparacionEnviados || {};
+  var botonSeleccion = document.getElementById("btnContinuarASesion1DesdeSeleccion");
+  if (botonSeleccion) botonSeleccion.classList.toggle("oculto", !algunaIEPreparo_());
+  var botonPreparacionIE = document.getElementById("btnContinuarASesion1DesdePreparacionIE");
+  if (botonPreparacionIE) botonPreparacionIE.classList.toggle("oculto", !idsEnviados[estado.prepIdIE]);
 }
 
 function mostrarMensajePreparacionFaltante_(idsEnviados) {
@@ -1407,21 +1426,19 @@ function mostrarMensajePreparacionFaltante_(idsEnviados) {
   var contenedor = document.getElementById("mensajePreparacionPendiente");
   if (!contenedor) return;
   if (!faltantes.length) {
-    contenedor.innerHTML = "<div class='mensaje exito'>✅ Todas las instituciones completaron su preparación. Ya pueden continuar a Sesión 1.</div>";
+    contenedor.innerHTML = "<div class='mensaje exito'>✅ Todas las instituciones completaron su preparación.</div>";
   } else {
     contenedor.innerHTML =
       "<div class='mensaje info'>Aún falta por diligenciar la preparación de la socialización: <strong>" +
       faltantes.map(function (ie) { return escapeHtml(ie.institucion); }).join("</strong>, <strong>") +
-      "</strong>. No se puede continuar a Sesión 1 hasta que todas las instituciones envíen sus aportes.</div>";
+      "</strong>. La institución que ya terminó puede continuar a Sesión 1 sin esperar a las demás.</div>";
   }
 }
 
 document.getElementById("btnContinuarASesion1DesdeSeleccion").addEventListener("click", function () {
-  if (!todasLasIEPrepararon_()) return;
   cambiarPantalla("pantallaSesion1");
 });
 document.getElementById("btnContinuarASesion1DesdePreparacionIE").addEventListener("click", function () {
-  if (!todasLasIEPrepararon_()) return;
   cambiarPantalla("pantallaSesion1");
 });
 
@@ -1508,15 +1525,6 @@ function cargarPreparacionIE() {
     var banner = document.getElementById("bannerPreparacionYaCompletada");
     if (banner) banner.classList.toggle("oculto", !datos.enviado);
     mostrarMensaje("mensajePreparacionIE", "");
-  });
-  cargarAportesInvitadosPreparacionIE();
-}
-
-/** Aportes ya enviados por estudiantes/acudientes invitados de esta IE — visibles durante la preparación. */
-function cargarAportesInvitadosPreparacionIE() {
-  if (!estado.idGrupo || !estado.prepIdIE) return;
-  llamarServidor("rpcObtenerAportesInvitadosIE", [estado.idGrupo, estado.prepIdIE], function (datos) {
-    renderAportesInvitadosPreparacionIE(datos || []);
   });
 }
 

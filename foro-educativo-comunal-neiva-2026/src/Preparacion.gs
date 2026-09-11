@@ -57,7 +57,7 @@ var PREGUNTAS_PREPARACION_ = [
     titulo: "Avances en el logro de retos y propósitos del SEM 2025",
     ayuda: "Resumen sugerido a partir de la respuesta de la IE a: “¿Cómo hemos avanzado, desde nuestra " +
       "institución educativa, en el logro de los retos y propósitos planteados en el FEM2025?” (Informe " +
-      "Ejecutivo (IE) 2026)."
+      "Ejecutivo de la {{IE}} 2026)."
   },
   {
     clave: "P2",
@@ -75,20 +75,20 @@ var PREGUNTAS_PREPARACION_ = [
   {
     clave: "P4",
     titulo: "Acciones pedagógicas para articular el currículo con la comunidad",
-    ayuda: "Resumen sugerido a partir de la Pregunta 2 del Informe Ejecutivo — Acción 1 a Acción 5."
+    ayuda: "Resumen sugerido a partir de la Pregunta 2 del Informe Ejecutivo de la {{IE}} — Acción 1 a Acción 5."
   },
   {
     clave: "P5",
     titulo: "Equipos de trabajo para articular con la comunidad",
     ayuda: "Resumen sugerido a partir de la Pregunta 3 (equipos de trabajo conformados), Pregunta 4 " +
-      "(articulación de esos equipos) y Pregunta 5 (mecanismos de seguimiento) del Informe Ejecutivo."
+      "(articulación de esos equipos) y Pregunta 5 (mecanismos de seguimiento) del Informe Ejecutivo de la {{IE}}."
   },
   {
     clave: "P6",
     titulo: "Democracia institucional",
-    ayuda: "Resumen sugerido a partir de la Sesión 3 del Informe Ejecutivo — Pregunta 1 (¿la toma de " +
-      "decisiones es participativa y democrática? ¿por qué?), Pregunta 2 (Acción 1 a 5), equipos de trabajo " +
-      "y mecanismos de seguimiento."
+    ayuda: "Resumen sugerido a partir de la Sesión 3 del Informe Ejecutivo de la {{IE}} — Pregunta 1 (¿la " +
+      "toma de decisiones es participativa y democrática? ¿por qué?), Pregunta 2 (Acción 1 a 5), equipos de " +
+      "trabajo y mecanismos de seguimiento."
   }
 ];
 
@@ -488,10 +488,10 @@ function _urlInformeEjecutivoIE_(idIE) {
 function obtenerPreparacionIE(idGrupo, idIE) {
   idGrupo = String(idGrupo || "").trim();
   idIE = String(idIE || "").trim();
-  var perteneceAlGrupo = obtenerInstitucionesDelGrupo(idGrupo).some(function (ie) {
-    return ie.idIE === idIE;
+  var ie = obtenerInstitucionesDelGrupo(idGrupo).find(function (i) {
+    return i.idIE === idIE;
   });
-  if (!perteneceAlGrupo) return null;
+  if (!ie) return null;
 
   var hoja = obtenerHoja_(HOJA_PREPARACION_IE_, cabecerasPreparacionIE_());
   var mapa = obtenerMapaCabeceras_(hoja);
@@ -509,13 +509,27 @@ function obtenerPreparacionIE(idGrupo, idIE) {
   });
 
   return {
-    preguntas: PREGUNTAS_PREPARACION_,
+    // "(Informe Ejecutivo (IE)" -> "(Informe Ejecutivo de la <nombre real
+    // de la institución>": las ayudas de PREGUNTAS_PREPARACION_ llevan el
+    // marcador {{IE}}, sustituido aquí por el nombre real de esta IE.
+    preguntas: preguntasPreparacionConNombreIE_(ie.institucion),
     respuestas: respuestas,
     responsable: guardada ? String(guardada.RESPONSABLE || "") : "",
     enviado: guardada ? String(guardada.ENVIADO || "") === "SI" : false,
     fechaEnvio: guardada && guardada.FECHA_ENVIO ? String(guardada.FECHA_ENVIO) : "",
     urlInformeEjecutivo: _urlInformeEjecutivoIE_(idIE)
   };
+}
+
+/** PREGUNTAS_PREPARACION_ con el marcador {{IE}} de cada ayuda sustituido por el nombre real de la institución. */
+function preguntasPreparacionConNombreIE_(nombreIE) {
+  return PREGUNTAS_PREPARACION_.map(function (p) {
+    return {
+      clave: p.clave,
+      titulo: p.titulo,
+      ayuda: p.ayuda.replace(/\{\{IE\}\}/g, nombreIE || "esta institución")
+    };
+  });
 }
 
 /** Autoguardado de las 6 respuestas + responsable — mismo patrón que guardarSesion1 (Sesion1.gs). */

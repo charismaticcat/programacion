@@ -178,17 +178,10 @@ function rpcPreparacionesEnviadasGrupo(idGrupo) {
   });
 }
 
-/** Aportes ya enviados por estudiantes/acudientes invitados de una IE — visibles durante la preparación (Invitados.gs). */
-function rpcObtenerAportesInvitadosIE(idGrupo, idIE) {
+/** Todos los aportes de invitados del grupo, agrupados por IE — listado agregado en Selección de IE (Invitados.gs). */
+function rpcAportesInvitadosGrupo(idGrupo) {
   return ejecutarRpcSeguro_(function () {
-    return obtenerAportesInvitadosIE(idGrupo, idIE);
-  });
-}
-
-/** Resumen de aportes de invitados por IE del grupo — sección "Invitados" en Selección de IE (Invitados.gs). */
-function rpcResumenInvitadosGrupo(idGrupo) {
-  return ejecutarRpcSeguro_(function () {
-    return obtenerResumenInvitadosGrupo(idGrupo);
+    return obtenerAportesInvitadosGrupo(idGrupo);
   });
 }
 
