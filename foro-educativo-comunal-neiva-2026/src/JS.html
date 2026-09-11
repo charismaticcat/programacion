@@ -113,11 +113,19 @@ function cambiarPantalla(idPantalla) {
     llamarServidor("rpcEstadoGrupo", [estado.idGrupo], function (estadoGrupo) {
       estado.sesion1Enviada = !!(estadoGrupo && estadoGrupo.sesion1Enviada);
       actualizarGateSesion2_();
+      actualizarEstadoEnvioSesion1_();
     }, function () {});
   }
   if (idPantalla === "pantallaSesion2") {
     cargarConectaEduca();
     prepararPantallaConectaEduca();
+    // Cualquiera puede enviar Sesión 2, pero solo una vez (spec del
+    // usuario) — si ya se envió, se muestra el aviso y se deshabilita el
+    // botón, igual que Sesión 1.
+    llamarServidor("rpcEstadoGrupo", [estado.idGrupo], function (estadoGrupo) {
+      estado.sesion2Enviada = !!(estadoGrupo && estadoGrupo.sesion2Enviada);
+      actualizarEstadoEnvioSesion2_();
+    }, function () {});
   }
   if (idPantalla === "pantallaRevisionCierre") prepararCierre();
   if (idPantalla === "pantallaInformeGenerado") {
@@ -146,6 +154,16 @@ document.addEventListener("click", function (evento) {
 
   var alternarSocializacionIE = evento.target.closest("[data-alternar-socializacion]");
   if (alternarSocializacionIE) alternarTodosDesplegablesSocializacion();
+
+  // "Cambiar fotografía" — inyectado dinámicamente por renderFotoGrupo
+  // (Components.html) junto a la vista previa, en cualquier pantalla
+  // donde se muestre la foto del grupo (spec del usuario: "permitir
+  // cambiar foto"): reabre el formulario de subida ya oculto.
+  var cambiarFoto = evento.target.closest("[data-cambiar-foto]");
+  if (cambiarFoto) {
+    var formularioFoto = document.getElementById(cambiarFoto.getAttribute("data-cambiar-foto"));
+    if (formularioFoto) formularioFoto.classList.remove("oculto");
+  }
 });
 
 // Rector(a) editable (Confirmación de caracterización): se guarda solo,
@@ -252,8 +270,8 @@ iniciarSplashInicial();
 
 /* ------------------------------------------------------------------ *
  * Overlay de carga con imagen propia — un gif real (compartido por el
- * usuario vía Drive, todos con permiso público) por cada momento
- * concreto, siempre acompañado de un texto de apoyo:
+ * usuario vía Drive) por cada momento concreto, siempre acompañado de un
+ * texto de apoyo:
  *   - acceso: justo después de validar el código, antes de entrar al Foro.
  *   - foto: al subir o cambiar la fotografía del grupo.
  *   - aportes: al enviar los aportes de Preparación (IE o invitado).
@@ -264,23 +282,28 @@ iniciarSplashInicial();
  *   - responsable: al guardar el responsable de envío — sticker de Giphy
  *     "Cargando Sticker by dipielbella" (no es un gif de Drive del
  *     usuario, se mantiene del lote anterior).
- * Si el gif no llega a cargar en el navegador de quien usa la app
- * (img.onerror), el overlay cae de vuelta al spinner genérico.
+ *
+ * Los 6 gifs de Drive se embeben como data: URI (GIFS_DATAURI_, ver
+ * GifsData.html) en vez de enlazarlos por URL a Drive: el hotlink externo
+ * (drive.google.com/uc?export=view) dejó de servir el archivo de forma
+ * fiable (Google lo está retirando por la eliminación de cookies de
+ * terceros — devuelve 403 en muchos navegadores, que es exactamente el
+ * "no cargan, solo aparece el círculo" que se reportó) y
+ * drive.google.com/thumbnail NO anima los gifs (solo un fotograma fijo).
+ * Con el gif embebido directamente en la página, carga siempre, sin
+ * depender de Drive ni de políticas de Google que cambian con el tiempo.
+ * Si por algún motivo igual fallara (img.onerror), el overlay cae de
+ * vuelta al spinner genérico.
  * ------------------------------------------------------------------ */
 var URL_STICKER_CARGANDO_RESPONSABLE_ = "https://media.giphy.com/media/SYIu9YMtvUc6tBzDH6/giphy.gif";
 var GIFS_CARGA_ACCION_ = {
-  acceso: { id: "1d8VJxXlucpBkjX_zjlamQJ6lydzoUcvy", texto: "Ingresando al Foro…" },
-  foto: { id: "1Ez9V-24Nrz59uswcRgTlylCwFDZZqYNz", texto: "Subiendo fotografía…" },
-  aportes: { id: "1c-EvVqMPDnXvUdL6plhkinJPM1DN2icV", texto: "Enviando aportes…" },
-  sesionDefinitiva: { id: "1fdXRNvlMXsn4ZDtFFaJhERnk1QR7F11E", texto: "Enviando de forma definitiva…" },
-  valoracionAsistencia: { id: "1XQ72aSWv3pMwETcbMGC8_lP1-IbdT2Fp", texto: "Enviando…" },
-  informe: { id: "1mUCyCuFQQfjOFyOifKCibso0soTtqjuT", texto: "Generando el informe…" }
+  acceso: { texto: "Ingresando al Foro…" },
+  foto: { texto: "Subiendo fotografía…" },
+  aportes: { texto: "Enviando aportes…" },
+  sesionDefinitiva: { texto: "Enviando de forma definitiva…" },
+  valoracionAsistencia: { texto: "Enviando…" },
+  informe: { texto: "Generando el informe…" }
 };
-
-/** URL de descarga directa (no la miniatura de urlImagenDrive) — necesaria para que un gif se vea animado, no una sola imagen fija. */
-function urlGifDrive_(idArchivo) {
-  return "https://drive.google.com/uc?export=view&id=" + encodeURIComponent(idArchivo);
-}
 
 function mostrarCargaAccion_(tipo, texto) {
   var overlay = document.getElementById("overlayCargaAccion");
@@ -291,12 +314,13 @@ function mostrarCargaAccion_(tipo, texto) {
   img.onerror = function () { overlay.classList.add("con-imagen-caida"); };
 
   var gif = GIFS_CARGA_ACCION_[tipo];
+  var dataUri = typeof GIFS_DATAURI_ !== "undefined" ? GIFS_DATAURI_[tipo] : null;
   if (tipo === "responsable") {
     img.src = URL_STICKER_CARGANDO_RESPONSABLE_;
     img.classList.remove("oculto");
     emoji.classList.add("oculto");
-  } else if (gif) {
-    img.src = urlGifDrive_(gif.id);
+  } else if (gif && dataUri) {
+    img.src = dataUri;
     img.classList.remove("oculto");
     emoji.classList.add("oculto");
   } else {
@@ -456,6 +480,8 @@ function intentarValidarAcceso(forzar) {
     document.getElementById("nombreGrupoParticipacion").textContent = r.grupo;
     var elNombreGrupoAviso = document.getElementById("nombreGrupoAvisoPlazoFirmas");
     if (elNombreGrupoAviso) elNombreGrupoAviso.textContent = r.grupo;
+    var elNombreGrupoBienvenida = document.getElementById("nombreGrupoBienvenida");
+    if (elNombreGrupoBienvenida) elNombreGrupoBienvenida.textContent = r.grupo;
     poblarSelectInstituciones("campoIEResponsable", estado.instituciones);
     poblarSelectInstituciones("campoIEAsistente", estado.instituciones);
     renderListaInstituciones(estado.instituciones);
@@ -469,7 +495,9 @@ function intentarValidarAcceso(forzar) {
     cargarRolesForo();
     llamarServidor("rpcEstadoGrupo", [estado.idGrupo], function (estadoGrupo) {
       estado.asistenciaCerrada = !!(estadoGrupo && estadoGrupo.informeGenerado);
+      estado.informeGenerado = !!(estadoGrupo && estadoGrupo.informeGenerado);
       actualizarPanelFirmantesCerrado_();
+      actualizarBloqueoMetodoAsistencia_();
     }, function () {});
 
     // El "recorrido" de logos de las IE del grupo va justo después de
@@ -821,17 +849,20 @@ function mostrarPanelMetodoAsistencia(metodo) {
 }
 
 /**
- * Una vez elegido QR, ya no se puede cambiar a listado en PDF (spec del
- * usuario: "no pueden pasarse a PDF"); si tienen PDF, sí pueden pasarse a
- * QR cuando quieran ("pero si tienen PDF y quieren cambiarse a QR si lo
- * pueden hacer").
+ * Con QR elegido, se puede cambiar a listado en PDF SIEMPRE QUE el
+ * informe del grupo todavía no se haya generado (spec del usuario:
+ * "permitir cambio a PDF si es posible siempre y cuando no se haya
+ * generado un informe" — corrige el bloqueo total del lote anterior). Si
+ * tienen PDF, pueden pasarse a QR en cualquier momento, generado o no.
  */
 function actualizarBloqueoMetodoAsistencia_() {
   var btnListado = document.getElementById("btnMetodoListado");
   if (!btnListado) return;
-  var bloqueado = estado.metodoAsistencia === "QR";
+  var bloqueado = estado.metodoAsistencia === "QR" && !!estado.asistenciaCerrada;
   btnListado.disabled = bloqueado;
-  btnListado.title = bloqueado ? "Ya se eligió QR/enlace para este grupo: no es posible cambiar a listado en PDF." : "";
+  btnListado.title = bloqueado
+    ? "El informe del grupo ya fue generado: no es posible cambiar de QR/enlace a listado en PDF."
+    : "";
 }
 
 function cargarEnlaceAsistencia() {
@@ -1488,6 +1519,25 @@ function actualizarGateSesion2_() {
 }
 
 /**
+ * Cualquiera con sesión activa puede enviar Sesión 1/Sesión 2 (spec del
+ * usuario: ya no exclusivo del responsable principal), pero una vez
+ * enviada, no se permiten más envíos — se muestra el aviso y se
+ * deshabilita el botón de envío correspondiente.
+ */
+function actualizarEstadoEnvioSesion1_() {
+  var banner = document.getElementById("bannerSesion1YaEnviada");
+  var boton = document.getElementById("btnEnviarSesion1");
+  if (banner) banner.classList.toggle("oculto", !estado.sesion1Enviada);
+  if (boton) boton.disabled = !!estado.sesion1Enviada;
+}
+function actualizarEstadoEnvioSesion2_() {
+  var banner = document.getElementById("bannerSesion2YaEnviada");
+  var boton = document.getElementById("btnEnviarSesion2");
+  if (banner) banner.classList.toggle("oculto", !estado.sesion2Enviada);
+  if (boton) boton.disabled = !!estado.sesion2Enviada;
+}
+
+/**
  * Campos obligatorios para el envío definitivo de Sesión 2 — mismos 4 de
  * la segunda parte de ConectaEduca que valida el servidor
  * (CAMPOS_SESION2_OBLIGATORIOS_, ConectaEduca.gs): revisar aquí antes de
@@ -1537,8 +1587,9 @@ document.getElementById("btnEnviarSesion1").addEventListener("click", function (
     llamarServidor("rpcEnviarSesion1", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
       ocultarCargaAccion_();
       mostrarMensaje("mensajeSesion1", r.ok ? "Sesión 1 enviada." : (r.mensaje || "No fue posible enviar."), r.ok ? "exito" : "error");
-      if (r.ok) estado.sesion1Enviada = true;
+      if (r.ok || r.codigo === "YA_ENVIADO") estado.sesion1Enviada = true;
       actualizarGateSesion2_();
+      actualizarEstadoEnvioSesion1_();
     }, function (error) {
       ocultarCargaAccion_();
       console.error("rpcEnviarSesion1", error);
@@ -1632,6 +1683,8 @@ document.getElementById("btnEnviarSesion2").addEventListener("click", function (
     llamarServidor("rpcEnviarSesion2", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
       ocultarCargaAccion_();
       mostrarMensaje("mensajeConectaEduca", r.ok ? "Sesión 2 enviada." : (r.mensaje || "No fue posible enviar."), r.ok ? "exito" : "error");
+      if (r.ok || r.codigo === "YA_ENVIADO") estado.sesion2Enviada = true;
+      actualizarEstadoEnvioSesion2_();
     }, function (error) {
       ocultarCargaAccion_();
       console.error("rpcEnviarSesion2", error);
@@ -1694,6 +1747,15 @@ function guardarRectorIE(idIE) {
  * ------------------------------------------------------------------ */
 function cargarListaIEPreparacion() {
   if (!estado.idGrupo) return;
+  // Overlay de carga mientras se pintan las instituciones y los aportes
+  // de invitados — antes esta pantalla no mostraba ningún gif mientras
+  // cargaba (spec del usuario).
+  mostrarCargaAccion_("acceso", "Cargando instituciones y aportes…");
+  var pendientesCargaLista_ = 2;
+  var marcarListoCargaLista_ = function () {
+    pendientesCargaLista_--;
+    if (pendientesCargaLista_ <= 0) ocultarCargaAccion_();
+  };
   llamarServidor(
     "rpcPreparacionesEnviadasGrupo",
     [estado.idGrupo],
@@ -1721,15 +1783,20 @@ function cargarListaIEPreparacion() {
         console.error("cargarListaIEPreparacion", error);
       }
       actualizarBotonesContinuarSesion1_();
+      marcarListoCargaLista_();
     },
     function (error) {
       console.error("rpcPreparacionesEnviadasGrupo", error);
       mostrarMensaje("mensajePreparacionPendiente", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
       actualizarBotonesContinuarSesion1_();
+      marcarListoCargaLista_();
     }
   );
   llamarServidor("rpcAportesInvitadosGrupo", [estado.idGrupo], function (datos) {
     renderAportesInvitadosGrupo(Array.isArray(datos) ? datos : []);
+    marcarListoCargaLista_();
+  }, function () {
+    marcarListoCargaLista_();
   });
 }
 
@@ -1845,11 +1912,13 @@ function cargarPreparacionIE() {
   // (spec del usuario: "deben aparecer en la preparación solo para las
   // IE, no aparecer en socialización").
   llamarServidor("rpcObtenerRecursosSesion1", [estado.idGrupo], function (recursos) {
-    renderRecursosSesion1(recursos || []);
+    renderRecursosSesion1(Array.isArray(recursos) ? recursos : []);
     if (!estado.recursosSesion1Mostrado) {
       estado.recursosSesion1Mostrado = true;
       abrirModal("modalRecursosSesion1");
     }
+  }, function (error) {
+    console.error("rpcObtenerRecursosSesion1", error);
   });
   llamarServidor("rpcObtenerPreparacionIE", [estado.idGrupo, estado.prepIdIE], function (datos) {
     if (!datos) return;
@@ -1972,6 +2041,52 @@ function cargarSocializacionPreparacion() {
     renderSocializacionPreparacion(estado.socializacionPreparacion);
   });
 }
+
+/**
+ * Al seleccionar cualquier fragmento de texto dentro de los aportes de
+ * preparación por institución (Sesión 1), queda copiado automáticamente
+ * al portapapeles — listo para pegar en cualquiera de las preguntas de
+ * "Construcción colectiva del grupo" (spec del usuario) — con un aviso
+ * central sutil, sin bloquear la pantalla.
+ */
+(function () {
+  var contenedor = document.getElementById("listaSocializacionPreparacion");
+  if (!contenedor) return;
+  var aviso = document.getElementById("avisoTextoCopiado");
+  var temporizadorAviso = null;
+
+  function copiarSeleccionActual_() {
+    var seleccion = window.getSelection ? window.getSelection() : null;
+    var texto = seleccion ? seleccion.toString().trim() : "";
+    if (!texto) return;
+    var terminar = function () {
+      if (!aviso) return;
+      aviso.classList.add("visible");
+      clearTimeout(temporizadorAviso);
+      temporizadorAviso = setTimeout(function () {
+        aviso.classList.remove("visible");
+      }, 1400);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(texto).then(terminar, terminar);
+    } else {
+      // Reserva para navegadores sin Clipboard API (poco frecuentes hoy):
+      // copiar mediante un textarea temporal y el comando de copia clásico.
+      var temporal = document.createElement("textarea");
+      temporal.value = texto;
+      temporal.style.position = "fixed";
+      temporal.style.opacity = "0";
+      document.body.appendChild(temporal);
+      temporal.select();
+      try { document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(temporal);
+      terminar();
+    }
+  }
+
+  contenedor.addEventListener("mouseup", copiarSeleccionActual_);
+  contenedor.addEventListener("touchend", copiarSeleccionActual_);
+})();
 
 function abrirPantallaCompletaTexto(clave) {
   var partes = String(clave || "").split("|");
@@ -2185,6 +2300,12 @@ function cargarValoracion() {
     mostrarEstadoValoracion(v);
     actualizarBotonGenerarInforme();
   });
+  // Refresca si el informe ya fue generado (por este u otro dispositivo)
+  // antes de decidir si el botón "Generar informe" debe estar habilitado.
+  llamarServidor("rpcEstadoGrupo", [estado.idGrupo], function (estadoGrupo) {
+    estado.informeGenerado = !!(estadoGrupo && estadoGrupo.informeGenerado);
+    actualizarBotonGenerarInforme();
+  }, function () {});
 }
 
 function mostrarEstadoValoracion(valoracion) {
@@ -2204,8 +2325,14 @@ function mostrarEstadoValoracion(valoracion) {
 function actualizarBotonGenerarInforme() {
   var boton = document.getElementById("btnGenerarInforme");
   var aviso = document.getElementById("avisoResponsablePrincipal");
-  if (!estado.esPrincipal) {
-    aviso.textContent = "Solo el responsable principal del grupo puede generar el informe definitivo. Puede seguir revisando mientras tanto.";
+  // Cualquier integrante del grupo con sesión activa puede generar el
+  // informe (spec del usuario: revierte la restricción de "solo el
+  // responsable principal"); pero solo se genera UNA vez en total —
+  // Grupos.gs (generarInformeCompletoGrupo) es idempotente y devuelve el
+  // mismo informe si ya existe, así que aquí basta con exigir la
+  // valoración antes de habilitar el botón.
+  if (estado.informeGenerado) {
+    aviso.textContent = "El informe definitivo ya fue generado para este grupo.";
     boton.disabled = true;
   } else if (!estado.valoracionCompletada) {
     aviso.textContent = "Complete la valoración del Foro (arriba) antes de generar el informe.";
@@ -2340,6 +2467,7 @@ document.getElementById("btnGenerarInforme").addEventListener("click", function 
       // Al generar el informe, la asistencia queda cerrada (spec del
       // usuario) — se refleja de inmediato en el encabezado permanente.
       estado.asistenciaCerrada = true;
+      estado.informeGenerado = true;
       actualizarPanelFirmantesCerrado_();
       cambiarPantalla("pantallaInformeGenerado");
     }, function (error) {

@@ -79,8 +79,21 @@ function generarInformeCompletoGrupo(idGrupo, tokenSesion, dispositivoId) {
     if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
       return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión ya no está activa en este dispositivo." };
     }
-    if (!esPrincipalDeGrupo_(idGrupo, dispositivoId, tokenSesion)) {
-      return { ok: false, mensaje: "Solo el responsable principal del grupo puede generar el informe definitivo." };
+    // Cualquiera con sesión activa puede generar el informe (spec del
+    // usuario: revierte la restricción de "solo el responsable
+    // principal"); pero solo se genera UNA vez — si ya existe, se
+    // devuelve el mismo, sin volver a generarlo ("solo debe haber un
+    // envío"). Así, quien haga clic después de que otro ya lo generó
+    // sigue pudiendo descargarlo y enviarlo por correo con normalidad.
+    var informeExistente = obtenerInformeGrupo(idGrupo);
+    if (informeExistente && informeExistente.URL) {
+      return {
+        ok: true,
+        yaGenerado: true,
+        docId: informeExistente.DOC_ID,
+        pdfId: informeExistente.PDF_ID,
+        url: informeExistente.URL
+      };
     }
     // Condición explícita de esta entrega (distinta de FEI 3.1, ver
     // Valoracion.gs): no se genera el informe sin haber enviado antes la

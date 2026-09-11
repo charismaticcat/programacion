@@ -608,6 +608,52 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   informe, enviarlo por correo, finalizar) y el botón "Finalizar Foro Comunal Educativo 2026"
   (`btnFinalizarForo`), que se deshabilita tras el primer clic.
 
+## 4.19 Séptimo lote: gifs como base64 (fin del hotlinking de Drive), envíos abiertos a todo el grupo con un solo envío total, cambiar foto, QR↔PDF flexible, copiar al seleccionar aportes, y nuevos títulos de Bienvenida/Ruta del Foro
+
+- **Gifs de carga — base64 embebido, ya no hotlink a Drive**: `drive.google.com/uc?export=view&id=...`
+  dejó de ser confiable (Google fue restringiendo el hotlinking de archivos de Drive por la desactivación
+  de cookies de terceros) y por eso solo se veía el círculo de carga genérico, nunca el gif. Los 6 gifs
+  (acceso, foto, aportes, sesionDefinitiva, valoracionAsistencia, informe) se descargaron una sola vez y
+  se embebieron como `data:image/gif;base64,...` en un archivo nuevo, `GifsData.html`
+  (`var GIFS_DATAURI_`), incluido en `Index.html`; `mostrarCargaAccion_` (`JS.html`) ya no construye
+  ninguna URL de Drive. Además, la pantalla "¿Qué institución o participante va a preparar sus aportes?"
+  ahora muestra el gif "acceso" centrado con texto de apoyo mientras carga la lista de instituciones y el
+  resumen de aportes (`cargarListaIEPreparacion`).
+- **Sesión 1/Sesión 2/Informe — cualquiera puede enviar, pero un solo envío total**: se quitó la
+  restricción de "solo el responsable principal" en `enviarSesion1Definitiva` (`Sesion1.gs`),
+  `enviarSesion2Definitiva` (`ConectaEduca.gs`) y `generarInformeCompletoGrupo` (`Grupos.gs`) — ahora
+  basta con tener sesión activa en el grupo. Cada uno de los tres solo se concreta una vez: Sesión 1/2
+  devuelven `{codigo:"YA_ENVIADO"}` si ya se enviaron, y el informe es idempotente (si ya existe, se
+  devuelve el mismo, sin regenerarlo, para que quien llegue después pueda seguir descargándolo y
+  enviándolo por correo con normalidad). En cliente, `actualizarEstadoEnvioSesion1_`/`_2_` muestran un
+  aviso "✅ ya fue enviada" y deshabilitan el botón correspondiente, sincronizado con `rpcEstadoGrupo` al
+  entrar a cada pantalla y justo después de un envío exitoso; `actualizarBotonGenerarInforme` ya no exige
+  ser el responsable principal, solo la valoración enviada y que el informe no exista todavía.
+- **Cambiar fotografía del grupo**: la vista de "foto ya subida" (`renderFotoGrupo`, `Components.html`)
+  ahora incluye un botón "Cambiar fotografía" (`data-cambiar-foto`) que reabre el formulario de subida
+  correspondiente (nuevo manejador delegado en `JS.html`).
+- **Método de asistencia — QR→PDF permitido mientras no haya informe**: se relajó el bloqueo del lote
+  anterior; `guardarMetodoAsistencia` (`Asistencia.gs`) y `actualizarBloqueoMetodoAsistencia_` (`JS.html`)
+  ahora solo impiden el cambio de QR a PDF cuando el estado del grupo ya es `INFORME_GENERADO`.
+  Documentos de apoyo en Preparación: se revisó todo el flujo (`abrirModalResponsablePreparacion` →
+  `cargarPreparacionIE` → `abrirModal("modalRecursosSesion1")`) sin encontrar una causa reproducible; se
+  añadió de todas formas manejo defensivo de errores en `rpcObtenerRecursosSesion1`.
+- **Copiar automático al seleccionar texto en los aportes de preparación**: al soltar una selección
+  dentro de "🗣️ Aportes de preparación por institución" se copia al portapapeles
+  (`navigator.clipboard.writeText`, con `document.execCommand("copy")` de respaldo) y aparece un aviso
+  centrado y sutil "Texto copiado" (`avisoTextoCopiado`, `.aviso-texto-copiado`) que se desvanece solo.
+- **"Aporte propio" al final de Sesión 1**: el desplegable opcional se movió de después de "Conclusiones"
+  a justo antes del botón "Enviar Sesión 1 de forma definitiva", después de "Ruta de trabajo".
+- **ConectaEduca — cantidad de actores agregados**: `renderTablaConectaEduca` (`Components.html`) ahora
+  también actualiza `contadorActoresCE` con el total de actores/entidades ya registrados por el grupo,
+  visible justo debajo del botón "Agregar actor".
+- **Nuevos títulos — Bienvenida y Metodología**: "Bienvenida" pasó a "Querida Comunidad Educativa del
+  [grupo]" (el nombre del grupo se rellena tras validar el código de acceso, `nombreGrupoBienvenida`);
+  "Metodología" pasó a "Ruta del Foro Educativo Comunal", con la lista de pasos corregida para reflejar
+  el recorrido real de pantallas de esta entrega (consentimiento y método de asistencia, participación,
+  confirmación de caracterización, sesión de preparación, Sesión 1, Sesión 2/ConectaEduca, revisión y
+  cierre, y generación del informe).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

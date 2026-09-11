@@ -210,6 +210,22 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .overlay-carga-accion.con-imagen-caida img.imagen-carga-accion { display: none; }
 .overlay-carga-accion.con-imagen-caida .spinner-cargando { display: inline-block; }
 .overlay-carga-accion p.texto-carga-accion { font-size: 1rem; font-weight: 600; margin: 0; }
+
+/* ---------- Aviso sutil "Texto copiado" al seleccionar aportes ---------- */
+.aviso-texto-copiado {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: rgba(8, 77, 50, 0.85); color: var(--blanco);
+  padding: 10px 20px; border-radius: 20px; font-size: 0.9rem; font-weight: 600;
+  z-index: 340; pointer-events: none; opacity: 0; transition: opacity 0.25s ease;
+}
+.aviso-texto-copiado.visible { opacity: 1; }
+
+/* ---------- Contador de actores agregados (ConectaEduca) ---------- */
+.contador-actores-ce {
+  font-weight: 600; color: var(--verde-oscuro, #084d32);
+  background: rgba(8, 77, 50, 0.08); border-radius: 8px;
+  padding: 8px 12px; margin: 6px 0 12px;
+}
 .overlay-carga-accion .emoji-carga-accion { font-size: 4.5rem; line-height: 1; }
 .overlay-carga-accion .emoji-carga-accion.emoji-corriendo { animation: correrEmojiCarga 0.9s ease-in-out infinite; }
 @keyframes correrEmojiCarga { 0%, 100% { transform: translateX(-16px) scaleX(-1); } 50% { transform: translateX(16px) scaleX(-1); } }

@@ -261,7 +261,10 @@ function renderFotoGrupo(fotoGrupoId, idPrevia, idFormulario, nombreGrupo) {
   if (fotoGrupoId) {
     contenedor.innerHTML =
       "<img src='" + urlImagenDrive(fotoGrupoId, 600) + "' alt='Fotografía general del grupo'>" +
-      "<div class='mensaje exito'>✅ La foto del " + escapeHtml(nombreGrupo || "grupo") + " ha sido subida.</div>";
+      "<div class='mensaje exito'>✅ La foto del " + escapeHtml(nombreGrupo || "grupo") + " ha sido subida.</div>" +
+      "<div class='fila-botones' style='justify-content:center;'>" +
+      "<button type='button' class='btn btn-secundario' data-cambiar-foto='" + escapeHtml(idFormulario || "formularioFotoGrupo") + "'>✏️ Cambiar fotografía</button>" +
+      "</div>";
     if (formulario) formulario.classList.add("oculto");
   } else {
     contenedor.innerHTML = "<p class='ayuda'>Todavía no se ha subido ninguna fotografía.</p>";
@@ -297,6 +300,16 @@ function renderTablaConectaEduca(registros) {
       "<td><button type='button' class='btn btn-secundario' data-borrar-actor='" + r.ID_REGISTRO + "'>Quitar</button></td>";
     tbody.appendChild(fila);
   });
+  // Cantidad de actores ya agregados por el grupo (spec del usuario: "al
+  // dar click en agregar actor, deben aparecer la cantidad de actores que
+  // se han seleccionado").
+  var contador = document.getElementById("contadorActoresCE");
+  if (contador) {
+    var total = (registros || []).length;
+    contador.classList.toggle("oculto", total === 0);
+    contador.textContent = total === 0 ? "" :
+      "✅ " + total + (total === 1 ? " actor/entidad agregado hasta ahora." : " actores/entidades agregados hasta ahora.");
+  }
 }
 
 /** Botones de selección de IE para la Sesión de preparación — con ✅ si esa IE ya envió sus aportes. */

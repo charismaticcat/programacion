@@ -105,14 +105,20 @@ function obtenerSesion1(idGrupo) {
   return leerFilaComoObjeto_(hoja, fila, mapa);
 }
 
-/** Marca Sesión 1 como enviada definitivamente (solo el responsable principal, spec sección 22). */
+/**
+ * Marca Sesión 1 como enviada definitivamente. Cualquier dispositivo con
+ * sesión activa en el grupo puede enviarla (spec del usuario: revierte la
+ * restricción de "solo el responsable principal" — "cualquiera pueda
+ * enviar, pero al final solo debe haber un envío"); una vez enviada, no
+ * se permiten más envíos (ver comprobación de SESION1_ENVIADA abajo).
+ */
 function enviarSesion1Definitiva(idGrupo, tokenSesion, dispositivoId) {
   idGrupo = String(idGrupo || "").trim();
   if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
     return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión ya no está activa en este dispositivo." };
   }
-  if (!esPrincipalDeGrupo_(idGrupo, dispositivoId, tokenSesion)) {
-    return { ok: false, mensaje: "Solo el responsable principal del grupo puede enviar Sesión 1 de forma definitiva." };
+  if (obtenerEstadoGrupo(idGrupo).sesion1Enviada) {
+    return { ok: false, codigo: "YA_ENVIADO", mensaje: "Sesión 1 ya fue enviada de forma definitiva. No se permiten más envíos." };
   }
 
   var datos = obtenerSesion1(idGrupo);

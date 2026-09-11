@@ -90,8 +90,10 @@ function enviarSesion2Definitiva(idGrupo, tokenSesion, dispositivoId) {
   if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
     return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión ya no está activa en este dispositivo." };
   }
-  if (!esPrincipalDeGrupo_(idGrupo, dispositivoId, tokenSesion)) {
-    return { ok: false, mensaje: "Solo el responsable principal del grupo puede enviar ConectaEduca de forma definitiva." };
+  // Cualquiera con sesión activa puede enviar (spec del usuario), pero
+  // una vez enviada, no se permiten más envíos.
+  if (obtenerEstadoGrupo(idGrupo).sesion2Enviada) {
+    return { ok: false, codigo: "YA_ENVIADO", mensaje: "Sesión 2 (ConectaEduca) ya fue enviada de forma definitiva. No se permiten más envíos." };
   }
 
   var datos = obtenerSesion1(idGrupo);

@@ -23,6 +23,8 @@
      validar código de acceso, subir foto del grupo (los dos momentos
      disponibles) y guardar responsable de envío — ver mostrarCargaAccion_
      en JS.html. -->
+<div id="avisoTextoCopiado" class="aviso-texto-copiado">Texto copiado</div>
+
 <div id="overlayCargaAccion" class="overlay-carga-accion oculto">
   <img id="imagenCargaAccion" class="imagen-carga-accion oculto" alt="">
   <div id="emojiCargaAccion" class="emoji-carga-accion oculto"></div>
@@ -56,7 +58,7 @@
   <!-- 1. INICIO -->
   <section id="pantallaInicio" class="pantalla">
     <div class="tarjeta">
-      <h2 class="titulo-seccion">Bienvenida</h2>
+      <h2 class="titulo-seccion">Querida Comunidad Educativa del <span id="nombreGrupoBienvenida">grupo</span></h2>
       <p>El Foro Educativo Comunal Neiva 2026 reúne a las instituciones educativas organizadas por
         grupos territoriales para socializar los resultados de sus Foros Educativos Institucionales,
         construir conclusiones colectivas y dialogar con ConectaEduca.</p>
@@ -83,13 +85,17 @@
   <!-- 3. METODOLOGÍA -->
   <section id="pantallaMetodologia" class="pantalla">
     <div class="tarjeta">
-      <h2 class="titulo-seccion">Metodología</h2>
+      <h2 class="titulo-seccion">Ruta del Foro Educativo Comunal</h2>
       <ol>
-        <li>Ingreso con el código de acceso del grupo.</li>
-        <li>Registro de participación y asistencia.</li>
-        <li>Sesión 1: socialización de resultados institucionales y construcción colectiva.</li>
-        <li>Sesión 2: ConectaEduca — diálogo con el sector productivo y educación superior.</li>
-        <li>Revisión, cierre y generación del informe único del grupo.</li>
+        <li>Consentimiento informado y método de asistencia del grupo.</li>
+        <li>Participación y asistencia: matriz de estamentos por IE y responsable de envío.</li>
+        <li>Confirmación de la caracterización del grupo.</li>
+        <li>Sesión de preparación: cada IE (o participante invitado) diligencia sus aportes.</li>
+        <li>Sesión 1: Consolidado de Socialización y Construcción colectiva del grupo (incluye el
+          aporte propio opcional).</li>
+        <li>Sesión 2: ConectaEduca — diálogo con el sector productivo y la educación superior.</li>
+        <li>Revisión y cierre: verificación de firmantes y valoración del Foro.</li>
+        <li>Generación del informe único del grupo, descarga y envío por correo.</li>
       </ol>
       <div class="fila-botones">
         <button class="btn btn-secundario" data-ir="pantallaPresentacion">Atrás</button>
@@ -431,16 +437,6 @@
         registrado.</p>
       <textarea id="campo_CONCLUSIONES" data-campo-sesion1="CONCLUSIONES" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
 
-      <details class="desplegable-aporte">
-        <summary>➕ Aporte propio del grupo (opcional)</summary>
-        <p class="ayuda">Espacio libre para hallazgos, reflexiones o propuestas propias de la comunidad
-          que no encajen en las preguntas anteriores.</p>
-        <label for="campo_APORTE_PROPIO_S1_TITULO">Título</label>
-        <input type="text" id="campo_APORTE_PROPIO_S1_TITULO" data-campo-sesion1="APORTE_PROPIO_S1_TITULO">
-        <label for="campo_APORTE_PROPIO_S1_TEXTO">Descripción</label>
-        <textarea id="campo_APORTE_PROPIO_S1_TEXTO" data-campo-sesion1="APORTE_PROPIO_S1_TEXTO"></textarea>
-      </details>
-
       <h3 class="subtitulo-campo">Prioridades</h3>
       <p class="ayuda">Asuntos que el grupo considera más urgentes o importantes de atender.</p>
       <textarea id="campo_PRIORIDADES" data-campo-sesion1="PRIORIDADES"></textarea>
@@ -455,6 +451,19 @@
         práctica.</p>
       <textarea id="campo_RUTA" data-campo-sesion1="RUTA"></textarea>
 
+      <details class="desplegable-aporte">
+        <summary>➕ Aporte propio del grupo (opcional)</summary>
+        <p class="ayuda">Espacio libre para hallazgos, reflexiones o propuestas propias de la comunidad
+          que no encajen en las preguntas anteriores.</p>
+        <label for="campo_APORTE_PROPIO_S1_TITULO">Título</label>
+        <input type="text" id="campo_APORTE_PROPIO_S1_TITULO" data-campo-sesion1="APORTE_PROPIO_S1_TITULO">
+        <label for="campo_APORTE_PROPIO_S1_TEXTO">Descripción</label>
+        <textarea id="campo_APORTE_PROPIO_S1_TEXTO" data-campo-sesion1="APORTE_PROPIO_S1_TEXTO"></textarea>
+      </details>
+
+      <div id="bannerSesion1YaEnviada" class="banner-completado oculto">
+        ✅ Sesión 1 ya fue enviada de forma definitiva por este grupo. No se permiten más envíos.
+      </div>
       <div id="mensajeSesion1"></div>
       <div class="fila-botones">
         <button class="btn btn-primario" id="btnEnviarSesion1">Enviar Sesión 1 definitiva</button>
@@ -516,6 +525,7 @@
         <div class="fila-botones">
           <button class="btn btn-primario" id="btnAgregarActorCE">Agregar actor</button>
         </div>
+        <p id="contadorActoresCE" class="contador-actores-ce oculto"></p>
 
         <table class="tabla-simple" id="tablaConectaEduca">
           <thead><tr><th>Actor</th><th>Tipo</th><th>Área</th><th></th></tr></thead>
@@ -543,6 +553,9 @@
           <p class="ayuda">Se guarda automáticamente, igual que el resto de Sesión 1 y Sesión 2.</p>
         </details>
 
+        <div id="bannerSesion2YaEnviada" class="banner-completado oculto">
+          ✅ Sesión 2 (ConectaEduca) ya fue enviada de forma definitiva por este grupo. No se permiten más envíos.
+        </div>
         <div class="fila-botones">
           <button class="btn btn-primario" id="btnEnviarSesion2">Enviar Sesión 2 definitiva</button>
         </div>
@@ -901,6 +914,7 @@
   var LOGO_ENCABEZADO_ID = <?!= JSON.stringify(LOGO_ENCABEZADO_ID || "") ?>;
   var LOGO_PIE_ID = <?!= JSON.stringify(LOGO_PIE_ID || "") ?>;
 </script>
+<?!= include('GifsData'); ?>
 <?!= include('Components'); ?>
 <?!= include('JS'); ?>
 
