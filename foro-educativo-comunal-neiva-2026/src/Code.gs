@@ -31,10 +31,21 @@ function doGet(e) {
 
   var token = String(params.t || params.token || params.TOKEN || "").trim();
 
+  // Enlace directo de invitado (estudiante/egresado o acudiente) de un
+  // grupo concreto — spec del usuario: la pantalla de "invitados
+  // especiales" (tras Confirmación de caracterización) puede enviar por
+  // correo un enlace &invitado=ESTUDIANTE|ACUDIENTE junto al ?t=TOKEN del
+  // grupo, para que quien lo abra salte directo a "elegir institución"
+  // (ver overlayInvitadoIE en JS.html) sin pasar por "elegir tipo" ni
+  // "elegir grupo", que ya vienen resueltos por el enlace.
+  var invitadoTipoParam = String(params.invitado || "").trim().toUpperCase();
+  if (invitadoTipoParam !== "ESTUDIANTE" && invitadoTipoParam !== "ACUDIENTE") invitadoTipoParam = "";
+
   var template = HtmlService.createTemplateFromFile("Index");
   template.TOKEN_ACCESO = token;
   template.NOMBRE_GRUPO_ACCESO = "";
   template.ID_GRUPO_ACCESO = "";
+  template.INVITADO_TIPO_ACCESO = invitadoTipoParam;
   template.NOMBRE_FORO = getConfig().NOMBRE_FORO;
   template.SUBTITULO_FORO = getConfig().SUBTITULO;
   template.LOGO_ENCABEZADO_ID = getConfig().LOGO_ENCABEZADO_ID;
@@ -182,6 +193,20 @@ function rpcPreparacionesEnviadasGrupo(idGrupo) {
 function rpcAportesInvitadosGrupo(idGrupo) {
   return ejecutarRpcSeguro_(function () {
     return obtenerAportesInvitadosGrupo(idGrupo);
+  });
+}
+
+/** Enlaces (estudiante/egresado y acudiente) de la pantalla de invitados especiales, tras Confirmación de caracterización. */
+function rpcObtenerEnlacesInvitadosGrupo(idGrupo) {
+  return ejecutarRpcSeguro_(function () {
+    return obtenerEnlacesInvitadosGrupo(idGrupo);
+  });
+}
+
+/** Envía por correo el enlace de invitado (estudiante/egresado o acudiente) al responsable de envío de ese grupo. */
+function rpcEnviarEnlaceInvitados(idGrupo, tokenSesion, dispositivoId, tipoInvitado, correos) {
+  return ejecutarRpcSeguro_(function () {
+    return enviarEnlaceInvitados(idGrupo, tokenSesion, dispositivoId, tipoInvitado, correos);
   });
 }
 

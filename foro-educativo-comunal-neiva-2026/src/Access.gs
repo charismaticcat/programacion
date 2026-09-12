@@ -258,6 +258,39 @@ function construirUrlAcceso_(token) {
 }
 
 /**
+ * Enlace de acceso de invitado (estudiante/egresado(a) o padre/madre/
+ * acudiente) para UN grupo — mismo token de acceso del grupo (?t=), con
+ * &invitado=ESTUDIANTE|ACUDIENTE agregado para que doGet (Code.gs) abra
+ * directo el flujo de invitado con el tipo ya elegido y la institución
+ * acotada a este grupo, sin pasar por "elegir tipo" ni "elegir grupo"
+ * (spec del usuario: pantalla de "invitados especiales" tras la
+ * Confirmación de caracterización, con enlaces para compartir "por
+ * separado" a estudiantes/egresados y a padres/madres/acudientes).
+ */
+function construirUrlInvitado_(token, tipoInvitado) {
+  return construirUrlAcceso_(token) + "&invitado=" + tipoInvitado;
+}
+
+/**
+ * Enlaces de invitado (estudiante/egresado(a) y acudiente) del grupo,
+ * listos para copiar o enviar por correo desde la pantalla de invitados
+ * especiales.
+ */
+function obtenerEnlacesInvitadosGrupo(idGrupo) {
+  var hoja = obtenerHoja_(HOJA_ACCESOS_GRUPO_, cabecerasAccesosGrupo_());
+  var mapa = obtenerMapaCabeceras_(hoja);
+  var fila = buscarFilaPorColumna_(hoja, mapa, "ID_GRUPO", String(idGrupo || "").trim());
+  if (fila === -1) return { ok: false, mensaje: "Grupo no encontrado." };
+  var token = String(hoja.getRange(fila, mapa["TOKEN"]).getValue() || "").trim();
+  if (!token) return { ok: false, mensaje: "El grupo todavía no tiene enlace de acceso generado." };
+  return {
+    ok: true,
+    estudiante: construirUrlInvitado_(token, "ESTUDIANTE"),
+    acudiente: construirUrlInvitado_(token, "ACUDIENTE")
+  };
+}
+
+/**
  * Asigna el logo propio de un grupo (equivalente a LOGO_ID en AccesosIE de
  * 3.1, resuelto dinámicamente en vez de hardcodeado — ver auditoría §1.4).
  * `logoFileId` es el ID del archivo de imagen ya subido a Drive (súbelo a

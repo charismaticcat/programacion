@@ -32,7 +32,8 @@ var estado = {
   prepResponsable: "",
   socializacionPreparacion: [],
   explicacionConectaEducaVista: false,
-  fotoGrupoMasTardeConfirmado: false
+  fotoGrupoMasTardeConfirmado: false,
+  enlacesInvitados: null
 };
 
 /** URL de imagen para un archivo de Drive público (logos) — mismo patrón usado para el QR de asistencia. */
@@ -48,6 +49,7 @@ function urlImagenDrive(idArchivo, ancho) {
 var ORDEN_PANTALLAS = [
   "pantallaAcceso", "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia",
   "pantallaConsentimientoGrupo", "pantallaParticipacion", "pantallaConfirmacionCaracterizacion",
+  "pantallaInvitadosEspeciales",
   "pantallaPreSocializacion", "pantallaSeleccionIEPreparacion", "pantallaPreparacionIE",
   "pantallaSesion1", "pantallaSesion2", "pantallaRevisionCierre",
   "pantallaInformeGenerado", "pantallaDespedida"
@@ -123,6 +125,16 @@ function cambiarPantalla(idPantalla) {
     cargarParticipacionEstamento();
   }
   if (idPantalla === "pantallaConfirmacionCaracterizacion") cargarConfirmacionCaracterizacion();
+  if (idPantalla === "pantallaInvitadosEspeciales") {
+    // Se refresca siempre al entrar (no solo al confirmar la
+    // caracterización), por si se resume el recorrido directo en esta
+    // pantalla desde otro dispositivo (spec del usuario: retomar desde
+    // la última entrada) — así los conteos de estudiantes/egresados y
+    // padres/madres/acudientes están siempre al día.
+    cargarParticipacionEstamento(function () {
+      prepararPantallaInvitadosEspeciales_();
+    });
+  }
   if (idPantalla === "pantallaSeleccionIEPreparacion") cargarListaIEPreparacion();
   if (idPantalla === "pantallaPreparacionIE") cargarPreparacionIE();
   if (idPantalla === "pantallaSesion1") {
@@ -608,7 +620,12 @@ document.getElementById("btnCerrarInvitadoGrupo").addEventListener("click", func
 });
 document.getElementById("btnCerrarInvitadoIE").addEventListener("click", function () {
   document.getElementById("overlayInvitadoIE").classList.add("oculto");
-  document.getElementById("overlayInvitadoGrupo").classList.remove("oculto");
+  // Si se llegó por un enlace directo (?t=TOKEN&invitado=...), no hay
+  // pantalla de "elegir grupo" a la que volver — el grupo ya vino resuelto
+  // en el enlace — así que aquí simplemente se cierra el flujo.
+  if (!estadoInvitado.viaEnlaceDirecto_) {
+    document.getElementById("overlayInvitadoGrupo").classList.remove("oculto");
+  }
 });
 
 // Paso 1 tras elegir el tipo de invitado: elegir el GRUPO (1 a 6), no la
@@ -681,6 +698,34 @@ document.getElementById("btnContinuarInvitadoIE").addEventListener("click", func
     abrirCaracterizacionInvitado_();
   });
 });
+
+/**
+ * Enlace directo de invitado (?t=TOKEN&invitado=ESTUDIANTE|ACUDIENTE),
+ * enviado desde la pantalla de "invitados especiales" (spec del usuario)
+ * — tipo de invitado y grupo ya vienen resueltos por el enlace, así que
+ * se salta "¿Quién eres?" y "Tu grupo" y se abre directo "Tu institución
+ * educativa", acotada a las IE de ese grupo (ID_GRUPO_ACCESO, ya resuelto
+ * por doGet a partir del mismo TOKEN — ver Code.gs).
+ */
+if (INVITADO_TIPO_ACCESO && ID_GRUPO_ACCESO) {
+  estadoInvitado.tipoInvitado = INVITADO_TIPO_ACCESO;
+  estadoInvitado.viaEnlaceDirecto_ = true;
+  document.getElementById("btnCerrarInvitadoIE").textContent = "Cancelar";
+  llamarServidor("rpcInstitucionesDelGrupo", [ID_GRUPO_ACCESO], function (instituciones) {
+    estadoInvitado.grupoSeleccionado = NOMBRE_GRUPO_ACCESO;
+    estadoInvitado.institucionesDelGrupoSeleccionado = instituciones || [];
+    document.getElementById("nombreGrupoInvitadoIE").textContent = NOMBRE_GRUPO_ACCESO || "";
+    var select = document.getElementById("campoIEInvitado");
+    select.innerHTML = "";
+    estadoInvitado.institucionesDelGrupoSeleccionado.forEach(function (ie) {
+      var opcion = document.createElement("option");
+      opcion.value = ie.idIE;
+      opcion.textContent = ie.institucion;
+      select.appendChild(opcion);
+    });
+    document.getElementById("overlayInvitadoIE").classList.remove("oculto");
+  });
+}
 
 /**
  * Antes de responder las preguntas, cada invitado (estudiante/egresado o
@@ -984,6 +1029,19 @@ function institucionesSinParticipacionMarcada_() {
     .map(function (ie) { return ie.institucion; });
 }
 
+/**
+ * Tras confirmar la caracterización: si el grupo declaró estudiantes/
+ * egresados o padres/madres/acudientes en la matriz de participación por
+ * estamento, se muestra primero la pantalla de "invitados especiales"
+ * (spec del usuario); si no, se salta directo a la sesión de preparación,
+ * igual que antes.
+ */
+function irTrasConfirmarCaracterizacion_() {
+  var totales = (estado.participacionEstamento && estado.participacionEstamento.totalesPorEstamento) || {};
+  var hayInvitados = (Number(totales.ESTUDIANTES) || 0) + (Number(totales.EGRESADOS) || 0) + (Number(totales.PADRES) || 0) > 0;
+  cambiarPantalla(hayInvitados ? "pantallaInvitadosEspeciales" : "pantallaPreSocializacion");
+}
+
 // La advertencia "Verifique la participación por institución" solo se
 // muestra aquí, en la confirmación de caracterización (spec del
 // usuario) — no antes, en Participación (ver btnContinuarAParticipacion).
@@ -993,15 +1051,123 @@ document.getElementById("btnConfirmarCaracterizacion").addEventListener("click",
     confirmarAccion(
       "Estas instituciones no tienen ninguna persona registrada en el cuadro de \"Participación por " +
         "estamento e institución\": " + institucionesSinMarcar.join(", ") + ". ¿La información es correcta?",
-      function () {
-        cambiarPantalla("pantallaPreSocializacion");
-      },
+      irTrasConfirmarCaracterizacion_,
       "Verifique la participación por institución",
       { textoConfirmar: "Es correcto", textoCancelar: "No es correcto, voy a corregir" }
     );
     return;
   }
-  cambiarPantalla("pantallaPreSocializacion");
+  irTrasConfirmarCaracterizacion_();
+});
+
+/* ------------------------------------------------------------------ *
+ * Invitados especiales (estudiantes/egresados y padres/madres/
+ * acudientes) — pantalla previa a la sesión de preparación, spec del
+ * usuario: "tienen un espacio especial como invitados. Sus aportes deben
+ * ser enviados desde el perfil de invitados."
+ * ------------------------------------------------------------------ */
+function prepararPantallaInvitadosEspeciales_() {
+  var totales = (estado.participacionEstamento && estado.participacionEstamento.totalesPorEstamento) || {};
+  var totalEstudiantes = (Number(totales.ESTUDIANTES) || 0) + (Number(totales.EGRESADOS) || 0);
+  var totalPadres = Number(totales.PADRES) || 0;
+
+  var partes = [];
+  if (totalEstudiantes > 0) partes.push("Los/Las " + totalEstudiantes + " estudiantes y egresados(as) registrados(as)");
+  if (totalPadres > 0) partes.push("los " + totalPadres + " padres/madres/acudientes registrados(as)");
+  var texto = document.getElementById("textoInvitadosEspeciales");
+  if (texto) {
+    texto.textContent = partes.length
+      ? partes.join(" y ") + " tienen un espacio especial como invitados. Sus aportes deben ser enviados desde el perfil de invitados."
+      : "";
+  }
+  document.getElementById("bloqueInvitadosEstudiantes").classList.toggle("oculto", !totalEstudiantes);
+  document.getElementById("bloqueInvitadosPadres").classList.toggle("oculto", !totalPadres);
+
+  // Se limpia el estado de la pantalla en cada entrada (enlaces en caché,
+  // mensajes, formularios de envío abiertos) para que no queden restos de
+  // una visita anterior con otros conteos.
+  estado.enlacesInvitados = null;
+  ["mensajeEnlaceEstudiantes", "mensajeEnlacePadres", "mensajeEnvioEstudiantes", "mensajeEnvioPadres"].forEach(function (id) {
+    mostrarMensaje(id, "");
+  });
+  document.getElementById("formularioEnvioEstudiantes").classList.add("oculto");
+  document.getElementById("formularioEnvioPadres").classList.add("oculto");
+}
+
+/** Enlaces de invitado del grupo (estudiante/egresado y acudiente), obtenidos una sola vez y cacheados en estado. */
+function obtenerEnlacesInvitados_(callback) {
+  if (estado.enlacesInvitados) {
+    callback(estado.enlacesInvitados);
+    return;
+  }
+  llamarServidor(
+    "rpcObtenerEnlacesInvitadosGrupo",
+    [estado.idGrupo],
+    function (r) {
+      if (!r || !r.ok) {
+        callback(null);
+        return;
+      }
+      estado.enlacesInvitados = r;
+      callback(r);
+    },
+    function () {
+      callback(null);
+    }
+  );
+}
+
+function darEnlaceInvitados_(tipoInvitado, idMensaje) {
+  obtenerEnlacesInvitados_(function (r) {
+    if (!r) {
+      mostrarMensaje(idMensaje, "No fue posible obtener el enlace.", "error");
+      return;
+    }
+    var enlace = tipoInvitado === "ESTUDIANTE" ? r.estudiante : r.acudiente;
+    if (navigator.clipboard) navigator.clipboard.writeText(enlace);
+    mostrarMensaje(idMensaje, "Enlace copiado: " + enlace, "exito");
+  });
+}
+
+document.getElementById("btnDarEnlaceEstudiantes").addEventListener("click", function () {
+  darEnlaceInvitados_("ESTUDIANTE", "mensajeEnlaceEstudiantes");
+});
+document.getElementById("btnDarEnlacePadres").addEventListener("click", function () {
+  darEnlaceInvitados_("ACUDIENTE", "mensajeEnlacePadres");
+});
+
+document.getElementById("btnMostrarEnvioEstudiantes").addEventListener("click", function () {
+  document.getElementById("formularioEnvioEstudiantes").classList.toggle("oculto");
+});
+document.getElementById("btnMostrarEnvioPadres").addEventListener("click", function () {
+  document.getElementById("formularioEnvioPadres").classList.toggle("oculto");
+});
+
+/** Envía por correo el enlace de invitado al responsable de envío que el grupo designe para su propio grupo (estudiantes/egresados o padres/madres/acudientes). */
+function enviarEnlaceInvitadosDesdeUI_(tipoInvitado, idCampo, idMensaje) {
+  var valor = document.getElementById(idCampo).value.trim();
+  if (!valor) {
+    mostrarMensaje(idMensaje, "Escriba al menos un correo electrónico.", "error");
+    return;
+  }
+  llamarServidor(
+    "rpcEnviarEnlaceInvitados",
+    [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, tipoInvitado, valor],
+    function (r) {
+      if (!r.ok) {
+        mostrarMensaje(idMensaje, r.mensaje || "No fue posible enviar el correo.", "error");
+        return;
+      }
+      mostrarMensaje(idMensaje, "Enlace enviado por correo.", "exito");
+    }
+  );
+}
+
+document.getElementById("btnEnviarEmailEstudiantes").addEventListener("click", function () {
+  enviarEnlaceInvitadosDesdeUI_("ESTUDIANTE", "campoEmailsEstudiantes", "mensajeEnvioEstudiantes");
+});
+document.getElementById("btnEnviarEmailPadres").addEventListener("click", function () {
+  enviarEnlaceInvitadosDesdeUI_("ACUDIENTE", "campoEmailsPadres", "mensajeEnvioPadres");
 });
 
 document.getElementById("btnCopiarEnlaceAsistencia").addEventListener("click", function () {

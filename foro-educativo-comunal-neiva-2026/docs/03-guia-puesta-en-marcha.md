@@ -778,6 +778,32 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   tiene ese alias de Gmail, y no fue posible verificarlo en vivo desde este entorno. Se documentó en
   `Config.gs` que se debe correr `testVerificarPermisosCorreo()` primero para decidir con certeza.
 
+## 4.23 Undécimo lote: pantalla de invitados especiales (estudiantes/egresados y padres/madres/acudientes) tras la Confirmación de caracterización, con enlace directo por grupo y envío por correo
+
+- **Nueva pantalla `pantallaInvitadosEspeciales`**: se inserta entre "Confirmación de caracterización" y
+  "Sesión de preparación" en `ORDEN_PANTALLAS`, pero **solo aparece si el grupo declaró estudiantes,
+  egresados o padres/madres/acudientes** en la matriz de "Participación por estamento e institución"
+  (`estado.participacionEstamento.totalesPorEstamento` — `ESTUDIANTES`+`EGRESADOS` y `PADRES`); si el
+  grupo no declaró ninguno, `btnConfirmarCaracterizacion` sigue saltando directo a la sesión de
+  preparación, igual que antes (`irTrasConfirmarCaracterizacion_`, `JS.html`). El texto se arma
+  dinámicamente con los conteos reales: "Los/Las N estudiantes y egresados(as) registrados(as) y los N
+  padres/madres/acudientes registrados(as) tienen un espacio especial como invitados. Sus aportes deben
+  ser enviados desde el perfil de invitados." — cada uno de los dos bloques (estudiantes/egresados y
+  padres/madres/acudientes) solo se muestra si su conteo es mayor que cero, tal como pidió el usuario.
+- **Enlace directo por grupo y por tipo de invitado**: cada bloque tiene "🔗 Dar enlace" (copia al
+  portapapeles) y "✉️ Enviar enlace" (despliega un textarea para escribir el/los correo(s) del
+  responsable de envío de ese grupo — estudiante/egresado(a) o padre/madre/acudiente — y un botón "Enviar
+  por correo"). El enlace reutiliza el mismo TOKEN de acceso del grupo, con `&invitado=ESTUDIANTE` o
+  `&invitado=ACUDIENTE` agregado (`construirUrlInvitado_`/`obtenerEnlacesInvitadosGrupo`, `Access.gs`) —
+  al abrirlo, `doGet` (`Code.gs`) resuelve tanto el grupo (`ID_GRUPO_ACCESO`, ya existente) como el tipo de
+  invitado (`INVITADO_TIPO_ACCESO`, nuevo) y el cliente salta directo a "Tu institución educativa"
+  (`overlayInvitadoIE`), sin pasar por "¿Quién eres?" ni "Tu grupo" — ambos ya vienen resueltos por el
+  enlace. El correo se envía desde el mismo remitente configurado (`remitenteValido_`) con instrucciones
+  cortas y claras (`enviarEnlaceInvitados`, `Correo.gs`).
+- Se generan los enlaces bajo demanda (`rpcObtenerEnlacesInvitadosGrupo`) y se cachean en
+  `estado.enlacesInvitados` para no repetir la llamada al servidor entre "Dar enlace" y "Enviar enlace" de
+  un mismo bloque.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

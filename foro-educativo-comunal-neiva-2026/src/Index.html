@@ -317,7 +317,58 @@
     </div>
   </section>
 
-  <!-- 7bis. PRE-SOCIALIZACIÓN (sesión de preparación) -->
+  <!-- 7bis. INVITADOS ESPECIALES (solo aparece si el grupo declaró
+       estudiantes/egresados o padres/madres/acudientes en la matriz de
+       participación por estamento) -->
+  <section id="pantallaInvitadosEspeciales" class="pantalla">
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">Espacio especial para invitados</h2>
+      <p class="ayuda" id="textoInvitadosEspeciales"></p>
+      <p>Envíe el enlace para que registren sus contribuciones en el grupo de estudiantes y egresados(as), o en el
+        grupo de padres/madres/acudientes, por separado.</p>
+
+      <div id="bloqueInvitadosEstudiantes" class="bloque-invitados-especial oculto">
+        <h3 class="subtitulo-campo">🧑‍🎓 Estudiantes y egresados(as)</h3>
+        <div class="fila-botones">
+          <button type="button" class="btn btn-secundario" id="btnDarEnlaceEstudiantes">🔗 Dar enlace</button>
+          <button type="button" class="btn btn-secundario" id="btnMostrarEnvioEstudiantes">✉️ Enviar enlace</button>
+        </div>
+        <div id="mensajeEnlaceEstudiantes"></div>
+        <div id="formularioEnvioEstudiantes" class="oculto">
+          <label for="campoEmailsEstudiantes">Email de estudiante/egresado(a) responsable de envío</label>
+          <textarea id="campoEmailsEstudiantes" rows="2" placeholder="Uno o varios correos, separados por coma"></textarea>
+          <div class="fila-botones">
+            <button type="button" class="btn btn-primario" id="btnEnviarEmailEstudiantes">Enviar por correo</button>
+          </div>
+          <div id="mensajeEnvioEstudiantes"></div>
+        </div>
+      </div>
+
+      <div id="bloqueInvitadosPadres" class="bloque-invitados-especial oculto">
+        <h3 class="subtitulo-campo">👨‍👩‍👧 Padres/madres/acudientes</h3>
+        <div class="fila-botones">
+          <button type="button" class="btn btn-secundario" id="btnDarEnlacePadres">🔗 Dar enlace</button>
+          <button type="button" class="btn btn-secundario" id="btnMostrarEnvioPadres">✉️ Enviar enlace</button>
+        </div>
+        <div id="mensajeEnlacePadres"></div>
+        <div id="formularioEnvioPadres" class="oculto">
+          <label for="campoEmailsPadres">Email para Padre/madre/acudiente responsable de envío</label>
+          <textarea id="campoEmailsPadres" rows="2" placeholder="Uno o varios correos, separados por coma"></textarea>
+          <div class="fila-botones">
+            <button type="button" class="btn btn-primario" id="btnEnviarEmailPadres">Enviar por correo</button>
+          </div>
+          <div id="mensajeEnvioPadres"></div>
+        </div>
+      </div>
+
+      <div class="fila-botones">
+        <button class="btn btn-secundario" data-ir="pantallaConfirmacionCaracterizacion">Atrás</button>
+        <button class="btn btn-primario" data-ir="pantallaPreSocializacion">Continuar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7ter. PRE-SOCIALIZACIÓN (sesión de preparación) -->
   <section id="pantallaPreSocializacion" class="pantalla">
     <div class="tarjeta">
       <h2 class="titulo-seccion">Sesión de preparación</h2>
@@ -339,7 +390,7 @@
     </div>
   </section>
 
-  <!-- 7ter. SELECCIÓN DE IE PARA PREPARACIÓN -->
+  <!-- 7quater. SELECCIÓN DE IE PARA PREPARACIÓN -->
   <section id="pantallaSeleccionIEPreparacion" class="pantalla">
     <div class="tarjeta">
       <h2 class="titulo-seccion">¿Qué institución o participante va a preparar sus aportes?</h2>
@@ -954,6 +1005,7 @@
   var TOKEN_ACCESO = <?!= JSON.stringify(TOKEN_ACCESO || "") ?>;
   var NOMBRE_GRUPO_ACCESO = <?!= JSON.stringify(NOMBRE_GRUPO_ACCESO || "") ?>;
   var ID_GRUPO_ACCESO = <?!= JSON.stringify(ID_GRUPO_ACCESO || "") ?>;
+  var INVITADO_TIPO_ACCESO = <?!= JSON.stringify(INVITADO_TIPO_ACCESO || "") ?>;
   var LOGO_ENCABEZADO_ID = <?!= JSON.stringify(LOGO_ENCABEZADO_ID || "") ?>;
   var LOGO_PIE_ID = <?!= JSON.stringify(LOGO_PIE_ID || "") ?>;
 </script>

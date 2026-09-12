@@ -39,6 +39,71 @@ function remitenteValido_() {
   return { ok: false, mensaje: "La cuenta de Apps Script no puede enviar como " + remitente + ". Configure esa cuenta o un alias, o deje CORREO_REMITENTE vacío." };
 }
 
+/**
+ * Envía por correo el enlace de invitado (estudiante/egresado(a) o
+ * padre/madre/acudiente) del grupo — pantalla de "invitados especiales"
+ * que aparece tras la Confirmación de caracterización cuando el grupo
+ * declaró estudiantes/egresados o padres/madres/acudientes en la matriz
+ * de participación por estamento (spec del usuario). El enlace se envía
+ * "por separado" al responsable de envío que cada grupo (estudiantes/
+ * egresados o padres/madres/acudientes) haya designado para distribuirlo
+ * a su vez entre sus pares — no se envía uno a uno a cada estudiante o
+ * acudiente individual.
+ */
+function enviarEnlaceInvitados(idGrupo, tokenSesion, dispositivoId, tipoInvitado, correos) {
+  idGrupo = String(idGrupo || "").trim();
+  if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
+    return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión ya no está activa en este dispositivo." };
+  }
+  tipoInvitado = String(tipoInvitado || "").trim().toUpperCase();
+  if (tipoInvitado !== "ESTUDIANTE" && tipoInvitado !== "ACUDIENTE") {
+    return { ok: false, mensaje: "Tipo de invitado no válido." };
+  }
+
+  var regexCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  var destinatarios = (Array.isArray(correos) ? correos : String(correos || "").split(/[,;\n]+/))
+    .map(function (c) { return String(c || "").trim(); })
+    .filter(function (c) { return c && regexCorreo.test(c); });
+  if (!destinatarios.length) {
+    return { ok: false, mensaje: "Escriba al menos un correo electrónico válido." };
+  }
+
+  var enlaces = obtenerEnlacesInvitadosGrupo(idGrupo);
+  if (!enlaces.ok) return enlaces;
+  var enlace = tipoInvitado === "ESTUDIANTE" ? enlaces.estudiante : enlaces.acudiente;
+
+  var remitente = remitenteValido_();
+  if (!remitente.ok) return remitente;
+
+  var grupoInfo = obtenerGrupoPorId(idGrupo);
+  var nombreGrupo = (grupoInfo && grupoInfo.grupo) || idGrupo;
+  var config = getConfig();
+  var textoGrupoInvitado = tipoInvitado === "ESTUDIANTE" ? "estudiantes y egresados(as)" : "padres, madres y acudientes";
+
+  var asunto = "Enlace para " + textoGrupoInvitado + " — " + nombreGrupo + " del " + config.NOMBRE_FORO;
+  var cuerpo =
+    "Hola:\n\n" +
+    "Te compartimos el enlace para que los/las " + textoGrupoInvitado + " del " + nombreGrupo + " registren sus " +
+    "aportes al " + config.NOMBRE_FORO + " (\"" + config.SUBTITULO + "\").\n\n" +
+    "Enlace: " + enlace + "\n\n" +
+    "Instrucciones:\n" +
+    "1. Abra el enlace desde un celular o computador.\n" +
+    "2. Confirme si es estudiante/egresado(a) o adulto responsable, según corresponda.\n" +
+    "3. Seleccione su institución educativa dentro del " + nombreGrupo + ".\n" +
+    "4. Complete y envíe sus aportes — no necesita ningún código de acceso.\n\n" +
+    "Secretaría de Educación de Neiva — " + config.NOMBRE_FORO;
+
+  try {
+    GmailApp.sendEmail(destinatarios.join(","), asunto, cuerpo, {
+      from: remitente.remitente,
+      name: "Secretaría de Educación de Neiva"
+    });
+  } catch (error) {
+    return { ok: false, mensaje: "No fue posible enviar el correo: " + error.message };
+  }
+  return { ok: true, enviados: destinatarios.length };
+}
+
 /** Envía TOKEN + código de acceso al responsable del grupo. */
 function enviarAccesosGrupo(idGrupo) {
   var hoja = obtenerHoja_(HOJA_ACCESOS_GRUPO_, cabecerasAccesosGrupo_());
