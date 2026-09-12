@@ -819,6 +819,13 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   el rango de palabras por pregunta sigue mostrándose igual junto a cada `<textarea>` (contador en vivo,
   `inicializarContadoresPalabras`, `JS.html`), que no se tocó; solo cambió el texto de apoyo general.
 
+## 4.25 Décimo tercer lote: texto de apoyo bajo "Construcción colectiva del grupo" (Sesión 1)
+
+- Justo debajo del título "Construcción colectiva del grupo" (`pantallaSesion1`) se agregó el texto de
+  apoyo: "Se sugiere que, mientras se proyectan y van leyendo los aportes, en otro dispositivo se vayan
+  registrando lo más relevante de esta sesión." — recomendación práctica para dividir el trabajo entre
+  quien proyecta/lee los aportes de preparación y quien va diligenciando las respuestas del consolidado.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:
