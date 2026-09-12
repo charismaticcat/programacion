@@ -1035,6 +1035,16 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
 - **Nota de transparencia**: verificado de forma estática (`node --check`, IDs sin duplicar, etiquetas
   balanceadas) pero no probado en vivo desde un navegador en este entorno.
 
+## 4.33 Vigésimo primer lote: la barra de progreso navegable se habilita apenas se valida el código
+
+- **Fix**: la barra de progreso navegable (lote 20) solo se habilitaba a medida que el grupo iba avanzando
+  pantalla por pantalla — recién validado el código de acceso, todos sus pasos (Participación,
+  Caracterización, Preparación, Sesión 1, Sesión 2, Cierre) aparecían deshabilitados hasta pasar
+  manualmente por Inicio/Presentación/Metodología/Consentimiento (spec del usuario: "Navegación debe estar
+  disponible luego de ingresar el código"). Esas pantallas de introducción no son un candado real, así que
+  ahora, apenas `rpcValidarAcceso` confirma el código, se habilita de una vez hasta "Participación" (o más
+  allá, si el grupo ya venía más adelante en un dispositivo distinto).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

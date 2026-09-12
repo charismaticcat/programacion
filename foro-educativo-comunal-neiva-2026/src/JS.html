@@ -633,6 +633,15 @@ function intentarValidarAcceso(forzar) {
     estado.consentimientoGrupo = !!r.consentimientoGrupo;
     estado.fotoGrupoId = r.fotoGrupoId || "";
 
+    // La barra de progreso navegable debe poder usarse apenas se valida
+    // el código (spec del usuario), sin tener que pasar primero por
+    // Inicio/Presentación/Metodología — esas son solo introducción, no
+    // un candado real. Se habilita hasta Participación de una vez (o más
+    // allá, si el grupo ya venía más adelante — cambiarPantalla, más
+    // abajo, la sigue subiendo si corresponde).
+    indiceMaximoOrdenPantallas_ = Math.max(indiceMaximoOrdenPantallas_, ORDEN_PANTALLAS.indexOf("pantallaParticipacion"));
+    actualizarBarraProgresoNav_("pantallaAcceso");
+
     document.getElementById("nombreGrupoParticipacion").textContent = r.grupo;
     var elNombreGrupoAviso = document.getElementById("nombreGrupoAvisoPlazoFirmas");
     if (elNombreGrupoAviso) elNombreGrupoAviso.textContent = r.grupo;
