@@ -67,17 +67,26 @@ function renderTablaTodosFirmantes(firmantes) {
   tbody.innerHTML = "";
   (firmantes || []).forEach(function (f) {
     var fila = document.createElement("tr");
+    // La columna "Rol" ya viene cruzada con el estamento cuando no hay un
+    // rol en el foro distinto capturado (spec del usuario: "cruzar
+    // estamento con rol" — listarFirmantesGrupo, Data.gs), así que nunca
+    // debería verse vacía.
     fila.innerHTML =
       "<td>" + escapeHtml(f.nombre) + "</td>" +
       "<td>" + escapeHtml(f.institucion) + "</td>" +
-      "<td>" + escapeHtml(f.estamento) + "</td>";
+      "<td>" + escapeHtml(f.rolForo || f.estamento) + "</td>";
     tbody.appendChild(fila);
   });
 }
 
 /** Ficha del responsable principal + lista de asistentes de envío, con botón para quitar. */
-function renderResponsables(responsables) {
-  var fichaPrincipal = document.getElementById("fichaResponsablePrincipal");
+/**
+ * `idFichaPrincipal`/`idListaAsistentes` permiten repetir la misma ficha
+ * en Participación (por defecto) y también en "Revisar todo antes de
+ * enviar" (Revisión y cierre, spec del usuario), sin duplicar lógica.
+ */
+function renderResponsables(responsables, idFichaPrincipal, idListaAsistentes) {
+  var fichaPrincipal = document.getElementById(idFichaPrincipal || "fichaResponsablePrincipal");
   if (fichaPrincipal) {
     var p = responsables.principal;
     fichaPrincipal.innerHTML = p
@@ -88,7 +97,7 @@ function renderResponsables(responsables) {
       : "";
   }
 
-  var listaAsistentes = document.getElementById("listaAsistentesEnvio");
+  var listaAsistentes = document.getElementById(idListaAsistentes || "listaAsistentesEnvio");
   if (listaAsistentes) {
     listaAsistentes.innerHTML = "";
     (responsables.asistentes || []).forEach(function (a) {

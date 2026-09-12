@@ -1296,6 +1296,7 @@ function refrescarVistasFotoGrupo_() {
   var totalDeclarado = (estado.participacionEstamento && estado.participacionEstamento.totalGeneral) || 0;
   renderPieFotoCaracterizacion(estado.fotoGrupoId, estado.grupo, totalDeclarado);
   renderPieFotoCaracterizacion(estado.fotoGrupoId, estado.grupo, totalDeclarado, "pieFotoCierre");
+  renderPieFotoCaracterizacion(estado.fotoGrupoId, estado.grupo, totalDeclarado, "previaFotoGrupoRevisar");
   var btnCambiarFoto = document.getElementById("btnCambiarFotoCaracterizacion");
   if (btnCambiarFoto) btnCambiarFoto.textContent = estado.fotoGrupoId ? "✏️ Cambiar fotografía" : "📷 Agregar fotografía";
   var formCaracterizacion = document.getElementById("formularioFotoGrupoCaracterizacion");
@@ -1304,6 +1305,10 @@ function refrescarVistasFotoGrupo_() {
   if (btnCambiarFotoCierre) btnCambiarFotoCierre.textContent = estado.fotoGrupoId ? "✏️ Cambiar fotografía" : "📷 Agregar fotografía";
   var formCierre = document.getElementById("formularioFotoGrupoCierre");
   if (formCierre) formCierre.classList.add("oculto");
+  var btnCambiarFotoRevisar = document.getElementById("btnCambiarFotoRevisar");
+  if (btnCambiarFotoRevisar) btnCambiarFotoRevisar.textContent = estado.fotoGrupoId ? "✏️ Cambiar fotografía" : "📷 Agregar fotografía";
+  var formRevisar = document.getElementById("formularioFotoGrupoRevisar");
+  if (formRevisar) formRevisar.classList.add("oculto");
 }
 
 document.getElementById("btnSubirFotoGrupo").addEventListener("click", function () {
@@ -1561,8 +1566,8 @@ function quitarAsistenteEnvio(idRegistro) {
  * Se muestra y se puede editar tanto en Participación como en
  * Confirmación de caracterización (misma tabla, dos contenedores).
  * ------------------------------------------------------------------ */
-var CONTENEDORES_PARTICIPACION_ESTAMENTO_ = ["contenedorParticipacionEstamento", "contenedorParticipacionEstamentoCaracterizacion"];
-var RESUMENES_PARTICIPACION_ESTAMENTO_ = ["resumenParticipacionEstamento", "resumenParticipacionEstamentoCaracterizacion"];
+var CONTENEDORES_PARTICIPACION_ESTAMENTO_ = ["contenedorParticipacionEstamento", "contenedorParticipacionEstamentoCaracterizacion", "contenedorParticipacionEstamentoRevisar"];
+var RESUMENES_PARTICIPACION_ESTAMENTO_ = ["resumenParticipacionEstamento", "resumenParticipacionEstamentoCaracterizacion", "resumenParticipacionEstamentoRevisar"];
 var temporizadoresGuardadoParticipacionEstamento_ = {};
 
 function cargarParticipacionEstamento(alTerminar) {
@@ -2626,6 +2631,152 @@ document.getElementById("btnAsistenciaVerificada").addEventListener("click", fun
   document.getElementById("bannerAsistenciaVerificada").classList.remove("oculto");
   document.getElementById("btnAsistenciaVerificada").classList.add("oculto");
   actualizarBotonGenerarInforme();
+});
+
+/* ------------------------------------------------------------------ *
+ * "Revisar todo antes de enviar" (Revisión y cierre, spec del usuario):
+ * pantalla completa con toda la información ya registrada por el grupo,
+ * editable sección por sección — incluida la fotografía. Reutiliza los
+ * mismos render* y RPC de cada pantalla original (foto, matriz de
+ * participación) con nuevos contenedores, así que un cambio aquí es el
+ * mismo dato real, no una copia aparte. El Consolidado de Socialización
+ * (Sesión 1) y ConectaEduca (Sesión 2) se cargan y guardan directo con
+ * rpcObtenerSesion1/rpcGuardarSesion1 — el servidor nunca bloqueó esos
+ * campos tras el "envío definitivo" (solo la vista de solo lectura del
+ * cliente lo hacía), así que quedan editables aquí incluso después de
+ * enviados, según lo pedido. Caracterización y Responsables se muestran
+ * en solo lectura con un botón para saltar a la pantalla original,
+ * porque esos formularios usan ids únicos que no se pueden repetir sin
+ * arriesgar guardar el valor equivocado.
+ * ------------------------------------------------------------------ */
+var CAMPOS_REVISAR_SESION1_ = [
+  { clave: "REFLEXIONES", etiqueta: "Reflexiones" },
+  { clave: "DESAFIOS", etiqueta: "Desafíos comunes" },
+  { clave: "APUESTAS", etiqueta: "Apuestas compartidas" },
+  { clave: "CONCLUSIONES", etiqueta: "Conclusiones" },
+  { clave: "PRIORIDADES", etiqueta: "Prioridades" },
+  { clave: "PROPUESTAS_COLECTIVAS", etiqueta: "Propuestas colectivas" },
+  { clave: "ACUERDOS", etiqueta: "Acuerdos" },
+  { clave: "RUTA", etiqueta: "Ruta de trabajo" },
+  { clave: "APORTE_PROPIO_S1_TITULO", etiqueta: "Aporte propio del grupo — Título", tipo: "text" },
+  { clave: "APORTE_PROPIO_S1_TEXTO", etiqueta: "Aporte propio del grupo — Descripción" }
+];
+var CAMPOS_REVISAR_SESION2_ = [
+  { clave: "NECESIDADES_ARTICULACION_GRUPO", etiqueta: "Necesidades de articulación" },
+  { clave: "OPORTUNIDADES_GRUPO", etiqueta: "Oportunidades identificadas" },
+  { clave: "PRIORIDADES_CE", etiqueta: "Prioridades (ConectaEduca)" },
+  { clave: "ACUERDOS_CE", etiqueta: "Acuerdos entre instituciones (ConectaEduca)" },
+  { clave: "PROPUESTAS_CE", etiqueta: "Propuestas (ConectaEduca)" },
+  { clave: "RUTA_CE", etiqueta: "Ruta de trabajo (ConectaEduca)" },
+  { clave: "APORTE_PROPIO_S2_TITULO", etiqueta: "Aporte propio del grupo — Título", tipo: "text" },
+  { clave: "APORTE_PROPIO_S2_TEXTO", etiqueta: "Aporte propio del grupo — Descripción" }
+];
+
+function _renderCamposRevisarSesion_(idContenedor, camposMeta, datos) {
+  var contenedor = document.getElementById(idContenedor);
+  if (!contenedor) return;
+  contenedor.innerHTML = "";
+  camposMeta.forEach(function (campo) {
+    var bloque = document.createElement("div");
+    bloque.className = "revisar-todo-campo";
+    var label = document.createElement("label");
+    label.setAttribute("for", "campoRevisar_" + campo.clave);
+    label.textContent = campo.etiqueta;
+    var esTexto = campo.tipo === "text";
+    var input = document.createElement(esTexto ? "input" : "textarea");
+    if (esTexto) input.type = "text";
+    input.id = "campoRevisar_" + campo.clave;
+    input.lang = "es";
+    input.spellcheck = true;
+    input.setAttribute("data-campo-revisar", campo.clave);
+    input.value = (datos && datos[campo.clave]) || "";
+    bloque.appendChild(label);
+    bloque.appendChild(input);
+    contenedor.appendChild(bloque);
+  });
+}
+
+var temporizadoresGuardadoRevisar_ = {};
+document.addEventListener("input", function (evento) {
+  var campo = evento.target.closest("[data-campo-revisar]");
+  if (!campo) return;
+  var clave = campo.getAttribute("data-campo-revisar");
+  clearTimeout(temporizadoresGuardadoRevisar_[clave]);
+  temporizadoresGuardadoRevisar_[clave] = setTimeout(function () {
+    var valores = {};
+    valores[clave] = campo.value;
+    llamarServidor("rpcGuardarSesion1", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, valores], function () {}, function () {});
+  }, 1200);
+});
+
+function abrirRevisarTodo_() {
+  document.getElementById("pantallaCompletaRevisarTodo").classList.remove("oculto");
+  window.scrollTo(0, 0);
+
+  refrescarVistasFotoGrupo_();
+
+  var contenedorCaracterizacion = document.getElementById("fichaCaracterizacionRevisarSoloLectura");
+  if (contenedorCaracterizacion) {
+    var filasIE = (estado.instituciones || [])
+      .map(function (ie) {
+        return "<tr><td>" + escapeHtml(ie.institucion) + "</td><td>" + escapeHtml(ie.idIE) + "</td>" +
+          "<td>" + escapeHtml(ie.rector || "—") + "</td></tr>";
+      })
+      .join("");
+    contenedorCaracterizacion.innerHTML =
+      "<table class='ficha-caracterizacion'><tr><th>Institución educativa</th><th>DANE</th><th>Rector(a)</th></tr>" +
+      filasIE + "</table>";
+  }
+
+  // Matriz de participación por estamento: mismo dato, mismo formulario
+  // editable (contenedorParticipacionEstamentoRevisar ya está en
+  // CONTENEDORES_PARTICIPACION_ESTAMENTO_) — se refresca aquí para que
+  // esté siempre al día, incluso si esta es la primera vez que este
+  // dispositivo ve la matriz en este recorrido.
+  cargarParticipacionEstamento();
+
+  llamarServidor("rpcListarResponsables", [estado.idGrupo], function (responsables) {
+    renderResponsables(responsables, "fichaResponsablePrincipalRevisar", "listaAsistentesRevisar");
+  }, function () {});
+
+  llamarServidor("rpcObtenerSesion1", [estado.idGrupo], function (datos) {
+    _renderCamposRevisarSesion_("camposRevisarSesion1", CAMPOS_REVISAR_SESION1_, datos);
+    _renderCamposRevisarSesion_("camposRevisarSesion2", CAMPOS_REVISAR_SESION2_, datos);
+  }, function () {});
+
+  llamarServidor("rpcListarConectaEduca", [estado.idGrupo], function (actores) {
+    var resumen = document.getElementById("resumenActoresCERevisar");
+    if (!resumen) return;
+    resumen.textContent = (actores && actores.length)
+      ? actores.length + " actor(es)/entidad(es) registrado(s): " +
+        actores.map(function (a) { return a.ACTOR; }).join(", ") + "."
+      : "Todavía no se ha registrado ningún actor o entidad.";
+  }, function () {});
+}
+
+function cerrarRevisarTodo_() {
+  document.getElementById("pantallaCompletaRevisarTodo").classList.add("oculto");
+}
+
+document.getElementById("btnRevisarTodo").addEventListener("click", abrirRevisarTodo_);
+document.getElementById("btnCerrarRevisarTodo").addEventListener("click", cerrarRevisarTodo_);
+document.getElementById("btnCerrarRevisarTodo2").addEventListener("click", cerrarRevisarTodo_);
+document.querySelectorAll("[data-ir-revisar]").forEach(function (boton) {
+  boton.addEventListener("click", function () {
+    cerrarRevisarTodo_();
+    cambiarPantalla(boton.getAttribute("data-ir-revisar"));
+  });
+});
+document.getElementById("btnCambiarFotoRevisar").addEventListener("click", function () {
+  document.getElementById("formularioFotoGrupoRevisar").classList.remove("oculto");
+});
+document.getElementById("btnSubirFotoGrupoRevisar").addEventListener("click", function () {
+  subirFotoGrupoDesde_("campoFotoGrupoRevisar", "mensajeFotoGrupoRevisar");
+});
+document.addEventListener("keydown", function (evento) {
+  if (evento.key === "Escape" && !document.getElementById("pantallaCompletaRevisarTodo").classList.contains("oculto")) {
+    cerrarRevisarTodo_();
+  }
 });
 
 /**

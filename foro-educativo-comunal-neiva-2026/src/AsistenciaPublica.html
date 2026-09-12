@@ -163,7 +163,7 @@
           <label for="campoEstamentoOtro">¿Cuál?</label>
           <input type="text" lang="es" spellcheck="true" id="campoEstamentoOtro">
         </div>
-        <label for="campoCorreo">Correo (opcional)</label>
+        <label for="campoCorreo">Correo electrónico</label>
         <input type="email" id="campoCorreo" autocomplete="email" inputmode="email">
         <div id="mensajeCorreo"></div>
 
@@ -354,7 +354,13 @@
         }
         estamento = "Otro: " + otro;
       }
-      if (correo && !REGEX_CORREO_.test(correo)) {
+      if (!correo) {
+        mensaje.innerHTML = "";
+        if (mensajeCorreo) mensajeCorreo.innerHTML = "<div class='mensaje error'>El correo electrónico es obligatorio.</div>";
+        campoCorreo.focus();
+        return;
+      }
+      if (!REGEX_CORREO_.test(correo)) {
         mensaje.innerHTML = "";
         if (mensajeCorreo) mensajeCorreo.innerHTML = "<div class='mensaje error'>Corrige el formato del correo electrónico (ejemplo: nombre@correo.com).</div>";
         campoCorreo.focus();

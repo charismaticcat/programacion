@@ -270,12 +270,18 @@ function listarFirmantesGrupo(idGrupo) {
       return String(f.ID_GRUPO || "").trim() === objetivo;
     })
     .map(function (f) {
+      var estamento = String(f.ESTAMENTO || "").trim();
+      // Cruza ESTAMENTO con ROL_FORO cuando este último quedó vacío (spec
+      // del usuario: "cruzar estamento con rol en reporte de asistencia,
+      // actualmente aparece rol en blanco") — cubre tanto los registros ya
+      // guardados sin ROL_FORO como cualquier caso futuro que llegue vacío.
+      var rolForo = String(f.ROL_FORO || "").trim() || estamento;
       return {
         nombre: String(f.NOMBRE || "").trim(),
         idIE: String(f.ID_IE || "").trim(),
         institucion: deIE[String(f.ID_IE || "").trim()] || "",
-        estamento: String(f.ESTAMENTO || "").trim(),
-        rolForo: String(f.ROL_FORO || "").trim(),
+        estamento: estamento,
+        rolForo: rolForo,
         fecha: f.FECHA
       };
     })

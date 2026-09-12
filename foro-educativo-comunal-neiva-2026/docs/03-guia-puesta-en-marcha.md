@@ -862,6 +862,38 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
 - Sin cambios en el resto de gates de "Generar informe" (valoración completada, asistencia verificada):
   siguen deshabilitando el botón con su propio aviso, como ya funcionaba.
 
+## 4.28 Décimo sexto lote: "Revisar todo antes de enviar", CSS de la cantidad del listado en PDF, correo obligatorio en asistencia, y estamento cruzado con rol
+
+- **"🔍 Revisar todo antes de enviar"** (nuevo botón en "Revisión y cierre"): abre una pantalla completa con
+  toda la información ya registrada por el grupo, sección por sección — fotografía general del grupo,
+  caracterización, participación por estamento e institución, responsable de envío y asistentes,
+  Consolidado de Socialización (Sesión 1) y ConectaEduca (Sesión 2). La fotografía y la matriz de
+  participación son **editables directamente ahí** (reutilizan los mismos `render*`/RPC de sus pantallas
+  originales, así que un cambio aquí es el mismo dato real). El Consolidado de Socialización y ConectaEduca
+  también son editables ahí, **incluso después de haberse enviado de forma definitiva** — el servidor
+  (`guardarSesion1`, `Sesion1.gs`) nunca bloqueó esos campos tras el envío definitivo, solo la vista de
+  solo lectura del cliente lo hacía, así que no fue necesario tocar nada del backend para permitirlo, según
+  decisión explícita del usuario. Caracterización y Responsables se muestran en solo lectura con un botón
+  "✏️ Editar en…" que lleva directo a su pantalla original — esos dos formularios usan ids únicos por
+  campo que no se pueden repetir sin arriesgar guardar el valor equivocado (p. ej. el rector editable), así
+  que se prefirió un salto directo en vez de duplicar esos campos.
+- **CSS de "Cantidad de personas registradas en el listado de asistencia"**: el `input[type="number"]` no
+  tenía ningún estilo propio en toda la aplicación (se veía como un campo nativo del navegador, fuera de
+  lugar) — se agregó a la regla compartida de inputs, y además se le dio su propia caja
+  (`#panelListadoCierre`) con el campo compacto, centrado y en un tono más marcado, en vez de ocupar todo
+  el ancho de la tarjeta.
+- **Correo obligatorio en la asistencia pública** (`AsistenciaPublica.html`): la etiqueta pasó de "Correo
+  (opcional)" a "Correo electrónico", y ahora se exige antes de poder firmar — validado tanto en el
+  formulario como en el servidor (`registrarAsistenciaPublica`, `Asistencia.gs`).
+- **Estamento cruzado con rol en el reporte de asistencia**: `registrarAsistenciaPublica` guardaba
+  `ROL_FORO` vacío para toda firma por QR (la página pública no pide un rol aparte del estamento) — ahora
+  guarda el mismo estamento declarado como `ROL_FORO`, para que ningún reporte que lea esa columna la vea
+  en blanco. `listarFirmantesGrupo` (`Data.gs`) también cruza en el momento de leer (usa `ROL_FORO` si
+  existe, si no cae de vuelta al `ESTAMENTO`), como red de seguridad para cualquier registro. Para los
+  registros que ya existían con `ROL_FORO` vacío antes de este cambio, se agregó
+  `corregirRolForoVacioConEstamento()` (`Tests.gs`) — ejecutar una sola vez, manualmente, desde el editor
+  de Apps Script.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

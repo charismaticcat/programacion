@@ -214,6 +214,36 @@ function testVerificarPermisosCorreo() {
   return resultado;
 }
 
+/**
+ * Corrige, en los registros YA guardados de ParticipacionComunal, la
+ * columna ROL_FORO vacía (spec del usuario: "cruzar estamento con rol en
+ * reporte de asistencia, actualmente aparece rol en blanco") —
+ * registrarAsistenciaPublica (Asistencia.gs) ya guarda el rol cruzado con
+ * el estamento para cualquier firma nueva; esta función es solo para
+ * poner al día las firmas que ya existían antes de ese cambio. Ejecutar
+ * una sola vez, manualmente, desde el editor de Apps Script.
+ */
+function corregirRolForoVacioConEstamento() {
+  var hoja = obtenerHoja_(HOJA_PARTICIPACION_COMUNAL_, cabecerasParticipacionComunal_());
+  var mapa = obtenerMapaCabeceras_(hoja);
+  var ultimaFila = hoja.getLastRow();
+  if (ultimaFila < 2) return { ok: true, corregidos: 0 };
+  var rango = hoja.getRange(2, 1, ultimaFila - 1, hoja.getLastColumn());
+  var valores = rango.getValues();
+  var corregidos = 0;
+  valores.forEach(function (fila) {
+    var estamento = String(fila[mapa["ESTAMENTO"] - 1] || "").trim();
+    var rolForo = String(fila[mapa["ROL_FORO"] - 1] || "").trim();
+    if (!rolForo && estamento) {
+      fila[mapa["ROL_FORO"] - 1] = estamento;
+      corregidos++;
+    }
+  });
+  if (corregidos) rango.setValues(valores);
+  Logger.log("corregirRolForoVacioConEstamento: " + corregidos + " fila(s) corregida(s).");
+  return { ok: true, corregidos: corregidos };
+}
+
 /** Borra el GRUPO-PRUEBA y sus datos asociados (Sesión 1, ConectaEduca, participación, acceso, informe). */
 function testLimpiarDatosDePrueba() {
   ["GruposComunal", "AccesosGrupo", "ParticipacionComunal", "Sesion1Comunal", "ConectaEduca", "InformesComunal", "EnviosDiferidosComunal", "ResponsablesComunal", "ValoracionComunal", "ParticipacionEstamentoIE", "PreparacionIE", "InvitadosPreparacion"].forEach(

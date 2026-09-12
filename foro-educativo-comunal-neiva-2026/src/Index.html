@@ -742,6 +742,9 @@
       <h2 class="titulo-seccion">Revisión y cierre</h2>
       <p>Al generar el informe se crea el documento único del grupo, disponible para todas sus
         instituciones educativas.</p>
+      <div class="fila-botones">
+        <button type="button" class="btn btn-secundario" id="btnRevisarTodo">🔍 Revisar todo antes de enviar</button>
+      </div>
 
       <h3 class="subtitulo-campo">Verifique que todos los participantes hayan firmado la asistencia</h3>
       <p class="ayuda"><strong id="totalParticipantesCierre">0</strong> participantes registrados —
@@ -750,7 +753,7 @@
         <img id="imagenQRAsistenciaCierre" alt="Código QR de asistencia" style="max-width:200px;display:block;margin:10px auto;">
         <p style="word-break:break-all;text-align:center;"><a id="enlaceAsistenciaQRCierre" href="#" target="_blank"></a></p>
       </div>
-      <div id="panelListadoCierre" class="oculto" style="margin-top:10px;">
+      <div id="panelListadoCierre" class="oculto">
         <label for="campoCantidadListadoCierre">Cantidad de personas registradas en el listado de asistencia</label>
         <input type="number" min="0" step="1" inputmode="numeric" id="campoCantidadListadoCierre">
         <div id="mensajeCantidadListadoCierre"></div>
@@ -897,6 +900,80 @@
   <div class="contenido-pantalla-completa-texto">
     <h2 id="tituloPantallaCompletaEdicion"></h2>
     <textarea lang="es" spellcheck="true" id="areaPantallaCompletaEdicion" rows="18"></textarea>
+  </div>
+</div>
+
+<!-- "Revisar todo antes de enviar" (Revisión y cierre, spec del usuario):
+     toda la información ya registrada por el grupo, en una sola pantalla
+     completa, editable sección por sección. Reutiliza los mismos render*
+     y RPC de cada pantalla original (foto, matriz de participación,
+     Sesión 1/2) — un cambio aquí es el mismo dato real, no una copia
+     aparte. Caracterización y Responsables se muestran en solo lectura
+     con un botón para saltar a la pantalla original y editarlos ahí,
+     porque esos formularios usan ids únicos que no se pueden repetir sin
+     duplicar por error el guardado. -->
+<div id="pantallaCompletaRevisarTodo" class="oculto pantalla-completa-revisar">
+  <div class="revisar-todo-encabezado">
+    <h2>Revisar todo antes de enviar</h2>
+    <button type="button" class="btn btn-secundario" id="btnCerrarRevisarTodo">✕ Cerrar</button>
+  </div>
+  <div class="revisar-todo-contenido">
+
+    <div class="revisar-todo-seccion">
+      <h3 class="subtitulo-campo">📷 Fotografía general del grupo</h3>
+      <div id="previaFotoGrupoRevisar"></div>
+      <div class="fila-botones" style="justify-content:center;">
+        <button type="button" class="btn btn-secundario" id="btnCambiarFotoRevisar">📷 Agregar fotografía</button>
+      </div>
+      <div id="formularioFotoGrupoRevisar" class="oculto">
+        <input type="file" id="campoFotoGrupoRevisar" accept="image/*">
+        <div class="fila-botones">
+          <button class="btn btn-secundario" id="btnSubirFotoGrupoRevisar">Subir fotografía del grupo</button>
+        </div>
+        <div id="mensajeFotoGrupoRevisar"></div>
+      </div>
+    </div>
+
+    <div class="revisar-todo-seccion">
+      <h3 class="subtitulo-campo">🏫 Caracterización del grupo</h3>
+      <div id="fichaCaracterizacionRevisarSoloLectura"></div>
+      <div class="fila-botones">
+        <button type="button" class="btn btn-secundario" data-ir-revisar="pantallaConfirmacionCaracterizacion">✏️ Editar en Confirmación de caracterización</button>
+      </div>
+    </div>
+
+    <div class="revisar-todo-seccion">
+      <h3 class="subtitulo-campo">👥 Participación por estamento e institución</h3>
+      <div id="resumenParticipacionEstamentoRevisar" class="resumen-participacion-estamento"></div>
+      <div id="contenedorParticipacionEstamentoRevisar" class="tabla-horizontal-desplazable"></div>
+    </div>
+
+    <div class="revisar-todo-seccion">
+      <h3 class="subtitulo-campo">✉️ Responsable de envío y asistentes</h3>
+      <div id="fichaResponsablePrincipalRevisar"></div>
+      <div id="listaAsistentesRevisar"></div>
+      <div class="fila-botones">
+        <button type="button" class="btn btn-secundario" data-ir-revisar="pantallaParticipacion">✏️ Editar en Participación</button>
+      </div>
+    </div>
+
+    <div class="revisar-todo-seccion">
+      <h3 class="subtitulo-campo">📝 Consolidado de Socialización (Sesión 1)</h3>
+      <div id="camposRevisarSesion1"></div>
+    </div>
+
+    <div class="revisar-todo-seccion">
+      <h3 class="subtitulo-campo">🤝 ConectaEduca (Sesión 2)</h3>
+      <div id="camposRevisarSesion2"></div>
+      <p class="ayuda" id="resumenActoresCERevisar"></p>
+      <div class="fila-botones">
+        <button type="button" class="btn btn-secundario" data-ir-revisar="pantallaSesion2">✏️ Editar actores en Sesión 2</button>
+      </div>
+    </div>
+
+    <div class="fila-botones" style="justify-content:center;">
+      <button type="button" class="btn btn-primario" id="btnCerrarRevisarTodo2">✕ Cerrar y volver</button>
+    </div>
   </div>
 </div>
 
