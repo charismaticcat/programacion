@@ -93,8 +93,34 @@ function validarAccesoGrupo(token, codigo, dispositivoId, forzar) {
     logoId: valorColumna("LOGO_ID"),
     metodoAsistencia: valorColumna("METODO_ASISTENCIA"),
     consentimientoGrupo: valorColumna("CONSENTIMIENTO_GRUPO") === "SI",
-    fotoGrupoId: valorColumna("FOTO_GRUPO_ID")
+    fotoGrupoId: valorColumna("FOTO_GRUPO_ID"),
+    // Pantalla en la que se quedó el grupo la última vez (cualquier
+    // dispositivo) — permite retomar ahí en vez de reiniciar la
+    // introducción cada vez que alguien vuelve a validar el código.
+    ultimaPantalla: valorColumna("ULTIMA_PANTALLA")
   };
+}
+
+/**
+ * Recuerda la última pantalla "de recorrido" a la que llegó el grupo
+ * (compartida entre todos los dispositivos, igual que el resto del
+ * estado del grupo) — spec del usuario: si se cae la señal o alguien
+ * entra desde otro dispositivo, solo debe pedirse el código de acceso y
+ * retomar ahí, sin repetir la introducción (Bienvenida/Presentación/
+ * Metodología) ni las pantallas ya superadas. No exige sesión activa
+ * (es solo una marca de progreso, no una escritura sensible), pero sí
+ * valida que el grupo exista para no crear filas basura.
+ */
+function guardarUltimaPantallaGrupo(idGrupo, idPantalla) {
+  idGrupo = String(idGrupo || "").trim();
+  idPantalla = String(idPantalla || "").trim();
+  if (!idGrupo || !idPantalla) return { ok: false };
+  var hoja = obtenerHoja_(HOJA_ACCESOS_GRUPO_, cabecerasAccesosGrupo_());
+  var mapa = obtenerMapaCabeceras_(hoja);
+  var fila = buscarFilaPorColumna_(hoja, mapa, "ID_GRUPO", idGrupo);
+  if (fila === -1) return { ok: false };
+  hoja.getRange(fila, mapa["ULTIMA_PANTALLA"]).setValue(idPantalla);
+  return { ok: true };
 }
 
 /**
@@ -157,7 +183,12 @@ function cabecerasAccesosGrupo_() {
     "FOTO_GRUPO_ID",
     // Consentimiento informado del grupo (sección 3.2 del Documento
     // Orientador FEM2026) — se confirma una sola vez por grupo.
-    "CONSENTIMIENTO_GRUPO", "FECHA_CONSENTIMIENTO_GRUPO"
+    "CONSENTIMIENTO_GRUPO", "FECHA_CONSENTIMIENTO_GRUPO",
+    // Última pantalla del recorrido a la que llegó el grupo (spec del
+    // usuario: "si se cae la señal o se cambia de dispositivo, solo pedir
+    // código de ingreso y retomar desde la última parte que se dejó") —
+    // ver guardarUltimaPantallaGrupo más abajo.
+    "ULTIMA_PANTALLA"
   ];
 }
 

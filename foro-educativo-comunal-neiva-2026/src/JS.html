@@ -53,6 +53,29 @@ var ORDEN_PANTALLAS = [
   "pantallaInformeGenerado", "pantallaDespedida"
 ];
 
+// Pantallas de "introducción" (no representan avance real del grupo, se
+// muestran siempre al validar el código por primera vez) — nunca se
+// retoma directamente en ellas ni se marcan como "última pantalla".
+var PANTALLAS_NO_RESUMIBLES_ = ["pantallaAcceso", "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia"];
+
+// Algunas pantallas necesitan una selección previa (ej. cuál IE se está
+// preparando) que solo vive en el estado del dispositivo actual, no en el
+// servidor — retomar ahí directamente fallaría, así que en esos casos se
+// retoma en el paso anterior seguro (el selector correspondiente).
+var MAPA_RESUMEN_PANTALLA_ = {
+  pantallaPreparacionIE: "pantallaSeleccionIEPreparacion"
+};
+
+/** A qué pantalla ir para retomar el progreso del grupo, o null si debe mostrarse la introducción normal. */
+function destinoResumenPantalla_(ultimaPantalla) {
+  ultimaPantalla = String(ultimaPantalla || "").trim();
+  if (!ultimaPantalla) return null;
+  if (MAPA_RESUMEN_PANTALLA_[ultimaPantalla]) ultimaPantalla = MAPA_RESUMEN_PANTALLA_[ultimaPantalla];
+  if (PANTALLAS_NO_RESUMIBLES_.indexOf(ultimaPantalla) !== -1) return null;
+  if (ORDEN_PANTALLAS.indexOf(ultimaPantalla) === -1) return null;
+  return ultimaPantalla;
+}
+
 function obtenerDispositivoId() {
   var clave = "forumComunalNeiva2026_dispositivo";
   try {
@@ -130,6 +153,14 @@ function cambiarPantalla(idPantalla) {
   if (idPantalla === "pantallaRevisionCierre") prepararCierre();
   if (idPantalla === "pantallaInformeGenerado") {
     mostrarMensaje("mensajeFaltaFotoFinalizar", "");
+  }
+
+  // Recuerda la última pantalla del recorrido (compartida por todo el
+  // grupo) para poder retomar ahí si se cae la señal o alguien entra
+  // desde otro dispositivo (spec del usuario) — no se marca la
+  // introducción, solo el avance real (ver destinoResumenPantalla_).
+  if (estado.idGrupo && PANTALLAS_NO_RESUMIBLES_.indexOf(idPantalla) === -1) {
+    llamarServidor("rpcGuardarUltimaPantalla", [estado.idGrupo, idPantalla], function () {}, function () {});
   }
 }
 
@@ -499,6 +530,18 @@ function intentarValidarAcceso(forzar) {
       actualizarPanelFirmantesCerrado_();
       actualizarBloqueoMetodoAsistencia_();
     }, function () {});
+
+    // Retomar donde el grupo se quedó (spec del usuario: "si se cae la
+    // señal o se cambia de dispositivo, solo pedir código de ingreso y
+    // retomar desde la última parte que se dejó") — si el grupo (desde
+    // cualquier dispositivo) ya había avanzado más allá de la
+    // introducción, se salta el carrusel de bienvenida y la introducción
+    // (Inicio/Presentación/Metodología) y se va directo a esa pantalla.
+    var destinoResumen = destinoResumenPantalla_(r.ultimaPantalla);
+    if (destinoResumen) {
+      cambiarPantalla(destinoResumen);
+      return;
+    }
 
     // El "recorrido" de logos de las IE del grupo va justo después de
     // validar el código de acceso (spec), no antes — en ese punto ya se

@@ -84,9 +84,20 @@ function guardarValoracionGrupo(idGrupo, tokenSesion, dispositivoId, respuestas)
 var HOJA_VALORACION_ASISTENTES_PUBLICA_ = "ValoracionAsistentesPublica";
 
 function cabecerasValoracionAsistentesPublica_() {
-  return ["ID_GRUPO", "P1", "P2", "P3", "P4", "FECHA"];
+  return [
+    "ID_GRUPO", "P1", "P2", "P3", "P4",
+    "P1_MEJORA", "P2_MEJORA", "P3_MEJORA", "P4_MEJORA", "FECHA"
+  ];
 }
 
+/**
+ * Las 4 respuestas de "mejora" (mejoraP1..mejoraP4) son de texto libre y
+ * opcionales — en el cliente (AsistenciaPublica.html) solo se despliega
+ * el textarea correspondiente cuando la respuesta es de 1 o 2 corazones
+ * (mismo criterio que inicializarValoracion en JS.html/Index.html), pero
+ * aquí se guarda lo que llegue sin volver a exigir esa condición: es
+ * anónimo y no tiene sentido rechazar un envío por un campo opcional.
+ */
 function guardarValoracionAsistentePublica(idGrupo, respuestas) {
   idGrupo = String(idGrupo || "").trim();
   if (!idGrupo) return { ok: false, mensaje: "Falta el grupo." };
@@ -97,7 +108,14 @@ function guardarValoracionAsistentePublica(idGrupo, respuestas) {
   }
   return conLock_(function () {
     var hoja = obtenerHoja_(HOJA_VALORACION_ASISTENTES_PUBLICA_, cabecerasValoracionAsistentesPublica_());
-    hoja.appendRow([idGrupo, p1, p2, p3, p4, new Date()]);
+    hoja.appendRow([
+      idGrupo, p1, p2, p3, p4,
+      String(respuestas.mejoraP1 || "").trim(),
+      String(respuestas.mejoraP2 || "").trim(),
+      String(respuestas.mejoraP3 || "").trim(),
+      String(respuestas.mejoraP4 || "").trim(),
+      new Date()
+    ]);
     return { ok: true };
   }, 10000);
 }

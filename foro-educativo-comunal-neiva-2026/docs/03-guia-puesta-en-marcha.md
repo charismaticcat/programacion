@@ -654,6 +654,42 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   confirmación de caracterización, sesión de preparación, Sesión 1, Sesión 2/ConectaEduca, revisión y
   cierre, y generación del informe).
 
+## 4.20 Octavo lote: valoración obligatoria antes de firmar en la asistencia pública, mejora condicional, cierre/verificación de listado, y retomar el recorrido tras perder la señal o cambiar de dispositivo
+
+- **Asistencia pública — la valoración va antes de poder firmar**: en `AsistenciaPublica.html`, el
+  formulario de "Registrar mi asistencia" queda oculto tras un aviso ("Para poder registrar su
+  asistencia, complete primero la valoración del Foro") hasta que la valoración se envíe
+  (`actualizarBloqueoAsistenciaPorValoracion_`) — se exige aunque ya se haya marcado el consentimiento,
+  porque el consentimiento está dentro del bloque que permanece oculto.
+- **Valoración pública — textarea de mejora condicional**: igual que en la app principal
+  (`inicializarValoracion`, `Index.html`), cada una de las 4 preguntas de corazones despliega un textarea
+  opcional ("¿Nos dice brevemente cómo podría mejorar esto?") solo cuando la respuesta es de 1 o 2
+  corazones (`data-mejora-pub-de`). Las 4 respuestas de mejora se guardan en `ValoracionAsistentesPublica`
+  (columnas nuevas `P1_MEJORA`.._MEJORA, `Valoracion.gs`).
+- **Pantalla final de asistencia — nuevo mensaje y botones**: "Puede continuar en la preparación del
+  Foro Comunal 2026" (con un enlace a la app) se reemplazó por "Gracias por sus aportes. Puede continuar
+  en el desarrollo del Foro Educativo Comunal, Neiva, 2026." y dos botones nuevos, "Cerrar asistencia" (
+  muestra un aviso de despedida y detiene el sondeo) y "Verificar listado" (despliega el listado de
+  firmantes en vivo del grupo, actualizado cada 4 s vía `rpcEstadoFirmantes`, reutilizado tal cual de la
+  app principal).
+- **"Registrar otra asistencia" también borra la valoración**: `reiniciarFormularioAsistencia_` ahora
+  llama a `reiniciarValoracionPublica_` (limpia corazones, textareas de mejora y el estado enviado), así
+  que la siguiente persona que use el mismo dispositivo debe volver a valorar antes de poder firmar.
+- **Retomar el recorrido tras perder la señal o cambiar de dispositivo**: nueva columna `ULTIMA_PANTALLA`
+  en `AccesosGrupo` (compartida por todo el grupo, no por dispositivo) que se actualiza en cada
+  `cambiarPantalla()` real (`rpcGuardarUltimaPantalla`, `Access.gs`/`Code.gs`) — la introducción
+  (Bienvenida/Presentación/Metodología) nunca se marca ni se retoma directamente en ella. Al validar el
+  código de acceso, `destinoResumenPantalla_` decide si saltar el carrusel de bienvenida y la
+  introducción para ir directo a la última pantalla registrada; las pantallas que dependen de una
+  selección que solo vive en el dispositivo (ej. cuál IE se estaba preparando) se remapean a un paso
+  anterior seguro (`MAPA_RESUMEN_PANTALLA_`: `pantallaPreparacionIE` → `pantallaSeleccionIEPreparacion`).
+  Así, si la señal se cae o alguien continúa desde otro dispositivo, basta con volver a ingresar el
+  código de acceso del grupo para retomar donde se quedó, sin repetir pantallas ya superadas.
+- **Verificado (sin cambios necesarios)**: el conteo de "personas han firmado" que ve todo el grupo
+  (`rpcEstadoFirmantes`/`contarParticipantesGrupo`) ya se actualiza automáticamente cuando alguien firma
+  desde la asistencia pública, porque ambas rutas escriben en la misma hoja `ParticipacionComunal`
+  (`registrarParticipante`, `Data.gs`) y el panel de firmantes de la app principal ya la sondea cada 15 s.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

@@ -250,6 +250,12 @@ function rpcGuardarConsentimientoGrupo(idGrupo, tokenSesion, dispositivoId) {
   });
 }
 
+function rpcGuardarUltimaPantalla(idGrupo, idPantalla) {
+  return ejecutarRpcSeguro_(function () {
+    return guardarUltimaPantallaGrupo(idGrupo, idPantalla);
+  });
+}
+
 /* ------------------------------------------------------------------ *
  * RPC — Método de asistencia (QR/enlace o listado físico + foto)
  * ------------------------------------------------------------------ */

@@ -69,6 +69,11 @@
             <button type="button" class="corazon-valoracion" data-valor="4" aria-label="4 corazones">🤍</button>
             <button type="button" class="corazon-valoracion" data-valor="5" aria-label="5 corazones">🤍</button>
           </div>
+          <div class="valoracion-mejora oculto" data-mejora-pub-de="p1">
+            <label for="valoracionPublicaMejoraP1">😔 ¿Nos dice brevemente cómo podría mejorar esto para el
+              próximo Foro?</label>
+            <textarea id="valoracionPublicaMejoraP1" rows="2" placeholder="Escriba aquí su respuesta (opcional)"></textarea>
+          </div>
         </div>
         <div class="valoracion-pregunta" data-pregunta-pub="p2">
           <p>🗣️ ¿Qué tan satisfecho(a) está con la comunicación y el diálogo entre las instituciones
@@ -79,6 +84,11 @@
             <button type="button" class="corazon-valoracion" data-valor="3" aria-label="3 corazones">🤍</button>
             <button type="button" class="corazon-valoracion" data-valor="4" aria-label="4 corazones">🤍</button>
             <button type="button" class="corazon-valoracion" data-valor="5" aria-label="5 corazones">🤍</button>
+          </div>
+          <div class="valoracion-mejora oculto" data-mejora-pub-de="p2">
+            <label for="valoracionPublicaMejoraP2">😔 ¿Nos dice brevemente cómo podría mejorar esto para el
+              próximo Foro?</label>
+            <textarea id="valoracionPublicaMejoraP2" rows="2" placeholder="Escriba aquí su respuesta (opcional)"></textarea>
           </div>
         </div>
         <div class="valoracion-pregunta" data-pregunta-pub="p3">
@@ -91,6 +101,11 @@
             <button type="button" class="corazon-valoracion" data-valor="4" aria-label="4 corazones">🤍</button>
             <button type="button" class="corazon-valoracion" data-valor="5" aria-label="5 corazones">🤍</button>
           </div>
+          <div class="valoracion-mejora oculto" data-mejora-pub-de="p3">
+            <label for="valoracionPublicaMejoraP3">😔 ¿Nos dice brevemente cómo podría mejorar esto para el
+              próximo Foro?</label>
+            <textarea id="valoracionPublicaMejoraP3" rows="2" placeholder="Escriba aquí su respuesta (opcional)"></textarea>
+          </div>
         </div>
         <div class="valoracion-pregunta" data-pregunta-pub="p4">
           <p>⭐ En general, ¿qué tan satisfecho(a) está con el desarrollo del Foro Educativo Comunal?</p>
@@ -100,6 +115,11 @@
             <button type="button" class="corazon-valoracion" data-valor="3" aria-label="3 corazones">🤍</button>
             <button type="button" class="corazon-valoracion" data-valor="4" aria-label="4 corazones">🤍</button>
             <button type="button" class="corazon-valoracion" data-valor="5" aria-label="5 corazones">🤍</button>
+          </div>
+          <div class="valoracion-mejora oculto" data-mejora-pub-de="p4">
+            <label for="valoracionPublicaMejoraP4">😔 ¿Nos dice brevemente cómo podría mejorar esto para el
+              próximo Foro?</label>
+            <textarea id="valoracionPublicaMejoraP4" rows="2" placeholder="Escriba aquí su respuesta (opcional)"></textarea>
           </div>
         </div>
         <div id="mensajeValoracionPublica"></div>
@@ -117,37 +137,42 @@
     <? } else { ?>
     <div class="tarjeta" id="tarjetaFormulario">
       <h2 class="titulo-seccion">Registrar mi asistencia</h2>
-      <label for="campoNombre">Nombre completo</label>
-      <input type="text" id="campoNombre">
-      <label for="campoIE">Institución educativa</label>
-      <select id="campoIE"></select>
-      <label for="campoEstamento">Estamento</label>
-      <select id="campoEstamento">
-        <option>Rector(a)</option>
-        <option>Coordinador(a)</option>
-        <option>Docente</option>
-        <option>Tutor PTA PFI/3.0</option>
-        <option>Orientador(a)</option>
-        <option>Estudiante</option>
-        <option>Padre/madre/acudiente</option>
-        <option>Personal administrativo</option>
-        <option>Egresado(a)</option>
-        <option>Sector productivo</option>
-        <option>Otro</option>
-      </select>
-      <label for="campoCorreo">Correo (opcional)</label>
-      <input type="email" id="campoCorreo" autocomplete="email" inputmode="email">
-      <div id="mensajeCorreo"></div>
+      <div id="avisoValoracionPrimero" class="mensaje info">
+        🔒 Para poder registrar su asistencia, complete primero la valoración del Foro (arriba).
+      </div>
+      <div id="contenidoFormularioAsistencia" class="oculto">
+        <label for="campoNombre">Nombre completo</label>
+        <input type="text" id="campoNombre">
+        <label for="campoIE">Institución educativa</label>
+        <select id="campoIE"></select>
+        <label for="campoEstamento">Estamento</label>
+        <select id="campoEstamento">
+          <option>Rector(a)</option>
+          <option>Coordinador(a)</option>
+          <option>Docente</option>
+          <option>Tutor PTA PFI/3.0</option>
+          <option>Orientador(a)</option>
+          <option>Estudiante</option>
+          <option>Padre/madre/acudiente</option>
+          <option>Personal administrativo</option>
+          <option>Egresado(a)</option>
+          <option>Sector productivo</option>
+          <option>Otro</option>
+        </select>
+        <label for="campoCorreo">Correo (opcional)</label>
+        <input type="email" id="campoCorreo" autocomplete="email" inputmode="email">
+        <div id="mensajeCorreo"></div>
 
-      <button type="button" class="boton-consentimiento" id="btnConsentimientoAsistencia" aria-pressed="false">
-        <span class="check-consentimiento" id="checkConsentimientoAsistencia" aria-hidden="true">☐</span>
-        <span>Acepto que mi nombre, institución y estamento se usen para la sistematización del Foro
-          Educativo Comunal Neiva 2026.</span>
-      </button>
+        <button type="button" class="boton-consentimiento" id="btnConsentimientoAsistencia" aria-pressed="false">
+          <span class="check-consentimiento" id="checkConsentimientoAsistencia" aria-hidden="true">☐</span>
+          <span>Acepto que mi nombre, institución y estamento se usen para la sistematización del Foro
+            Educativo Comunal Neiva 2026.</span>
+        </button>
 
-      <div id="mensajeFirma"></div>
-      <div class="fila-botones">
-        <button class="btn btn-primario" id="btnFirmar" disabled>Confirmar asistencia</button>
+        <div id="mensajeFirma"></div>
+        <div class="fila-botones">
+          <button class="btn btn-primario" id="btnFirmar" disabled>Confirmar asistencia</button>
+        </div>
       </div>
     </div>
 
@@ -156,12 +181,20 @@
       <h2 class="titulo-seccion">¡Gracias por su asistencia!</h2>
       <p class="ayuda" id="detalleGraciasAsistencia"></p>
       <p class="ayuda">👥 <span id="totalFirmantesGracias">0</span> personas han firmado en este grupo hasta el momento.</p>
-      <p>Puede continuar en la preparación del Foro Comunal 2026.</p>
+      <p>Gracias por sus aportes. Puede continuar en el desarrollo del Foro Educativo Comunal, Neiva, 2026.</p>
       <div class="fila-botones" style="justify-content:center;">
-        <a class="btn btn-primario" id="enlaceContinuarPreparacion" href="#" target="_blank" rel="noopener">Ir a la preparación del Foro</a>
+        <button type="button" class="btn btn-secundario" id="btnCerrarAsistencia">Cerrar asistencia</button>
+        <button type="button" class="btn btn-secundario" id="btnVerificarListadoPublico">Verificar listado</button>
       </div>
       <div class="fila-botones" style="justify-content:center;">
         <button type="button" class="btn btn-secundario" id="btnOtraAsistencia">➕ Registrar otra asistencia</button>
+      </div>
+      <div class="oculto" id="tarjetaListadoEnVivoPublico" style="text-align:left; margin-top:16px; border-top:1px solid var(--gris-borde); padding-top:14px;">
+        <h3 class="subtitulo-campo">👥 Firmantes en vivo — <span id="totalListadoEnVivoPublico">0</span></h3>
+        <div id="listaListadoEnVivoPublico"></div>
+      </div>
+      <div class="oculto" id="tarjetaAsistenciaCerradaPublico" style="margin-top:16px;">
+        <p class="ayuda">Ya puede cerrar esta página. ¡Gracias por participar!</p>
       </div>
     </div>
     <? } ?>
@@ -180,9 +213,6 @@
     d.textContent = t == null ? "" : String(t);
     return d.innerHTML;
   }
-
-  var enlaceContinuarPreparacion = document.getElementById("enlaceContinuarPreparacion");
-  if (enlaceContinuarPreparacion && URL_APP_BASE) enlaceContinuarPreparacion.href = URL_APP_BASE;
 
   (function poblarInstituciones() {
     var select = document.getElementById("campoIE");
@@ -206,6 +236,19 @@
   }
   actualizarContador();
   setInterval(actualizarContador, 5000);
+
+  /* ---- Gate: para poder registrar la asistencia hay que completar
+   * primero la valoración del Foro (spec del usuario: "así haya marcado
+   * la casilla de aceptación de términos") — el formulario de asistencia
+   * queda oculto/bloqueado hasta que la valoración se envíe. ---- */
+  var valoracionPublicaEnviada = false;
+  function actualizarBloqueoAsistenciaPorValoracion_() {
+    var aviso = document.getElementById("avisoValoracionPrimero");
+    var contenido = document.getElementById("contenidoFormularioAsistencia");
+    if (aviso) aviso.classList.toggle("oculto", valoracionPublicaEnviada);
+    if (contenido) contenido.classList.toggle("oculto", !valoracionPublicaEnviada);
+  }
+  actualizarBloqueoAsistenciaPorValoracion_();
 
   /* ---- Consentimiento: botón grande (no un checkbox diminuto en el celular), con tick verde al aceptar ---- */
   var btnFirmar = document.getElementById("btnFirmar");
@@ -257,7 +300,14 @@
     if (btnFirmar) btnFirmar.disabled = true;
     document.getElementById("mensajeFirma").innerHTML = "";
     document.getElementById("tarjetaGraciasAsistencia").classList.add("oculto");
+    document.getElementById("tarjetaListadoEnVivoPublico").classList.add("oculto");
+    document.getElementById("tarjetaAsistenciaCerradaPublico").classList.add("oculto");
     document.getElementById("tarjetaFormulario").classList.remove("oculto");
+    // Registrar otra asistencia también borra la valoración (spec del
+    // usuario: "si se da click en enviar otra asistencia, borrar todo lo
+    // de valoración también") — cada persona que use este dispositivo
+    // debe volver a valorar antes de poder firmar.
+    reiniciarValoracionPublica_();
     document.getElementById("campoNombre").focus();
   }
   var btnOtraAsistencia = document.getElementById("btnOtraAsistencia");
@@ -307,19 +357,47 @@
     });
   }
 
-  /* ---- Valoración pública del Foro — mismas 4 preguntas de satisfacción de la app principal ---- */
+  /* ---- Valoración pública del Foro — mismas 4 preguntas de satisfacción de la app principal,
+   * con el mismo textarea de "mejora" que se despliega al marcar 1 o 2 corazones. ---- */
+  var puntajesValoracionPublica_ = {};
+  var mejorasValoracionPublica_ = {};
+
+  function reiniciarValoracionPublica_() {
+    puntajesValoracionPublica_ = {};
+    mejorasValoracionPublica_ = {};
+    document.querySelectorAll(".valoracion-pregunta[data-pregunta-pub] .corazon-valoracion").forEach(function (b) {
+      b.textContent = "🤍";
+    });
+    document.querySelectorAll(".valoracion-mejora[data-mejora-pub-de]").forEach(function (bloque) {
+      bloque.classList.add("oculto");
+      var textarea = bloque.querySelector("textarea");
+      if (textarea) textarea.value = "";
+    });
+    var mensaje = document.getElementById("mensajeValoracionPublica");
+    if (mensaje) mensaje.innerHTML = "";
+    var btnEnviar = document.getElementById("btnEnviarValoracionPublica");
+    if (btnEnviar) btnEnviar.disabled = false;
+    document.getElementById("valoracionPublicaFormulario").classList.remove("oculto");
+    document.getElementById("valoracionPublicaYaEnviada").classList.add("oculto");
+    valoracionPublicaEnviada = false;
+    actualizarBloqueoAsistenciaPorValoracion_();
+  }
+
   (function () {
-    var puntajes = {};
     document.querySelectorAll(".valoracion-pregunta[data-pregunta-pub]").forEach(function (bloque) {
       var pregunta = bloque.dataset.preguntaPub;
       var corazones = Array.prototype.slice.call(bloque.querySelectorAll(".corazon-valoracion"));
+      var bloqueMejora = document.querySelector('.valoracion-mejora[data-mejora-pub-de="' + pregunta + '"]');
       corazones.forEach(function (btn) {
         btn.addEventListener("click", function () {
           var valor = Number(this.dataset.valor);
-          puntajes[pregunta] = valor;
+          puntajesValoracionPublica_[pregunta] = valor;
           corazones.forEach(function (b) {
             b.textContent = Number(b.dataset.valor) <= valor ? "❤️" : "🤍";
           });
+          // Igual que en la app principal: 1 o 2 corazones despliega un
+          // textarea opcional para explicar brevemente qué mejorar.
+          if (bloqueMejora) bloqueMejora.classList.toggle("oculto", valor > 2);
         });
       });
     });
@@ -328,12 +406,24 @@
     if (!btnEnviar) return;
     btnEnviar.addEventListener("click", function () {
       var mensaje = document.getElementById("mensajeValoracionPublica");
-      if (!puntajes.p1 || !puntajes.p2 || !puntajes.p3 || !puntajes.p4) {
+      var p = puntajesValoracionPublica_;
+      if (!p.p1 || !p.p2 || !p.p3 || !p.p4) {
         mensaje.innerHTML = "<div class='mensaje error'>Seleccione de 1 a 5 corazones en las cuatro preguntas antes de enviar.</div>";
         return;
       }
+      ["p1", "p2", "p3", "p4"].forEach(function (clave) {
+        var textarea = document.getElementById("valoracionPublicaMejora" + clave.toUpperCase());
+        mejorasValoracionPublica_["mejora" + clave.toUpperCase()] = textarea ? textarea.value : "";
+      });
       mensaje.innerHTML = "";
       btnEnviar.disabled = true;
+      var respuestas = {
+        p1: p.p1, p2: p.p2, p3: p.p3, p4: p.p4,
+        mejoraP1: mejorasValoracionPublica_.mejoraP1 || "",
+        mejoraP2: mejorasValoracionPublica_.mejoraP2 || "",
+        mejoraP3: mejorasValoracionPublica_.mejoraP3 || "",
+        mejoraP4: mejorasValoracionPublica_.mejoraP4 || ""
+      };
       google.script.run
         .withSuccessHandler(function (r) {
           btnEnviar.disabled = false;
@@ -343,14 +433,59 @@
           }
           document.getElementById("valoracionPublicaFormulario").classList.add("oculto");
           document.getElementById("valoracionPublicaYaEnviada").classList.remove("oculto");
+          valoracionPublicaEnviada = true;
+          actualizarBloqueoAsistenciaPorValoracion_();
         })
         .withFailureHandler(function () {
           btnEnviar.disabled = false;
           mensaje.innerHTML = "<div class='mensaje error'>Ocurrió un error de comunicación. Intenta de nuevo.</div>";
         })
-        .rpcGuardarValoracionAsistentePublica(ID_GRUPO, puntajes);
+        .rpcGuardarValoracionAsistentePublica(ID_GRUPO, respuestas);
     });
   })();
+
+  /* ---- "Cerrar asistencia" / "Verificar listado" en la pantalla final ---- */
+  var btnCerrarAsistencia = document.getElementById("btnCerrarAsistencia");
+  if (btnCerrarAsistencia) {
+    btnCerrarAsistencia.addEventListener("click", function () {
+      document.getElementById("tarjetaListadoEnVivoPublico").classList.add("oculto");
+      document.getElementById("tarjetaAsistenciaCerradaPublico").classList.remove("oculto");
+      detenerListadoEnVivoPublico_();
+    });
+  }
+
+  var intervaloListadoEnVivoPublico_ = null;
+  function detenerListadoEnVivoPublico_() {
+    clearInterval(intervaloListadoEnVivoPublico_);
+    intervaloListadoEnVivoPublico_ = null;
+  }
+  function actualizarListadoEnVivoPublico_() {
+    if (!ID_GRUPO) return;
+    google.script.run.withSuccessHandler(function (r) {
+      var total = document.getElementById("totalListadoEnVivoPublico");
+      if (total) total.textContent = (r && r.total) || 0;
+      var lista = document.getElementById("listaListadoEnVivoPublico");
+      if (!lista) return;
+      lista.innerHTML = "";
+      ((r && r.firmantes) || []).forEach(function (f) {
+        var fila = document.createElement("p");
+        fila.className = "ayuda";
+        fila.style.margin = "4px 0";
+        fila.textContent = "✅ " + f.nombre + (f.institucion ? " — " + f.institucion : "") + (f.estamento ? " (" + f.estamento + ")" : "");
+        lista.appendChild(fila);
+      });
+    }).rpcEstadoFirmantes(ID_GRUPO);
+  }
+  var btnVerificarListadoPublico = document.getElementById("btnVerificarListadoPublico");
+  if (btnVerificarListadoPublico) {
+    btnVerificarListadoPublico.addEventListener("click", function () {
+      document.getElementById("tarjetaAsistenciaCerradaPublico").classList.add("oculto");
+      document.getElementById("tarjetaListadoEnVivoPublico").classList.remove("oculto");
+      actualizarListadoEnVivoPublico_();
+      detenerListadoEnVivoPublico_();
+      intervaloListadoEnVivoPublico_ = setInterval(actualizarListadoEnVivoPublico_, 4000);
+    });
+  }
 </script>
 </body>
 </html>
