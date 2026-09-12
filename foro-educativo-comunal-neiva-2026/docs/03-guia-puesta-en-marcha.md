@@ -846,6 +846,22 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   sin tener que retroceder — reutiliza `elegirMetodoAsistencia` (mismo guardado que ya existía y que ya
   permitía pasar de Listado a QR en cualquier momento) y refresca los paneles propios de esta pantalla.
 
+## 4.27 Décimo quinto lote: agregar/cambiar la fotografía del grupo directamente desde Revisión y cierre
+
+- **Fotografía general del grupo, también en Revisión y cierre**: antes, si faltaba subirla, el mensaje de
+  error remitía a "Atrás — en Participación" o al botón de Confirmación de caracterización, obligando a
+  salir de la pantalla. Ahora "Revisión y cierre" tiene su propia vista previa/botón "📷 Agregar
+  fotografía" (pasa a "✏️ Cambiar fotografía" una vez subida, igual que en Confirmación de
+  caracterización) con su propio formulario de subida — se puede resolver ahí mismo, sin retroceder.
+  `renderPieFotoCaracterizacion` (`Components.html`) ahora acepta un contenedor opcional para reutilizarse
+  en el nuevo bloque (`pieFotoCierre`); `refrescarVistasFotoGrupo_` (`JS.html`) actualiza las tres vistas
+  (Participación, Confirmación de caracterización y Revisión y cierre) a la vez.
+- **Mensaje de error simplificado**: "Falta subir la fotografía general del grupo antes de generar el
+  informe. Puede hacerlo desde el botón 'Agregar fotografía' (arriba)." — con scroll automático hasta ese
+  botón al hacer clic en "Generar informe" sin foto.
+- Sin cambios en el resto de gates de "Generar informe" (valoración completada, asistencia verificada):
+  siguen deshabilitando el botón con su propio aviso, como ya funcionaba.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

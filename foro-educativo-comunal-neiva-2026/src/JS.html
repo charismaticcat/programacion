@@ -1284,24 +1284,26 @@ function subirFotoGrupoDesde_(idInput, idMensaje) {
 }
 
 /**
- * Refresca las vistas de la fotografía del grupo (Participación y
- * Confirmación de caracterización) tras subirla/cambiarla. Ya no incluye
- * la pantalla de Informe generado: la fotografía se dejó de pedir/mostrar
- * ahí (spec del usuario) — el último punto donde se exige es "Generar
- * informe" (Revisión y cierre), y queda incluida dentro del informe
- * mismo (ver Informes.gs), no en pantalla.
+ * Refresca las vistas de la fotografía del grupo (Participación,
+ * Confirmación de caracterización y Revisión y cierre) tras subirla/
+ * cambiarla. Ya no incluye la pantalla de Informe generado: la
+ * fotografía se dejó de pedir/mostrar ahí (spec del usuario) — el último
+ * punto donde se exige es "Generar informe" (Revisión y cierre), y queda
+ * incluida dentro del informe mismo (ver Informes.gs), no en pantalla.
  */
 function refrescarVistasFotoGrupo_() {
   renderFotoGrupo(estado.fotoGrupoId, "previaFotoGrupo", "formularioFotoGrupo", estado.grupo);
-  renderPieFotoCaracterizacion(
-    estado.fotoGrupoId,
-    estado.grupo,
-    (estado.participacionEstamento && estado.participacionEstamento.totalGeneral) || 0
-  );
+  var totalDeclarado = (estado.participacionEstamento && estado.participacionEstamento.totalGeneral) || 0;
+  renderPieFotoCaracterizacion(estado.fotoGrupoId, estado.grupo, totalDeclarado);
+  renderPieFotoCaracterizacion(estado.fotoGrupoId, estado.grupo, totalDeclarado, "pieFotoCierre");
   var btnCambiarFoto = document.getElementById("btnCambiarFotoCaracterizacion");
   if (btnCambiarFoto) btnCambiarFoto.textContent = estado.fotoGrupoId ? "✏️ Cambiar fotografía" : "📷 Agregar fotografía";
   var formCaracterizacion = document.getElementById("formularioFotoGrupoCaracterizacion");
   if (formCaracterizacion) formCaracterizacion.classList.add("oculto");
+  var btnCambiarFotoCierre = document.getElementById("btnCambiarFotoCierre");
+  if (btnCambiarFotoCierre) btnCambiarFotoCierre.textContent = estado.fotoGrupoId ? "✏️ Cambiar fotografía" : "📷 Agregar fotografía";
+  var formCierre = document.getElementById("formularioFotoGrupoCierre");
+  if (formCierre) formCierre.classList.add("oculto");
 }
 
 document.getElementById("btnSubirFotoGrupo").addEventListener("click", function () {
@@ -1316,6 +1318,15 @@ document.getElementById("btnCambiarFotoCaracterizacion").addEventListener("click
 });
 document.getElementById("btnSubirFotoGrupoCaracterizacion").addEventListener("click", function () {
   subirFotoGrupoDesde_("campoFotoGrupoCaracterizacion", "mensajeFotoGrupoCaracterizacion");
+});
+// Revisión y cierre: misma opción, para que quien detecte que falta la
+// fotografía justo antes de generar el informe pueda subirla ahí mismo,
+// sin tener que retroceder (spec del usuario).
+document.getElementById("btnCambiarFotoCierre").addEventListener("click", function () {
+  document.getElementById("formularioFotoGrupoCierre").classList.remove("oculto");
+});
+document.getElementById("btnSubirFotoGrupoCierre").addEventListener("click", function () {
+  subirFotoGrupoDesde_("campoFotoGrupoCierre", "mensajeFotoGrupoCierre");
 });
 
 // "Subir más tarde" no sube nada: solo tranquiliza a quien diligencia de
@@ -2595,6 +2606,7 @@ estado.valoracionCompletada = false;
 function prepararCierre() {
   cargarValoracion();
   cargarVerificacionFirmantesCierre_();
+  refrescarVistasFotoGrupo_();
   // Advertencia antes de generar el informe (spec del usuario): el texto
   // depende del método de asistencia del grupo, y hay que confirmar con
   // un clic ("Asistencia verificada") antes de que se habilite "Generar
@@ -2857,11 +2869,11 @@ document.getElementById("btnGenerarInforme").addEventListener("click", function 
   if (!estado.fotoGrupoId) {
     mostrarMensaje(
       "mensajeCierre",
-      "Falta subir la fotografía general del grupo antes de generar el informe. Puede hacerlo desde " +
-        "\"Atrás\" (arriba) — en Participación, o en el botón \"Agregar fotografía\" de Confirmación de " +
-        "caracterización.",
+      "Falta subir la fotografía general del grupo antes de generar el informe. Puede hacerlo desde el " +
+        "botón \"Agregar fotografía\" (arriba).",
       "error"
     );
+    document.getElementById("btnCambiarFotoCierre").scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }
   confirmarAccion("¿Generar el informe definitivo del grupo? Esta acción crea el documento único que verán todas las IE del grupo.", function () {

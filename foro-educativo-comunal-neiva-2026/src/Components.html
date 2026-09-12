@@ -272,9 +272,15 @@ function renderFotoGrupo(fotoGrupoId, idPrevia, idFormulario, nombreGrupo) {
   }
 }
 
-/** Foto + pie de página con la cantidad de participantes declarados, en Confirmación de caracterización. */
-function renderPieFotoCaracterizacion(fotoGrupoId, grupo, totalParticipantes) {
-  var contenedor = document.getElementById("pieFotoCaracterizacion");
+/**
+ * Foto + pie de página con la cantidad de participantes declarados — se
+ * usa en Confirmación de caracterización (contenedor por defecto) y,
+ * reutilizando el mismo contenido, también en Revisión y cierre
+ * (idContenedor="pieFotoCierre"), donde la fotografía puede agregarse o
+ * cambiarse sin tener que volver a Participación (spec del usuario).
+ */
+function renderPieFotoCaracterizacion(fotoGrupoId, grupo, totalParticipantes, idContenedor) {
+  var contenedor = document.getElementById(idContenedor || "pieFotoCaracterizacion");
   if (!contenedor) return;
   if (!fotoGrupoId) {
     contenedor.classList.add("oculto");
