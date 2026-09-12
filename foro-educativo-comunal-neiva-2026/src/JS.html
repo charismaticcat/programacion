@@ -41,6 +41,26 @@ function urlImagenDrive(idArchivo, ancho) {
   return "https://drive.google.com/thumbnail?id=" + encodeURIComponent(idArchivo) + "&sz=w" + (ancho || 600);
 }
 
+/**
+ * Logos institucionales en las esquinas superiores del encabezado (spec
+ * del usuario) — mismos IDs de Drive que ya usan el splash inicial y el
+ * encabezado del informe (LOGO_PIE_ID = SEM/Alcaldía, LOGO_ENCABEZADO_ID
+ * = Foro/FEM). Si algún ID no está configurado, ese logo simplemente no
+ * se muestra (permanece oculto).
+ */
+(function poblarLogosEncabezado_() {
+  var logoSEM = document.getElementById("logoSEMEncabezado");
+  if (logoSEM && LOGO_PIE_ID) {
+    logoSEM.src = urlImagenDrive(LOGO_PIE_ID, 120);
+    logoSEM.classList.remove("oculto");
+  }
+  var logoFEM = document.getElementById("logoFEMEncabezado");
+  if (logoFEM && LOGO_ENCABEZADO_ID) {
+    logoFEM.src = urlImagenDrive(LOGO_ENCABEZADO_ID, 120);
+    logoFEM.classList.remove("oculto");
+  }
+})();
+
 // El código de acceso se pide ANTES que cualquier otra pantalla (spec:
 // "Código debe pedirse antes de cualquier pantalla") — Acceso va primero;
 // Inicio/Presentación/Metodología se muestran DESPUÉS de validar el

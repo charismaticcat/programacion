@@ -1045,6 +1045,39 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   ahora, apenas `rpcValidarAcceso` confirma el código, se habilita de una vez hasta "Participación" (o más
   allá, si el grupo ya venía más adelante en un dispositivo distinto).
 
+## 4.34 Vigésimo segundo lote: logos SEM/FEM en el encabezado, crédito del desarrollador en el pie, y utilidad para limpiar todos los datos ingresados
+
+- **Logos institucionales en las esquinas superiores** del encabezado principal (spec del usuario): SEM/Alcaldía
+  a la izquierda, Foro/FEM a la derecha — reutilizan los mismos IDs de Drive que ya usaba el splash inicial y
+  el encabezado del informe (`LOGO_PIE_ID`/`LOGO_ENCABEZADO_ID`, `ConfiguracionComunal`), poblados en JS.html;
+  si algún ID no está configurado, ese logo simplemente no aparece. El botón 🏠 "Inicio" (lote 20) se movió del
+  encabezado a un botón normal justo encima de la barra de progreso navegable, para no competir por el mismo
+  espacio con los logos.
+- **Crédito del desarrollador en el pie de página**: debajo de "Foro Educativo Comunal Neiva 2026 —
+  Secretaría de Educación de Neiva" ahora dice "Desarrollado por Jhon Sanchez". *Pendiente*: el logo que el
+  usuario compartió (HelpRofe) no llega a este entorno como un archivo accesible cuando se pega directo en el
+  chat — se dejó el `<img>` reservado (`#logoDesarrolladorPie`, oculto) listo para completar su `src` en
+  cuanto se suba como archivo adjunto.
+- **`limpiarTodosLosDatosIngresadosPorUsuarios()`** (Tests.gs, IRREVERSIBLE, ejecutar manualmente desde el
+  editor de Apps Script): vacía por completo todo lo diligenciado por cualquier grupo (firmantes, Sesión 1/
+  ConectaEduca y sus actores, responsables, valoraciones, preparación por IE, invitados individuales y su
+  estimado agregado, envíos diferidos pendientes, e informes generados) — pero conserva intactos el catálogo
+  de grupos/IE y las filas de `AccesosGrupo` (los códigos/enlaces ya generados siguen funcionando), solo
+  reiniciando sus campos de progreso (estado, envíos, método/evidencias de asistencia, foto, consentimiento,
+  última pantalla) a su valor inicial. Alcance confirmado explícitamente con el usuario antes de escribirla.
+- **Intento de habilitar `clasp run`**: se agregó `executionApi: {"access": "MYSELF"}` a `appsscript.json`
+  (cambio de manifiesto inocuo, no afecta el acceso público del webapp) y se reintentó `clasp run
+  testCrearGrupoDePrueba` — el error cambió de un `NOT_FOUND` genérico a "Unable to run script function.
+  Please make sure you have permission to run the script function.", que es exactamente el mensaje que
+  Google devuelve cuando la cuenta todavía no tiene activado el interruptor "Google Apps Script API" en
+  https://script.google.com/home/usersettings. Ese interruptor solo se puede activar entrando con el
+  navegador a esa página (no hay forma de hacerlo por línea de comandos) — una vez activado, se puede
+  reintentar `clasp run testCrearGrupoDePrueba` y `clasp run testGenerarAccesos` para crear GRUPO-PRUEBA
+  automáticamente; mientras tanto, ejecutar esas dos funciones manualmente desde el editor de Apps Script
+  (Extensiones → Apps Script → seleccionar función → Ejecutar) sigue siendo la vía garantizada.
+- **Nota de transparencia**: verificado de forma estática (`node --check`, IDs sin duplicar, etiquetas
+  balanceadas) pero no probado en vivo desde un navegador en este entorno.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

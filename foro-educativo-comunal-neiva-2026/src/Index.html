@@ -57,12 +57,20 @@
 </div>
 
 <header class="marca" id="encabezadoPrincipal">
-  <button type="button" class="btn-home-marca" id="btnIrInicio" title="Volver al inicio">🏠</button>
+  <!-- Logos institucionales en las esquinas superiores (spec del usuario):
+       SEM/Alcaldía a la izquierda, Foro/FEM a la derecha — mismos IDs de
+       Drive que ya usan el splash inicial y el encabezado del informe
+       (LOGO_PIE_ID/LOGO_ENCABEZADO_ID), poblados en JS.html. -->
+  <img id="logoSEMEncabezado" class="logo-esquina logo-esquina-izq oculto" alt="Secretaría de Educación de Neiva">
+  <img id="logoFEMEncabezado" class="logo-esquina logo-esquina-der oculto" alt="Foro Educativo Municipal">
   <h1><?!= NOMBRE_FORO ?></h1>
   <p class="subtitulo">"<?!= SUBTITULO_FORO ?>"</p>
 </header>
 
 <main>
+  <div class="fila-botones" style="justify-content:center;">
+    <button type="button" class="btn btn-secundario" id="btnIrInicio" title="Volver al inicio">🏠 Inicio</button>
+  </div>
   <!-- Barra de progreso navegable: cada paso lleva el nombre de su
        sesión y es clicable — pero solo hacia pantallas ya alcanzadas en
        este recorrido (indiceMaximoOrdenPantallas_, JS.html), nunca hacia
@@ -884,6 +892,13 @@
 
 <footer class="marca-pie">
   <?!= NOMBRE_FORO ?> — Secretaría de Educación de Neiva
+  <p class="marca-pie-desarrollador">Desarrollado por Jhon Sanchez</p>
+  <!-- Logo del desarrollador (spec del usuario) — pendiente: falta el
+       archivo de imagen para poder incrustarlo aquí (no llega accesible
+       como archivo a este entorno cuando se pega directo en el chat);
+       una vez se suba como adjunto, se completa el src y se quita
+       "oculto". -->
+  <img id="logoDesarrolladorPie" class="logo-desarrollador-pie oculto" alt="">
 </footer>
 
 <!-- Vista de pantalla completa del QR de asistencia — pensada para

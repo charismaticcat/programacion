@@ -244,6 +244,82 @@ function corregirRolForoVacioConEstamento() {
   return { ok: true, corregidos: corregidos };
 }
 
+/**
+ * IRREVERSIBLE — borra TODO lo diligenciado por los usuarios durante el
+ * recorrido del Foro, de TODOS los grupos (no solo GRUPO-PRUEBA): firmantes
+ * de asistencia, participación por estamento, Sesión 1/ConectaEduca (y sus
+ * actores), responsables de envío, valoraciones (de la app y de la
+ * asistencia pública), preparación por IE, invitados (individuales y el
+ * estimado agregado por institución), envíos diferidos pendientes, e
+ * informes ya generados (el registro en InformesComunal — los archivos en
+ * Drive de cada grupo NO se borran desde aquí, hacerlo manualmente si
+ * corresponde).
+ *
+ * SE CONSERVAN intactos: el catálogo de grupos/IE (GruposComunal,
+ * CaracterizacionIE) y las filas de AccesosGrupo — los códigos/enlaces ya
+ * generados siguen funcionando — pero sus campos de progreso (estado,
+ * envíos de Sesión 1/2, método y evidencias de asistencia, foto del
+ * grupo, consentimiento, última pantalla) se reinician a su valor
+ * inicial, como si el grupo nunca hubiera empezado (spec del usuario).
+ *
+ * Ejecutar manualmente desde el editor de Apps Script, y solo cuando se
+ * quiera de verdad dejar el aplicativo en cero (p. ej. antes de la
+ * jornada real, tras haber probado con datos de prueba/reales
+ * mezclados). No hay forma de deshacer esto.
+ */
+function limpiarTodosLosDatosIngresadosPorUsuarios() {
+  var ss = abrirSpreadsheet_();
+
+  // Hojas que se vacían por completo (se conserva solo la fila de cabeceras).
+  [
+    "ParticipacionComunal", "Sesion1Comunal", "ConectaEduca", "InformesComunal",
+    "EnviosDiferidosComunal", "ResponsablesComunal", "ValoracionComunal",
+    "ValoracionAsistentesPublica", "ParticipacionEstamentoIE", "PreparacionIE",
+    "InvitadosPreparacion", "AportesInvitadosPreparacion", "DeclaracionInvitadosIE"
+  ].forEach(function (nombreHoja) {
+    var hoja = ss.getSheetByName(nombreHoja);
+    if (!hoja) return;
+    var ultimaFila = hoja.getLastRow();
+    if (ultimaFila > 1) hoja.deleteRows(2, ultimaFila - 1);
+  });
+
+  // AccesosGrupo: se reinician los campos de progreso de cada grupo, sin
+  // borrar ninguna fila (mismo código de acceso sigue funcionando).
+  var hojaAccesos = ss.getSheetByName("AccesosGrupo");
+  if (hojaAccesos) {
+    var mapa = obtenerMapaCabeceras_(hojaAccesos);
+    var numFilas = hojaAccesos.getLastRow() - 1;
+    if (numFilas > 0) {
+      var reinicios = {
+        ESTADO: "DISPONIBLE",
+        HABILITAR_DESDE: "",
+        ULTIMA_ACTIVIDAD: "",
+        SESION1_ENVIADA: "NO",
+        SESION2_ENVIADA: "NO",
+        FECHA_ENVIO_S1: "",
+        FECHA_ENVIO_S2: "",
+        FECHA_ENVIO_DEFINITIVO: "",
+        LOGO_ID: "",
+        METODO_ASISTENCIA: "",
+        ID_LISTADO_ASISTENCIA: "",
+        ID_FOTO_EVIDENCIA: "",
+        CANTIDAD_LISTADO_ASISTENCIA: "",
+        FOTO_GRUPO_ID: "",
+        CONSENTIMIENTO_GRUPO: "",
+        FECHA_CONSENTIMIENTO_GRUPO: "",
+        ULTIMA_PANTALLA: ""
+      };
+      Object.keys(reinicios).forEach(function (campo) {
+        if (!mapa[campo]) return;
+        hojaAccesos.getRange(2, mapa[campo], numFilas, 1).setValue(reinicios[campo]);
+      });
+    }
+  }
+
+  Logger.log("Todos los datos ingresados por los usuarios fueron eliminados. Grupos/IE y códigos de acceso se conservan, reiniciados a su estado inicial.");
+  return { ok: true };
+}
+
 /** Borra el GRUPO-PRUEBA y sus datos asociados (Sesión 1, ConectaEduca, participación, acceso, informe). */
 function testLimpiarDatosDePrueba() {
   ["GruposComunal", "AccesosGrupo", "ParticipacionComunal", "Sesion1Comunal", "ConectaEduca", "InformesComunal", "EnviosDiferidosComunal", "ResponsablesComunal", "ValoracionComunal", "ParticipacionEstamentoIE", "PreparacionIE", "InvitadosPreparacion"].forEach(

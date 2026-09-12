@@ -326,12 +326,17 @@ table.tabla-simple th { color: var(--verde-oscuro); }
   .paso-progreso { font-size: 0.7rem; padding: 5px 8px; min-width: 70px; }
 }
 
-/* ---------- Botón "inicio" en el encabezado ---------- */
-#encabezadoPrincipal { position: relative; }
-.btn-home-marca {
-  position: absolute; top: 0; left: 0;
-  background: none; border: none; font-size: 1.4rem; line-height: 1; cursor: pointer;
-  padding: 4px 8px;
+/* ---------- Logos institucionales en las esquinas del encabezado ---------- */
+#encabezadoPrincipal { position: relative; padding: 0 64px; }
+.logo-esquina {
+  position: absolute; top: 4px; max-height: 52px; max-width: 52px; width: auto;
+  border-radius: 6px;
+}
+.logo-esquina-izq { left: 4px; }
+.logo-esquina-der { right: 4px; }
+@media (max-width: 480px) {
+  #encabezadoPrincipal { padding: 0 46px; }
+  .logo-esquina { max-height: 38px; max-width: 38px; }
 }
 
 /* ---------- Modal ---------- */
@@ -363,6 +368,8 @@ footer.marca-pie {
   text-align: center; color: var(--gris-texto); font-size: 0.8rem;
   padding: 20px 16px 40px;
 }
+.marca-pie-desarrollador { margin: 4px 0 0; font-size: 0.75rem; opacity: 0.75; }
+.logo-desarrollador-pie { display: block; margin: 6px auto 0; max-height: 28px; max-width: 90px; opacity: 0.7; }
 
 /* ---------- Desplegable "aporte propio" (accordion nativo <details>) ---------- */
 details.desplegable-aporte {
