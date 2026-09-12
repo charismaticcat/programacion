@@ -721,6 +721,63 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   (`actualizarBotonGenerarInforme`, `JS.html`); se reinicia cada vez que se entra a la pantalla
   (`prepararCierre`), para que la verificación sea siempre fresca.
 
+## 4.22 Décimo lote: estamento "Otro" en asistencia, doble emoji corregido, firmantes en vivo con `flush()`, guardado local + en la nube, gate de "Finalizar Foro" al informe por correo, y pantalla de despedida con el CSS de FEI 3.1
+
+- **Estamento "Otro" en la asistencia pública**: al elegir "Otro" en `campoEstamento` (asistencia por QR),
+  aparece un campo "¿Cuál?" (`bloqueEstamentoOtro`/`campoEstamentoOtro`) que se vuelve obligatorio para
+  poder firmar — el valor final enviado al servidor es `"Otro: " + lo que escribió la persona`, así el
+  estamento real queda registrado en vez de un simple "Otro" genérico.
+- **Doble emoji corregido**: `.mensaje.exito::before` ya añade automáticamente el ✅ vía CSS; tres
+  mensajes tenían además el emoji escrito literalmente en el texto ("¡Gracias! Tu valoración fue
+  enviada.", el de foto de grupo subida y el de preparación completa), duplicándolo. Se quitó el emoji
+  literal de los tres — el `::before` sigue mostrando uno solo.
+- **"👥 Firmantes en vivo — 0" atascado en 0**: una revisión exhaustiva de toda la ruta de lectura
+  (`rpcEstadoFirmantes`, `contarParticipantesGrupo`, `listarFirmantesGrupo`, lectura por cabeceras,
+  `LockService`) no encontró ningún error de lógica; la causa más probable es que Apps Script no
+  garantiza que un `appendRow()` sea visible de inmediato a una lectura muy próxima en el tiempo sin un
+  `SpreadsheetApp.flush()` explícito — y este proyecto nunca lo llamaba en ningún punto
+  (`grep -rn "SpreadsheetApp.flush"` no arrojaba resultados). Se agregó `SpreadsheetApp.flush()`
+  inmediatamente después del `appendRow` en `registrarParticipante` (`Data.gs`), que es el punto único
+  por el que pasan tanto la firma de asistencia pública como el registro de participantes del grupo, así
+  que corrige el conteo tanto para el responsable de grupo como para quienes firman asistencia. **Nota
+  de transparencia**: este es el diagnóstico mejor sustentado tras la revisión estática del código, pero
+  no se pudo reproducir el error en vivo desde este entorno para confirmar que sea la única causa — se
+  recomienda verificarlo tras el despliegue.
+- **Guardado local (además del guardado en la nube)**: los campos de texto libre de Sesión 1/2/
+  ConectaEduca (`CAMPOS_SESION1`) ahora también se guardan en `localStorage` en cada tecleo (sin
+  debounce, es instantáneo), como respaldo del guardado en la nube existente (2s de debounce + 30s
+  periódico). Si se cierra la pestaña de golpe antes de que el guardado en la nube alcance a dispararse,
+  al reabrir en el **mismo dispositivo** se recupera el borrador local; si se cambia de **dispositivo**,
+  no hay borrador local ahí y se retoma desde el último guardado en la nube, porque
+  `poblarDesdeBorradorLocalSesion1_()` solo rellena los campos que la nube todavía no haya llenado.
+  También se corrigió que `cargarSesion1()` no se llamaba al entrar directo a `pantallaSesion2` sin haber
+  pasado por `pantallaSesion1` en ese dispositivo, dejando esos campos compartidos sin cargar. **Nota de
+  transparencia**: la lógica se trazó a mano con cuidado, pero no se pudo ejecutar una prueba real de
+  cierre súbito de pestaña y reapertura desde este entorno — se recomienda probarlo en vivo tras el
+  despliegue.
+- **"Finalizar Foro" ahora exige haber enviado el informe por correo**: el botón `btnFinalizarForo`
+  queda deshabilitado (con un aviso `avisoFaltaEnvioCorreo` visible) hasta que se haga clic en "Enviar
+  informe por correo" al menos una vez (`estado.informeEnviadoPorCorreo`); también se agregó un texto de
+  apoyo (`avisoDestinatariosInforme`) que nombra, con los datos reales del grupo ya cargados en
+  `estado.instituciones`, todas las instituciones educativas del grupo a cuyos correos llegará el
+  informe del Foro Educativo Comunal 2026. Ese texto ahora es fiel a lo que realmente ocurre: en
+  `Correo.gs`, `enviarInformeGrupo` agrega los correos de `obtenerInstitucionesDelGrupo` (columna EMAIL
+  de `CaracterizacionIE`) como copia del envío — antes el informe solo llegaba al responsable y a los
+  asistentes que hubieran dejado su correo, nunca a las IE como institución.
+- **Pantalla de despedida con el CSS de FEI 3.1**: `pantallaDespedida` se rediseñó con el mismo lenguaje
+  visual que la pantalla de despedida de FEI 3.1 (tarjeta centrada, ícono grande, texto con interlineado
+  amplio, cierre en verde) mediante las nuevas clases `.despedida-tarjeta/-icono/-texto/-cierre`
+  (`CSS.html`), omitiendo cualquier fecha o año concreto y usando solo un texto general de agradecimiento
+  para esta entrega, según lo pedido.
+- **Verificación de permisos de envío de correo**: se agregó `testVerificarPermisosCorreo()` (`Tests.gs`)
+  para ejecutar manualmente desde el editor de Apps Script — reporta si la cuenta que corre el proyecto
+  puede enviar como `calidadeducacion@alcaldianeiva.gov.co` (el remitente que usaba FEI 3.1,
+  `REMITENTE_FEM` en su `Código.js`), la cuota diaria restante, y una recomendación. **A propósito no se
+  cambió** el valor por defecto de `CORREO_REMITENTE` (sigue vacío, usa la cuenta que ejecuta el script):
+  cambiarlo a ciegas podría romper el envío de correo ya funcionando en producción si la cuenta real no
+  tiene ese alias de Gmail, y no fue posible verificarlo en vivo desde este entorno. Se documentó en
+  `Config.gs` que se debe correr `testVerificarPermisosCorreo()` primero para decidir con certeza.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

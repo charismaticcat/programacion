@@ -240,6 +240,13 @@ function registrarParticipante(idGrupo, idIE, nombre, estamento, rolForo, correo
       String(rolForo || "").trim(), String(correo || "").trim(), "SI", new Date(), "REGISTRADO",
       String(dispositivoId || "").trim()
     ]);
+    // Sin flush(), una lectura casi inmediata (el propio conteo de
+    // firmantes que se refresca justo después de firmar, en la misma
+    // pantalla) puede no ver todavía esta fila — Apps Script no garantiza
+    // que un appendRow() sea visible al instante para otra ejecución si no
+    // se fuerza el guardado (spec del usuario: "Firmantes en vivo... sigue
+    // apareciendo 0 aun cuando se ha firmado asistencia").
+    SpreadsheetApp.flush();
     return { ok: true, yaRegistrado: false, idParticipante: idParticipante };
   }, 10000);
 }

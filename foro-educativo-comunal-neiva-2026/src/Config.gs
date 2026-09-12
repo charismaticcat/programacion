@@ -41,6 +41,13 @@ var CONFIG_POR_DEFECTO_ = {
   // Bandera de una sola vez: "SI" cuando ya se confirmó que ambos logos
   // son visibles para cualquiera con el enlace (ver asegurarLogosSplashPublicos_ en Drive.gs).
   LOGOS_SPLASH_PUBLICOS: "",
+  // FEI 3.1 enviaba siempre como "calidadeducacion@alcaldianeiva.gov.co"
+  // (REMITENTE_FEM, Código.js). Se deja vacío por defecto (usa la cuenta
+  // que ejecuta el script, siempre válida) — antes de configurar ese
+  // mismo valor aquí, ejecutar testVerificarPermisosCorreo() (Tests.gs)
+  // desde el editor de Apps Script para confirmar que esta cuenta puede
+  // enviar con esa identidad (remitenteValido_, Correo.gs, rechaza el
+  // envío con un mensaje claro si no).
   CORREO_REMITENTE: "",
   COPIAS_CORREO: "",
   TIEMPO_SESION: "90",

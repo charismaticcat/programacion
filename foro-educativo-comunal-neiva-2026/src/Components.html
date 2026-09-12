@@ -261,7 +261,7 @@ function renderFotoGrupo(fotoGrupoId, idPrevia, idFormulario, nombreGrupo) {
   if (fotoGrupoId) {
     contenedor.innerHTML =
       "<img src='" + urlImagenDrive(fotoGrupoId, 600) + "' alt='Fotografía general del grupo'>" +
-      "<div class='mensaje exito'>✅ La foto del " + escapeHtml(nombreGrupo || "grupo") + " ha sido subida.</div>" +
+      "<div class='mensaje exito'>La foto del " + escapeHtml(nombreGrupo || "grupo") + " ha sido subida.</div>" +
       "<div class='fila-botones' style='justify-content:center;'>" +
       "<button type='button' class='btn btn-secundario' data-cambiar-foto='" + escapeHtml(idFormulario || "formularioFotoGrupo") + "'>✏️ Cambiar fotografía</button>" +
       "</div>";

@@ -56,7 +56,7 @@
       <p class="ayuda">4 preguntas breves de satisfacción sobre la manera en que se desarrolló el Foro y la
         comunicación entre pares — opcional, para cualquier persona que haya asistido.</p>
       <div id="valoracionPublicaYaEnviada" class="oculto">
-        <div class="mensaje exito">✅ ¡Gracias! Tu valoración fue enviada.</div>
+        <div class="mensaje exito">¡Gracias! Tu valoración fue enviada.</div>
       </div>
       <div id="valoracionPublicaFormulario">
         <div class="valoracion-pregunta" data-pregunta-pub="p1">
@@ -159,6 +159,10 @@
           <option>Sector productivo</option>
           <option>Otro</option>
         </select>
+        <div id="bloqueEstamentoOtro" class="oculto">
+          <label for="campoEstamentoOtro">¿Cuál?</label>
+          <input type="text" lang="es" spellcheck="true" id="campoEstamentoOtro">
+        </div>
         <label for="campoCorreo">Correo (opcional)</label>
         <input type="email" id="campoCorreo" autocomplete="email" inputmode="email">
         <div id="mensajeCorreo"></div>
@@ -265,6 +269,16 @@
     });
   }
 
+  /* ---- Estamento "Otro" — despliega un campo para especificar cuál ---- */
+  var campoEstamento = document.getElementById("campoEstamento");
+  var bloqueEstamentoOtro = document.getElementById("bloqueEstamentoOtro");
+  var campoEstamentoOtro = document.getElementById("campoEstamentoOtro");
+  if (campoEstamento && bloqueEstamentoOtro) {
+    campoEstamento.addEventListener("change", function () {
+      bloqueEstamentoOtro.classList.toggle("oculto", campoEstamento.value !== "Otro");
+    });
+  }
+
   /* ---- Correo: autocompleta @g -> @gmail.com, @h -> @hotmail.com, y valida el formato ---- */
   var campoCorreo = document.getElementById("campoCorreo");
   var mensajeCorreo = document.getElementById("mensajeCorreo");
@@ -298,6 +312,9 @@
     }
     if (iconoConsentimiento) iconoConsentimiento.textContent = "☐";
     if (btnFirmar) btnFirmar.disabled = true;
+    if (campoEstamento) campoEstamento.selectedIndex = 0;
+    if (campoEstamentoOtro) campoEstamentoOtro.value = "";
+    if (bloqueEstamentoOtro) bloqueEstamentoOtro.classList.add("oculto");
     document.getElementById("mensajeFirma").innerHTML = "";
     document.getElementById("tarjetaGraciasAsistencia").classList.add("oculto");
     document.getElementById("tarjetaListadoEnVivoPublico").classList.add("oculto");
@@ -327,6 +344,15 @@
       if (!nombre) {
         mensaje.innerHTML = "<div class='mensaje error'>El nombre es obligatorio.</div>";
         return;
+      }
+      if (estamento === "Otro") {
+        var otro = campoEstamentoOtro ? campoEstamentoOtro.value.trim() : "";
+        if (!otro) {
+          mensaje.innerHTML = "<div class='mensaje error'>Indica cuál es tu estamento.</div>";
+          if (campoEstamentoOtro) campoEstamentoOtro.focus();
+          return;
+        }
+        estamento = "Otro: " + otro;
       }
       if (correo && !REGEX_CORREO_.test(correo)) {
         mensaje.innerHTML = "";

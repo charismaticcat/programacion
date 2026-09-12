@@ -159,6 +159,8 @@ function cambiarPantalla(idPantalla) {
   if (idPantalla === "pantallaRevisionCierre") prepararCierre();
   if (idPantalla === "pantallaInformeGenerado") {
     mostrarMensaje("mensajeFaltaFotoFinalizar", "");
+    actualizarAvisoDestinatariosInforme_();
+    actualizarBotonFinalizarForo_();
   }
 
   // Recuerda la última pantalla del recorrido (compartida por todo el
@@ -1548,8 +1550,40 @@ function recolectarCamposSesion1() {
   return campos;
 }
 
+/**
+ * Guardado local (localStorage) de Sesión 1/2, además del guardado en la
+ * nube (spec del usuario: "verifica guardado local y guardado en la
+ * nube"). Se escribe en cada tecleo, sin debounce (es instantáneo y no
+ * necesita red) — así, si se cierra la pestaña de golpe antes de que el
+ * guardado a la nube (2s de debounce) alcance a dispararse, el borrador
+ * sigue disponible al reabrir en el MISMO dispositivo. Si se cambia de
+ * dispositivo, no hay borrador local ahí, así que se retoma desde el
+ * último guardado en la nube (rpcObtenerSesion1, más abajo).
+ */
+function claveBorradorLocalSesion1_(campo) {
+  return "FEC_BORRADOR_" + estado.idGrupo + "_" + campo;
+}
+function guardarBorradorLocalSesion1_(campo, valor) {
+  try {
+    localStorage.setItem(claveBorradorLocalSesion1_(campo), valor);
+  } catch (e) {}
+}
+/** Rellena los campos vacíos con el borrador local del dispositivo, antes de consultar la nube. */
+function poblarDesdeBorradorLocalSesion1_() {
+  if (!estado.idGrupo) return;
+  CAMPOS_SESION1.forEach(function (nombre) {
+    var el = document.getElementById("campo_" + nombre);
+    if (!el || el.value) return;
+    try {
+      var borrador = localStorage.getItem(claveBorradorLocalSesion1_(nombre));
+      if (borrador) el.value = borrador;
+    } catch (e) {}
+  });
+}
+
 function cargarSesion1() {
   if (!estado.idGrupo) return;
+  poblarDesdeBorradorLocalSesion1_();
   llamarServidor("rpcObtenerSesion1", [estado.idGrupo], function (datos) {
     if (datos) {
       CAMPOS_SESION1.forEach(function (nombre) {
@@ -1696,6 +1730,7 @@ function guardarSesion1(manual, callback) {
 
 document.querySelectorAll("[data-campo-sesion1]").forEach(function (campo) {
   campo.addEventListener("input", function () {
+    guardarBorradorLocalSesion1_(campo.getAttribute("data-campo-sesion1"), campo.value);
     clearTimeout(temporizadorGuardadoSesion1);
     temporizadorGuardadoSesion1 = setTimeout(function () {
       guardarSesion1(false);
@@ -1955,7 +1990,7 @@ function mostrarMensajePreparacionFaltante_(idsEnviados) {
   var contenedor = document.getElementById("mensajePreparacionPendiente");
   if (!contenedor) return;
   if (!faltantes.length) {
-    contenedor.innerHTML = "<div class='mensaje exito'>✅ Todas las instituciones completaron su preparación.</div>";
+    contenedor.innerHTML = "<div class='mensaje exito'>Todas las instituciones completaron su preparación.</div>";
   } else {
     contenedor.innerHTML =
       "<div class='mensaje info'>Aún falta por diligenciar la preparación de la socialización: <strong>" +
@@ -2649,8 +2684,44 @@ document.getElementById("btnEnviarInformePorCorreo").addEventListener("click", f
       return;
     }
     mostrarMensaje("mensajeEnvioInforme", r.diferido ? r.mensaje : "Informe enviado por correo.", "exito");
+    // "Finalizar Foro" no se habilita hasta que el informe se haya
+    // enviado por correo al menos una vez (spec del usuario) — un envío
+    // diferido por cuota también cuenta, porque el informe ya quedó en
+    // la cola y llegará automáticamente (ver Correo.gs).
+    estado.informeEnviadoPorCorreo = true;
+    actualizarBotonFinalizarForo_();
   });
 });
+
+/**
+ * Texto de apoyo: a qué correos institucionales llegará el informe
+ * (spec del usuario) — se arma con las IE reales del grupo, ya
+ * disponibles en estado.instituciones desde el login.
+ */
+function actualizarAvisoDestinatariosInforme_() {
+  var aviso = document.getElementById("avisoDestinatariosInforme");
+  if (!aviso) return;
+  var nombresIE = (estado.instituciones || []).map(function (ie) { return ie.institucion; }).filter(Boolean);
+  if (!nombresIE.length) {
+    aviso.textContent = "";
+    return;
+  }
+  aviso.textContent = "Este informe llegará también a los correos de las instituciones educativas que " +
+    "conformaron el " + (estado.grupo || "grupo") + " del Foro Educativo Comunal 2026: " +
+    nombresIE.join(", ") + ".";
+}
+
+/**
+ * "Finalizar Foro" no se puede accionar hasta que el informe se haya
+ * enviado por correo (spec del usuario: "no se puede dar Finalizar Foro
+ * hasta que se haya dado click en enviar informe al correo").
+ */
+function actualizarBotonFinalizarForo_() {
+  var boton = document.getElementById("btnFinalizarForo");
+  var aviso = document.getElementById("avisoFaltaEnvioCorreo");
+  if (boton) boton.disabled = !estado.informeEnviadoPorCorreo;
+  if (aviso) aviso.classList.toggle("oculto", !!estado.informeEnviadoPorCorreo);
+}
 
 // La fotografía ya se exigió antes de poder generar el informe (ver
 // btnGenerarInforme más arriba), así que aquí ya no hace falta volver a

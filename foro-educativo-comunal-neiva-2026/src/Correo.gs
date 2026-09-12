@@ -97,6 +97,13 @@ function enviarInformeGrupo(idGrupo) {
   }
   if (!destinatario) return { ok: false, mensaje: "El grupo no tiene un responsable de envío ni EMAIL_RESPONSABLE_GRUPO registrado." };
 
+  // El informe también llega a los correos institucionales de todas las
+  // IE del grupo (spec del usuario: "llegará a los correos de las IE...
+  // que conformaron el grupo"), no solo al responsable de envío.
+  var correosIE = obtenerInstitucionesDelGrupo(idGrupo)
+    .map(function (ie) { return String(ie.email || "").trim(); })
+    .filter(Boolean);
+
   var remitente = remitenteValido_();
   if (!remitente.ok) return remitente;
 
@@ -116,7 +123,7 @@ function enviarInformeGrupo(idGrupo) {
     "Enlace de descarga: " + informe.URL + "\n\n" +
     "Secretaría de Educación de Neiva — " + config.NOMBRE_FORO;
 
-  var copias = copiasAsistentes.concat([String(config.COPIAS_CORREO || "").trim()]).filter(Boolean).join(",");
+  var copias = copiasAsistentes.concat(correosIE, [String(config.COPIAS_CORREO || "").trim()]).filter(Boolean).join(",");
 
   try {
     GmailApp.sendEmail(destinatario, asunto, cuerpo, {

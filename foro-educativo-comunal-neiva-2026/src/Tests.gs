@@ -180,6 +180,40 @@ function testEnviarGrupoRecorridoPruebaAutor() {
   Logger.log(JSON.stringify(enviarGrupoRecorridoPruebaA("jhonefrainsanchez@gmail.com")));
 }
 
+/**
+ * Verifica los permisos de envío de correo de la cuenta que ejecuta este
+ * proyecto (spec del usuario: "verificar permisos para envío de email
+ * desde email que se usó en 3.1 para envíos") — FEI 3.1 enviaba siempre
+ * como REMITENTE_FEM = "calidadeducacion@alcaldianeiva.gov.co"
+ * (Código.js, misma validación de alias que remitenteValido_ aquí).
+ * Ejecutar esta función manualmente desde el editor de Apps Script (Ver →
+ * Registros, o Ejecución → Ver registro de ejecución) para confirmar si
+ * esta cuenta puede enviar con esa misma identidad antes de configurarla
+ * en ConfiguracionComunal (CORREO_REMITENTE).
+ */
+function testVerificarPermisosCorreo() {
+  var CORREO_USADO_EN_3_1 = "calidadeducacion@alcaldianeiva.gov.co";
+  var cuenta = Session.getEffectiveUser().getEmail();
+  var aliases = GmailApp.getAliases();
+  var disponible = cuenta.toLowerCase() === CORREO_USADO_EN_3_1.toLowerCase() ||
+    aliases.map(function (a) { return a.toLowerCase(); }).indexOf(CORREO_USADO_EN_3_1.toLowerCase()) !== -1;
+  var cuotaRestante = MailApp.getRemainingDailyQuota();
+  var resultado = {
+    cuentaEjecutando: cuenta,
+    aliasesDisponibles: aliases,
+    correoUsadoEn3_1: CORREO_USADO_EN_3_1,
+    puedeEnviarComoEn3_1: disponible,
+    cuotaDiariaRestante: cuotaRestante,
+    recomendacion: disponible
+      ? "Esta cuenta SÍ puede enviar como " + CORREO_USADO_EN_3_1 + " — configure CORREO_REMITENTE con ese " +
+        "valor en ConfiguracionComunal para mantener la misma identidad de envío que FEI 3.1."
+      : "Esta cuenta NO tiene " + CORREO_USADO_EN_3_1 + " como alias — deje CORREO_REMITENTE vacío (usará " +
+        cuenta + ") o configure/verifique un alias válido para esa cuenta en Gmail antes de usar ese valor."
+  };
+  Logger.log(JSON.stringify(resultado, null, 2));
+  return resultado;
+}
+
 /** Borra el GRUPO-PRUEBA y sus datos asociados (Sesión 1, ConectaEduca, participación, acceso, informe). */
 function testLimpiarDatosDePrueba() {
   ["GruposComunal", "AccesosGrupo", "ParticipacionComunal", "Sesion1Comunal", "ConectaEduca", "InformesComunal", "EnviosDiferidosComunal", "ResponsablesComunal", "ValoracionComunal", "ParticipacionEstamentoIE", "PreparacionIE", "InvitadosPreparacion"].forEach(
