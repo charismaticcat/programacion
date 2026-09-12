@@ -83,14 +83,14 @@ function enviarEnlaceInvitados(idGrupo, tokenSesion, dispositivoId, tipoInvitado
   var asunto = "Enlace para " + textoGrupoInvitado + " — " + nombreGrupo + " del " + config.NOMBRE_FORO;
   var cuerpo =
     "Hola:\n\n" +
-    "Te compartimos el enlace para que los/las " + textoGrupoInvitado + " del " + nombreGrupo + " registren sus " +
+    "Les compartimos el enlace para que los/las " + textoGrupoInvitado + " del " + nombreGrupo + " registren sus " +
     "aportes al " + config.NOMBRE_FORO + " (\"" + config.SUBTITULO + "\").\n\n" +
     "Enlace: " + enlace + "\n\n" +
     "Instrucciones:\n" +
-    "1. Abra el enlace desde un celular o computador.\n" +
-    "2. Confirme si es estudiante/egresado(a) o adulto responsable, según corresponda.\n" +
-    "3. Seleccione su institución educativa dentro del " + nombreGrupo + ".\n" +
-    "4. Complete y envíe sus aportes — no necesita ningún código de acceso.\n\n" +
+    "1. Abran el enlace desde un celular o computador.\n" +
+    "2. Confirmen si son estudiantes actuales, egresados(as) o adultos responsables, según corresponda.\n" +
+    "3. Seleccionen su institución educativa dentro del " + nombreGrupo + ".\n" +
+    "4. Completen y envíen sus aportes — no necesitan ningún código de acceso.\n\n" +
     "Secretaría de Educación de Neiva — " + config.NOMBRE_FORO;
 
   try {

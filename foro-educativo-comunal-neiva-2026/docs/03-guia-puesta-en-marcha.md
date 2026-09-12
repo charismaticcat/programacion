@@ -934,6 +934,46 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   extraído, e IDs/etiquetas balanceadas) pero no se probó en vivo desde un navegador en este entorno —
   conviene una pasada manual antes de usarla con un grupo real.
 
+## 4.30 Décimo octavo lote: registro de invitados en plural, estimado de estudiantes/egresados(as) por institución, rango de edad, y perfil de egresado(a) separado
+
+- **Todo el flujo de invitados en plural ("ustedes")**: las pantallas "¿Quiénes son?", "Su grupo",
+  "Instituciones que representan", "Su institución educativa", "Antes de empezar", "Preparación" y la
+  pantalla final, además de las 18 ayudas de pregunta (P1-P6 × 3 perfiles) y el correo que envía el enlace
+  a invitados (`enviarEnlaceInvitados`, `Correo.gs`), se redactaron en plural — un mismo dispositivo suele
+  pasar de mano en mano entre varios estudiantes/egresados(as) o adultos responsables que entran uno tras
+  otro. Los roles/vínculos con la IE también se pluralizaron ("Padres de estudiantes", "Acudientes",
+  "Representantes de los comités institucionales").
+- **Perfil "egresado(a)" separado de "estudiante actual"** desde el primer paso: la pantalla "¿Quiénes
+  son?" ahora tiene 3 botones — Estudiantes actuales, Egresados(as) y Adultos responsables — en vez de
+  agrupar estudiante/egresado(a) en un solo botón con una pregunta de seguimiento ("¿Eres estudiante actual
+  o egresado(a)?", eliminada por pedido del usuario). Por eso, en "Antes de empezar", los estudiantes
+  actuales siguen viendo "Años que llevan estudiando en la institución", mientras que los egresados(as) ven
+  en su lugar **Año de graduación** y **Profesión u ocupación actual** (con opciones lógicas: estudiando
+  educación superior, ejerciendo su profesión, trabajando en algo distinto, independiente, buscando
+  empleo, labores del hogar, servicio militar, otra situación). Las 6 preguntas de preparación para
+  egresados(as) tienen la misma ayuda que las de estudiante actual, más una nota aclarando que, si ya no
+  estudian en la institución pero recuerdan algo relacionado, también pueden responder así: "Recuerdo
+  que…". *Nota: el enlace directo de la pantalla de "invitados especiales" (que ya venía con el tipo
+  resuelto de antes) todavía no distingue egresado(a) de estudiante actual — por defecto entra como
+  estudiante actual; quien llegue por ese enlace puede simplemente usar "Somos invitados" desde el inicio
+  si quiere marcarse como egresado(a).*
+- **Rango de edad (de 10 en 10) en vez de edad puntual**: "Antes de empezar" ahora pregunta un rango
+  (Menor de 10, 10 a 19, … 70 o más) en vez de un número — se guarda en la misma columna EDAD de
+  `AportesInvitadosPreparacion` (ahora como texto), sin necesidad de migrar la hoja.
+- **"Instituciones que representan"** (pantalla nueva, entre "Su grupo" y "Su institución educativa"):
+  antes de que cada quien se registre individualmente, se marca (checkbox) cada institución del grupo de
+  la que traen estudiantes y/o egresados(as), con un campo de cantidad para cada una — un estimado
+  agregado, puramente informativo (nunca bloquea el flujo, incluso si no se marca ninguna), guardado en una
+  hoja nueva `DeclaracionInvitadosIE` (`guardarInstitucionesRepresentadasInvitado`/
+  `obtenerDeclaracionInvitadosGrupo_`, `Invitados.gs`) y mostrado en el informe consolidado final si hay
+  algún valor declarado. El registro individual (nombre, rango de edad, respuestas P1-P6) sigue exactamente
+  igual después de este paso.
+- **Todas las preguntas de preparación son obligatorias para invitados**: `marcarPreparacionEnviadaInvitado`
+  ahora exige las 6 respondidas (antes bastaba con una sola) — mensaje "Respondan todas las preguntas antes
+  de enviar."
+- **Nota de transparencia**: verificado de forma estática (`node --check`, IDs sin duplicar, etiquetas
+  balanceadas) pero no probado en vivo desde un navegador en este entorno.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

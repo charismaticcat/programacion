@@ -1,43 +1,50 @@
 /**
  * Invitados.gs — Foro Educativo Comunal Neiva 2026
  *
- * Acceso de invitado (estudiante o padre/madre de familia — acudiente):
- * NO requiere el código de acceso del grupo (spec: "crear perfil de
- * estudiante y de padre de familia (no necesita código) solo accede
- * dando click en soy invitado"). Elige su institución educativa (de
- * todas las IE reales, no solo las de un grupo) y su tipo de invitado, y
- * entra DIRECTAMENTE a la Sesión de preparación de esa IE para enviar
- * sus aportes; una vez enviados, no tiene más acceso a la aplicación
- * (spec: "envía aportes y no tiene más acceso").
+ * Acceso de invitados (estudiantes actuales, egresados(as) o padres/
+ * madres/acudientes — "adultos responsables"): NO requiere el código de
+ * acceso del grupo (spec: "crear perfil de estudiante y de padre de
+ * familia (no necesita código) solo accede dando click en soy
+ * invitado"). Eligen su institución educativa (de todas las IE reales,
+ * no solo las de un grupo) y su tipo de invitado, y entran DIRECTAMENTE
+ * a la Sesión de preparación de esa IE para enviar sus aportes; una vez
+ * enviados, no tienen más acceso a la aplicación (spec: "envía aportes y
+ * no tiene más acceso").
  *
  * Es una sesión de privilegio mínimo y de un solo uso: el token de
  * invitado NUNCA pasa por sesionActivaPorIdGrupo_ (el mecanismo de
  * sesión completa del grupo, ligado al código de acceso) — solo
  * autoriza, mediante sesionInvitadoValida_(), guardar y enviar SU PROPIO
- * aporte de preparación de la IE concreta que el invitado eligió al
- * entrar. No da acceso a Participación, Sesión 1, Sesión 2, ni a ninguna
- * otra escritura del grupo.
+ * aporte de preparación de la IE concreta que eligieron al entrar. No da
+ * acceso a Participación, Sesión 1, Sesión 2, ni a ninguna otra
+ * escritura del grupo.
  *
- * El aporte del invitado se guarda en AportesInvitadosPreparacion, una
- * hoja PROPIA e independiente de PreparacionIE (la oficial de cada IE,
- * ver Preparacion.gs): cada envío de invitado es su propia fila (clave
- * TOKEN_INVITADO), nunca se fusiona con la respuesta institucional. Esto
- * corrige dos problemas del diseño anterior: (a) un invitado ya no
- * sobrescribe/comparte la fila que la propia IE está construyendo, y (b)
- * las preguntas del invitado ya NO se prellenan con el resumen sugerido
- * del Informe Ejecutivo (spec del usuario: "No se tiene en cuenta el
- * informe de cada IE, es construcción libre") — en su lugar,
- * preguntasPreparacionInvitado_(tipoInvitado) da, para cada pregunta
- * (mismo título que la versión oficial, sin modificar su redacción), una
- * explicación con un ejemplo de respuesta afirmativa Y uno de respuesta
- * negativa (para no sugerir una sola "respuesta correcta"), distinta para
- * el perfil "estudiante o egresado(a)" y para "adulto responsable de
- * un(a) estudiante" — nunca remite al Informe Ejecutivo, que el invitado
- * no tiene por qué conocer.
+ * El aporte de cada invitado se guarda en AportesInvitadosPreparacion,
+ * una hoja PROPIA e independiente de PreparacionIE (la oficial de cada
+ * IE, ver Preparacion.gs): cada envío de invitado es su propia fila
+ * (clave TOKEN_INVITADO), nunca se fusiona con la respuesta
+ * institucional. Esto corrige dos problemas del diseño anterior: (a) un
+ * invitado ya no sobrescribe/comparte la fila que la propia IE está
+ * construyendo, y (b) las preguntas del invitado ya NO se prellenan con
+ * el resumen sugerido del Informe Ejecutivo (spec del usuario: "No se
+ * tiene en cuenta el informe de cada IE, es construcción libre") — en su
+ * lugar, preguntasPreparacionInvitado_(tipoInvitado, rolEstudiante) da,
+ * para cada pregunta (mismo título que la versión oficial, sin modificar
+ * su redacción), una explicación con un ejemplo de respuesta afirmativa
+ * Y uno de respuesta negativa (para no sugerir una sola "respuesta
+ * correcta"), distinta para estudiantes actuales, egresados(as) y
+ * adultos responsables — nunca remite al Informe Ejecutivo, que el
+ * invitado no tiene por qué conocer.
+ *
+ * Todo el texto de instrucciones de esta pantalla se redacta en plural
+ * ("ustedes"), ya que un mismo dispositivo suele pasar de mano en mano
+ * entre varios estudiantes/egresados(as) o adultos responsables que
+ * entran uno tras otro (spec del usuario, lote 18).
  */
 
 var HOJA_INVITADOS_ = "InvitadosPreparacion";
 var HOJA_APORTES_INVITADOS_ = "AportesInvitadosPreparacion";
+var HOJA_DECLARACION_INVITADOS_IE_ = "DeclaracionInvitadosIE";
 
 function cabecerasInvitadosPreparacion_() {
   return ["TOKEN_INVITADO", "ID_GRUPO", "ID_IE", "TIPO_INVITADO", "DISPOSITIVO_ID", "FECHA_INGRESO", "ENVIADO"];
@@ -48,88 +55,190 @@ function cabecerasAportesInvitadosPreparacion_() {
     "TOKEN_INVITADO", "ID_GRUPO", "ID_IE", "TIPO_INVITADO",
     // Caracterización (spec del usuario) — nunca se muestra en pantalla
     // durante el Foro, solo se usa para el informe consolidado final
-    // (ver obtenerCaracterizacionInvitadosGrupo_ e Informes.gs).
-    // ROL_ESTUDIANTE/ANIOS_ESTUDIANDO son propios del perfil estudiante;
-    // VINCULO_IE/ROL_IE_ACUDIENTE, del perfil adulto responsable.
-    "NOMBRE", "EDAD", "SEXO", "ROL_ESTUDIANTE", "ANIOS_ESTUDIANDO", "VINCULO_IE", "ROL_IE_ACUDIENTE",
+    // (ver obtenerCaracterizacionInvitadosGrupo_ e Informes.gs). EDAD
+    // guarda un RANGO de edad (de 10 en 10), no un número puntual.
+    // ROL_ESTUDIANTE/ANIOS_ESTUDIANDO (estudiante actual) y
+    // ANIO_GRADUACION/PROFESION_ACTUAL_GRADUADO (egresado/a) son propios
+    // del perfil estudiante; VINCULO_IE/ROL_IE_ACUDIENTE, del perfil
+    // adulto responsable.
+    "NOMBRE", "EDAD", "SEXO", "ROL_ESTUDIANTE", "ANIOS_ESTUDIANDO",
+    "ANIO_GRADUACION", "PROFESION_ACTUAL_GRADUADO",
+    "VINCULO_IE", "ROL_IE_ACUDIENTE",
     "P1", "P2", "P3", "P4", "P5", "P6",
     "ENVIADO", "FECHA_ENVIO", "ULTIMA_ACTUALIZACION"
   ];
 }
 
 /**
- * Ayuda de cada pregunta para el perfil "estudiante o egresado(a)": un
- * ejemplo de respuesta afirmativa y uno de respuesta negativa — ninguno
- * es "la respuesta correcta", solo referencias de cómo se ve una
- * respuesta completa en cada sentido — y la instrucción de escribir "no
- * sé" en vez de dejar la pregunta en blanco cuando no se tiene
- * información sobre el tema.
+ * Estimado agregado, declarado por los propios invitados ANTES de
+ * registrarse individualmente ("¿cuántos estudiantes/egresados(as) traen
+ * de cada institución?") — pantalla "Instituciones que representan",
+ * entre "Su grupo" y "Su institución educativa". Es solo un estimado
+ * informativo (no bloquea nada ni reemplaza el registro individual de
+ * cada quien), guardado por IE con upsert simple.
+ */
+function cabecerasDeclaracionInvitadosIE_() {
+  return ["CLAVE", "ID_GRUPO", "ID_IE", "CANTIDAD_ESTUDIANTES", "CANTIDAD_EGRESADOS", "ULTIMA_ACTUALIZACION"];
+}
+
+function _claveDeclaracionInvitadosIE_(idGrupo, idIE) {
+  return String(idGrupo || "").trim() + "|" + String(idIE || "").trim();
+}
+
+/**
+ * Guarda el estimado agregado de hasta 6 instituciones (las del grupo
+ * elegido) que un invitado marcó en la pantalla "Instituciones que
+ * representan". Nunca escribe una IE que no pertenezca al grupo.
+ */
+function guardarInstitucionesRepresentadasInvitado(idGrupo, declaraciones) {
+  idGrupo = String(idGrupo || "").trim();
+  if (!idGrupo) return { ok: false, mensaje: "Falta el grupo." };
+
+  var institucionesGrupo = obtenerInstitucionesDelGrupo(idGrupo);
+  var idsValidos = {};
+  institucionesGrupo.forEach(function (ie) { idsValidos[ie.idIE] = true; });
+
+  var guardadas = 0;
+  (Array.isArray(declaraciones) ? declaraciones : []).forEach(function (d) {
+    var idIE = String((d && d.idIE) || "").trim();
+    if (!idIE || !idsValidos[idIE]) return;
+    var estudiantes = Math.max(0, Math.round(Number(d.cantidadEstudiantes) || 0));
+    var egresados = Math.max(0, Math.round(Number(d.cantidadEgresados) || 0));
+    conLock_(function () {
+      upsertFila_(
+        HOJA_DECLARACION_INVITADOS_IE_,
+        cabecerasDeclaracionInvitadosIE_(),
+        "CLAVE",
+        _claveDeclaracionInvitadosIE_(idGrupo, idIE),
+        {
+          ID_GRUPO: idGrupo,
+          ID_IE: idIE,
+          CANTIDAD_ESTUDIANTES: estudiantes,
+          CANTIDAD_EGRESADOS: egresados,
+          ULTIMA_ACTUALIZACION: new Date()
+        }
+      );
+      return null;
+    }, 10000);
+    guardadas++;
+  });
+
+  return { ok: true, guardadas: guardadas };
+}
+
+/** El estimado agregado (por IE) ya declarado para un grupo — usado por Informes.gs. */
+function obtenerDeclaracionInvitadosGrupo_(idGrupo) {
+  idGrupo = String(idGrupo || "").trim();
+  var hoja = obtenerHoja_(HOJA_DECLARACION_INVITADOS_IE_, cabecerasDeclaracionInvitadosIE_());
+  var filas = leerFilasComoObjetos_(hoja);
+  var porIE = {};
+  filas.forEach(function (f) {
+    if (String(f.ID_GRUPO || "").trim() !== idGrupo) return;
+    var idIE = String(f.ID_IE || "").trim();
+    var estudiantes = Number(f.CANTIDAD_ESTUDIANTES || 0);
+    var egresados = Number(f.CANTIDAD_EGRESADOS || 0);
+    if (!estudiantes && !egresados) return;
+    porIE[idIE] = { cantidadEstudiantes: estudiantes, cantidadEgresados: egresados };
+  });
+  return porIE;
+}
+
+/**
+ * Ayuda de cada pregunta para el perfil "estudiante actual": un ejemplo
+ * de respuesta afirmativa y uno de respuesta negativa — ninguno es "la
+ * respuesta correcta", solo referencias de cómo se ve una respuesta
+ * completa en cada sentido — y la instrucción de escribir "no sabemos"
+ * en vez de dejar la pregunta en blanco cuando no se tiene información
+ * sobre el tema. Redactado en plural ("ustedes"), ya que varios
+ * estudiantes suelen usar el mismo dispositivo, uno tras otro.
  */
 var AYUDA_PREPARACION_INVITADO_ESTUDIANTE_ = {
-  P1: "Cuenta, con tus propias palabras, qué cambios o mejoras has notado en tu institución en los últimos " +
+  P1: "Cuenten, con sus propias palabras, qué cambios o mejoras han notado en su institución en los últimos " +
     "años: nuevas actividades, mejoras en la enseñanza, proyectos que se hayan logrado, etc. Ejemplo: “Sí, " +
-    "he notado que ahora hay más actividades deportivas y que los profesores usan más la tecnología en las " +
-    "clases.” También puede ser: “No, no he notado cambios grandes, las clases siguen igual que antes.” Si " +
-    "no sabes sobre este tema, escribe que no sabes — no dejes la pregunta en blanco.",
-  P2: "Cuenta si conoces o has visto avances en la atención a los niños y niñas más pequeños (jardín, " +
-    "prejardín) en tu institución. Ejemplo: “Sí, sé que abrieron un salón nuevo para los niños pequeños " +
-    "este año.” También puede ser: “No, en mi institución no hay ni jardín ni prejardín.” Si no sabes sobre " +
-    "este tema, escríbelo así — no dejes la pregunta en blanco.",
-  P3: "¿Sientes que lo que se enseña en tu institución tiene que ver con la vida real de tu barrio o " +
+    "hemos notado que ahora hay más actividades deportivas y que los profesores usan más la tecnología en " +
+    "las clases.” También puede ser: “No, no hemos notado cambios grandes, las clases siguen igual que " +
+    "antes.” Si no saben sobre este tema, escriban que no saben — no dejen la pregunta en blanco.",
+  P2: "Cuenten si conocen o han visto avances en la atención a los niños y niñas más pequeños (jardín, " +
+    "prejardín) en su institución. Ejemplo: “Sí, sabemos que abrieron un salón nuevo para los niños " +
+    "pequeños este año.” También puede ser: “No, en nuestra institución no hay ni jardín ni prejardín.” Si " +
+    "no saben sobre este tema, escríbanlo así — no dejen la pregunta en blanco.",
+  P3: "¿Sienten que lo que se enseña en su institución tiene que ver con la vida real de su barrio o " +
     "comunidad? ¿Por qué? Ejemplo: “Sí, porque en la clase de sociales hablamos de los problemas de " +
     "nuestro barrio.” También puede ser: “No, porque las clases no hablan de lo que pasa aquí en la " +
-    "comuna.” Si no sabes qué responder, dilo con tus palabras — no dejes la pregunta en blanco.",
-  P4: "Menciona alguna actividad, proyecto o clase que haya conectado lo aprendido en la institución con " +
-    "la comunidad o el entorno. Ejemplo: “Sí, hicimos un proyecto de reciclaje con los vecinos del barrio.” " +
-    "También puede ser: “No recuerdo ninguna actividad así.” Si no sabes, escribe que no sabes — no dejes " +
-    "la pregunta en blanco.",
-  P5: "¿Conoces algún grupo, comité o equipo (de padres, estudiantes, profesores) que trabaje por mejorar " +
-    "la relación entre la institución y la comunidad? Cuéntanos cuál y qué hace. Ejemplo: “Sí, el Consejo " +
-    "Estudiantil organiza actividades con la comunidad.” También puede ser: “No conozco ningún grupo así " +
-    "en mi institución.” Si no sabes, dilo — no dejes la pregunta en blanco.",
-  P6: "¿Sientes que en tu institución las decisiones se toman escuchando a estudiantes y familias? Cuenta " +
+    "comuna.” Si no saben qué responder, díganlo con sus palabras — no dejen la pregunta en blanco.",
+  P4: "Mencionen alguna actividad, proyecto o clase que haya conectado lo aprendido en la institución con " +
+    "la comunidad o el entorno. Ejemplo: “Sí, hicimos un proyecto de reciclaje con los vecinos del " +
+    "barrio.” También puede ser: “No recordamos ninguna actividad así.” Si no saben, escriban que no " +
+    "saben — no dejen la pregunta en blanco.",
+  P5: "¿Conocen algún grupo, comité o equipo (de padres, estudiantes, profesores) que trabaje por mejorar " +
+    "la relación entre la institución y la comunidad? Cuéntennos cuál y qué hace. Ejemplo: “Sí, el " +
+    "Consejo Estudiantil organiza actividades con la comunidad.” También puede ser: “No conocemos ningún " +
+    "grupo así en nuestra institución.” Si no saben, díganlo — no dejen la pregunta en blanco.",
+  P6: "¿Sienten que en su institución las decisiones se toman escuchando a estudiantes y familias? Cuenten " +
     "un ejemplo. Ejemplo: “Sí, porque elegimos al personero y al Consejo Estudiantil entre todos.” También " +
     "puede ser: “No, porque no hay elecciones de personero ni se nos pregunta nuestra opinión.” Si no " +
-    "sabes, escríbelo así — no dejes la pregunta en blanco."
+    "saben, escríbanlo así — no dejen la pregunta en blanco."
 };
 
-/** Igual que AYUDA_PREPARACION_INVITADO_ESTUDIANTE_, para el perfil "adulto responsable de un(a) estudiante". */
+/**
+ * Igual que AYUDA_PREPARACION_INVITADO_ESTUDIANTE_, para el perfil
+ * "egresado(a)" — mismas preguntas y ejemplos, pero aclarando que,
+ * aunque ya no estudien allí, también pueden responder desde el
+ * recuerdo de su época como estudiantes (spec del usuario: agregar una
+ * opción que denote "ya no estudio en la IE, pero recuerdo algo",
+ * ejemplo "Recuerdo que…").
+ */
+var AYUDA_PREPARACION_INVITADO_GRADUADO_ = (function () {
+  var NOTA_RECUERDO_ =
+    " Si ya no estudian en la institución pero recuerdan algo relacionado con esta pregunta de su época " +
+    "como estudiantes, también pueden responder así: “Recuerdo que…” y contar lo que recuerdan.";
+  var resultado = {};
+  Object.keys(AYUDA_PREPARACION_INVITADO_ESTUDIANTE_).forEach(function (clave) {
+    resultado[clave] = AYUDA_PREPARACION_INVITADO_ESTUDIANTE_[clave] + NOTA_RECUERDO_;
+  });
+  return resultado;
+})();
+
+/** Igual que las anteriores, para el perfil "adultos responsables de un(a) estudiante" (plural, "ustedes"). */
 var AYUDA_PREPARACION_INVITADO_ADULTO_ = {
-  P1: "Cuente, como adulto responsable, qué cambios o mejoras ha notado en la institución educativa en los " +
-    "últimos años: nuevas actividades, mejoras en la comunicación con las familias, proyectos que se hayan " +
-    "logrado, etc. Ejemplo: “Sí, he notado que ahora nos informan más seguido sobre las actividades del " +
-    "colegio.” También puede ser: “No, no he notado cambios importantes.” Si no sabe sobre este tema, " +
-    "escriba que no sabe — no deje la pregunta en blanco.",
-  P2: "Cuente si conoce o ha visto avances en la atención a los niños y niñas más pequeños (jardín, " +
-    "prejardín) en la institución. Ejemplo: “Sí, sé que este año abrieron un grado nuevo para los más " +
-    "pequeños.” También puede ser: “No, en esta institución no hay jardín ni prejardín.” Si no sabe sobre " +
-    "este tema, escríbalo así — no deje la pregunta en blanco.",
-  P3: "¿Siente que lo que se enseña en la institución tiene que ver con la vida real del barrio o la " +
-    "comunidad? ¿Por qué? Ejemplo: “Sí, porque los proyectos que hacen se relacionan con lo que vivimos en " +
-    "el barrio.” También puede ser: “No, siento que las clases no tienen relación con nuestra realidad.” Si " +
-    "no sabe qué responder, dígalo con sus palabras — no deje la pregunta en blanco.",
-  P4: "Mencione alguna actividad, proyecto o iniciativa que haya conectado lo que se enseña en la " +
+  P1: "Cuenten, como adultos responsables, qué cambios o mejoras han notado en la institución educativa " +
+    "en los últimos años: nuevas actividades, mejoras en la comunicación con las familias, proyectos que " +
+    "se hayan logrado, etc. Ejemplo: “Sí, hemos notado que ahora nos informan más seguido sobre las " +
+    "actividades del colegio.” También puede ser: “No, no hemos notado cambios importantes.” Si no saben " +
+    "sobre este tema, escriban que no saben — no dejen la pregunta en blanco.",
+  P2: "Cuenten si conocen o han visto avances en la atención a los niños y niñas más pequeños (jardín, " +
+    "prejardín) en la institución. Ejemplo: “Sí, sabemos que este año abrieron un grado nuevo para los " +
+    "más pequeños.” También puede ser: “No, en esta institución no hay jardín ni prejardín.” Si no saben " +
+    "sobre este tema, escríbanlo así — no dejen la pregunta en blanco.",
+  P3: "¿Sienten que lo que se enseña en la institución tiene que ver con la vida real del barrio o la " +
+    "comunidad? ¿Por qué? Ejemplo: “Sí, porque los proyectos que hacen se relacionan con lo que vivimos " +
+    "en el barrio.” También puede ser: “No, sentimos que las clases no tienen relación con nuestra " +
+    "realidad.” Si no saben qué responder, díganlo con sus palabras — no dejen la pregunta en blanco.",
+  P4: "Mencionen alguna actividad, proyecto o iniciativa que haya conectado lo que se enseña en la " +
     "institución con la comunidad o las familias. Ejemplo: “Sí, participamos en una jornada de aseo del " +
-    "barrio organizada por el colegio.” También puede ser: “No conozco ninguna actividad así.” Si no sabe, " +
-    "escríbalo — no deje la pregunta en blanco.",
-  P5: "¿Conoce algún grupo, comité o equipo (de padres, estudiantes, profesores) que trabaje por mejorar la " +
-    "relación entre la institución y la comunidad? Cuéntenos cuál y qué hace. Ejemplo: “Sí, el Consejo de " +
-    "Padres organiza reuniones para hablar de las necesidades del colegio.” También puede ser: “No conozco " +
-    "ningún grupo así.” Si no sabe, dígalo — no deje la pregunta en blanco.",
-  P6: "¿Siente que en la institución las decisiones se toman escuchando a las familias y estudiantes? " +
-    "Cuente un ejemplo. Ejemplo: “Sí, porque nos consultan en las reuniones del Consejo de Padres.” También " +
-    "puede ser: “No, siento que las decisiones se toman sin consultarnos.” Si no sabe, escríbalo así — no " +
-    "deje la pregunta en blanco."
+    "barrio organizada por el colegio.” También puede ser: “No conocemos ninguna actividad así.” Si no " +
+    "saben, escríbanlo — no dejen la pregunta en blanco.",
+  P5: "¿Conocen algún grupo, comité o equipo (de padres, estudiantes, profesores) que trabaje por mejorar " +
+    "la relación entre la institución y la comunidad? Cuéntennos cuál y qué hace. Ejemplo: “Sí, el " +
+    "Consejo de Padres organiza reuniones para hablar de las necesidades del colegio.” También puede ser: " +
+    "“No conocemos ningún grupo así.” Si no saben, díganlo — no dejen la pregunta en blanco.",
+  P6: "¿Sienten que en la institución las decisiones se toman escuchando a las familias y estudiantes? " +
+    "Cuenten un ejemplo. Ejemplo: “Sí, porque nos consultan en las reuniones del Consejo de Padres.” " +
+    "También puede ser: “No, sentimos que las decisiones se toman sin consultarnos.” Si no saben, " +
+    "escríbanlo así — no dejen la pregunta en blanco."
 };
 
 /**
  * Las 6 preguntas de preparación para el invitado, con el MISMO título
  * que PREGUNTAS_PREPARACION_ (Preparacion.gs — nunca se modifica su
- * redacción) pero con la ayuda propia de su perfil.
+ * redacción) pero con la ayuda propia de su perfil: estudiante actual,
+ * egresado(a) o adulto responsable.
  */
-function preguntasPreparacionInvitado_(tipoInvitado) {
-  var ayudas = String(tipoInvitado || "").toUpperCase() === "ESTUDIANTE"
-    ? AYUDA_PREPARACION_INVITADO_ESTUDIANTE_
+function preguntasPreparacionInvitado_(tipoInvitado, rolEstudiante) {
+  var tipo = String(tipoInvitado || "").toUpperCase();
+  var esGraduado = String(rolEstudiante || "").toUpperCase() === "GRADUADO";
+  var ayudas = tipo === "ESTUDIANTE"
+    ? (esGraduado ? AYUDA_PREPARACION_INVITADO_GRADUADO_ : AYUDA_PREPARACION_INVITADO_ESTUDIANTE_)
     : AYUDA_PREPARACION_INVITADO_ADULTO_;
   return PREGUNTAS_PREPARACION_.map(function (p) {
     return { clave: p.clave, titulo: p.titulo, ayuda: ayudas[p.clave] || "" };
@@ -138,7 +247,9 @@ function preguntasPreparacionInvitado_(tipoInvitado) {
 
 /**
  * Inicia una sesión de invitado para una IE concreta — sin código de
- * acceso. `tipoInvitado` es "ESTUDIANTE" o "ACUDIENTE". El grupo al que
+ * acceso. `tipoInvitado` es "ESTUDIANTE" (incluye estudiante actual Y
+ * egresado(a) — se distinguen entre sí por ROL_ESTUDIANTE, elegido
+ * desde el primer paso del flujo) o "ACUDIENTE". El grupo al que
  * pertenece la IE se resuelve automáticamente (obtenerGrupoDeInstitucion_,
  * Instituciones.gs), igual que ya hace el resto de la app.
  */
@@ -146,9 +257,9 @@ function iniciarAccesoInvitado(idIE, tipoInvitado, dispositivoId) {
   idIE = String(idIE || "").trim();
   tipoInvitado = String(tipoInvitado || "").trim().toUpperCase();
   if (tipoInvitado !== "ESTUDIANTE" && tipoInvitado !== "ACUDIENTE") {
-    return { ok: false, mensaje: "Selecciona si eres estudiante o acudiente." };
+    return { ok: false, mensaje: "Seleccionen quiénes son." };
   }
-  if (!idIE) return { ok: false, mensaje: "Selecciona tu institución educativa." };
+  if (!idIE) return { ok: false, mensaje: "Seleccionen su institución educativa." };
 
   var grupoInfo = obtenerGrupoDeInstitucion_(idIE);
   if (!grupoInfo) return { ok: false, mensaje: "No se encontró esa institución educativa." };
@@ -187,13 +298,15 @@ function sesionInvitadoValida_(tokenInvitado, idIE, dispositivoId) {
 }
 
 /**
- * Guarda los datos de caracterización de un invitado (nombre, edad, sexo
- * y, según el perfil, rol de estudiante/años estudiando o vínculo/rol
- * dentro de la IE) — en SU PROPIA fila de AportesInvitadosPreparacion
- * (misma clave TOKEN_INVITADO que sus respuestas P1-P6, puede crearse
- * antes de que existan). Estos datos NUNCA se muestran en pantalla
- * durante el Foro (spec del usuario) — solo se usan al final, en el
- * informe consolidado del grupo (ver obtenerCaracterizacionInvitadosGrupo_).
+ * Guarda los datos de caracterización de un invitado (nombre, rango de
+ * edad, sexo y, según el perfil: años estudiando en la IE si es
+ * estudiante actual; año de graduación y profesión actual si es
+ * egresado(a); o vínculo y rol dentro de la IE si es adulto responsable)
+ * — en SU PROPIA fila de AportesInvitadosPreparacion (misma clave
+ * TOKEN_INVITADO que sus respuestas P1-P6, puede crearse antes de que
+ * existan). Estos datos NUNCA se muestran en pantalla durante el Foro
+ * (spec del usuario) — solo se usan al final, en el informe consolidado
+ * del grupo (ver obtenerCaracterizacionInvitadosGrupo_).
  */
 function guardarCaracterizacionInvitado(tokenInvitado, idIE, dispositivoId, datos) {
   var sesion = sesionInvitadoValida_(tokenInvitado, idIE, dispositivoId);
@@ -201,7 +314,7 @@ function guardarCaracterizacionInvitado(tokenInvitado, idIE, dispositivoId, dato
 
   datos = datos || {};
   var nombre = String(datos.nombre || "").trim();
-  if (!nombre) return { ok: false, mensaje: "Ingresa tu nombre completo." };
+  if (!nombre) return { ok: false, mensaje: "Ingresen el nombre completo." };
 
   var tipoInvitado = String(sesion.TIPO_INVITADO || "").toUpperCase();
   var campos = {
@@ -209,13 +322,22 @@ function guardarCaracterizacionInvitado(tokenInvitado, idIE, dispositivoId, dato
     ID_IE: idIE,
     TIPO_INVITADO: tipoInvitado,
     NOMBRE: nombre,
-    EDAD: String(datos.edad || "").trim(),
+    EDAD: String(datos.rangoEdad || "").trim(),
     SEXO: String(datos.sexo || "").trim(),
     ULTIMA_ACTUALIZACION: new Date()
   };
   if (tipoInvitado === "ESTUDIANTE") {
-    campos.ROL_ESTUDIANTE = String(datos.rolEstudiante || "").trim();
-    campos.ANIOS_ESTUDIANDO = String(datos.aniosEstudiando || "").trim();
+    var rolEstudiante = String(datos.rolEstudiante || "").trim().toUpperCase();
+    campos.ROL_ESTUDIANTE = rolEstudiante;
+    if (rolEstudiante === "GRADUADO") {
+      campos.ANIO_GRADUACION = String(datos.anioGraduacion || "").trim();
+      campos.PROFESION_ACTUAL_GRADUADO = String(datos.profesionActual || "").trim();
+      campos.ANIOS_ESTUDIANDO = "";
+    } else {
+      campos.ANIOS_ESTUDIANDO = String(datos.aniosEstudiando || "").trim();
+      campos.ANIO_GRADUACION = "";
+      campos.PROFESION_ACTUAL_GRADUADO = "";
+    }
   } else {
     campos.VINCULO_IE = String(datos.vinculoIE || "").trim();
     campos.ROL_IE_ACUDIENTE = String(datos.rolIEAcudiente || "").trim();
@@ -232,7 +354,9 @@ function guardarCaracterizacionInvitado(tokenInvitado, idIE, dispositivoId, dato
  * blanco por defecto (construcción libre, NUNCA se prellenan con el
  * resumen sugerido del Informe Ejecutivo) salvo que el propio invitado ya
  * haya guardado un avance con este mismo token, caso en el que se
- * recupera SU propio borrador.
+ * recupera SU propio borrador. La ayuda de cada pregunta depende también
+ * de ROL_ESTUDIANTE (estudiante actual vs. egresado/a), ya guardado por
+ * guardarCaracterizacionInvitado antes de llegar aquí.
  */
 function obtenerPreparacionIEInvitado(tokenInvitado, idIE, dispositivoId) {
   var sesion = sesionInvitadoValida_(tokenInvitado, idIE, dispositivoId);
@@ -243,7 +367,7 @@ function obtenerPreparacionIEInvitado(tokenInvitado, idIE, dispositivoId) {
   var fila = buscarFilaPorColumna_(hoja, mapa, "TOKEN_INVITADO", String(tokenInvitado || "").trim());
   var guardado = fila === -1 ? null : leerFilaComoObjeto_(hoja, fila, mapa);
 
-  var preguntas = preguntasPreparacionInvitado_(sesion.TIPO_INVITADO);
+  var preguntas = preguntasPreparacionInvitado_(sesion.TIPO_INVITADO, guardado ? guardado.ROL_ESTUDIANTE : "");
   var respuestas = {};
   preguntas.forEach(function (p) {
     respuestas[p.clave] = guardado ? String(guardado[p.clave] || "") : "";
@@ -287,27 +411,29 @@ function guardarPreparacionIEInvitado(tokenInvitado, idIE, tipoInvitado, disposi
  * en InvitadosPreparacion) — a partir de aquí sesionInvitadoValida_ lo
  * sigue reconociendo (para poder mostrarle la confirmación), pero
  * cualquier intento de volver a guardar o enviar debe rechazarse: ya
- * cumplió su única tarea.
+ * cumplió su única tarea. Exige TODAS las preguntas respondidas (spec del
+ * usuario: "se deben responder todas las preguntas obligatoriamente"),
+ * no solo una como antes.
  */
 function marcarPreparacionEnviadaInvitado(tokenInvitado, idIE, dispositivoId) {
   var sesion = sesionInvitadoValida_(tokenInvitado, idIE, dispositivoId);
   if (!sesion) return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión de invitado ya no es válida." };
   if (String(sesion.ENVIADO || "") === "SI") {
-    return { ok: false, mensaje: "Ya enviaste tus aportes con esta sesión de invitado." };
+    return { ok: false, mensaje: "Ya enviaron sus aportes con esta sesión de invitado." };
   }
 
   var hoja = obtenerHoja_(HOJA_APORTES_INVITADOS_, cabecerasAportesInvitadosPreparacion_());
   var mapa = obtenerMapaCabeceras_(hoja);
   var fila = buscarFilaPorColumna_(hoja, mapa, "TOKEN_INVITADO", String(tokenInvitado || "").trim());
-  var tieneAlgo = false;
+  var tieneTodas = false;
   if (fila !== -1) {
     var guardado = leerFilaComoObjeto_(hoja, fila, mapa);
-    tieneAlgo = PREGUNTAS_PREPARACION_.some(function (p) {
+    tieneTodas = PREGUNTAS_PREPARACION_.every(function (p) {
       return String(guardado[p.clave] || "").trim() !== "";
     });
   }
-  if (!tieneAlgo) {
-    return { ok: false, mensaje: "Responde al menos una pregunta antes de enviar." };
+  if (!tieneTodas) {
+    return { ok: false, mensaje: "Respondan todas las preguntas antes de enviar." };
   }
 
   return conLock_(function () {
@@ -365,12 +491,13 @@ function obtenerAportesInvitadosGrupo(idGrupo) {
 }
 
 /**
- * Caracterización de todos los invitados (estudiantes/egresados y
- * adultos responsables) que ya enviaron sus aportes en el grupo — SOLO
- * para el informe consolidado final (Informes.gs), spec del usuario:
- * "los nombres de los estudiantes y padres de familia aparecerán
- * únicamente al final del foro en un informe consolidado". En ningún
- * otro lugar de la aplicación se muestra el nombre de un invitado.
+ * Caracterización de todos los invitados (estudiantes actuales,
+ * egresados(as) y adultos responsables) que ya enviaron sus aportes en
+ * el grupo — SOLO para el informe consolidado final (Informes.gs), spec
+ * del usuario: "los nombres de los estudiantes y padres de familia
+ * aparecerán únicamente al final del foro en un informe consolidado". En
+ * ningún otro lugar de la aplicación se muestra el nombre de un
+ * invitado.
  */
 function obtenerCaracterizacionInvitadosGrupo_(idGrupo) {
   idGrupo = String(idGrupo || "").trim();
@@ -390,15 +517,21 @@ function obtenerCaracterizacionInvitadosGrupo_(idGrupo) {
     var persona = {
       nombre: String(f.NOMBRE || "").trim() || "(sin nombre registrado)",
       institucion: institucionesPorId[String(f.ID_IE || "").trim()] || "",
-      edad: String(f.EDAD || "").trim(),
+      rangoEdad: String(f.EDAD || "").trim(),
       sexo: String(f.SEXO || "").trim(),
       tipoInvitado: tipo
     };
     if (tipo === "ESTUDIANTE") {
       var rolEstudiante = String(f.ROL_ESTUDIANTE || "").toUpperCase();
       persona.rol = rolEstudiante === "GRADUADO" ? "Graduado(a)" : "Estudiante";
-      persona.aniosEstudiando = String(f.ANIOS_ESTUDIANDO || "").trim();
-      if (rolEstudiante === "GRADUADO") totalGraduados++; else totalEstudiantes++;
+      if (rolEstudiante === "GRADUADO") {
+        persona.anioGraduacion = String(f.ANIO_GRADUACION || "").trim();
+        persona.profesionActual = String(f.PROFESION_ACTUAL_GRADUADO || "").trim();
+        totalGraduados++;
+      } else {
+        persona.aniosEstudiando = String(f.ANIOS_ESTUDIANDO || "").trim();
+        totalEstudiantes++;
+      }
     } else {
       persona.vinculoIE = String(f.VINCULO_IE || "").trim();
       persona.rolIE = String(f.ROL_IE_ACUDIENTE || "").trim();

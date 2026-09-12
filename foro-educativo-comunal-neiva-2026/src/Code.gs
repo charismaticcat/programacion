@@ -219,6 +219,13 @@ function rpcIniciarAccesoInvitado(idIE, tipoInvitado, dispositivoId) {
   });
 }
 
+/** Estimado agregado de estudiantes/egresados(as) por institución, declarado antes del registro individual (Invitados.gs). */
+function rpcGuardarInstitucionesRepresentadasInvitado(idGrupo, declaraciones) {
+  return ejecutarRpcSeguro_(function () {
+    return guardarInstitucionesRepresentadasInvitado(idGrupo, declaraciones);
+  });
+}
+
 function rpcObtenerPreparacionIEInvitado(tokenInvitado, idIE, dispositivoId) {
   return ejecutarRpcSeguro_(function () {
     return obtenerPreparacionIEInvitado(tokenInvitado, idIE, dispositivoId);

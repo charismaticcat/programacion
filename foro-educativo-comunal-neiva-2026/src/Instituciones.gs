@@ -159,6 +159,7 @@ function obtenerTodasLasInstitucionesActivas() {
       return {
         idIE: idIE,
         institucion: String(f.INSTITUCION || "").trim(),
+        idGrupo: String(f.ID_GRUPO || "").trim(),
         grupo: String(f.GRUPO || "").trim(),
         logoId: String(c.LOGO_ID || "").trim()
       };

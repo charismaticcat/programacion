@@ -649,8 +649,10 @@ document.getElementById("btnForzarSesion").addEventListener("click", function ()
  * ------------------------------------------------------------------ */
 var estadoInvitado = {
   tipoInvitado: "",
+  rolEstudiante: "",
   grupoSeleccionado: "",
   institucionesDelGrupoSeleccionado: [],
+  institucionesMarcadas_: [],
   tokenInvitado: "",
   idIE: "",
   institucion: "",
@@ -670,10 +672,11 @@ document.getElementById("btnCerrarInvitadoGrupo").addEventListener("click", func
 document.getElementById("btnCerrarInvitadoIE").addEventListener("click", function () {
   document.getElementById("overlayInvitadoIE").classList.add("oculto");
   // Si se llegó por un enlace directo (?t=TOKEN&invitado=...), no hay
-  // pantalla de "elegir grupo" a la que volver — el grupo ya vino resuelto
-  // en el enlace — así que aquí simplemente se cierra el flujo.
+  // pantalla anterior a la que volver — el grupo ya vino resuelto en el
+  // enlace — así que aquí simplemente se cierra el flujo. En el flujo
+  // normal se vuelve a "Instituciones que representan".
   if (!estadoInvitado.viaEnlaceDirecto_) {
-    document.getElementById("overlayInvitadoGrupo").classList.remove("oculto");
+    abrirInstitucionesRepresentadasInvitado_();
   }
 });
 
@@ -684,6 +687,7 @@ document.getElementById("btnCerrarInvitadoIE").addEventListener("click", functio
 document.querySelectorAll("[data-invitado-tipo]").forEach(function (boton) {
   boton.addEventListener("click", function () {
     estadoInvitado.tipoInvitado = boton.getAttribute("data-invitado-tipo");
+    estadoInvitado.rolEstudiante = boton.getAttribute("data-rol-estudiante") || "";
     document.getElementById("overlayInvitadoTipo").classList.add("oculto");
     document.getElementById("overlayInvitadoGrupo").classList.remove("oculto");
     llamarServidor("rpcTodasLasInstituciones", [], function (instituciones) {
@@ -708,29 +712,104 @@ document.querySelectorAll("[data-invitado-tipo]").forEach(function (boton) {
 document.getElementById("btnContinuarInvitadoGrupo").addEventListener("click", function () {
   var grupo = document.getElementById("campoGrupoInvitado").value;
   if (!grupo) {
-    mostrarMensaje("mensajeInvitadoGrupo", "Selecciona tu grupo.", "error");
+    mostrarMensaje("mensajeInvitadoGrupo", "Seleccionen su grupo.", "error");
     return;
   }
   estadoInvitado.grupoSeleccionado = grupo;
   estadoInvitado.institucionesDelGrupoSeleccionado = (estadoInvitado.todasLasInstituciones_ || [])
     .filter(function (ie) { return ie.grupo === grupo; });
-  document.getElementById("nombreGrupoInvitadoIE").textContent = grupo;
-  var select = document.getElementById("campoIEInvitado");
-  select.innerHTML = "";
-  estadoInvitado.institucionesDelGrupoSeleccionado.forEach(function (ie) {
-    var opcion = document.createElement("option");
-    opcion.value = ie.idIE;
-    opcion.textContent = ie.institucion;
-    select.appendChild(opcion);
-  });
   document.getElementById("overlayInvitadoGrupo").classList.add("oculto");
-  document.getElementById("overlayInvitadoIE").classList.remove("oculto");
+  abrirInstitucionesRepresentadasInvitado_();
+});
+
+/**
+ * Paso nuevo (lote 18): estimado agregado de estudiantes/egresados(as)
+ * por institución del grupo (hasta 6, las que tenga ese grupo), antes de
+ * que cada quien elija SU institución y se registre individualmente.
+ * Puramente informativo — "Continuar" nunca se bloquea, aunque no
+ * marquen ninguna institución.
+ */
+function abrirInstitucionesRepresentadasInvitado_() {
+  var contenedor = document.getElementById("listaInstitucionesRepresentadasInvitado");
+  var html = "";
+  estadoInvitado.institucionesDelGrupoSeleccionado.forEach(function (ie, indice) {
+    html +=
+      "<div class='fila-institucion-representada'>" +
+      "<label class='fila-institucion-representada-check'>" +
+      "<input type='checkbox' data-rep-ie-check data-rep-ie-indice='" + indice + "'> " + escapeHtml(ie.institucion) +
+      "</label>" +
+      "<div class='fila-institucion-representada-cantidades'>" +
+      "<label>Estudiantes <input type='number' min='0' data-rep-ie-estudiantes data-rep-ie-indice='" + indice + "' disabled value='0'></label>" +
+      "<label>Egresados(as) <input type='number' min='0' data-rep-ie-egresados data-rep-ie-indice='" + indice + "' disabled value='0'></label>" +
+      "</div></div>";
+  });
+  contenedor.innerHTML = html || "<p class='ayuda'>Este grupo todavía no tiene instituciones activas.</p>";
+  contenedor.querySelectorAll("[data-rep-ie-check]").forEach(function (check) {
+    check.addEventListener("change", function () {
+      var indice = this.getAttribute("data-rep-ie-indice");
+      contenedor.querySelectorAll("[data-rep-ie-indice='" + indice + "'][data-rep-ie-estudiantes], [data-rep-ie-indice='" + indice + "'][data-rep-ie-egresados]")
+        .forEach(function (campo) { campo.disabled = !this.checked; }.bind(this));
+    });
+  });
+  mostrarMensaje("mensajeInvitadoInstituciones", "");
+  document.getElementById("overlayInvitadoInstituciones").classList.remove("oculto");
+}
+document.getElementById("btnCerrarInvitadoInstituciones").addEventListener("click", function () {
+  document.getElementById("overlayInvitadoInstituciones").classList.add("oculto");
+  document.getElementById("overlayInvitadoGrupo").classList.remove("oculto");
+});
+document.getElementById("btnContinuarInvitadoInstituciones").addEventListener("click", function () {
+  var contenedor = document.getElementById("listaInstitucionesRepresentadasInvitado");
+  var declaraciones = [];
+  var institucionesMarcadas = [];
+  contenedor.querySelectorAll("[data-rep-ie-check]").forEach(function (check) {
+    var indice = Number(check.getAttribute("data-rep-ie-indice"));
+    var ie = estadoInvitado.institucionesDelGrupoSeleccionado[indice];
+    if (!ie) return;
+    if (check.checked) institucionesMarcadas.push(ie);
+    if (!check.checked) return;
+    var estudiantes = contenedor.querySelector("[data-rep-ie-estudiantes][data-rep-ie-indice='" + indice + "']");
+    var egresados = contenedor.querySelector("[data-rep-ie-egresados][data-rep-ie-indice='" + indice + "']");
+    declaraciones.push({
+      idIE: ie.idIE,
+      cantidadEstudiantes: estudiantes ? estudiantes.value : 0,
+      cantidadEgresados: egresados ? egresados.value : 0
+    });
+  });
+  estadoInvitado.institucionesMarcadas_ = institucionesMarcadas;
+
+  function continuarAInstitucion() {
+    var instituciones = institucionesMarcadas.length ? institucionesMarcadas : estadoInvitado.institucionesDelGrupoSeleccionado;
+    document.getElementById("nombreGrupoInvitadoIE").textContent = estadoInvitado.grupoSeleccionado;
+    var select = document.getElementById("campoIEInvitado");
+    select.innerHTML = "";
+    instituciones.forEach(function (ie) {
+      var opcion = document.createElement("option");
+      opcion.value = ie.idIE;
+      opcion.textContent = ie.institucion;
+      select.appendChild(opcion);
+    });
+    document.getElementById("overlayInvitadoInstituciones").classList.add("oculto");
+    document.getElementById("overlayInvitadoIE").classList.remove("oculto");
+  }
+
+  if (!declaraciones.length) {
+    continuarAInstitucion();
+    return;
+  }
+  var idGrupoDeclarante = (estadoInvitado.institucionesDelGrupoSeleccionado[0] || {}).idGrupo || "";
+  llamarServidor("rpcGuardarInstitucionesRepresentadasInvitado", [idGrupoDeclarante, declaraciones], function () {
+    continuarAInstitucion();
+  }, function () {
+    // El estimado es informativo — un fallo al guardarlo no debe bloquear el flujo.
+    continuarAInstitucion();
+  });
 });
 
 document.getElementById("btnContinuarInvitadoIE").addEventListener("click", function () {
   var idIE = document.getElementById("campoIEInvitado").value;
   if (!idIE) {
-    mostrarMensaje("mensajeInvitadoIE", "Selecciona tu institución educativa.", "error");
+    mostrarMensaje("mensajeInvitadoIE", "Seleccionen su institución educativa.", "error");
     return;
   }
   llamarServidor("rpcIniciarAccesoInvitado", [idIE, estadoInvitado.tipoInvitado, estado.dispositivoId], function (r) {
@@ -758,6 +837,11 @@ document.getElementById("btnContinuarInvitadoIE").addEventListener("click", func
  */
 if (INVITADO_TIPO_ACCESO && ID_GRUPO_ACCESO) {
   estadoInvitado.tipoInvitado = INVITADO_TIPO_ACCESO;
+  // El enlace directo (pantalla de "invitados especiales") no distingue
+  // todavía estudiante actual de egresado(a) — por defecto se trata como
+  // estudiante actual; quien entre puede simplemente elegir "Somos
+  // invitados" desde el inicio si quiere marcarse como egresado(a).
+  estadoInvitado.rolEstudiante = INVITADO_TIPO_ACCESO === "ESTUDIANTE" ? "ESTUDIANTE" : "";
   estadoInvitado.viaEnlaceDirecto_ = true;
   document.getElementById("btnCerrarInvitadoIE").textContent = "Cancelar";
   llamarServidor("rpcInstitucionesDelGrupo", [ID_GRUPO_ACCESO], function (instituciones) {
@@ -786,14 +870,17 @@ if (INVITADO_TIPO_ACCESO && ID_GRUPO_ACCESO) {
  */
 function abrirCaracterizacionInvitado_() {
   document.getElementById("campoNombreInvitado").value = "";
-  document.getElementById("campoEdadInvitado").value = "";
+  document.getElementById("campoRangoEdadInvitado").selectedIndex = 0;
   document.getElementById("campoSexoInvitado").selectedIndex = 0;
-  document.getElementById("campoRolEstudianteInvitado").selectedIndex = 0;
   document.getElementById("campoAniosEstudiandoInvitado").value = "";
+  document.getElementById("campoAnioGraduacionInvitado").value = "";
+  document.getElementById("campoProfesionActualInvitado").selectedIndex = 0;
   document.getElementById("campoVinculoIEInvitado").selectedIndex = 0;
   document.getElementById("campoRolIEInvitado").selectedIndex = 0;
   var esEstudiante = estadoInvitado.tipoInvitado === "ESTUDIANTE";
-  document.getElementById("camposInvitadoEstudiante").classList.toggle("oculto", !esEstudiante);
+  var esGraduado = esEstudiante && estadoInvitado.rolEstudiante === "GRADUADO";
+  document.getElementById("camposInvitadoEstudianteActual").classList.toggle("oculto", !esEstudiante || esGraduado);
+  document.getElementById("camposInvitadoGraduado").classList.toggle("oculto", !esGraduado);
   document.getElementById("camposInvitadoAcudiente").classList.toggle("oculto", esEstudiante);
   mostrarMensaje("mensajeInvitadoCaracterizacion", "");
   document.getElementById("overlayInvitadoCaracterizacion").classList.remove("oculto");
@@ -805,17 +892,22 @@ document.getElementById("btnCerrarInvitadoCaracterizacion").addEventListener("cl
 document.getElementById("btnContinuarInvitadoCaracterizacion").addEventListener("click", function () {
   var nombre = document.getElementById("campoNombreInvitado").value.trim();
   if (!nombre) {
-    mostrarMensaje("mensajeInvitadoCaracterizacion", "Ingresa tu nombre completo.", "error");
+    mostrarMensaje("mensajeInvitadoCaracterizacion", "Ingresen el nombre completo.", "error");
     return;
   }
   var datos = {
     nombre: nombre,
-    edad: document.getElementById("campoEdadInvitado").value,
+    rangoEdad: document.getElementById("campoRangoEdadInvitado").value,
     sexo: document.getElementById("campoSexoInvitado").value
   };
   if (estadoInvitado.tipoInvitado === "ESTUDIANTE") {
-    datos.rolEstudiante = document.getElementById("campoRolEstudianteInvitado").value;
-    datos.aniosEstudiando = document.getElementById("campoAniosEstudiandoInvitado").value;
+    datos.rolEstudiante = estadoInvitado.rolEstudiante;
+    if (estadoInvitado.rolEstudiante === "GRADUADO") {
+      datos.anioGraduacion = document.getElementById("campoAnioGraduacionInvitado").value;
+      datos.profesionActual = document.getElementById("campoProfesionActualInvitado").value;
+    } else {
+      datos.aniosEstudiando = document.getElementById("campoAniosEstudiandoInvitado").value;
+    }
   } else {
     datos.vinculoIE = document.getElementById("campoVinculoIEInvitado").value;
     datos.rolIEAcudiente = document.getElementById("campoRolIEInvitado").value;
@@ -833,7 +925,7 @@ document.getElementById("btnContinuarInvitadoCaracterizacion").addEventListener(
     },
     function (error) {
       console.error("rpcGuardarCaracterizacionInvitado", error);
-      mostrarMensaje("mensajeInvitadoCaracterizacion", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+      mostrarMensaje("mensajeInvitadoCaracterizacion", "Ocurrió un error de comunicación con el servidor. Intenten de nuevo.", "error");
     }
   );
 });
@@ -841,7 +933,9 @@ document.getElementById("btnContinuarInvitadoCaracterizacion").addEventListener(
 function abrirPreparacionInvitado_() {
   document.getElementById("nombreIEInvitadoPrep").textContent = estadoInvitado.institucion;
   document.getElementById("tipoInvitadoTexto").textContent =
-    estadoInvitado.tipoInvitado === "ESTUDIANTE" ? "Estudiante o egresado(a)" : "Adulto responsable de un(a) estudiante";
+    estadoInvitado.tipoInvitado !== "ESTUDIANTE"
+      ? "Adultos responsables de un(a) estudiante"
+      : (estadoInvitado.rolEstudiante === "GRADUADO" ? "Egresados(as)" : "Estudiantes actuales");
   llamarServidor(
     "rpcObtenerPreparacionIEInvitado",
     [estadoInvitado.tokenInvitado, estadoInvitado.idIE, estado.dispositivoId],
@@ -887,10 +981,10 @@ document.addEventListener("input", function (evento) {
 });
 
 document.getElementById("btnEnviarPreparacionInvitado").addEventListener("click", function () {
-  confirmarAccion("¿Enviar tus aportes para " + estadoInvitado.institucion + "?", function () {
+  confirmarAccion("¿Enviar sus aportes para " + estadoInvitado.institucion + "?", function () {
     guardarPreparacionInvitadoActual_(false, function (guardadoOk) {
       if (!guardadoOk) {
-        mostrarMensaje("mensajePreparacionInvitado", "No fue posible guardar antes de enviar. Intenta de nuevo.", "error");
+        mostrarMensaje("mensajePreparacionInvitado", "No fue posible guardar antes de enviar. Intenten de nuevo.", "error");
         return;
       }
       mostrarCargaAccion_("aportes");
@@ -911,7 +1005,7 @@ document.getElementById("btnEnviarPreparacionInvitado").addEventListener("click"
         function (error) {
           ocultarCargaAccion_();
           console.error("rpcMarcarPreparacionEnviadaInvitado", error);
-          mostrarMensaje("mensajePreparacionInvitado", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+          mostrarMensaje("mensajePreparacionInvitado", "Ocurrió un error de comunicación con el servidor. Intenten de nuevo.", "error");
         }
       );
     });

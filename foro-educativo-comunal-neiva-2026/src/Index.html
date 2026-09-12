@@ -127,7 +127,7 @@
       </div>
       <p class="separador-o">o</p>
       <div class="fila-botones">
-        <button class="btn btn-secundario" id="btnSoyInvitado">🎓 Soy invitado (estudiantes, egresados y adultos responsables)</button>
+        <button class="btn btn-secundario" id="btnSoyInvitado">🎓 Somos invitados (estudiantes, egresados y adultos responsables)</button>
       </div>
     </div>
   </section>
@@ -987,17 +987,21 @@
   </div>
 </div>
 
-<!-- Acceso de invitado (estudiante/acudiente) — NO requiere código de
-     acceso; entra directo a la preparación de UNA IE y, al enviarla, no
-     tiene más acceso a la aplicación. Flujo totalmente aparte de
-     ORDEN_PANTALLAS/cambiarPantalla, con su propia lógica en JS.html. -->
+<!-- Acceso de invitados (estudiantes actuales, egresados(as) o adultos
+     responsables) — NO requiere código de acceso; entra directo a la
+     preparación de UNA IE y, al enviarla, no tiene más acceso a la
+     aplicación. Flujo totalmente aparte de ORDEN_PANTALLAS/cambiarPantalla,
+     con su propia lógica en JS.html. Todo el texto está en plural
+     ("ustedes"): un mismo dispositivo suele pasar de mano en mano entre
+     varios invitados que entran uno tras otro (spec del usuario, lote 18). -->
 <div id="overlayInvitadoTipo" class="oculto overlay-invitado">
   <div class="tarjeta">
-    <h2 class="titulo-seccion">¿Quién eres?</h2>
-    <p class="ayuda">Selecciona una opción para continuar directamente a la preparación de tu institución.</p>
+    <h2 class="titulo-seccion">¿Quiénes son?</h2>
+    <p class="ayuda">Seleccionen una opción para continuar directamente a la preparación de su institución.</p>
     <div class="fila-botones fila-botones-columna">
-      <button class="btn btn-primario" data-invitado-tipo="ESTUDIANTE">🧑‍🎓 Soy estudiante o egresado(a)</button>
-      <button class="btn btn-primario" data-invitado-tipo="ACUDIENTE">👨‍👩‍👧 Soy adulto responsable de un(a) estudiante</button>
+      <button class="btn btn-primario" data-invitado-tipo="ESTUDIANTE" data-rol-estudiante="ESTUDIANTE">🧑‍🎓 Somos estudiantes actuales</button>
+      <button class="btn btn-primario" data-invitado-tipo="ESTUDIANTE" data-rol-estudiante="GRADUADO">🎓 Somos egresados(as)</button>
+      <button class="btn btn-primario" data-invitado-tipo="ACUDIENTE">👨‍👩‍👧 Somos adultos responsables de un(a) estudiante</button>
     </div>
     <div class="fila-botones">
       <button class="btn btn-secundario" id="btnCerrarInvitadoTipo">Cancelar</button>
@@ -1007,8 +1011,8 @@
 
 <div id="overlayInvitadoGrupo" class="oculto overlay-invitado">
   <div class="tarjeta">
-    <h2 class="titulo-seccion">Tu grupo</h2>
-    <p class="ayuda">Selecciona el grupo al que pertenece tu institución educativa.</p>
+    <h2 class="titulo-seccion">Su grupo</h2>
+    <p class="ayuda">Seleccionen el grupo al que pertenece su institución educativa.</p>
     <label for="campoGrupoInvitado">Grupo</label>
     <select id="campoGrupoInvitado"></select>
     <div id="mensajeInvitadoGrupo"></div>
@@ -1019,10 +1023,30 @@
   </div>
 </div>
 
+<!-- Paso nuevo (lote 18): antes de que cada quien se registre
+     individualmente, un estimado agregado — cuántos estudiantes y
+     egresados(as) traen de cada institución del grupo (hasta 6, las que
+     tenga el grupo). Es solo informativo: no bloquea nada ni reemplaza
+     el registro individual que sigue después. -->
+<div id="overlayInvitadoInstituciones" class="oculto overlay-invitado">
+  <div class="tarjeta">
+    <h2 class="titulo-seccion">Instituciones que representan</h2>
+    <p class="ayuda">Marquen las instituciones educativas de las que traen estudiantes y/o egresados(as), y
+      escriban cuántos hay de cada una — es solo un estimado; cada quien podrá registrar sus propios datos
+      a continuación.</p>
+    <div id="listaInstitucionesRepresentadasInvitado" class="lista-instituciones-representadas"></div>
+    <div id="mensajeInvitadoInstituciones"></div>
+    <div class="fila-botones">
+      <button class="btn btn-secundario" id="btnCerrarInvitadoInstituciones">Atrás</button>
+      <button class="btn btn-primario" id="btnContinuarInvitadoInstituciones">Continuar</button>
+    </div>
+  </div>
+</div>
+
 <div id="overlayInvitadoIE" class="oculto overlay-invitado">
   <div class="tarjeta">
-    <h2 class="titulo-seccion">Tu institución educativa</h2>
-    <p class="ayuda">Selecciona tu institución, dentro del <strong id="nombreGrupoInvitadoIE"></strong>, para
+    <h2 class="titulo-seccion">Su institución educativa</h2>
+    <p class="ayuda">Seleccionen su institución, dentro del <strong id="nombreGrupoInvitadoIE"></strong>, para
       continuar con la preparación.</p>
     <label for="campoIEInvitado">Institución educativa</label>
     <select id="campoIEInvitado"></select>
@@ -1038,11 +1062,21 @@
   <div class="tarjeta">
     <h2 class="titulo-seccion">Antes de empezar</h2>
     <p class="ayuda">Estos datos <strong>no se muestran en ningún momento durante el Foro</strong> — solo
-      aparecerán, junto con tu nombre, al final del proceso en el informe consolidado del grupo.</p>
+      aparecerán, junto con su nombre, al final del proceso en el informe consolidado del grupo.</p>
     <label for="campoNombreInvitado">Nombre completo</label>
     <input type="text" lang="es" spellcheck="true" id="campoNombreInvitado">
-    <label for="campoEdadInvitado">Edad</label>
-    <input type="number" id="campoEdadInvitado" min="1" max="120">
+    <label for="campoRangoEdadInvitado">Rango de edad</label>
+    <select id="campoRangoEdadInvitado">
+      <option value="">Selecciona…</option>
+      <option value="Menor de 10">Menor de 10</option>
+      <option value="10 a 19">10 a 19</option>
+      <option value="20 a 29">20 a 29</option>
+      <option value="30 a 39">30 a 39</option>
+      <option value="40 a 49">40 a 49</option>
+      <option value="50 a 59">50 a 59</option>
+      <option value="60 a 69">60 a 69</option>
+      <option value="70 o más">70 o más</option>
+    </select>
     <label for="campoSexoInvitado">Sexo</label>
     <select id="campoSexoInvitado">
       <option value="">Selecciona…</option>
@@ -1051,27 +1085,39 @@
       <option value="Otro">Otro</option>
     </select>
 
-    <div id="camposInvitadoEstudiante" class="oculto">
-      <label for="campoRolEstudianteInvitado">¿Eres estudiante actual o egresado(a)?</label>
-      <select id="campoRolEstudianteInvitado">
-        <option value="ESTUDIANTE">Estudiante actual</option>
-        <option value="GRADUADO">Graduado(a)</option>
-      </select>
-      <label for="campoAniosEstudiandoInvitado">Años estudiando en la institución (o que estudiaste, si eres graduado/a)</label>
+    <div id="camposInvitadoEstudianteActual" class="oculto">
+      <label for="campoAniosEstudiandoInvitado">Años que llevan estudiando en la institución</label>
       <input type="number" id="campoAniosEstudiandoInvitado" min="0" max="30">
+    </div>
+
+    <div id="camposInvitadoGraduado" class="oculto">
+      <label for="campoAnioGraduacionInvitado">Año de graduación</label>
+      <input type="number" id="campoAnioGraduacionInvitado" min="1970" max="2026">
+      <label for="campoProfesionActualInvitado">Profesión u ocupación actual</label>
+      <select id="campoProfesionActualInvitado">
+        <option value="">Selecciona…</option>
+        <option value="Estudiando educación superior (técnica, tecnológica o universitaria)">Estudiando educación superior (técnica, tecnológica o universitaria)</option>
+        <option value="Ejerciendo su profesión u oficio">Ejerciendo su profesión u oficio</option>
+        <option value="Trabajando en algo distinto a su formación">Trabajando en algo distinto a su formación</option>
+        <option value="Independiente / emprendedor(a)">Independiente / emprendedor(a)</option>
+        <option value="Buscando empleo">Buscando empleo</option>
+        <option value="Labores del hogar">Labores del hogar</option>
+        <option value="Prestando servicio militar">Prestando servicio militar</option>
+        <option value="Otra situación">Otra situación</option>
+      </select>
     </div>
 
     <div id="camposInvitadoAcudiente" class="oculto">
       <label for="campoVinculoIEInvitado">Vínculo con la institución educativa</label>
       <select id="campoVinculoIEInvitado">
-        <option value="Padre de estudiante">Padre de estudiante</option>
-        <option value="Madre de estudiante">Madre de estudiante</option>
-        <option value="Adulto responsable de un(a) estudiante">Adulto responsable de un(a) estudiante</option>
+        <option value="Padres de estudiantes">Padres de estudiantes</option>
+        <option value="Madres de estudiantes">Madres de estudiantes</option>
+        <option value="Adultos responsables de un(a) estudiante">Adultos responsables de un(a) estudiante</option>
       </select>
       <label for="campoRolIEInvitado">Rol dentro de la institución educativa</label>
       <select id="campoRolIEInvitado">
-        <option value="Acudiente">Acudiente</option>
-        <option value="Representante de uno de los comités institucionales">Representante de uno de los comités institucionales</option>
+        <option value="Acudientes">Acudientes</option>
+        <option value="Representantes de los comités institucionales">Representantes de los comités institucionales</option>
       </select>
     </div>
 
@@ -1086,15 +1132,16 @@
 <div id="overlayInvitadoPreparacion" class="oculto overlay-invitado">
   <div class="tarjeta">
     <h2 class="titulo-seccion">Preparación — <span id="nombreIEInvitadoPrep"></span></h2>
-    <p class="ayuda"><span id="tipoInvitadoTexto"></span> invitado(a).</p>
-    <p class="ayuda">Responde con tus propias palabras — no hace falta que consultes ningún documento de la
-      institución, cada pregunta trae una explicación y un ejemplo para ayudarte.</p>
+    <p class="ayuda"><span id="tipoInvitadoTexto"></span> invitados(as).</p>
+    <p class="ayuda">Respondan con sus propias palabras — no hace falta que consulten ningún documento de la
+      institución, cada pregunta trae una explicación y un ejemplo para ayudarles. Deben responder todas las
+      preguntas antes de poder enviar.</p>
 
     <div id="preguntasPreparacionInvitado"></div>
 
     <div id="mensajePreparacionInvitado"></div>
     <div class="fila-botones">
-      <button class="btn btn-primario" id="btnEnviarPreparacionInvitado">Enviar mis aportes</button>
+      <button class="btn btn-primario" id="btnEnviarPreparacionInvitado">Enviar nuestros aportes</button>
     </div>
   </div>
 </div>
@@ -1103,12 +1150,12 @@
   <button type="button" class="boton-cerrar-invitado-finalizado" id="btnCerrarInvitadoFinalizado" title="Cerrar ventana">✕</button>
   <div class="tarjeta" style="text-align:center;">
     <div class="icono-check">✅</div>
-    <h2 class="titulo-seccion">¡Gracias por tu aporte!</h2>
-    <p>Tus respuestas fueron enviadas y se usarán para la socialización de tu institución educativa.</p>
-    <p class="ayuda">Espera a que se inicie la socialización para que puedas leer tus aportes a este foro.</p>
-    <p class="ayuda oculto" id="mensajeInvitadoFinalizadoCierre">Tu navegador no permite cerrar esta pestaña
-      automáticamente — es una restricción del navegador, no de esta aplicación. Ya puedes cerrarla
-      manualmente cuando quieras, o simplemente dejarla así.</p>
+    <h2 class="titulo-seccion">¡Gracias por su aporte!</h2>
+    <p>Sus respuestas fueron enviadas y se usarán para la socialización de su institución educativa.</p>
+    <p class="ayuda">Esperen a que se inicie la socialización para que puedan leer sus aportes a este foro.</p>
+    <p class="ayuda oculto" id="mensajeInvitadoFinalizadoCierre">Su navegador no permite cerrar esta pestaña
+      automáticamente — es una restricción del navegador, no de esta aplicación. Ya pueden cerrarla
+      manualmente cuando quieran, o simplemente dejarla así.</p>
   </div>
 </div>
 

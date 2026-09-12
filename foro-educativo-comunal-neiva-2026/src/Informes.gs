@@ -375,20 +375,49 @@ function generarInformeGrupo(idGrupo) {
   // del foro en un informe consolidado"); en ningún otro momento del
   // Foro se muestra el nombre de un invitado.
   var caracterizacionInvitados = obtenerCaracterizacionInvitadosGrupo_(idGrupo);
-  titulo1_(body, "Informe consolidado de invitados (estudiantes y adultos responsables)");
+  titulo1_(body, "Informe consolidado de invitados (estudiantes, egresados(as) y adultos responsables)");
   parrafo_(
     body,
     "Estudiantes actuales que diligenciaron aportes: " + caracterizacionInvitados.totalEstudiantes +
-      ". Graduados(as) que diligenciaron aportes: " + caracterizacionInvitados.totalGraduados +
+      ". Egresados(as) que diligenciaron aportes: " + caracterizacionInvitados.totalGraduados +
       ". Adultos responsables que diligenciaron aportes: " + caracterizacionInvitados.totalAdultos + "."
   );
+
+  // Estimado agregado que los propios invitados declararon por institución,
+  // ANTES de registrarse individualmente (pantalla "Instituciones que
+  // representan", Invitados.gs) — solo un estimado, distinto del conteo
+  // real de personas que sí diligenciaron sus aportes (arriba/abajo).
+  var declaracionInvitados = obtenerDeclaracionInvitadosGrupo_(idGrupo);
+  var idsConDeclaracion = Object.keys(declaracionInvitados);
+  if (idsConDeclaracion.length) {
+    var institucionesPorIdDecl = {};
+    obtenerInstitucionesDelGrupo(idGrupo).forEach(function (ie) { institucionesPorIdDecl[ie.idIE] = ie.institucion; });
+    parrafo_(body, "Estimado declarado por los propios invitados, por institución (previo al registro individual de cada quien):");
+    var filasDeclaracion = [["Institución", "Estudiantes (estimado)", "Egresados(as) (estimado)"]].concat(
+      idsConDeclaracion.map(function (idIE) {
+        var d = declaracionInvitados[idIE];
+        return [institucionesPorIdDecl[idIE] || idIE, String(d.cantidadEstudiantes), String(d.cantidadEgresados)];
+      })
+    );
+    tablaSimple_(body, filasDeclaracion);
+  }
+
   if (caracterizacionInvitados.personas.length) {
-    var filasInvitados = [["Nombre", "Institución", "Rol / vínculo", "Edad", "Sexo"]].concat(
+    var filasInvitados = [["Nombre", "Institución", "Rol / vínculo", "Rango de edad", "Sexo"]].concat(
       caracterizacionInvitados.personas.map(function (p) {
-        var rolTexto = p.tipoInvitado === "ESTUDIANTE"
-          ? p.rol + (p.aniosEstudiando ? " (" + p.aniosEstudiando + " años en la IE)" : "")
-          : [p.vinculoIE, p.rolIE].filter(Boolean).join(" — ");
-        return [p.nombre, p.institucion || "—", rolTexto || "—", p.edad || "—", p.sexo || "—"];
+        var rolTexto;
+        if (p.tipoInvitado === "ESTUDIANTE") {
+          if (p.rol === "Graduado(a)") {
+            rolTexto = p.rol +
+              (p.anioGraduacion ? " (graduado(a) en " + p.anioGraduacion + ")" : "") +
+              (p.profesionActual ? " — " + p.profesionActual : "");
+          } else {
+            rolTexto = p.rol + (p.aniosEstudiando ? " (" + p.aniosEstudiando + " años en la IE)" : "");
+          }
+        } else {
+          rolTexto = [p.vinculoIE, p.rolIE].filter(Boolean).join(" — ");
+        }
+        return [p.nombre, p.institucion || "—", rolTexto || "—", p.rangoEdad || "—", p.sexo || "—"];
       })
     );
     tablaSimple_(body, filasInvitados);
