@@ -41,6 +41,15 @@ var CONFIG_POR_DEFECTO_ = {
   // Bandera de una sola vez: "SI" cuando ya se confirmó que ambos logos
   // son visibles para cualquiera con el enlace (ver asegurarLogosSplashPublicos_ en Drive.gs).
   LOGOS_SPLASH_PUBLICOS: "",
+  // Logo del desarrollador (spec del usuario), mostrado sutilmente en el
+  // pie de página de la aplicación — archivo real de Drive compartido
+  // por el propio desarrollador; si se necesita cambiarlo, basta con
+  // editar ConfiguracionComunal.
+  LOGO_DESARROLLADOR_ID: "1BXkKDuSH_XhlLbdPtyYlXpJypbFH9f38",
+  // Bandera de una sola vez, independiente de LOGOS_SPLASH_PUBLICOS (esa
+  // ya pudo haberse marcado "SI" en instalaciones existentes antes de que
+  // este logo existiera) — ver asegurarLogoDesarrolladorPublico_ en Drive.gs.
+  LOGO_DESARROLLADOR_PUBLICO: "",
   // FEI 3.1 enviaba siempre como "calidadeducacion@alcaldianeiva.gov.co"
   // (REMITENTE_FEM, Código.js). Se deja vacío por defecto (usa la cuenta
   // que ejecuta el script, siempre válida) — antes de configurar ese

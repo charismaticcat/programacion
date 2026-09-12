@@ -59,6 +59,12 @@ function urlImagenDrive(idArchivo, ancho) {
     logoFEM.src = urlImagenDrive(LOGO_ENCABEZADO_ID, 120);
     logoFEM.classList.remove("oculto");
   }
+  var logoDev = document.getElementById("logoDesarrolladorPie");
+  if (logoDev && LOGO_DESARROLLADOR_ID) {
+    logoDev.src = urlImagenDrive(LOGO_DESARROLLADOR_ID, 90);
+    logoDev.alt = "HelpRofe";
+    logoDev.classList.remove("oculto");
+  }
 })();
 
 // El código de acceso se pide ANTES que cualquier otra pantalla (spec:

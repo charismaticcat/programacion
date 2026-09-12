@@ -1078,6 +1078,16 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
 - **Nota de transparencia**: verificado de forma estática (`node --check`, IDs sin duplicar, etiquetas
   balanceadas) pero no probado en vivo desde un navegador en este entorno.
 
+## 4.35 Vigésimo tercer lote: logo del desarrollador en el pie de página
+
+- **Logo HelpRofe en el pie de página**: el usuario compartió el archivo real (Google Drive,
+  `1BXkKDuSH_XhlLbdPtyYlXpJypbFH9f38`, `image/png`, de su propia cuenta) — se agregó como
+  `LOGO_DESARROLLADOR_ID` en `ConfiguracionComunal` (`Config.gs`), se asegura su visibilidad pública una sola
+  vez por instalación (`asegurarLogoDesarrolladorPublico_`, `Drive.gs` — bandera propia
+  `LOGO_DESARROLLADOR_PUBLICO`, independiente de `LOGOS_SPLASH_PUBLICOS` porque esa ya pudo estar en "SI" en
+  instalaciones existentes) y se muestra debajo de "Desarrollado por Jhon Sanchez", con el mismo patrón que
+  los logos SEM/FEM del encabezado (`urlImagenDrive`, JS.html).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

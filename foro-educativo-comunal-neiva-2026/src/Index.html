@@ -893,11 +893,9 @@
 <footer class="marca-pie">
   <?!= NOMBRE_FORO ?> — Secretaría de Educación de Neiva
   <p class="marca-pie-desarrollador">Desarrollado por Jhon Sanchez</p>
-  <!-- Logo del desarrollador (spec del usuario) — pendiente: falta el
-       archivo de imagen para poder incrustarlo aquí (no llega accesible
-       como archivo a este entorno cuando se pega directo en el chat);
-       una vez se suba como adjunto, se completa el src y se quita
-       "oculto". -->
+  <!-- Logo del desarrollador (spec del usuario) — LOGO_DESARROLLADOR_ID
+       en ConfiguracionComunal (Config.gs), poblado en JS.html igual que
+       los logos SEM/FEM del encabezado. -->
   <img id="logoDesarrolladorPie" class="logo-desarrollador-pie oculto" alt="">
 </footer>
 
@@ -1208,6 +1206,7 @@
   var INVITADO_TIPO_ACCESO = <?!= JSON.stringify(INVITADO_TIPO_ACCESO || "") ?>;
   var LOGO_ENCABEZADO_ID = <?!= JSON.stringify(LOGO_ENCABEZADO_ID || "") ?>;
   var LOGO_PIE_ID = <?!= JSON.stringify(LOGO_PIE_ID || "") ?>;
+  var LOGO_DESARROLLADOR_ID = <?!= JSON.stringify(LOGO_DESARROLLADOR_ID || "") ?>;
 </script>
 <?!= include('GifsData'); ?>
 <?!= include('Components'); ?>

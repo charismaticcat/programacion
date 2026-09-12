@@ -60,6 +60,26 @@ function asegurarLogosSplashPublicos_() {
   escribirConfig_("LOGOS_SPLASH_PUBLICOS", "SI");
 }
 
+/**
+ * Igual que asegurarLogosSplashPublicos_, pero para el logo del
+ * desarrollador del pie de página (spec del usuario) — bandera propia
+ * (LOGO_DESARROLLADOR_PUBLICO) porque LOGOS_SPLASH_PUBLICOS ya pudo
+ * haberse marcado "SI" en instalaciones existentes, antes de que este
+ * logo se agregara.
+ */
+function asegurarLogoDesarrolladorPublico_() {
+  var config = getConfig();
+  if (String(config.LOGO_DESARROLLADOR_PUBLICO || "") === "SI") return;
+  if (config.LOGO_DESARROLLADOR_ID) {
+    try {
+      hacerPublicoSiEsPosible_(DriveApp.getFileById(config.LOGO_DESARROLLADOR_ID));
+    } catch (e) {
+      Logger.log("No se pudo asegurar el logo del desarrollador público: " + e.message);
+    }
+  }
+  escribirConfig_("LOGO_DESARROLLADOR_PUBLICO", "SI");
+}
+
 /** Carpeta raíz del proyecto: la autoprovisiona si ConfiguracionComunal.CARPETA_DRIVE_ID está vacío. */
 function obtenerCarpetaRaiz_() {
   var config = getConfig();

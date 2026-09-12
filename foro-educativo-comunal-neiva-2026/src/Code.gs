@@ -50,10 +50,16 @@ function doGet(e) {
   template.SUBTITULO_FORO = getConfig().SUBTITULO;
   template.LOGO_ENCABEZADO_ID = getConfig().LOGO_ENCABEZADO_ID;
   template.LOGO_PIE_ID = getConfig().LOGO_PIE_ID;
+  template.LOGO_DESARROLLADOR_ID = getConfig().LOGO_DESARROLLADOR_ID;
   try {
     asegurarLogosSplashPublicos_();
   } catch (err) {
     Logger.log("doGet: no fue posible asegurar los logos públicos: " + err.message);
+  }
+  try {
+    asegurarLogoDesarrolladorPublico_();
+  } catch (err) {
+    Logger.log("doGet: no fue posible asegurar el logo del desarrollador público: " + err.message);
   }
   try {
     asegurarLimiteSesionesGrupoRazonable_();
