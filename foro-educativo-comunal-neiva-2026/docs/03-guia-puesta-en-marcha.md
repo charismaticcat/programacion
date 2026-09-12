@@ -690,6 +690,37 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   desde la asistencia pública, porque ambas rutas escriben en la misma hoja `ParticipacionComunal`
   (`registrarParticipante`, `Data.gs`) y el panel de firmantes de la app principal ya la sondea cada 15 s.
 
+## 4.21 Noveno lote: restaurar tildes/ñ en los resúmenes de preparación, cuadros de texto configurados para español, vista de solo lectura tras enviar Sesión 1/2, y advertencia + confirmación antes de generar el informe
+
+- **Tildes y ñ restauradas en `RESUMENES_PREPARACION_IE_`**: 17 de las 36 instituciones (más el texto de
+  "no se encontró el archivo") habían perdido todas las tildes y la ñ en sus 6 párrafos (p1..p6) — un
+  subagente de los que compiló ese contenido en el lote de preparación entregó el texto sin
+  diacríticos. Se restauraron con un script de sustitución por diccionario (sustantivos en -ción/-sión,
+  esdrújulas, hiatos en -ía, ñ, y un puñado de verbos en pretérito y casos ambiguos —"más", "aún", "sí"—
+  verificados uno por uno por contexto antes de corregirlos) sobre las 17 instituciones afectadas; las
+  19 restantes, ya correctas, quedaron intactas porque el diccionario solo sustituye ortografías
+  incorrectas literales.
+- **Cuadros de texto configurados para español**: todos los `<textarea>` y los `<input type="text">`
+  de texto libre (nombre, aporte propio, actor de ConectaEduca, nombre de invitado, nombre en la
+  asistencia pública) llevan ahora `lang="es" spellcheck="true"` explícitos — se excluyó a propósito el
+  código de acceso (`campoCodigoAcceso`), que es alfanumérico, no prosa.
+- **Sesión 1/2 ya enviada — vista de solo lectura, no cuadros en blanco**: al entrar a `pantallaSesion1`/
+  `pantallaSesion2` (o justo después de un envío exitoso) con la sesión ya enviada, `camposEditablesSesion1`/
+  `camposEditablesSesion2Previos`+`camposEditablesSesion2CE` (todos los `<textarea>`/`<input>` y el botón
+  de envío) se ocultan por completo y en su lugar aparece un mensaje grande y centrado
+  (`.mensaje-envio-definitivo`) seguido de las respuestas ya registradas, renderizadas en solo lectura
+  (`renderRespuestasSoloLectura_`, `JS.html`) — nunca vuelve a mostrarse el cuadro en blanco para
+  reescribir. `cargarSesion1()` ahora también se llama al entrar a `pantallaSesion2` (antes solo se
+  llamaba desde `pantallaSesion1`), necesario para que esos campos tengan su valor real si se llega
+  directo a Sesión 2 (p. ej. al retomar el recorrido tras perder la señal, lote anterior).
+- **Advertencia + confirmación antes de generar el informe**: en "Revisión y cierre" aparece un aviso
+  distinto según el método de asistencia del grupo — si es QR: "Verifique que todos los participantes
+  hayan firmado la asistencia. Al generar el informe, se cerrará la asistencia..."; si es listado en
+  PDF: "Verifique nuevamente el listado de asistencia..." — y un botón "✅ Asistencia verificada"
+  (`btnAsistenciaVerificada`) que hay que pulsar antes de que "Generar informe" se habilite
+  (`actualizarBotonGenerarInforme`, `JS.html`); se reinicia cada vez que se entra a la pantalla
+  (`prepararCierre`), para que la verificación sea siempre fresca.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

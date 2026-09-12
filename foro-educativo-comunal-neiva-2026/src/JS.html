@@ -142,6 +142,12 @@ function cambiarPantalla(idPantalla) {
   if (idPantalla === "pantallaSesion2") {
     cargarConectaEduca();
     prepararPantallaConectaEduca();
+    // Los campos de "Antes de registrar actores" y de "Construcción
+    // colectiva" de Sesión 2 viven en la misma hoja/RPC que Sesión 1
+    // (CAMPOS_SESION1) — se cargan aquí también por si se llega
+    // directamente a esta pantalla (p. ej. al retomar el recorrido) sin
+    // haber pasado antes por pantallaSesion1 en este dispositivo.
+    cargarSesion1();
     // Cualquiera puede enviar Sesión 2, pero solo una vez (spec del
     // usuario) — si ya se envió, se muestra el aviso y se deshabilita el
     // botón, igual que Sesión 1.
@@ -1545,12 +1551,71 @@ function recolectarCamposSesion1() {
 function cargarSesion1() {
   if (!estado.idGrupo) return;
   llamarServidor("rpcObtenerSesion1", [estado.idGrupo], function (datos) {
-    if (!datos) return;
-    CAMPOS_SESION1.forEach(function (nombre) {
-      var el = document.getElementById("campo_" + nombre);
-      if (el && !el.value && datos[nombre]) el.value = datos[nombre];
-    });
+    if (datos) {
+      CAMPOS_SESION1.forEach(function (nombre) {
+        var el = document.getElementById("campo_" + nombre);
+        if (el && !el.value && datos[nombre]) el.value = datos[nombre];
+      });
+    }
+    // Refresca también la vista de solo lectura (si Sesión 1/2 ya se
+    // envió) ahora que los campos ya tienen su valor real — se llama de
+    // nuevo aquí (además de en el callback de rpcEstadoGrupo) porque
+    // ambas llamadas al servidor corren en paralelo y cualquiera de las
+    // dos puede terminar primero.
+    actualizarEstadoEnvioSesion1_();
+    actualizarEstadoEnvioSesion2_();
   });
+}
+
+/** Preguntas de "Construcción colectiva del grupo" (Sesión 1) para la vista de solo lectura. */
+var PREGUNTAS_SOLO_LECTURA_SESION1_ = [
+  { clave: "REFLEXIONES", etiqueta: "Reflexiones" },
+  { clave: "DESAFIOS", etiqueta: "Desafíos comunes" },
+  { clave: "APUESTAS", etiqueta: "Apuestas compartidas" },
+  { clave: "CONCLUSIONES", etiqueta: "Conclusiones" },
+  { clave: "PRIORIDADES", etiqueta: "Prioridades" },
+  { clave: "PROPUESTAS_COLECTIVAS", etiqueta: "Propuestas colectivas" },
+  { clave: "ACUERDOS", etiqueta: "Acuerdos" },
+  { clave: "RUTA", etiqueta: "Ruta de trabajo" }
+];
+/** Preguntas de ConectaEduca (Sesión 2) para la vista de solo lectura (sin la tabla de actores, que no se bloquea). */
+var PREGUNTAS_SOLO_LECTURA_SESION2_ = [
+  { clave: "NECESIDADES_ARTICULACION_GRUPO", etiqueta: "Necesidades de articulación" },
+  { clave: "OPORTUNIDADES_GRUPO", etiqueta: "Oportunidades identificadas" },
+  { clave: "PRIORIDADES_CE", etiqueta: "Prioridades" },
+  { clave: "ACUERDOS_CE", etiqueta: "Acuerdos" },
+  { clave: "PROPUESTAS_CE", etiqueta: "Propuestas" },
+  { clave: "RUTA_CE", etiqueta: "Ruta de trabajo" }
+];
+
+/**
+ * Pinta, en solo lectura, las respuestas ya guardadas (leídas directamente
+ * de los campos de edición, que ya tienen el valor real gracias a
+ * cargarSesion1) — nunca vuelve a mostrar el cuadro de texto en blanco,
+ * solo el texto ya escrito (spec del usuario).
+ */
+function renderRespuestasSoloLectura_(idContenedor, preguntas, claveTituloAporte, claveTextoAporte) {
+  var contenedor = document.getElementById(idContenedor);
+  if (!contenedor) return;
+  var html = "";
+  preguntas.forEach(function (p) {
+    var el = document.getElementById("campo_" + p.clave);
+    var valor = el ? el.value.trim() : "";
+    if (!valor) return;
+    html += "<div class='respuesta-solo-lectura'><h4>" + escapeHtml(p.etiqueta) + "</h4><p>" +
+      escapeHtml(valor) + "</p></div>";
+  });
+  if (claveTituloAporte && claveTextoAporte) {
+    var elTitulo = document.getElementById("campo_" + claveTituloAporte);
+    var elTexto = document.getElementById("campo_" + claveTextoAporte);
+    var titulo = elTitulo ? elTitulo.value.trim() : "";
+    var texto = elTexto ? elTexto.value.trim() : "";
+    if (titulo || texto) {
+      html += "<div class='respuesta-solo-lectura'><h4>➕ Aporte propio del grupo" +
+        (titulo ? ": " + escapeHtml(titulo) : "") + "</h4><p>" + escapeHtml(texto) + "</p></div>";
+    }
+  }
+  contenedor.innerHTML = html;
 }
 
 /** "Continuar a Sesión 2" solo se habilita cuando Sesión 1 ya se envió de forma definitiva (spec del usuario). */
@@ -1568,16 +1633,34 @@ function actualizarGateSesion2_() {
  * deshabilita el botón de envío correspondiente.
  */
 function actualizarEstadoEnvioSesion1_() {
-  var banner = document.getElementById("bannerSesion1YaEnviada");
+  var vistaSoloLectura = document.getElementById("vistaSoloLecturaSesion1");
+  var camposEditables = document.getElementById("camposEditablesSesion1");
   var boton = document.getElementById("btnEnviarSesion1");
-  if (banner) banner.classList.toggle("oculto", !estado.sesion1Enviada);
+  if (vistaSoloLectura) vistaSoloLectura.classList.toggle("oculto", !estado.sesion1Enviada);
+  if (camposEditables) camposEditables.classList.toggle("oculto", !!estado.sesion1Enviada);
   if (boton) boton.disabled = !!estado.sesion1Enviada;
+  if (estado.sesion1Enviada) {
+    renderRespuestasSoloLectura_(
+      "respuestasSoloLecturaSesion1", PREGUNTAS_SOLO_LECTURA_SESION1_,
+      "APORTE_PROPIO_S1_TITULO", "APORTE_PROPIO_S1_TEXTO"
+    );
+  }
 }
 function actualizarEstadoEnvioSesion2_() {
-  var banner = document.getElementById("bannerSesion2YaEnviada");
+  var vistaSoloLectura = document.getElementById("vistaSoloLecturaSesion2");
+  var camposPrevios = document.getElementById("camposEditablesSesion2Previos");
+  var camposCE = document.getElementById("camposEditablesSesion2CE");
   var boton = document.getElementById("btnEnviarSesion2");
-  if (banner) banner.classList.toggle("oculto", !estado.sesion2Enviada);
+  if (vistaSoloLectura) vistaSoloLectura.classList.toggle("oculto", !estado.sesion2Enviada);
+  if (camposPrevios) camposPrevios.classList.toggle("oculto", !!estado.sesion2Enviada);
+  if (camposCE) camposCE.classList.toggle("oculto", !!estado.sesion2Enviada);
   if (boton) boton.disabled = !!estado.sesion2Enviada;
+  if (estado.sesion2Enviada) {
+    renderRespuestasSoloLectura_(
+      "respuestasSoloLecturaSesion2", PREGUNTAS_SOLO_LECTURA_SESION2_,
+      "APORTE_PROPIO_S2_TITULO", "APORTE_PROPIO_S2_TEXTO"
+    );
+  }
 }
 
 /**
@@ -2311,7 +2394,26 @@ estado.valoracionCompletada = false;
 function prepararCierre() {
   cargarValoracion();
   cargarVerificacionFirmantesCierre_();
+  // Advertencia antes de generar el informe (spec del usuario): el texto
+  // depende del método de asistencia del grupo, y hay que confirmar con
+  // un clic ("Asistencia verificada") antes de que se habilite "Generar
+  // informe" — se reinicia cada vez que se entra a esta pantalla, para
+  // que la verificación sea siempre fresca.
+  var esQR = estado.metodoAsistencia === "QR";
+  document.getElementById("avisoVerificarAsistenciaQR").classList.toggle("oculto", !esQR);
+  document.getElementById("avisoVerificarAsistenciaPDF").classList.toggle("oculto", esQR);
+  estado.asistenciaVerificada = false;
+  document.getElementById("bannerAsistenciaVerificada").classList.add("oculto");
+  document.getElementById("btnAsistenciaVerificada").classList.remove("oculto");
+  actualizarBotonGenerarInforme();
 }
+
+document.getElementById("btnAsistenciaVerificada").addEventListener("click", function () {
+  estado.asistenciaVerificada = true;
+  document.getElementById("bannerAsistenciaVerificada").classList.remove("oculto");
+  document.getElementById("btnAsistenciaVerificada").classList.add("oculto");
+  actualizarBotonGenerarInforme();
+});
 
 /** "Revise que todos los participantes hayan firmado la asistencia" — conteos + visor QR/link, otra vez, justo antes de generar el informe. */
 function cargarVerificacionFirmantesCierre_() {
@@ -2379,6 +2481,12 @@ function actualizarBotonGenerarInforme() {
     boton.disabled = true;
   } else if (!estado.valoracionCompletada) {
     aviso.textContent = "Complete la valoración del Foro (arriba) antes de generar el informe.";
+    boton.disabled = true;
+  } else if (!estado.asistenciaVerificada) {
+    // Advertencia antes de generar informe (spec del usuario): hay que
+    // confirmar con el botón "Asistencia verificada" (arriba) antes de
+    // poder generar el informe.
+    aviso.textContent = "Confirme \"Asistencia verificada\" (arriba) antes de generar el informe.";
     boton.disabled = true;
   } else {
     aviso.textContent = "";

@@ -234,7 +234,7 @@
       </div>
       <div id="formularioResponsablePrincipal">
         <label for="campoNombreResponsable">Nombre completo</label>
-        <input type="text" id="campoNombreResponsable">
+        <input type="text" lang="es" spellcheck="true" id="campoNombreResponsable">
         <label for="campoIEResponsable">Institución educativa</label>
         <select id="campoIEResponsable"></select>
         <label for="campoRolForoResponsable">Rol en el foro</label>
@@ -254,7 +254,7 @@
       </div>
       <div id="formularioAsistenteEnvio" class="oculto" style="margin-top:12px;">
         <label for="campoNombreAsistente">Nombre completo</label>
-        <input type="text" id="campoNombreAsistente">
+        <input type="text" lang="es" spellcheck="true" id="campoNombreAsistente">
         <label for="campoIEAsistente">Institución educativa</label>
         <select id="campoIEAsistente"></select>
         <label for="campoRolForoAsistente">Rol en el foro</label>
@@ -420,53 +420,63 @@
 
     <div class="tarjeta">
       <h2 class="titulo-seccion">Construcción colectiva del grupo</h2>
-      <h3 class="subtitulo-campo">Reflexiones</h3>
-      <p class="ayuda">Ideas centrales que dejó la socialización: qué aprendizajes, coincidencias o tensiones
-        surgieron al escuchar a las instituciones del grupo.</p>
-      <textarea id="campo_REFLEXIONES" data-campo-sesion1="REFLEXIONES" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
-      <h3 class="subtitulo-campo">Desafíos comunes</h3>
-      <p class="ayuda">Dificultades o retos que varias instituciones del grupo comparten y que conviene
-        abordar juntas.</p>
-      <textarea id="campo_DESAFIOS" data-campo-sesion1="DESAFIOS" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
-      <h3 class="subtitulo-campo">Apuestas compartidas</h3>
-      <p class="ayuda">Compromisos o líneas de trabajo que el grupo decide impulsar en conjunto de aquí en
-        adelante.</p>
-      <textarea id="campo_APUESTAS" data-campo-sesion1="APUESTAS" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
-      <h3 class="subtitulo-campo">Conclusiones</h3>
-      <p class="ayuda">Síntesis final de lo discutido en esta sesión: lo más importante para dejar
-        registrado.</p>
-      <textarea id="campo_CONCLUSIONES" data-campo-sesion1="CONCLUSIONES" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
 
-      <h3 class="subtitulo-campo">Prioridades</h3>
-      <p class="ayuda">Asuntos que el grupo considera más urgentes o importantes de atender.</p>
-      <textarea id="campo_PRIORIDADES" data-campo-sesion1="PRIORIDADES"></textarea>
-      <h3 class="subtitulo-campo">Propuestas colectivas</h3>
-      <p class="ayuda">Iniciativas concretas que el grupo propone para atender esas prioridades.</p>
-      <textarea id="campo_PROPUESTAS_COLECTIVAS" data-campo-sesion1="PROPUESTAS_COLECTIVAS"></textarea>
-      <h3 class="subtitulo-campo">Acuerdos</h3>
-      <p class="ayuda">Compromisos específicos a los que llegó el grupo (quién, qué y cuándo, si aplica).</p>
-      <textarea id="campo_ACUERDOS" data-campo-sesion1="ACUERDOS"></textarea>
-      <h3 class="subtitulo-campo">Ruta de trabajo</h3>
-      <p class="ayuda">Pasos siguientes que el grupo definió para llevar estas propuestas y acuerdos a la
-        práctica.</p>
-      <textarea id="campo_RUTA" data-campo-sesion1="RUTA"></textarea>
-
-      <details class="desplegable-aporte">
-        <summary>➕ Aporte propio del grupo (opcional)</summary>
-        <p class="ayuda">Espacio libre para hallazgos, reflexiones o propuestas propias de la comunidad
-          que no encajen en las preguntas anteriores.</p>
-        <label for="campo_APORTE_PROPIO_S1_TITULO">Título</label>
-        <input type="text" id="campo_APORTE_PROPIO_S1_TITULO" data-campo-sesion1="APORTE_PROPIO_S1_TITULO">
-        <label for="campo_APORTE_PROPIO_S1_TEXTO">Descripción</label>
-        <textarea id="campo_APORTE_PROPIO_S1_TEXTO" data-campo-sesion1="APORTE_PROPIO_S1_TEXTO"></textarea>
-      </details>
-
-      <div id="bannerSesion1YaEnviada" class="banner-completado oculto">
-        ✅ Sesión 1 ya fue enviada de forma definitiva por este grupo. No se permiten más envíos.
+      <div id="vistaSoloLecturaSesion1" class="oculto">
+        <div class="mensaje-envio-definitivo">
+          <div class="icono-envio-definitivo">✅</div>
+          <h3>Sesión 1 enviada de forma definitiva</h3>
+          <p>No se permiten más envíos ni cambios. A continuación, las respuestas registradas por el
+            grupo.</p>
+        </div>
+        <div id="respuestasSoloLecturaSesion1"></div>
       </div>
-      <div id="mensajeSesion1"></div>
-      <div class="fila-botones">
-        <button class="btn btn-primario" id="btnEnviarSesion1">Enviar Sesión 1 definitiva</button>
+
+      <div id="camposEditablesSesion1">
+        <h3 class="subtitulo-campo">Reflexiones</h3>
+        <p class="ayuda">Ideas centrales que dejó la socialización: qué aprendizajes, coincidencias o tensiones
+          surgieron al escuchar a las instituciones del grupo.</p>
+        <textarea lang="es" spellcheck="true" id="campo_REFLEXIONES" data-campo-sesion1="REFLEXIONES" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+        <h3 class="subtitulo-campo">Desafíos comunes</h3>
+        <p class="ayuda">Dificultades o retos que varias instituciones del grupo comparten y que conviene
+          abordar juntas.</p>
+        <textarea lang="es" spellcheck="true" id="campo_DESAFIOS" data-campo-sesion1="DESAFIOS" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+        <h3 class="subtitulo-campo">Apuestas compartidas</h3>
+        <p class="ayuda">Compromisos o líneas de trabajo que el grupo decide impulsar en conjunto de aquí en
+          adelante.</p>
+        <textarea lang="es" spellcheck="true" id="campo_APUESTAS" data-campo-sesion1="APUESTAS" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+        <h3 class="subtitulo-campo">Conclusiones</h3>
+        <p class="ayuda">Síntesis final de lo discutido en esta sesión: lo más importante para dejar
+          registrado.</p>
+        <textarea lang="es" spellcheck="true" id="campo_CONCLUSIONES" data-campo-sesion1="CONCLUSIONES" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+
+        <h3 class="subtitulo-campo">Prioridades</h3>
+        <p class="ayuda">Asuntos que el grupo considera más urgentes o importantes de atender.</p>
+        <textarea lang="es" spellcheck="true" id="campo_PRIORIDADES" data-campo-sesion1="PRIORIDADES"></textarea>
+        <h3 class="subtitulo-campo">Propuestas colectivas</h3>
+        <p class="ayuda">Iniciativas concretas que el grupo propone para atender esas prioridades.</p>
+        <textarea lang="es" spellcheck="true" id="campo_PROPUESTAS_COLECTIVAS" data-campo-sesion1="PROPUESTAS_COLECTIVAS"></textarea>
+        <h3 class="subtitulo-campo">Acuerdos</h3>
+        <p class="ayuda">Compromisos específicos a los que llegó el grupo (quién, qué y cuándo, si aplica).</p>
+        <textarea lang="es" spellcheck="true" id="campo_ACUERDOS" data-campo-sesion1="ACUERDOS"></textarea>
+        <h3 class="subtitulo-campo">Ruta de trabajo</h3>
+        <p class="ayuda">Pasos siguientes que el grupo definió para llevar estas propuestas y acuerdos a la
+          práctica.</p>
+        <textarea lang="es" spellcheck="true" id="campo_RUTA" data-campo-sesion1="RUTA"></textarea>
+
+        <details class="desplegable-aporte">
+          <summary>➕ Aporte propio del grupo (opcional)</summary>
+          <p class="ayuda">Espacio libre para hallazgos, reflexiones o propuestas propias de la comunidad
+            que no encajen en las preguntas anteriores.</p>
+          <label for="campo_APORTE_PROPIO_S1_TITULO">Título</label>
+          <input type="text" lang="es" spellcheck="true" id="campo_APORTE_PROPIO_S1_TITULO" data-campo-sesion1="APORTE_PROPIO_S1_TITULO">
+          <label for="campo_APORTE_PROPIO_S1_TEXTO">Descripción</label>
+          <textarea lang="es" spellcheck="true" id="campo_APORTE_PROPIO_S1_TEXTO" data-campo-sesion1="APORTE_PROPIO_S1_TEXTO"></textarea>
+        </details>
+
+        <div id="mensajeSesion1"></div>
+        <div class="fila-botones">
+          <button class="btn btn-primario" id="btnEnviarSesion1">Enviar Sesión 1 definitiva</button>
+        </div>
       </div>
     </div>
     <div class="fila-botones">
@@ -485,17 +495,29 @@
         de qué es ConectaEduca (ventana emergente).</p>
 
       <div id="contenidoConectaEducaTrasExplicacion" class="oculto">
-        <h3 class="subtitulo-campo">Antes de registrar actores</h3>
-        <label for="campo_NECESIDADES_ARTICULACION_GRUPO">Necesidades de articulación</label>
-        <textarea id="campo_NECESIDADES_ARTICULACION_GRUPO" data-campo-sesion1="NECESIDADES_ARTICULACION_GRUPO"></textarea>
-        <label for="campo_OPORTUNIDADES_GRUPO">Oportunidades identificadas</label>
-        <textarea id="campo_OPORTUNIDADES_GRUPO" data-campo-sesion1="OPORTUNIDADES_GRUPO"></textarea>
+        <div id="vistaSoloLecturaSesion2" class="oculto">
+          <div class="mensaje-envio-definitivo">
+            <div class="icono-envio-definitivo">✅</div>
+            <h3>Sesión 2 (ConectaEduca) enviada de forma definitiva</h3>
+            <p>No se permiten más envíos ni cambios. A continuación, las respuestas registradas por el
+              grupo.</p>
+          </div>
+          <div id="respuestasSoloLecturaSesion2"></div>
+        </div>
+
+        <div id="camposEditablesSesion2Previos">
+          <h3 class="subtitulo-campo">Antes de registrar actores</h3>
+          <label for="campo_NECESIDADES_ARTICULACION_GRUPO">Necesidades de articulación</label>
+          <textarea lang="es" spellcheck="true" id="campo_NECESIDADES_ARTICULACION_GRUPO" data-campo-sesion1="NECESIDADES_ARTICULACION_GRUPO"></textarea>
+          <label for="campo_OPORTUNIDADES_GRUPO">Oportunidades identificadas</label>
+          <textarea lang="es" spellcheck="true" id="campo_OPORTUNIDADES_GRUPO" data-campo-sesion1="OPORTUNIDADES_GRUPO"></textarea>
+        </div>
 
         <h3 class="subtitulo-campo" style="margin-top:24px;">Registrar actor o entidad</h3>
         <p class="ayuda">Registre cada actor o entidad con quien el grupo dialogó.</p>
 
         <label for="campoActorCE">Actor o entidad</label>
-        <input type="text" id="campoActorCE">
+        <input type="text" lang="es" spellcheck="true" id="campoActorCE">
         <label for="campoTipoActorCE">Tipo de actor</label>
         <select id="campoTipoActorCE">
           <option>Educación superior</option>
@@ -532,32 +554,31 @@
           <tbody></tbody>
         </table>
 
-        <h3 class="subtitulo-campo" style="margin-top:24px;">Construcción colectiva con el sector productivo y la educación superior</h3>
-        <label for="campo_PRIORIDADES_CE">Prioridades de las instituciones del <span id="numeroGrupoCE_PRIORIDADES">grupo</span></label>
-        <textarea id="campo_PRIORIDADES_CE" data-campo-sesion1="PRIORIDADES_CE" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
-        <label for="campo_ACUERDOS_CE">Acuerdos entre instituciones de las <span id="comunasGrupoCE_ACUERDOS">comunas</span></label>
-        <textarea id="campo_ACUERDOS_CE" data-campo-sesion1="ACUERDOS_CE" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
-        <label for="campo_PROPUESTAS_CE">Propuestas de las instituciones del <span id="numeroGrupoCE_PROPUESTAS">grupo</span></label>
-        <textarea id="campo_PROPUESTAS_CE" data-campo-sesion1="PROPUESTAS_CE" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
-        <label for="campo_RUTA_CE">Ruta de trabajo sugerida por las IE del <span id="numeroGrupoCE_RUTA">grupo</span></label>
-        <textarea id="campo_RUTA_CE" data-campo-sesion1="RUTA_CE" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+        <div id="camposEditablesSesion2CE">
+          <h3 class="subtitulo-campo" style="margin-top:24px;">Construcción colectiva con el sector productivo y la educación superior</h3>
+          <label for="campo_PRIORIDADES_CE">Prioridades de las instituciones del <span id="numeroGrupoCE_PRIORIDADES">grupo</span></label>
+          <textarea lang="es" spellcheck="true" id="campo_PRIORIDADES_CE" data-campo-sesion1="PRIORIDADES_CE" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+          <label for="campo_ACUERDOS_CE">Acuerdos entre instituciones de las <span id="comunasGrupoCE_ACUERDOS">comunas</span></label>
+          <textarea lang="es" spellcheck="true" id="campo_ACUERDOS_CE" data-campo-sesion1="ACUERDOS_CE" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+          <label for="campo_PROPUESTAS_CE">Propuestas de las instituciones del <span id="numeroGrupoCE_PROPUESTAS">grupo</span></label>
+          <textarea lang="es" spellcheck="true" id="campo_PROPUESTAS_CE" data-campo-sesion1="PROPUESTAS_CE" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+          <label for="campo_RUTA_CE">Ruta de trabajo sugerida por las IE del <span id="numeroGrupoCE_RUTA">grupo</span></label>
+          <textarea lang="es" spellcheck="true" id="campo_RUTA_CE" data-campo-sesion1="RUTA_CE" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
 
-        <details class="desplegable-aporte">
-          <summary>➕ Aporte propio del grupo (opcional)</summary>
-          <p class="ayuda">Espacio libre para hallazgos, reflexiones o propuestas propias de la comunidad
-            sobre ConectaEduca que no encajen en las preguntas anteriores.</p>
-          <label for="campo_APORTE_PROPIO_S2_TITULO">Título</label>
-          <input type="text" id="campo_APORTE_PROPIO_S2_TITULO" data-campo-sesion1="APORTE_PROPIO_S2_TITULO">
-          <label for="campo_APORTE_PROPIO_S2_TEXTO">Descripción</label>
-          <textarea id="campo_APORTE_PROPIO_S2_TEXTO" data-campo-sesion1="APORTE_PROPIO_S2_TEXTO"></textarea>
-          <p class="ayuda">Se guarda automáticamente, igual que el resto de Sesión 1 y Sesión 2.</p>
-        </details>
+          <details class="desplegable-aporte">
+            <summary>➕ Aporte propio del grupo (opcional)</summary>
+            <p class="ayuda">Espacio libre para hallazgos, reflexiones o propuestas propias de la comunidad
+              sobre ConectaEduca que no encajen en las preguntas anteriores.</p>
+            <label for="campo_APORTE_PROPIO_S2_TITULO">Título</label>
+            <input type="text" lang="es" spellcheck="true" id="campo_APORTE_PROPIO_S2_TITULO" data-campo-sesion1="APORTE_PROPIO_S2_TITULO">
+            <label for="campo_APORTE_PROPIO_S2_TEXTO">Descripción</label>
+            <textarea lang="es" spellcheck="true" id="campo_APORTE_PROPIO_S2_TEXTO" data-campo-sesion1="APORTE_PROPIO_S2_TEXTO"></textarea>
+            <p class="ayuda">Se guarda automáticamente, igual que el resto de Sesión 1 y Sesión 2.</p>
+          </details>
 
-        <div id="bannerSesion2YaEnviada" class="banner-completado oculto">
-          ✅ Sesión 2 (ConectaEduca) ya fue enviada de forma definitiva por este grupo. No se permiten más envíos.
-        </div>
-        <div class="fila-botones">
-          <button class="btn btn-primario" id="btnEnviarSesion2">Enviar Sesión 2 definitiva</button>
+          <div class="fila-botones">
+            <button class="btn btn-primario" id="btnEnviarSesion2">Enviar Sesión 2 definitiva</button>
+          </div>
         </div>
       </div>
     </div>
@@ -591,7 +612,7 @@
           <div class="valoracion-mejora oculto" data-mejora-de="p1">
             <label for="valoracionMejoraP1">😔 ¿Nos dice brevemente cómo podría mejorar esto para el
               próximo Foro?</label>
-            <textarea id="valoracionMejoraP1" rows="2" placeholder="Escriba aquí su respuesta (opcional)"></textarea>
+            <textarea lang="es" spellcheck="true" id="valoracionMejoraP1" rows="2" placeholder="Escriba aquí su respuesta (opcional)"></textarea>
           </div>
         </div>
 
@@ -608,7 +629,7 @@
           <div class="valoracion-mejora oculto" data-mejora-de="p2">
             <label for="valoracionMejoraP2">😔 ¿Nos dice brevemente cómo podría mejorar esto para el
               próximo Foro?</label>
-            <textarea id="valoracionMejoraP2" rows="2" placeholder="Escriba aquí su respuesta (opcional)"></textarea>
+            <textarea lang="es" spellcheck="true" id="valoracionMejoraP2" rows="2" placeholder="Escriba aquí su respuesta (opcional)"></textarea>
           </div>
         </div>
 
@@ -625,7 +646,7 @@
           <div class="valoracion-mejora oculto" data-mejora-de="p3">
             <label for="valoracionMejoraP3">😔 ¿Nos dice brevemente cómo podría mejorar esto para el
               próximo Foro?</label>
-            <textarea id="valoracionMejoraP3" rows="2" placeholder="Escriba aquí su respuesta (opcional)"></textarea>
+            <textarea lang="es" spellcheck="true" id="valoracionMejoraP3" rows="2" placeholder="Escriba aquí su respuesta (opcional)"></textarea>
           </div>
         </div>
 
@@ -641,7 +662,7 @@
           <div class="valoracion-mejora oculto" data-mejora-de="p4">
             <label for="valoracionMejoraP4">😔 ¿Nos dice brevemente cómo podría mejorar esto para el
               próximo Foro?</label>
-            <textarea id="valoracionMejoraP4" rows="2" placeholder="Escriba aquí su respuesta (opcional)"></textarea>
+            <textarea lang="es" spellcheck="true" id="valoracionMejoraP4" rows="2" placeholder="Escriba aquí su respuesta (opcional)"></textarea>
           </div>
         </div>
 
@@ -652,7 +673,7 @@
         <div class="valoracion-pregunta oculto" id="valoracionAbiertaBloque">
           <label for="valoracionP5" id="valoracionP5Label">💬 ¿Qué sugerencias, recomendaciones o
             propuestas tiene para fortalecer la organización y desarrollo del Foro Educativo Comunal?</label>
-          <textarea id="valoracionP5" rows="4" placeholder="Escriba aquí su respuesta (opcional)"></textarea>
+          <textarea lang="es" spellcheck="true" id="valoracionP5" rows="4" placeholder="Escriba aquí su respuesta (opcional)"></textarea>
         </div>
 
         <div id="mensajeValoracion"></div>
@@ -675,10 +696,26 @@
         <p style="word-break:break-all;text-align:center;"><a id="enlaceAsistenciaQRCierre" href="#" target="_blank"></a></p>
       </div>
 
+      <div id="avisoVerificarAsistenciaQR" class="mensaje info oculto">
+        Verifique que todos los participantes hayan firmado la asistencia. Al generar el informe, se
+        cerrará la asistencia. Si hace falta hacer correcciones, deben hacerse antes de generar el
+        informe.
+      </div>
+      <div id="avisoVerificarAsistenciaPDF" class="mensaje info oculto">
+        Verifique nuevamente el listado de asistencia. Si hace falta hacer correcciones, deben hacerse
+        antes de generar el informe.
+      </div>
+      <div id="bannerAsistenciaVerificada" class="banner-completado oculto">
+        ✅ Asistencia verificada.
+      </div>
+      <div class="fila-botones">
+        <button type="button" class="btn btn-secundario" id="btnAsistenciaVerificada">✅ Asistencia verificada</button>
+      </div>
+
       <p class="ayuda" id="avisoResponsablePrincipal"></p>
       <div id="mensajeCierre"></div>
       <div class="fila-botones">
-        <button class="btn btn-primario" id="btnGenerarInforme">Generar informe del grupo</button>
+        <button class="btn btn-primario" id="btnGenerarInforme" disabled>Generar informe del grupo</button>
       </div>
     </div>
   </section>
@@ -776,7 +813,7 @@
   <button type="button" class="btn btn-secundario" id="btnCerrarPantallaCompletaEdicion">✕ Cerrar</button>
   <div class="contenido-pantalla-completa-texto">
     <h2 id="tituloPantallaCompletaEdicion"></h2>
-    <textarea id="areaPantallaCompletaEdicion" rows="18"></textarea>
+    <textarea lang="es" spellcheck="true" id="areaPantallaCompletaEdicion" rows="18"></textarea>
   </div>
 </div>
 
@@ -833,7 +870,7 @@
     <p class="ayuda">Estos datos <strong>no se muestran en ningún momento durante el Foro</strong> — solo
       aparecerán, junto con tu nombre, al final del proceso en el informe consolidado del grupo.</p>
     <label for="campoNombreInvitado">Nombre completo</label>
-    <input type="text" id="campoNombreInvitado">
+    <input type="text" lang="es" spellcheck="true" id="campoNombreInvitado">
     <label for="campoEdadInvitado">Edad</label>
     <input type="number" id="campoEdadInvitado" min="1" max="120">
     <label for="campoSexoInvitado">Sexo</label>
