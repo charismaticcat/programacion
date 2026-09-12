@@ -1088,6 +1088,22 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   instalaciones existentes) y se muestra debajo de "Desarrollado por Jhon Sanchez", con el mismo patrón que
   los logos SEM/FEM del encabezado (`urlImagenDrive`, JS.html).
 
+## 4.36 Vigésimo cuarto lote: logos del encabezado más grandes, y fix de la transición inicial (el logo de la Alcaldía/SEM no alcanzaba a cargar)
+
+- **Logos SEM/FEM más grandes** en las esquinas del encabezado (de 52px a 80px de alto máximo; en móvil, de
+  38px a 54px), con el padding del encabezado ajustado para que sigan sin encimarse con el título.
+- **Fix: en la transición inicial, solo se veía el logo del Foro/FEM** — el logo de la Alcaldía/SEM (el
+  primero de la secuencia, sin caché del navegador todavía) tardaba en descargar más de lo que duraba su
+  temporizador, que arrancaba apenas se PEDÍA la imagen (no cuando terminaba de cargar); para cuando el
+  navegador terminaba de pintarlo, el temporizador ya había avanzado al siguiente logo. Ahora el conteo para
+  pasar al siguiente logo empieza únicamente cuando la imagen actual ya cargó (evento `onload`, con
+  `onerror` y un respaldo de 5s por si ninguno de los dos llegara a disparar) — nunca antes.
+- **Transición más larga** (spec del usuario): cada logo permanece 3.2s en pantalla (antes 2.2s, y ese conteo
+  arrancaba antes de que la imagen siquiera hubiera empezado a cargar), y el cierre final del splash pasó de
+  0.9s a 1.2s.
+- **Nota de transparencia**: verificado de forma estática (`node --check`); no probado en vivo desde un
+  navegador en este entorno — conviene confirmar con conexión lenta que ambos logos ya se alcanzan a ver.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

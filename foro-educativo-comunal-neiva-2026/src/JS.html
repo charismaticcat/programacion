@@ -359,6 +359,17 @@ document.getElementById("btnAceptarModalConfirmar").addEventListener("click", fu
  * Transición inicial (splash: logo de la Alcaldía/SEM Neiva primero,
  * luego el logo del Foro (#FORO), uno a la vez con crossfade — spec del
  * usuario: "usar imagen de transición luego de logo de la alcaldía").
+ *
+ * Fix (spec del usuario: "solo carga logo FEM, el logo de la alcaldía
+ * no alcanza a cargar"): antes se pasaba al siguiente logo con un
+ * temporizador fijo que arrancaba apenas se pedía la imagen — si el
+ * primer logo (Alcaldía/SEM, sin caché todavía) tardaba en descargar
+ * más que ese tiempo, el temporizador ya había avanzado a la imagen
+ * siguiente antes de que el navegador terminara de pintarlo, y se veía
+ * como si solo cargara el del Foro. Ahora el conteo para pasar al
+ * siguiente logo empieza solo cuando la imagen actual YA cargó (o falló,
+ * o ya estaba en caché) — nunca antes — y además dura más tiempo en
+ * pantalla (spec del usuario: "haz la transición más larga").
  * ------------------------------------------------------------------ */
 function iniciarSplashInicial() {
   var splash = document.getElementById("pantallaSplashInicial");
@@ -382,18 +393,35 @@ function iniciarSplashInicial() {
 
   var indice = 0;
   var mostrarSiguiente = function () {
+    if (cerrado) return;
     if (indice >= secuencia.length) {
-      temporizador = setTimeout(cerrarSplash, 900);
+      temporizador = setTimeout(cerrarSplash, 1200);
       return;
     }
+    var idLogo = secuencia[indice];
+    indice++;
     img.classList.remove("visible");
     setTimeout(function () {
       if (cerrado) return;
-      img.src = urlImagenDrive(secuencia[indice], 600);
-      img.classList.add("visible");
+      var yaMostrado = false;
+      var respaldo = null;
+      var mostrarAhora = function () {
+        if (cerrado || yaMostrado) return;
+        yaMostrado = true;
+        clearTimeout(respaldo);
+        img.classList.add("visible");
+        // El logo queda un buen tramo visible antes de pasar al
+        // siguiente — se cuenta desde que YA se ve, no desde que se pidió.
+        temporizador = setTimeout(mostrarSiguiente, 3200);
+      };
+      img.onload = mostrarAhora;
+      img.onerror = mostrarAhora;
+      // Red de seguridad: si por lo que sea ninguno de los dos eventos
+      // llega a disparar, no se queda la pantalla de splash trabada.
+      respaldo = setTimeout(mostrarAhora, 5000);
+      img.src = urlImagenDrive(idLogo, 600);
+      if (img.complete) mostrarAhora();
     }, 250);
-    indice++;
-    temporizador = setTimeout(mostrarSiguiente, 2200);
   };
 
   splash.addEventListener("click", cerrarSplash);
