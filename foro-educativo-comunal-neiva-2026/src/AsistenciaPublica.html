@@ -163,9 +163,51 @@
           <label for="campoEstamentoOtro">¿Cuál?</label>
           <input type="text" lang="es" spellcheck="true" id="campoEstamentoOtro">
         </div>
+
+        <div id="bloqueSedeComuna" class="oculto">
+          <label for="campoSede">Sede</label>
+          <select id="campoSede"></select>
+          <label for="campoComuna">Comuna</label>
+          <input type="text" id="campoComuna" readonly>
+        </div>
+
+        <div id="bloqueJornada" class="oculto">
+          <label for="campoJornada" id="etiquetaJornada">Jornada</label>
+          <select id="campoJornada">
+            <option>Mañana</option>
+            <option>Tarde</option>
+            <option>Única</option>
+          </select>
+        </div>
+
+        <div id="bloqueGrado" class="oculto">
+          <label for="campoGrado" id="etiquetaGrado">Grado que cursa</label>
+          <input type="text" lang="es" spellcheck="true" id="campoGrado" placeholder="Ejemplo: Transición, 5°, 11°…">
+        </div>
+
         <label for="campoCorreo">Correo electrónico</label>
         <input type="email" id="campoCorreo" autocomplete="email" inputmode="email">
         <div id="mensajeCorreo"></div>
+
+        <label for="campoGenero">Género</label>
+        <select id="campoGenero">
+          <option>Femenino</option>
+          <option>Masculino</option>
+          <option>Otro</option>
+          <option>Prefiero no decirlo</option>
+        </select>
+
+        <label for="campoRangoEdad">Rango de edad</label>
+        <select id="campoRangoEdad">
+          <option>Menor de 10</option>
+          <option>10 a 19</option>
+          <option>20 a 29</option>
+          <option>30 a 39</option>
+          <option>40 a 49</option>
+          <option>50 a 59</option>
+          <option>60 a 69</option>
+          <option>70 o más</option>
+        </select>
 
         <button type="button" class="boton-consentimiento" id="btnConsentimientoAsistencia" aria-pressed="false">
           <span class="check-consentimiento" id="checkConsentimientoAsistencia" aria-hidden="true">☐</span>
@@ -227,6 +269,13 @@
       opcion.textContent = ie.institucion;
       select.appendChild(opcion);
     });
+    // "No aplica" (spec del usuario) — para quien asiste sin pertenecer a
+    // ninguna institución educativa del grupo (p. ej. sector productivo o
+    // invitados externos).
+    var opcionNoAplica = document.createElement("option");
+    opcionNoAplica.value = "NO_APLICA";
+    opcionNoAplica.textContent = "No aplica";
+    select.appendChild(opcionNoAplica);
   })();
 
   function actualizarContador() {
@@ -279,6 +328,95 @@
     });
   }
 
+  /**
+   * Preguntas derivadas del estamento y de la institución educativa
+   * elegida (spec del usuario):
+   *   - Sede + Comuna: para cualquier estamento menos "Otro", siempre que
+   *     se haya elegido una IE real (no "No aplica") — la Sede se cruza
+   *     con las sedes reales de esa IE ("Sede central" + las de
+   *     CaracterizacionIE), y la Comuna se autocompleta.
+   *   - Jornada (Mañana/Tarde/Única): solo para Coordinador(a), Docente,
+   *     Tutor PTA PFI/3.0, Orientador(a), Estudiante, Padre/madre/
+   *     acudiente y Egresado(a) — no para Rector(a), Personal
+   *     administrativo, Sector productivo ni Otro.
+   *   - Grado que cursa: para Estudiante y Padre/madre/acudiente. Para
+   *     Padre/madre/acudiente, además, la etiqueta de Jornada y de Grado
+   *     se redactan en tercera persona (responde por el/la estudiante).
+   */
+  var ESTAMENTOS_CON_JORNADA_ = [
+    "Coordinador(a)", "Docente", "Tutor PTA PFI/3.0", "Orientador(a)",
+    "Estudiante", "Padre/madre/acudiente", "Egresado(a)"
+  ];
+  var campoIE = document.getElementById("campoIE");
+  var bloqueSedeComuna = document.getElementById("bloqueSedeComuna");
+  var campoSede = document.getElementById("campoSede");
+  var campoComuna = document.getElementById("campoComuna");
+  var bloqueJornada = document.getElementById("bloqueJornada");
+  var campoJornada = document.getElementById("campoJornada");
+  var etiquetaJornada = document.getElementById("etiquetaJornada");
+  var bloqueGrado = document.getElementById("bloqueGrado");
+  var campoGrado = document.getElementById("campoGrado");
+  var etiquetaGrado = document.getElementById("etiquetaGrado");
+  var campoGenero = document.getElementById("campoGenero");
+  var campoRangoEdad = document.getElementById("campoRangoEdad");
+
+  function formatearComunaAsistencia_(comuna) {
+    var texto = String(comuna || "").trim();
+    if (!texto) return "";
+    if (/^\d+$/.test(texto)) return "Comuna " + texto;
+    return texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase();
+  }
+
+  function institucionSeleccionada_() {
+    var idIE = campoIE ? campoIE.value : "";
+    if (!idIE || idIE === "NO_APLICA") return null;
+    return INSTITUCIONES.find(function (ie) { return ie.idIE === idIE; }) || null;
+  }
+
+  function poblarSedes_(ie) {
+    if (!campoSede) return;
+    campoSede.innerHTML = "";
+    var opcionCentral = document.createElement("option");
+    opcionCentral.textContent = "Sede central";
+    campoSede.appendChild(opcionCentral);
+    (ie && ie.sedes ? ie.sedes.split(";") : []).forEach(function (nombre) {
+      var limpio = nombre.trim();
+      if (!limpio) return;
+      var opcion = document.createElement("option");
+      opcion.textContent = limpio;
+      campoSede.appendChild(opcion);
+    });
+  }
+
+  function actualizarCamposDerivados_() {
+    var estamento = campoEstamento ? campoEstamento.value : "";
+    var ie = institucionSeleccionada_();
+    var esPadre = estamento === "Padre/madre/acudiente";
+    var esEstudiante = estamento === "Estudiante";
+
+    var mostrarSedeComuna = estamento !== "Otro" && !!ie;
+    if (bloqueSedeComuna) bloqueSedeComuna.classList.toggle("oculto", !mostrarSedeComuna);
+    if (mostrarSedeComuna) {
+      poblarSedes_(ie);
+      if (campoComuna) campoComuna.value = formatearComunaAsistencia_(ie.comuna);
+    }
+
+    var mostrarJornada = ESTAMENTOS_CON_JORNADA_.indexOf(estamento) !== -1;
+    if (bloqueJornada) bloqueJornada.classList.toggle("oculto", !mostrarJornada);
+    if (etiquetaJornada) {
+      etiquetaJornada.textContent = esPadre ? "Jornada a la que pertenece el/la estudiante" : "Jornada";
+    }
+
+    var mostrarGrado = esPadre || esEstudiante;
+    if (bloqueGrado) bloqueGrado.classList.toggle("oculto", !mostrarGrado);
+    if (etiquetaGrado) {
+      etiquetaGrado.textContent = esPadre ? "Grado que cursa el/la estudiante" : "Grado que cursa";
+    }
+  }
+  if (campoEstamento) campoEstamento.addEventListener("change", actualizarCamposDerivados_);
+  if (campoIE) campoIE.addEventListener("change", actualizarCamposDerivados_);
+  actualizarCamposDerivados_();
+
   /* ---- Correo: autocompleta @g -> @gmail.com, @h -> @hotmail.com, y valida el formato ---- */
   var campoCorreo = document.getElementById("campoCorreo");
   var mensajeCorreo = document.getElementById("mensajeCorreo");
@@ -315,6 +453,11 @@
     if (campoEstamento) campoEstamento.selectedIndex = 0;
     if (campoEstamentoOtro) campoEstamentoOtro.value = "";
     if (bloqueEstamentoOtro) bloqueEstamentoOtro.classList.add("oculto");
+    if (campoIE) campoIE.selectedIndex = 0;
+    if (campoGrado) campoGrado.value = "";
+    if (campoGenero) campoGenero.selectedIndex = 0;
+    if (campoRangoEdad) campoRangoEdad.selectedIndex = 0;
+    actualizarCamposDerivados_();
     document.getElementById("mensajeFirma").innerHTML = "";
     document.getElementById("tarjetaGraciasAsistencia").classList.add("oculto");
     document.getElementById("tarjetaListadoEnVivoPublico").classList.add("oculto");
@@ -366,6 +509,17 @@
         campoCorreo.focus();
         return;
       }
+      // Preguntas derivadas (spec del usuario) — solo se envían las que
+      // estaban visibles para este estamento/IE, para no guardar un valor
+      // por defecto que la persona nunca llegó a ver.
+      var extra = {
+        jornada: (bloqueJornada && !bloqueJornada.classList.contains("oculto") && campoJornada) ? campoJornada.value : "",
+        sede: (bloqueSedeComuna && !bloqueSedeComuna.classList.contains("oculto") && campoSede) ? campoSede.value : "",
+        comuna: (bloqueSedeComuna && !bloqueSedeComuna.classList.contains("oculto") && campoComuna) ? campoComuna.value : "",
+        grado: (bloqueGrado && !bloqueGrado.classList.contains("oculto") && campoGrado) ? campoGrado.value.trim() : "",
+        genero: campoGenero ? campoGenero.value : "",
+        rangoEdad: campoRangoEdad ? campoRangoEdad.value : ""
+      };
       mensaje.innerHTML = "";
       btnFirmar.disabled = true;
       google.script.run
@@ -385,7 +539,7 @@
           btnFirmar.disabled = !consentimientoAceptado;
           mensaje.innerHTML = "<div class='mensaje error'>Ocurrió un error de comunicación. Intenta de nuevo.</div>";
         })
-        .rpcRegistrarAsistenciaPublica(ID_GRUPO, idIE, nombre, estamento, correo);
+        .rpcRegistrarAsistenciaPublica(ID_GRUPO, idIE, nombre, estamento, correo, extra);
     });
   }
 

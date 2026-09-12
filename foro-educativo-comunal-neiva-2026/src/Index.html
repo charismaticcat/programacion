@@ -29,6 +29,16 @@
   <img id="imagenCargaAccion" class="imagen-carga-accion oculto" alt="">
   <div id="emojiCargaAccion" class="emoji-carga-accion oculto"></div>
   <span class="spinner-cargando"></span>
+  <!-- Barra de progreso propia de "Generando el informe…" (spec del
+       usuario), debajo del emoji/imagen — Apps Script no reporta avance
+       real en una sola llamada síncrona, así que se simula acercándose a
+       90% y solo llega a 100% cuando el servidor de verdad responde
+       (ver iniciarBarraProgresoInforme_/detenerBarraProgresoInforme_,
+       JS.html). Oculta para el resto de acciones (esas ya tienen la
+       barra indeterminada de abajo). -->
+  <div id="barraProgresoInforme" class="oculto barra-progreso-informe">
+    <div id="barraProgresoInformeRelleno" class="relleno"></div>
+  </div>
   <p class="texto-carga-accion" id="textoCargaAccion">Cargando…</p>
   <div class="barra-carga-indeterminada"><span></span></div>
 </div>

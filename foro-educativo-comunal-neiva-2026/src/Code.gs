@@ -330,9 +330,9 @@ function rpcSubirFotoGrupo(idGrupo, tokenSesion, dispositivoId, datosBase64, nom
 }
 
 /** Usada desde AsistenciaPublica.html (página pública QR, sin token/código). */
-function rpcRegistrarAsistenciaPublica(idGrupo, idIE, nombre, estamento, correo) {
+function rpcRegistrarAsistenciaPublica(idGrupo, idIE, nombre, estamento, correo, extra) {
   return ejecutarRpcSeguro_(function () {
-    return registrarAsistenciaPublica(idGrupo, idIE, nombre, estamento, correo);
+    return registrarAsistenciaPublica(idGrupo, idIE, nombre, estamento, correo, extra);
   });
 }
 

@@ -212,7 +212,7 @@ function obtenerFotoGrupoId_(idGrupo) {
  * de entrada de conveniencia, no un control de seguridad). Reutiliza la
  * misma tabla y el mismo deduplicado que registrarParticipante (Data.gs).
  */
-function registrarAsistenciaPublica(idGrupo, idIE, nombre, estamento, correo) {
+function registrarAsistenciaPublica(idGrupo, idIE, nombre, estamento, correo, extra) {
   idGrupo = String(idGrupo || "").trim();
   var hojaAccesos = obtenerHoja_(HOJA_ACCESOS_GRUPO_, cabecerasAccesosGrupo_());
   var mapaAccesos = obtenerMapaCabeceras_(hojaAccesos);
@@ -241,7 +241,7 @@ function registrarAsistenciaPublica(idGrupo, idIE, nombre, estamento, correo) {
   // con rol en reporte de asistencia, actualmente aparece rol en blanco".
   // Se usa el mismo estamento declarado como ROL_FORO, para que ningún
   // reporte que lea esa columna la vea vacía.
-  return registrarParticipante(idGrupo, idIE, nombre, estamento, estamento, correo, "PUBLICO-QR");
+  return registrarParticipante(idGrupo, idIE, nombre, estamento, estamento, correo, "PUBLICO-QR", extra);
 }
 
 /**

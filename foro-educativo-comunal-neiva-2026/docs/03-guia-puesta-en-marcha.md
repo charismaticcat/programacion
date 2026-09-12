@@ -894,6 +894,46 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   `corregirRolForoVacioConEstamento()` (`Tests.gs`) — ejecutar una sola vez, manualmente, desde el editor
   de Apps Script.
 
+## 4.29 Décimo séptimo lote: barra de progreso del informe, y rediseño de la asistencia pública ("No aplica", Sede/Comuna/Jornada/Grado condicionales, y Género + rango de edad para todos)
+
+- **Barra de progreso al generar el informe**: en el overlay de carga (`#overlayCargaAccion`), debajo del
+  emoji/imagen, aparece una barra de progreso propia solo cuando `mostrarCargaAccion_("informe", …)` está
+  activo. Apps Script no reporta avance real de una sola llamada síncrona (no hay forma de saber "va en el
+  40%" mientras se arma el Doc/PDF), así que es **simulada**: avanza rápido al principio y se frena cerca
+  del 90% mientras se espera la respuesta del servidor (`iniciarBarraProgresoInforme_`, `JS.html`), y solo
+  llega a 100% cuando el informe ya está listo (`ocultarCargaAccion_` → `detenerBarraProgresoInforme_`).
+  Para el resto de acciones (que ya tienen la barra indeterminada existente) permanece oculta.
+- **"No aplica" en la selección de institución** (`AsistenciaPublica.html`): se agrega como una opción más
+  al final del listado de IE (`idIE = "NO_APLICA"`), tratada como "sin institución" en todas partes:
+  `institucionSeleccionada_()` la excluye de Sede/Comuna, y `listarFirmantesGrupo` (`Data.gs`) reporta la
+  institución como "No aplica" en vez de dejarla en blanco.
+- **Jornada / Sede / Comuna / Grado condicionales según estamento**, aplicados en cascada tras elegir
+  estamento (y, para Sede/Comuna, tras elegir una IE real distinta de "No aplica"):
+  - **Coordinador(a), Docente, Tutor PTA PFI/3.0, Orientador(a), Estudiante, Padre/madre/acudiente,
+    Egresado(a)**: habilitan Jornada (Mañana/Tarde/Única) **y** Sede + Comuna.
+  - **Rector(a), Personal administrativo, Sector productivo**: habilitan Sede + Comuna, pero **no**
+    Jornada (un rector o el sector productivo no pertenece a una jornada del estudiantado).
+  - **Otro**: ninguna de las tres.
+  - Sede se puebla cruzando con las sedes reales de la IE elegida (columna `sedes` de
+    `CaracterizacionIE`, separadas por `;`), con **"Sede central"** agregada siempre como primera opción
+    sintética (la columna solo lista sedes adicionales). Comuna se autocompleta (solo lectura) según la
+    IE/sede elegida.
+  - Si el estamento es **Padre/madre/acudiente**, la etiqueta de Jornada cambia a referirse al
+    estudiante ("Jornada del/de la estudiante") y se habilita además **Grado que cursa el/la estudiante**.
+    Si el estamento es **Estudiante**, se habilita esa misma pregunta de Grado.
+- **Género y rango de edad para todos los estamentos**: dos preguntas nuevas, siempre visibles — Género
+  (Femenino/Masculino/Otro/Prefiero no decirlo) y Rango de edad en tramos de 10 años (Menor de 10, 10 a 19,
+  20 a 29, … 70 o más).
+- **Correo obligatorio** (lote anterior) y estos campos nuevos se guardan en `ParticipacionComunal` en
+  columnas nuevas (`JORNADA`, `SEDE`, `COMUNA`, `GRADO`, `GENERO`, `RANGO_EDAD`), agregadas al final de
+  `cabecerasParticipacionComunal_()` — se automigran solas en la hoja existente (`obtenerHoja_`). Ninguno
+  de estos campos nuevos tiene validación obligatoria en el cliente ni el servidor: son preguntas simples
+  con valores por defecto razonables, tratadas igual que "Estamento" (que tampoco se valida como
+  obligatorio), para mantener el mismo criterio que ya existía en este formulario.
+- **Nota de transparencia**: esta pantalla se verificó de forma estática (`node --check` sobre el JS
+  extraído, e IDs/etiquetas balanceadas) pero no se probó en vivo desde un navegador en este entorno —
+  conviene una pasada manual antes de usarla con un grupo real.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

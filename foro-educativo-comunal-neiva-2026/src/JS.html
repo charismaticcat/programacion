@@ -381,10 +381,59 @@ function mostrarCargaAccion_(tipo, texto) {
   }
   document.getElementById("textoCargaAccion").textContent = texto || (gif && gif.texto) || "Cargando…";
   overlay.classList.remove("oculto");
+
+  // Barra de progreso propia de "Generando el informe…" (spec del
+  // usuario) — el resto de acciones ya tienen la barra indeterminada de
+  // abajo, así que esta solo se muestra para tipo === "informe".
+  if (tipo === "informe") {
+    iniciarBarraProgresoInforme_();
+  } else {
+    detenerBarraProgresoInforme_(false);
+  }
 }
 function ocultarCargaAccion_() {
   var overlay = document.getElementById("overlayCargaAccion");
   if (overlay) overlay.classList.add("oculto");
+  detenerBarraProgresoInforme_(true);
+}
+
+/**
+ * Apps Script no reporta avance real de una sola llamada síncrona (no hay
+ * forma de saber "va en el 40%" mientras se arma el Doc/PDF), así que se
+ * simula: avanza rápido al principio y se frena cerca del 90%, dejando el
+ * último tramo para cuando el servidor de verdad responda
+ * (ocultarCargaAccion_ lo completa a 100% antes de ocultarlo).
+ */
+var intervaloProgresoInforme_ = null;
+function iniciarBarraProgresoInforme_() {
+  var contenedor = document.getElementById("barraProgresoInforme");
+  var relleno = document.getElementById("barraProgresoInformeRelleno");
+  if (!contenedor || !relleno) return;
+  contenedor.classList.remove("oculto");
+  var porcentaje = 0;
+  relleno.style.width = "0%";
+  clearInterval(intervaloProgresoInforme_);
+  intervaloProgresoInforme_ = setInterval(function () {
+    porcentaje += (90 - porcentaje) * 0.08;
+    relleno.style.width = Math.min(porcentaje, 90) + "%";
+  }, 300);
+}
+function detenerBarraProgresoInforme_(completar) {
+  clearInterval(intervaloProgresoInforme_);
+  intervaloProgresoInforme_ = null;
+  var contenedor = document.getElementById("barraProgresoInforme");
+  var relleno = document.getElementById("barraProgresoInformeRelleno");
+  if (!contenedor || !relleno) return;
+  if (completar && !contenedor.classList.contains("oculto")) {
+    relleno.style.width = "100%";
+    setTimeout(function () {
+      contenedor.classList.add("oculto");
+      relleno.style.width = "0%";
+    }, 300);
+  } else {
+    contenedor.classList.add("oculto");
+    relleno.style.width = "0%";
+  }
 }
 
 /* ------------------------------------------------------------------ *

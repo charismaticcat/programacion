@@ -200,7 +200,14 @@ var HOJA_PARTICIPACION_COMUNAL_ = "ParticipacionComunal";
 function cabecerasParticipacionComunal_() {
   return [
     "ID_PARTICIPANTE", "ID_GRUPO", "ID_IE", "NOMBRE", "ESTAMENTO", "ROL_FORO", "CORREO",
-    "CONFIRMACION_ASISTENCIA", "FECHA", "ESTADO", "DISPOSITIVO_ID"
+    "CONFIRMACION_ASISTENCIA", "FECHA", "ESTADO", "DISPOSITIVO_ID",
+    // Preguntas adicionales de la asistencia pública (spec del usuario):
+    // jornada, sede (cruzada con las sedes reales de la IE, o "Sede
+    // central"), comuna (autocompletada de la IE), grado que cursa
+    // (estudiante o el/la estudiante de quien responde como padre/madre/
+    // acudiente), género y rango de edad — cada una vacía si no aplicaba
+    // al estamento/IE elegidos (ver registrarAsistenciaPublica, Asistencia.gs).
+    "JORNADA", "SEDE", "COMUNA", "GRADO", "GENERO", "RANGO_EDAD"
   ];
 }
 
@@ -209,11 +216,14 @@ function cabecerasParticipacionComunal_() {
  * (ID_GRUPO, ID_IE, NOMBRE normalizado) — mismo criterio que la
  * deduplicación por documento de AsistenciaQR en 3.1 (auditoría §5.6): si
  * ya existe, devuelve el registro existente en vez de crear uno nuevo.
+ * `extra` (opcional) trae las preguntas adicionales de la asistencia
+ * pública: {jornada, sede, comuna, grado, genero, rangoEdad}.
  */
-function registrarParticipante(idGrupo, idIE, nombre, estamento, rolForo, correo, dispositivoId) {
+function registrarParticipante(idGrupo, idIE, nombre, estamento, rolForo, correo, dispositivoId, extra) {
   return conLock_(function () {
     idGrupo = String(idGrupo || "").trim();
     nombre = String(nombre || "").trim();
+    extra = extra || {};
     if (!idGrupo) return { ok: false, mensaje: "Falta el grupo." };
     if (!nombre) return { ok: false, mensaje: "El nombre es obligatorio." };
 
@@ -238,7 +248,9 @@ function registrarParticipante(idGrupo, idIE, nombre, estamento, rolForo, correo
     hoja.appendRow([
       idParticipante, idGrupo, String(idIE || "").trim(), nombre, String(estamento || "").trim(),
       String(rolForo || "").trim(), String(correo || "").trim(), "SI", new Date(), "REGISTRADO",
-      String(dispositivoId || "").trim()
+      String(dispositivoId || "").trim(),
+      String(extra.jornada || "").trim(), String(extra.sede || "").trim(), String(extra.comuna || "").trim(),
+      String(extra.grado || "").trim(), String(extra.genero || "").trim(), String(extra.rangoEdad || "").trim()
     ]);
     // Sin flush(), una lectura casi inmediata (el propio conteo de
     // firmantes que se refresca justo después de firmar, en la misma
@@ -276,12 +288,23 @@ function listarFirmantesGrupo(idGrupo) {
       // actualmente aparece rol en blanco") — cubre tanto los registros ya
       // guardados sin ROL_FORO como cualquier caso futuro que llegue vacío.
       var rolForo = String(f.ROL_FORO || "").trim() || estamento;
+      var idIE = String(f.ID_IE || "").trim();
+      // "No aplica" (spec del usuario: "habilitar No Aplica en selección
+      // de IE") es un valor centinela, no una IE real — se muestra tal
+      // cual en vez de quedar en blanco.
+      var institucion = idIE === "NO_APLICA" ? "No aplica" : (deIE[idIE] || "");
       return {
         nombre: String(f.NOMBRE || "").trim(),
-        idIE: String(f.ID_IE || "").trim(),
-        institucion: deIE[String(f.ID_IE || "").trim()] || "",
+        idIE: idIE,
+        institucion: institucion,
         estamento: estamento,
         rolForo: rolForo,
+        jornada: String(f.JORNADA || "").trim(),
+        sede: String(f.SEDE || "").trim(),
+        comuna: String(f.COMUNA || "").trim(),
+        grado: String(f.GRADO || "").trim(),
+        genero: String(f.GENERO || "").trim(),
+        rangoEdad: String(f.RANGO_EDAD || "").trim(),
         fecha: f.FECHA
       };
     })
