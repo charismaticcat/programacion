@@ -762,6 +762,16 @@
       <div id="panelQRCierre" class="oculto">
         <img id="imagenQRAsistenciaCierre" alt="Código QR de asistencia" style="max-width:200px;display:block;margin:10px auto;">
         <p style="word-break:break-all;text-align:center;"><a id="enlaceAsistenciaQRCierre" href="#" target="_blank"></a></p>
+        <div class="fila-botones">
+          <button type="button" class="btn btn-secundario" id="btnVerificarListadoQRCierre">🔍 Verificar listado</button>
+        </div>
+        <!-- Listado de firmantes en modo SOLO LECTURA (spec del usuario) — reutiliza
+             rpcEstadoFirmantes, igual que la pantalla pública de asistencia. Nunca
+             editable desde aquí: solo para revisar quién ya firmó antes de generar
+             el informe. -->
+        <div id="listadoFirmantesQRCierre" class="oculto listado-firmantes-solo-lectura">
+          <div id="listaFirmantesQRCierre"></div>
+        </div>
       </div>
       <div id="panelListadoCierre" class="oculto">
         <label for="campoCantidadListadoCierre">Cantidad de personas registradas en el listado de asistencia</label>

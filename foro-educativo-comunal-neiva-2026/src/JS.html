@@ -1188,19 +1188,34 @@ function irTrasConfirmarCaracterizacion_() {
 // La advertencia "Verifique la participación por institución" solo se
 // muestra aquí, en la confirmación de caracterización (spec del
 // usuario) — no antes, en Participación (ver btnContinuarAParticipacion).
+//
+// Antes de decidir si hay que mostrar "Invitados especiales", se refresca
+// `estado.participacionEstamento` desde el servidor: el autoguardado por
+// columna de la matriz (guardarColumnaParticipacionEstamento_) lo pone en
+// null apenas se guarda y lo repuebla en segundo plano sin avisar a nadie
+// — si el grupo terminaba de escribir la cantidad de estudiantes/
+// egresados/padres y le daba click a "Confirmar" casi de inmediato,
+// `irTrasConfirmarCaracterizacion_` podía leer ese `null` (o un valor
+// viejo) y saltarse la pantalla de invitados aunque sí se hubiera
+// declarado gente — dejando sin aparecer nunca la opción de enviar el
+// enlace de invitados (bug reportado por el usuario).
 document.getElementById("btnConfirmarCaracterizacion").addEventListener("click", function () {
-  var institucionesSinMarcar = institucionesSinParticipacionMarcada_();
-  if (institucionesSinMarcar.length) {
-    confirmarAccion(
-      "Estas instituciones no tienen ninguna persona registrada en el cuadro de \"Participación por " +
-        "estamento e institución\": " + institucionesSinMarcar.join(", ") + ". ¿La información es correcta?",
-      irTrasConfirmarCaracterizacion_,
-      "Verifique la participación por institución",
-      { textoConfirmar: "Es correcto", textoCancelar: "No es correcto, voy a corregir" }
-    );
-    return;
-  }
-  irTrasConfirmarCaracterizacion_();
+  flushGuardadosPendientesParticipacionEstamento_(function () {
+    cargarParticipacionEstamento(function () {
+      var institucionesSinMarcar = institucionesSinParticipacionMarcada_();
+      if (institucionesSinMarcar.length) {
+        confirmarAccion(
+          "Estas instituciones no tienen ninguna persona registrada en el cuadro de \"Participación por " +
+            "estamento e institución\": " + institucionesSinMarcar.join(", ") + ". ¿La información es correcta?",
+          irTrasConfirmarCaracterizacion_,
+          "Verifique la participación por institución",
+          { textoConfirmar: "Es correcto", textoCancelar: "No es correcto, voy a corregir" }
+        );
+        return;
+      }
+      irTrasConfirmarCaracterizacion_();
+    });
+  });
 });
 
 /* ------------------------------------------------------------------ *
@@ -1769,8 +1784,15 @@ function actualizarTotalesParticipacionEstamentoHorizontal_(tabla) {
   }
 }
 
-/** Autoguardado por columna (IE): junta los valores de esa IE en TODA la tabla que se está editando y los guarda. */
-function guardarColumnaParticipacionEstamento_(tabla, idIE) {
+/**
+ * Autoguardado por columna (IE): junta los valores de esa IE en TODA la
+ * tabla que se está editando y los guarda. `alTerminar`, si se pasa, se
+ * llama cuando el guardado (y el refresco posterior de
+ * estado.participacionEstamento) ya terminó — lo usa
+ * flushGuardadosPendientesParticipacionEstamento_ para saber cuándo es
+ * seguro leer los totales recién guardados.
+ */
+function guardarColumnaParticipacionEstamento_(tabla, idIE, alTerminar) {
   var valores = {};
   tabla.querySelectorAll('.input-participantes-h[data-ie="' + idIE + '"]').forEach(function (input) {
     valores[input.dataset.estamento] = input.value;
@@ -1780,8 +1802,45 @@ function guardarColumnaParticipacionEstamento_(tabla, idIE) {
       estado.participacionEstamento = null; // se refresca en segundo plano en la próxima carga, sin pisar lo que el usuario está escribiendo ahora
       llamarServidor("rpcObtenerParticipacionEstamento", [estado.idGrupo], function (datos) {
         estado.participacionEstamento = datos;
-      });
+        if (alTerminar) alTerminar();
+      }, function () { if (alTerminar) alTerminar(); });
+    } else if (alTerminar) {
+      alTerminar();
     }
+  }, function () { if (alTerminar) alTerminar(); });
+}
+
+/**
+ * Vuelca de inmediato cualquier guardado de la matriz de participación por
+ * estamento que todavía esté esperando su debounce de 1.5s (columna que
+ * el grupo acaba de editar) — evita que "Confirmar caracterización",
+ * llamado casi al instante de escribir, decida si hay invitados
+ * especiales con datos todavía no guardados. Llama a `callback` cuando
+ * todos los guardados pendientes (si había alguno) ya terminaron.
+ */
+function flushGuardadosPendientesParticipacionEstamento_(callback) {
+  var claves = Object.keys(temporizadoresGuardadoParticipacionEstamento_);
+  if (!claves.length) {
+    callback();
+    return;
+  }
+  var pendientes = claves.length;
+  function unoMenos() {
+    pendientes--;
+    if (pendientes <= 0) callback();
+  }
+  claves.forEach(function (clave) {
+    clearTimeout(temporizadoresGuardadoParticipacionEstamento_[clave]);
+    delete temporizadoresGuardadoParticipacionEstamento_[clave];
+    var separador = clave.lastIndexOf("|");
+    var idTabla = clave.slice(0, separador);
+    var idIE = clave.slice(separador + 1);
+    var tabla = document.getElementById(idTabla);
+    if (!tabla) {
+      unoMenos();
+      return;
+    }
+    guardarColumnaParticipacionEstamento_(tabla, idIE, unoMenos);
   });
 }
 
@@ -2939,6 +2998,10 @@ function cargarVerificacionFirmantesCierre_() {
   var esQR = estado.metodoAsistencia === "QR";
   document.getElementById("panelQRCierre").classList.toggle("oculto", !esQR);
   document.getElementById("panelListadoCierre").classList.toggle("oculto", esQR);
+  // Cada vez que se (re)carga esta pantalla se cierra el listado de
+  // firmantes si estaba abierto, para no dejar un intervalo de sondeo
+  // corriendo de una visita anterior.
+  ocultarListadoFirmantesQRCierre_();
   var textoFirmantes = document.getElementById("textoFirmantesCierre");
   if (textoFirmantes) textoFirmantes.textContent = esQR ? "han firmado" : "han firmado asistencia en formato PDF";
 
@@ -2968,6 +3031,52 @@ function cargarVerificacionFirmantesCierre_() {
     }, function () {});
   }
 }
+
+/**
+ * "🔍 Verificar listado" (método QR, Revisión y cierre): muestra, en modo
+ * SOLO LECTURA, quiénes ya firmaron la asistencia — mismo dato y mismo
+ * estilo de fila que la pantalla pública de asistencia
+ * (actualizarListadoEnVivoPublico_, AsistenciaPublica.html), reutilizando
+ * rpcEstadoFirmantes. Nunca permite editar ni eliminar firmas desde aquí;
+ * es solo para revisar antes de generar el informe.
+ */
+var intervaloListadoFirmantesQRCierre_ = null;
+function actualizarListadoFirmantesQRCierre_() {
+  if (!estado.idGrupo) return;
+  llamarServidor("rpcEstadoFirmantes", [estado.idGrupo], function (r) {
+    var lista = document.getElementById("listaFirmantesQRCierre");
+    if (!lista) return;
+    lista.innerHTML = "";
+    ((r && r.firmantes) || []).forEach(function (f) {
+      var fila = document.createElement("p");
+      fila.textContent = "✅ " + f.nombre + (f.institucion ? " — " + f.institucion : "") + (f.estamento ? " (" + f.estamento + ")" : "");
+      lista.appendChild(fila);
+    });
+    if (!((r && r.firmantes) || []).length) {
+      lista.innerHTML = "<p class='ayuda'>Todavía nadie ha firmado.</p>";
+    }
+  }, function () {});
+}
+function ocultarListadoFirmantesQRCierre_() {
+  clearInterval(intervaloListadoFirmantesQRCierre_);
+  intervaloListadoFirmantesQRCierre_ = null;
+  var contenedor = document.getElementById("listadoFirmantesQRCierre");
+  if (contenedor) contenedor.classList.add("oculto");
+  var boton = document.getElementById("btnVerificarListadoQRCierre");
+  if (boton) boton.textContent = "🔍 Verificar listado";
+}
+document.getElementById("btnVerificarListadoQRCierre").addEventListener("click", function () {
+  var contenedor = document.getElementById("listadoFirmantesQRCierre");
+  if (!contenedor.classList.contains("oculto")) {
+    ocultarListadoFirmantesQRCierre_();
+    return;
+  }
+  contenedor.classList.remove("oculto");
+  this.textContent = "🔽 Ocultar listado";
+  actualizarListadoFirmantesQRCierre_();
+  clearInterval(intervaloListadoFirmantesQRCierre_);
+  intervaloListadoFirmantesQRCierre_ = setInterval(actualizarListadoFirmantesQRCierre_, 4000);
+});
 
 /** Autoguardado de la cantidad declarada del listado de asistencia (método PDF), en Revisión y cierre. */
 document.getElementById("campoCantidadListadoCierre").addEventListener("change", function () {

@@ -974,6 +974,28 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
 - **Nota de transparencia**: verificado de forma estática (`node --check`, IDs sin duplicar, etiquetas
   balanceadas) pero no probado en vivo desde un navegador en este entorno.
 
+## 4.31 Décimo noveno lote: "Verificar listado" en modo lectura (método QR) y fix de la pantalla de invitados especiales que no aparecía
+
+- **"🔍 Verificar listado" en Revisión y cierre (método QR)**: nuevo botón junto al QR/enlace que muestra, en
+  modo **solo lectura**, quiénes ya firmaron la asistencia — mismo dato (`rpcEstadoFirmantes`) y mismo
+  formato de fila que la pantalla pública de asistencia, con sondeo cada 4 segundos mientras el listado
+  está abierto. Nunca permite editar ni eliminar una firma desde aquí, solo consultar antes de generar el
+  informe.
+- **Fix: la opción de enviar el enlace de invitados a veces no aparecía antes de la Sesión de
+  preparación.** Causa raíz: al hacer click en "Confirmar caracterización", la app decide si mostrar la
+  pantalla "Invitados especiales" (y por lo tanto la opción de enviar su enlace) leyendo
+  `estado.participacionEstamento` en memoria — pero el autoguardado de la matriz de participación por
+  estamento (que se edita en esa misma pantalla) pone ese valor en `null` justo al guardar y lo vuelve a
+  poblar en segundo plano sin avisar; si el grupo terminaba de escribir la cantidad de
+  estudiantes/egresados/padres y le daba click a "Confirmar" casi de inmediato, la decisión se tomaba con
+  ese `null` (o con un valor desactualizado) y la pantalla de invitados especiales se saltaba por completo,
+  aunque sí se hubiera declarado gente. Ahora, al hacer click en "Confirmar caracterización": (1) se
+  vuelcan de inmediato los guardados de la matriz que todavía estuvieran esperando su debounce de 1.5s
+  (`flushGuardadosPendientesParticipacionEstamento_`), (2) se refresca `estado.participacionEstamento`
+  desde el servidor, y solo entonces se decide si hay que mostrar "Invitados especiales".
+- **Nota de transparencia**: verificado de forma estática (`node --check`, IDs sin duplicar, etiquetas
+  balanceadas) pero no probado en vivo desde un navegador en este entorno.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:
