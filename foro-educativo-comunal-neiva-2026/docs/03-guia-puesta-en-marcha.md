@@ -804,6 +804,21 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   `estado.enlacesInvitados` para no repetir la llamada al servidor entre "Dar enlace" y "Enviar enlace" de
   un mismo bloque.
 
+## 4.24 Duodécimo lote: doble emoji corregido en el mensaje de aportes de preparación enviados, e instrucción del Consolidado de Socialización reescrita
+
+- **Doble emoji corregido**: el mensaje "Aportes de la IE … enviados para socializar oralmente con el
+  grupo … y la comunidad asistente." (`pantallaPreparacionIE`, tras enviar la preparación) llevaba un "✅ "
+  literal además del que ya agrega `.mensaje.exito::before` por CSS — se quitó el emoji literal, mismo
+  patrón de corrección de lotes anteriores.
+- **Instrucción del Consolidado de Socialización reescrita** (`pantallaSesion1`, encabezado): de "Registre
+  lo que cada institución compartió durante la socialización (un consolidado por grupo, no formulario por
+  IE). Cada pregunta debe tener entre 50 y 400 palabras." a "Luego de leer los aportes de cada IE, y de
+  los invitados, registre lo más relevante de la socialización (un consolidado por grupo, no por IE).
+  Opcionalmente, en caso de existir hallazgos, reflexiones o propuestas propias de la comunidad que no
+  encajen en las preguntas anteriores pueden escribirlos al final. Todos los campos son obligatorios." —
+  el rango de palabras por pregunta sigue mostrándose igual junto a cada `<textarea>` (contador en vivo,
+  `inicializarContadoresPalabras`, `JS.html`), que no se tocó; solo cambió el texto de apoyo general.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:
