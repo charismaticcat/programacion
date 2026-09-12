@@ -56,12 +56,19 @@
   <button type="button" id="btnVerTodosFirmantes">Ver todos</button>
 </div>
 
-<header class="marca">
+<header class="marca" id="encabezadoPrincipal">
+  <button type="button" class="btn-home-marca" id="btnIrInicio" title="Volver al inicio">🏠</button>
   <h1><?!= NOMBRE_FORO ?></h1>
   <p class="subtitulo">"<?!= SUBTITULO_FORO ?>"</p>
 </header>
 
 <main>
+  <!-- Barra de progreso navegable: cada paso lleva el nombre de su
+       sesión y es clicable — pero solo hacia pantallas ya alcanzadas en
+       este recorrido (indiceMaximoOrdenPantallas_, JS.html), nunca hacia
+       adelante, para no saltarse ningún candado (p. ej. Sesión 2 antes de
+       enviar Sesión 1 de forma definitiva). -->
+  <div class="barra-progreso-nav" id="barraProgresoNav"></div>
   <div class="barra-progreso"><div id="barraProgresoRelleno" style="width:0%"></div></div>
   <div id="mensajeGlobal"></div>
 
@@ -641,6 +648,11 @@
             <p class="ayuda">Se guarda automáticamente, igual que el resto de Sesión 1 y Sesión 2.</p>
           </details>
 
+          <!-- Mensaje propio (no "mensajeConectaEduca", que está arriba junto a
+               "Agregar actor") — el error de "faltan campos"/"rango de
+               palabras" debe verse justo aquí, al lado del botón, sin tener
+               que volver a subir para leerlo (spec del usuario). -->
+          <div id="mensajeEnviarSesion2"></div>
           <div class="fila-botones">
             <button class="btn btn-primario" id="btnEnviarSesion2">Enviar Sesión 2 definitiva</button>
           </div>
@@ -763,6 +775,7 @@
         <img id="imagenQRAsistenciaCierre" alt="Código QR de asistencia" style="max-width:200px;display:block;margin:10px auto;">
         <p style="word-break:break-all;text-align:center;"><a id="enlaceAsistenciaQRCierre" href="#" target="_blank"></a></p>
         <div class="fila-botones">
+          <button type="button" class="btn btn-secundario" id="btnPantallaCompletaQRCierre">👁 Ver QR en pantalla completa</button>
           <button type="button" class="btn btn-secundario" id="btnVerificarListadoQRCierre">🔍 Verificar listado</button>
         </div>
         <!-- Listado de firmantes en modo SOLO LECTURA (spec del usuario) — reutiliza
@@ -1129,6 +1142,8 @@
         <option value="Acudientes">Acudientes</option>
         <option value="Representantes de los comités institucionales">Representantes de los comités institucionales</option>
       </select>
+      <label for="campoCorreoInvitado">Correo electrónico (opcional)</label>
+      <input type="email" id="campoCorreoInvitado" autocomplete="email" inputmode="email">
     </div>
 
     <div id="mensajeInvitadoCaracterizacion"></div>

@@ -996,6 +996,45 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
 - **Nota de transparencia**: verificado de forma estática (`node --check`, IDs sin duplicar, etiquetas
   balanceadas) pero no probado en vivo desde un navegador en este entorno.
 
+## 4.32 Vigésimo lote: mensajes de error junto al campo, fix de "Revisar todo" vacío, QR en pantalla completa en Cierre, correo opcional para acudientes, aviso de tiempo del informe, barra de progreso navegable y botón de inicio
+
+- **Fix: el mensaje de error de Sesión 2 aparecía muy arriba.** "Estos campos deben tener entre 50 y 400
+  palabras: PRIORIDADES_CE, ACUERDOS_CE, PROPUESTAS_CE, RUTA_CE" (y "Complete todos los campos…") se
+  mostraban en `mensajeConectaEduca`, el mismo mensaje de "Agregar actor" que está arriba del todo en la
+  pantalla — muy lejos de esos campos y del botón "Enviar Sesión 2 definitiva". Se agregó un mensaje propio
+  (`mensajeEnviarSesion2`) justo junto a ese botón; "Agregar actor" sigue usando el suyo, sin tocarlo.
+- **Fix: en "Revisar todo antes de enviar", los textareas de Consolidado de Socialización (Sesión 1) y
+  ConectaEduca (Sesión 2) aparecían vacíos** aunque las respuestas sí existieran (y si el grupo iba a la
+  pantalla original de Sesión 1/2, ahí sí se veían). Causa: el autoguardado de esas pantallas tiene un
+  debounce de hasta 2 segundos antes de llegar al servidor; si el grupo escribía algo y entraba a "Revisar
+  todo" casi de inmediato, la foto que trae `rpcObtenerSesion1` en ese momento podía no incluir todavía lo
+  último escrito, y "Revisar todo" mostraba esa foto vacía en vez de lo que había en pantalla. Ahora, para
+  cada campo, "Revisar todo" prioriza el valor que ya esté en su campo original (`campo_<CLAVE>`) sobre el
+  del servidor, y al editar dentro de "Revisar todo" también refleja el cambio en ese campo original —
+  ambas vistas del mismo dato quedan siempre sincronizadas entre sí.
+- **"👁 Ver QR en pantalla completa" en Revisión y cierre (método QR)**: mismo visor de pantalla completa
+  que ya existía en Participación (para proyectar en un monitor durante el evento), ahora también
+  disponible junto al QR de Revisión y cierre — se extrajo a una función compartida
+  (`abrirPantallaCompletaQR_`).
+- **Correo opcional para padres/madres/acudientes**: en `AsistenciaPublica.html`, el correo sigue siendo
+  obligatorio para todos los estamentos excepto Padre/madre/acudiente, cuya etiqueta cambia a "Correo
+  electrónico (opcional)" — validado tanto en el cliente como en `registrarAsistenciaPublica` (`Asistencia.gs`).
+  En el flujo de invitados (perfil "adultos responsables"), se agregó un campo de correo, también opcional,
+  nuevo (columna `CORREO` en `AportesInvitadosPreparacion`), que aparece en el informe consolidado junto al
+  resto de datos del invitado.
+- **Aviso de tiempo en la generación del informe**: el overlay de carga ahora dice "Generando el informe…
+  Esto puede tomar hasta dos minutos, no cierre esta ventana."
+- **Barra de progreso navegable, con el nombre de cada sesión**: la barra superior (antes solo un relleno
+  de porcentaje) ahora es una fila de botones — Participación, Caracterización, Preparación, Sesión 1,
+  Sesión 2, Cierre — que llevan directo a esa pantalla. Nunca permite saltar hacia adelante más allá de la
+  pantalla más lejana ya alcanzada en el recorrido (no se salta ningún candado, p. ej. no se puede entrar a
+  Sesión 2 sin haber enviado Sesión 1 de forma definitiva); ir hacia atrás siempre está permitido, igual que
+  ya permitían los botones "✏️ Editar en…" de "Revisar todo".
+- **Botón 🏠 "Volver al inicio"**: en el encabezado, siempre visible una vez el grupo validó su código de
+  acceso — lleva directo a la pantalla de bienvenida ("Querida Comunidad Educativa del grupo…").
+- **Nota de transparencia**: verificado de forma estática (`node --check`, IDs sin duplicar, etiquetas
+  balanceadas) pero no probado en vivo desde un navegador en este entorno.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

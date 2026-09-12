@@ -59,11 +59,12 @@ function cabecerasAportesInvitadosPreparacion_() {
     // guarda un RANGO de edad (de 10 en 10), no un número puntual.
     // ROL_ESTUDIANTE/ANIOS_ESTUDIANDO (estudiante actual) y
     // ANIO_GRADUACION/PROFESION_ACTUAL_GRADUADO (egresado/a) son propios
-    // del perfil estudiante; VINCULO_IE/ROL_IE_ACUDIENTE, del perfil
-    // adulto responsable.
+    // del perfil estudiante; VINCULO_IE/ROL_IE_ACUDIENTE/CORREO, del
+    // perfil adulto responsable — CORREO es opcional ahí (spec del
+    // usuario), a diferencia del correo obligatorio de AsistenciaPublica.
     "NOMBRE", "EDAD", "SEXO", "ROL_ESTUDIANTE", "ANIOS_ESTUDIANDO",
     "ANIO_GRADUACION", "PROFESION_ACTUAL_GRADUADO",
-    "VINCULO_IE", "ROL_IE_ACUDIENTE",
+    "VINCULO_IE", "ROL_IE_ACUDIENTE", "CORREO",
     "P1", "P2", "P3", "P4", "P5", "P6",
     "ENVIADO", "FECHA_ENVIO", "ULTIMA_ACTUALIZACION"
   ];
@@ -341,6 +342,13 @@ function guardarCaracterizacionInvitado(tokenInvitado, idIE, dispositivoId, dato
   } else {
     campos.VINCULO_IE = String(datos.vinculoIE || "").trim();
     campos.ROL_IE_ACUDIENTE = String(datos.rolIEAcudiente || "").trim();
+    // Correo opcional (spec del usuario) — solo se valida el formato si
+    // escribieron algo; nunca es obligatorio para adultos responsables.
+    var correoAcudiente = String(datos.correo || "").trim();
+    if (correoAcudiente && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoAcudiente)) {
+      return { ok: false, mensaje: "Corrige el formato del correo electrónico." };
+    }
+    campos.CORREO = correoAcudiente;
   }
 
   return conLock_(function () {
@@ -535,6 +543,7 @@ function obtenerCaracterizacionInvitadosGrupo_(idGrupo) {
     } else {
       persona.vinculoIE = String(f.VINCULO_IE || "").trim();
       persona.rolIE = String(f.ROL_IE_ACUDIENTE || "").trim();
+      persona.correo = String(f.CORREO || "").trim();
       totalAdultos++;
     }
     personas.push(persona);

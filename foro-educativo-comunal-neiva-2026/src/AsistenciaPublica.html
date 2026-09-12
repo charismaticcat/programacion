@@ -185,7 +185,7 @@
           <input type="text" lang="es" spellcheck="true" id="campoGrado" placeholder="Ejemplo: Transición, 5°, 11°…">
         </div>
 
-        <label for="campoCorreo">Correo electrónico</label>
+        <label for="campoCorreo" id="etiquetaCorreo">Correo electrónico</label>
         <input type="email" id="campoCorreo" autocomplete="email" inputmode="email">
         <div id="mensajeCorreo"></div>
 
@@ -359,6 +359,7 @@
   var etiquetaGrado = document.getElementById("etiquetaGrado");
   var campoGenero = document.getElementById("campoGenero");
   var campoRangoEdad = document.getElementById("campoRangoEdad");
+  var etiquetaCorreo = document.getElementById("etiquetaCorreo");
 
   function formatearComunaAsistencia_(comuna) {
     var texto = String(comuna || "").trim();
@@ -411,6 +412,12 @@
     if (bloqueGrado) bloqueGrado.classList.toggle("oculto", !mostrarGrado);
     if (etiquetaGrado) {
       etiquetaGrado.textContent = esPadre ? "Grado que cursa el/la estudiante" : "Grado que cursa";
+    }
+
+    // Correo: opcional solo para padres/madres/acudientes (spec del
+    // usuario) — obligatorio para todos los demás estamentos.
+    if (etiquetaCorreo) {
+      etiquetaCorreo.textContent = esPadre ? "Correo electrónico (opcional)" : "Correo electrónico";
     }
   }
   if (campoEstamento) campoEstamento.addEventListener("change", actualizarCamposDerivados_);
@@ -497,13 +504,18 @@
         }
         estamento = "Otro: " + otro;
       }
-      if (!correo) {
+      // Correo obligatorio para todos, excepto para padres/madres/
+      // acudientes (spec del usuario) — si lo dejan en blanco, se
+      // registra la asistencia sin correo; si escriben algo, igual debe
+      // tener un formato válido.
+      var correoOpcional = estamento === "Padre/madre/acudiente";
+      if (!correo && !correoOpcional) {
         mensaje.innerHTML = "";
         if (mensajeCorreo) mensajeCorreo.innerHTML = "<div class='mensaje error'>El correo electrónico es obligatorio.</div>";
         campoCorreo.focus();
         return;
       }
-      if (!REGEX_CORREO_.test(correo)) {
+      if (correo && !REGEX_CORREO_.test(correo)) {
         mensaje.innerHTML = "";
         if (mensajeCorreo) mensajeCorreo.innerHTML = "<div class='mensaje error'>Corrige el formato del correo electrónico (ejemplo: nombre@correo.com).</div>";
         campoCorreo.focus();

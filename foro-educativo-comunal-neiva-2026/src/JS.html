@@ -110,11 +110,67 @@ function llamarServidor(nombreFuncion, args, onExito, onError) {
 /* ------------------------------------------------------------------ *
  * Navegación entre pantallas
  * ------------------------------------------------------------------ */
+/**
+ * Barra de progreso navegable (spec del usuario): un botón por cada
+ * sesión principal del recorrido, con su nombre. Nunca permite saltar
+ * HACIA ADELANTE, más allá de la pantalla más lejana ya alcanzada en
+ * este recorrido (indiceMaximoOrdenPantallas_) — así no se salta ningún
+ * candado (p. ej. no se puede ir a Sesión 2 sin haber enviado Sesión 1
+ * de forma definitiva). Ir hacia atrás siempre es seguro: esas pantallas
+ * ya son las mismas que "✏️ Editar en…" de Revisar todo permite abrir.
+ */
+var PASOS_PROGRESO_ = [
+  { id: "pantallaParticipacion", etiqueta: "Participación" },
+  { id: "pantallaConfirmacionCaracterizacion", etiqueta: "Caracterización" },
+  { id: "pantallaSeleccionIEPreparacion", etiqueta: "Preparación" },
+  { id: "pantallaSesion1", etiqueta: "Sesión 1" },
+  { id: "pantallaSesion2", etiqueta: "Sesión 2" },
+  { id: "pantallaRevisionCierre", etiqueta: "Cierre" }
+];
+var indiceMaximoOrdenPantallas_ = 0;
+(function inicializarBarraProgresoNav_() {
+  var contenedor = document.getElementById("barraProgresoNav");
+  if (!contenedor) return;
+  PASOS_PROGRESO_.forEach(function (paso) {
+    var boton = document.createElement("button");
+    boton.type = "button";
+    boton.className = "paso-progreso";
+    boton.textContent = paso.etiqueta;
+    boton.setAttribute("data-paso-progreso", paso.id);
+    boton.addEventListener("click", function () {
+      if (!boton.disabled) cambiarPantalla(paso.id);
+    });
+    contenedor.appendChild(boton);
+  });
+})();
+
+function actualizarBarraProgresoNav_(idPantalla) {
+  var indiceActual = ORDEN_PANTALLAS.indexOf(idPantalla);
+  document.querySelectorAll("[data-paso-progreso]").forEach(function (boton) {
+    var idPaso = boton.getAttribute("data-paso-progreso");
+    var indicePaso = ORDEN_PANTALLAS.indexOf(idPaso);
+    boton.disabled = indicePaso > indiceMaximoOrdenPantallas_;
+    boton.classList.toggle("paso-activo", idPaso === idPantalla);
+    boton.classList.toggle("paso-alcanzado", indicePaso <= indiceActual);
+  });
+}
+
+document.getElementById("btnIrInicio").addEventListener("click", function () {
+  // Antes de validar el código de acceso no hay grupo cargado todavía —
+  // "Inicio" necesita esos datos (nombre del grupo, etc.), así que el
+  // botón no hace nada hasta ese momento (en la práctica, en esa
+  // pantalla ya se está viendo "Inicio" desde el flujo normal).
+  if (!estado.idGrupo) return;
+  cambiarPantalla("pantallaInicio");
+});
+
 function cambiarPantalla(idPantalla) {
   ORDEN_PANTALLAS.forEach(function (id) {
     document.getElementById(id).classList.toggle("visible", id === idPantalla);
   });
   var indice = ORDEN_PANTALLAS.indexOf(idPantalla);
+  indiceMaximoOrdenPantallas_ = Math.max(indiceMaximoOrdenPantallas_, indice);
+  actualizarBarraProgresoNav_(idPantalla);
   var porcentaje = Math.round(((indice + 1) / ORDEN_PANTALLAS.length) * 100);
   document.getElementById("barraProgresoRelleno").style.width = porcentaje + "%";
   window.scrollTo(0, 0);
@@ -353,7 +409,7 @@ var GIFS_CARGA_ACCION_ = {
   aportes: { texto: "Enviando aportes…" },
   sesionDefinitiva: { texto: "Enviando de forma definitiva…" },
   valoracionAsistencia: { texto: "Enviando…" },
-  informe: { texto: "Generando el informe…" }
+  informe: { texto: "Generando el informe… Esto puede tomar hasta dos minutos, no cierre esta ventana." }
 };
 
 function mostrarCargaAccion_(tipo, texto) {
@@ -877,6 +933,7 @@ function abrirCaracterizacionInvitado_() {
   document.getElementById("campoProfesionActualInvitado").selectedIndex = 0;
   document.getElementById("campoVinculoIEInvitado").selectedIndex = 0;
   document.getElementById("campoRolIEInvitado").selectedIndex = 0;
+  document.getElementById("campoCorreoInvitado").value = "";
   var esEstudiante = estadoInvitado.tipoInvitado === "ESTUDIANTE";
   var esGraduado = esEstudiante && estadoInvitado.rolEstudiante === "GRADUADO";
   document.getElementById("camposInvitadoEstudianteActual").classList.toggle("oculto", !esEstudiante || esGraduado);
@@ -911,6 +968,7 @@ document.getElementById("btnContinuarInvitadoCaracterizacion").addEventListener(
   } else {
     datos.vinculoIE = document.getElementById("campoVinculoIEInvitado").value;
     datos.rolIEAcudiente = document.getElementById("campoRolIEInvitado").value;
+    datos.correo = document.getElementById("campoCorreoInvitado").value.trim();
   }
   llamarServidor(
     "rpcGuardarCaracterizacionInvitado",
@@ -1333,11 +1391,14 @@ document.getElementById("btnCopiarEnlaceAsistencia").addEventListener("click", f
   if (navigator.clipboard) navigator.clipboard.writeText(url);
 });
 
-/* ---- Vista de pantalla completa del QR (para proyectar en el evento) ---- */
+/**
+ * Vista de pantalla completa del QR (para proyectar en el evento) —
+ * compartida entre Participación (botón original) y Revisión y cierre
+ * (spec del usuario: dar la misma opción ahí para el método QR).
+ */
 var intervaloPantallaCompletaQR = null;
-
-document.getElementById("btnPantallaCompletaQR").addEventListener("click", function () {
-  var url = document.getElementById("enlaceAsistenciaQR").href;
+function abrirPantallaCompletaQR_(url) {
+  if (!url) return;
   document.getElementById("imagenQRPantallaCompleta").src =
     "https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=" + encodeURIComponent(url);
   document.getElementById("enlacePantallaCompleta").textContent = url;
@@ -1352,6 +1413,13 @@ document.getElementById("btnPantallaCompletaQR").addEventListener("click", funct
   };
   actualizarContadorGrande();
   intervaloPantallaCompletaQR = setInterval(actualizarContadorGrande, 5000);
+}
+
+document.getElementById("btnPantallaCompletaQR").addEventListener("click", function () {
+  abrirPantallaCompletaQR_(document.getElementById("enlaceAsistenciaQR").href);
+});
+document.getElementById("btnPantallaCompletaQRCierre").addEventListener("click", function () {
+  abrirPantallaCompletaQR_(document.getElementById("enlaceAsistenciaQRCierre").href);
 });
 
 document.getElementById("btnCerrarPantallaCompletaQR").addEventListener("click", function () {
@@ -2220,20 +2288,20 @@ function borrarActorConectaEduca(idRegistro) {
 document.getElementById("btnEnviarSesion2").addEventListener("click", function () {
   var faltantes = camposSesion2Faltantes_();
   if (faltantes.length) {
-    mostrarMensaje("mensajeConectaEduca", "Complete todos los campos antes de enviar: " + faltantes.join(", ") + ".", "error");
+    mostrarMensaje("mensajeEnviarSesion2", "Complete todos los campos antes de enviar: " + faltantes.join(", ") + ".", "error");
     return;
   }
   confirmarAccion("¿Enviar Sesión 2 (ConectaEduca) de forma definitiva?", function () {
     mostrarCargaAccion_("sesionDefinitiva");
     llamarServidor("rpcEnviarSesion2", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
       ocultarCargaAccion_();
-      mostrarMensaje("mensajeConectaEduca", r.ok ? "Sesión 2 enviada." : (r.mensaje || "No fue posible enviar."), r.ok ? "exito" : "error");
+      mostrarMensaje("mensajeEnviarSesion2", r.ok ? "Sesión 2 enviada." : (r.mensaje || "No fue posible enviar."), r.ok ? "exito" : "error");
       if (r.ok || r.codigo === "YA_ENVIADO") estado.sesion2Enviada = true;
       actualizarEstadoEnvioSesion2_();
     }, function (error) {
       ocultarCargaAccion_();
       console.error("rpcEnviarSesion2", error);
-      mostrarMensaje("mensajeConectaEduca", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+      mostrarMensaje("mensajeEnviarSesion2", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
     });
   });
 });
@@ -2874,6 +2942,25 @@ var CAMPOS_REVISAR_SESION2_ = [
   { clave: "APORTE_PROPIO_S2_TEXTO", etiqueta: "Aporte propio del grupo — Descripción" }
 ];
 
+/**
+ * Valor a mostrar para un campo de Sesión 1/2 en "Revisar todo": el
+ * campo original de su pantalla (campo_<CLAVE>) manda si ya tiene algo
+ * escrito — el autoguardado de esas pantallas tiene un debounce de hasta
+ * 2s antes de llegar al servidor, así que si el grupo escribe algo y
+ * pasa casi de inmediato a "Revisar todo", `datos` (la última foto ya
+ * guardada) puede no traer todavía lo último escrito; el campo en
+ * pantalla, en cambio, siempre tiene lo que se ve. Si ese campo no
+ * existe o está vacío (p. ej. primera vez que se abre esta sesión), se
+ * usa lo que haya en `datos`. Esto es lo que hacía que "Revisar todo"
+ * se viera vacío para el grupo aunque las respuestas sí estuvieran ahí
+ * (bug reportado por el usuario).
+ */
+function _valorCampoParaRevisar_(clave, datos) {
+  var elOriginal = document.getElementById("campo_" + clave);
+  if (elOriginal && elOriginal.value) return elOriginal.value;
+  return (datos && datos[clave]) || "";
+}
+
 function _renderCamposRevisarSesion_(idContenedor, camposMeta, datos) {
   var contenedor = document.getElementById(idContenedor);
   if (!contenedor) return;
@@ -2887,11 +2974,12 @@ function _renderCamposRevisarSesion_(idContenedor, camposMeta, datos) {
     var esTexto = campo.tipo === "text";
     var input = document.createElement(esTexto ? "input" : "textarea");
     if (esTexto) input.type = "text";
+    else input.rows = 6;
     input.id = "campoRevisar_" + campo.clave;
     input.lang = "es";
     input.spellcheck = true;
     input.setAttribute("data-campo-revisar", campo.clave);
-    input.value = (datos && datos[campo.clave]) || "";
+    input.value = _valorCampoParaRevisar_(campo.clave, datos);
     bloque.appendChild(label);
     bloque.appendChild(input);
     contenedor.appendChild(bloque);
@@ -2903,6 +2991,11 @@ document.addEventListener("input", function (evento) {
   var campo = evento.target.closest("[data-campo-revisar]");
   if (!campo) return;
   var clave = campo.getAttribute("data-campo-revisar");
+  // Refleja el cambio también en el campo original de su pantalla (si
+  // existe), para que ambas vistas del mismo dato nunca queden
+  // desincronizadas entre sí.
+  var elOriginal = document.getElementById("campo_" + clave);
+  if (elOriginal) elOriginal.value = campo.value;
   clearTimeout(temporizadoresGuardadoRevisar_[clave]);
   temporizadoresGuardadoRevisar_[clave] = setTimeout(function () {
     var valores = {};

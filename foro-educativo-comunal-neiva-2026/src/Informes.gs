@@ -403,7 +403,7 @@ function generarInformeGrupo(idGrupo) {
   }
 
   if (caracterizacionInvitados.personas.length) {
-    var filasInvitados = [["Nombre", "Institución", "Rol / vínculo", "Rango de edad", "Sexo"]].concat(
+    var filasInvitados = [["Nombre", "Institución", "Rol / vínculo", "Rango de edad", "Sexo", "Correo"]].concat(
       caracterizacionInvitados.personas.map(function (p) {
         var rolTexto;
         if (p.tipoInvitado === "ESTUDIANTE") {
@@ -417,7 +417,7 @@ function generarInformeGrupo(idGrupo) {
         } else {
           rolTexto = [p.vinculoIE, p.rolIE].filter(Boolean).join(" — ");
         }
-        return [p.nombre, p.institucion || "—", rolTexto || "—", p.rangoEdad || "—", p.sexo || "—"];
+        return [p.nombre, p.institucion || "—", rolTexto || "—", p.rangoEdad || "—", p.sexo || "—", p.correo || "—"];
       })
     );
     tablaSimple_(body, filasInvitados);

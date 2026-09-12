@@ -309,6 +309,31 @@ table.tabla-simple th { color: var(--verde-oscuro); }
 .barra-progreso { height: 6px; background: var(--gris-borde); border-radius: 4px; overflow: hidden; margin-bottom: 16px; }
 .barra-progreso > div { height: 100%; background: var(--amarillo); transition: width 0.3s ease; }
 
+/* ---------- Barra de progreso navegable (nombres de cada sesión) ---------- */
+.barra-progreso-nav {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;
+}
+.paso-progreso {
+  flex: 1 1 auto; min-width: 90px;
+  border: 1px solid var(--gris-borde); background: var(--blanco); color: var(--gris-texto);
+  border-radius: 20px; padding: 6px 10px; font-size: 0.78rem; font-weight: 600;
+  cursor: pointer; text-align: center; transition: background 0.15s ease, color 0.15s ease;
+}
+.paso-progreso:disabled { color: var(--gris-borde); cursor: not-allowed; opacity: 0.6; }
+.paso-progreso.paso-alcanzado:not(:disabled) { border-color: var(--verde); color: var(--verde-oscuro); }
+.paso-progreso.paso-activo { background: var(--verde); color: var(--blanco); border-color: var(--verde); }
+@media (max-width: 600px) {
+  .paso-progreso { font-size: 0.7rem; padding: 5px 8px; min-width: 70px; }
+}
+
+/* ---------- Botón "inicio" en el encabezado ---------- */
+#encabezadoPrincipal { position: relative; }
+.btn-home-marca {
+  position: absolute; top: 0; left: 0;
+  background: none; border: none; font-size: 1.4rem; line-height: 1; cursor: pointer;
+  padding: 4px 8px;
+}
+
 /* ---------- Modal ---------- */
 @keyframes aparecerModal { from { opacity: 0; transform: scale(0.96) translateY(6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 .modal-fondo {

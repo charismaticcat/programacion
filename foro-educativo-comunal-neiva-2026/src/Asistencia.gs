@@ -229,11 +229,13 @@ function registrarAsistenciaPublica(idGrupo, idIE, nombre, estamento, correo, ex
   if (estado === "INFORME_GENERADO") {
     return { ok: false, mensaje: "La firma de asistencia de este grupo ya se cerró: el informe del grupo ya fue generado." };
   }
-  // El correo es obligatorio para firmar asistencia (spec del usuario) —
+  // El correo es obligatorio para firmar asistencia (spec del usuario),
+  // excepto para padres/madres/acudientes, para quienes es opcional —
   // validado también aquí, no solo en el formulario (AsistenciaPublica.html).
   correo = String(correo || "").trim();
-  if (!correo) return { ok: false, mensaje: "El correo electrónico es obligatorio." };
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+  var correoOpcional = String(estamento || "").trim() === "Padre/madre/acudiente";
+  if (!correo && !correoOpcional) return { ok: false, mensaje: "El correo electrónico es obligatorio." };
+  if (correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
     return { ok: false, mensaje: "Corrige el formato del correo electrónico." };
   }
   // La página pública QR no pide un "rol en el foro" aparte (es para firma
