@@ -2616,18 +2616,30 @@ document.getElementById("btnAsistenciaVerificada").addEventListener("click", fun
   actualizarBotonGenerarInforme();
 });
 
-/** "Revise que todos los participantes hayan firmado la asistencia" — conteos + visor QR/link, otra vez, justo antes de generar el informe. */
+/**
+ * "Revise que todos los participantes hayan firmado la asistencia" —
+ * conteos + visor QR/link (método QR) o cantidad declarada + ver PDF +
+ * cambiar a QR (método Listado en PDF), otra vez, justo antes de generar
+ * el informe. Con Listado en PDF no existe un conteo de firmas EN VIVO
+ * (nadie firma por celular), así que "han firmado" se reemplaza por la
+ * cantidad que el grupo declara haber registrado en el listado físico
+ * (spec del usuario).
+ */
 function cargarVerificacionFirmantesCierre_() {
   if (!estado.idGrupo) return;
-  llamarServidor("rpcEstadoFirmantes", [estado.idGrupo], function (r) {
-    document.getElementById("totalFirmantesCierre").textContent = (r && r.total) || 0;
-  }, function () {});
   document.getElementById("totalParticipantesCierre").textContent =
     (estado.participacionEstamento && estado.participacionEstamento.totalGeneral) || 0;
 
-  var panelQR = document.getElementById("panelQRCierre");
-  if (estado.metodoAsistencia === "QR") {
-    panelQR.classList.remove("oculto");
+  var esQR = estado.metodoAsistencia === "QR";
+  document.getElementById("panelQRCierre").classList.toggle("oculto", !esQR);
+  document.getElementById("panelListadoCierre").classList.toggle("oculto", esQR);
+  var textoFirmantes = document.getElementById("textoFirmantesCierre");
+  if (textoFirmantes) textoFirmantes.textContent = esQR ? "han firmado" : "han firmado asistencia en formato PDF";
+
+  if (esQR) {
+    llamarServidor("rpcEstadoFirmantes", [estado.idGrupo], function (r) {
+      document.getElementById("totalFirmantesCierre").textContent = (r && r.total) || 0;
+    }, function () {});
     llamarServidor("rpcUrlAsistencia", [estado.idGrupo], function (url) {
       var enlace = document.getElementById("enlaceAsistenciaQRCierre");
       enlace.href = url;
@@ -2636,9 +2648,59 @@ function cargarVerificacionFirmantesCierre_() {
         "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=" + encodeURIComponent(url);
     }, function () {});
   } else {
-    panelQR.classList.add("oculto");
+    llamarServidor("rpcObtenerInfoListadoAsistencia", [estado.idGrupo], function (info) {
+      var cantidad = (info && info.cantidad) || 0;
+      document.getElementById("totalFirmantesCierre").textContent = cantidad;
+      document.getElementById("campoCantidadListadoCierre").value = cantidad || "";
+      var enlaceVer = document.getElementById("enlaceVerListadoCierre");
+      if (info && info.urlListado) {
+        enlaceVer.href = info.urlListado;
+        enlaceVer.classList.remove("oculto");
+      } else {
+        enlaceVer.classList.add("oculto");
+      }
+    }, function () {});
   }
 }
+
+/** Autoguardado de la cantidad declarada del listado de asistencia (método PDF), en Revisión y cierre. */
+document.getElementById("campoCantidadListadoCierre").addEventListener("change", function () {
+  var valor = Math.max(0, parseInt(this.value, 10) || 0);
+  llamarServidor(
+    "rpcGuardarCantidadListadoAsistencia",
+    [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, valor],
+    function (r) {
+      if (!r.ok) {
+        mostrarMensaje("mensajeCantidadListadoCierre", r.mensaje || "No fue posible guardar.", "error");
+        return;
+      }
+      document.getElementById("totalFirmantesCierre").textContent = valor;
+      mostrarMensaje("mensajeCantidadListadoCierre", "Guardado.", "exito");
+    }
+  );
+});
+
+/**
+ * Permite cambiar el método de asistencia a QR/enlace desde la propia
+ * pantalla de Revisión y cierre (spec del usuario), sin tener que volver
+ * a Participación — reutiliza elegirMetodoAsistencia (mismo guardado y
+ * mismos paneles que en Participación) y refresca además los elementos
+ * propios de esta pantalla.
+ */
+document.getElementById("btnCambiarAQRCierre").addEventListener("click", function () {
+  confirmarAccion(
+    "¿Cambiar el método de asistencia de este grupo a QR/enlace? Podrán seguir firmando por celular antes " +
+      "de generar el informe.",
+    function () {
+      elegirMetodoAsistencia("QR");
+      cargarVerificacionFirmantesCierre_();
+      document.getElementById("avisoVerificarAsistenciaQR").classList.remove("oculto");
+      document.getElementById("avisoVerificarAsistenciaPDF").classList.add("oculto");
+    },
+    "Cambiar método de asistencia",
+    { textoConfirmar: "Sí, cambiar a QR", textoCancelar: "Cancelar" }
+  );
+});
 
 function cargarValoracion() {
   llamarServidor("rpcObtenerValoracion", [estado.idGrupo], function (v) {

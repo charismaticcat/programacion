@@ -745,10 +745,19 @@
 
       <h3 class="subtitulo-campo">Verifique que todos los participantes hayan firmado la asistencia</h3>
       <p class="ayuda"><strong id="totalParticipantesCierre">0</strong> participantes registrados —
-        <strong id="totalFirmantesCierre">0</strong> han firmado.</p>
+        <strong id="totalFirmantesCierre">0</strong> <span id="textoFirmantesCierre">han firmado</span>.</p>
       <div id="panelQRCierre" class="oculto">
         <img id="imagenQRAsistenciaCierre" alt="Código QR de asistencia" style="max-width:200px;display:block;margin:10px auto;">
         <p style="word-break:break-all;text-align:center;"><a id="enlaceAsistenciaQRCierre" href="#" target="_blank"></a></p>
+      </div>
+      <div id="panelListadoCierre" class="oculto" style="margin-top:10px;">
+        <label for="campoCantidadListadoCierre">Cantidad de personas registradas en el listado de asistencia</label>
+        <input type="number" min="0" step="1" inputmode="numeric" id="campoCantidadListadoCierre">
+        <div id="mensajeCantidadListadoCierre"></div>
+        <div class="fila-botones">
+          <a class="btn btn-secundario oculto" id="enlaceVerListadoCierre" href="#" target="_blank">👁 Ver PDF del listado</a>
+          <button type="button" class="btn btn-secundario" id="btnCambiarAQRCierre">🔄 Cambiar método a QR / enlace</button>
+        </div>
       </div>
 
       <div id="avisoVerificarAsistenciaQR" class="mensaje info oculto">
@@ -757,8 +766,7 @@
         informe.
       </div>
       <div id="avisoVerificarAsistenciaPDF" class="mensaje info oculto">
-        Verifique nuevamente el listado de asistencia. Si hace falta hacer correcciones, deben hacerse
-        antes de generar el informe.
+        Si hace falta corregir el listado o la cantidad registrada, hágalo antes de generar el informe.
       </div>
       <div id="bannerAsistenciaVerificada" class="banner-completado oculto">
         ✅ Asistencia verificada.

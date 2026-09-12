@@ -177,6 +177,12 @@ function cabecerasAccesosGrupo_() {
     // Asistencia (Asistencia.gs): logo propio del grupo + método elegido
     // (QR/enlace o listado físico) + referencias a lo subido.
     "LOGO_ID", "METODO_ASISTENCIA", "ID_LISTADO_ASISTENCIA", "ID_FOTO_EVIDENCIA",
+    // Método "Listado en PDF": no hay conteo de firmas en vivo (nadie firma
+    // por celular), así que en Revisión y cierre el grupo declara cuántas
+    // personas quedaron registradas/firmadas en el listado físico (spec del
+    // usuario) — reemplaza al "0 han firmado" que quedaba fijo en ese
+    // método.
+    "CANTIDAD_LISTADO_ASISTENCIA",
     // Foto general del grupo (Participación) — independiente del método de
     // asistencia elegido; distinta de ID_FOTO_EVIDENCIA (esa solo aplica
     // cuando el método es "Listado físico").

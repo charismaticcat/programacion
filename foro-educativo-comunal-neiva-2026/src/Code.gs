@@ -303,6 +303,19 @@ function rpcSubirListadoAsistencia(idGrupo, tokenSesion, dispositivoId, datosBas
   });
 }
 
+/** Enlace para ver el PDF del listado + cantidad declarada de registrados (Revisión y cierre, método Listado en PDF). */
+function rpcObtenerInfoListadoAsistencia(idGrupo) {
+  return ejecutarRpcSeguro_(function () {
+    return obtenerInfoListadoAsistencia(idGrupo);
+  });
+}
+
+function rpcGuardarCantidadListadoAsistencia(idGrupo, tokenSesion, dispositivoId, cantidad) {
+  return ejecutarRpcSeguro_(function () {
+    return guardarCantidadListadoAsistencia(idGrupo, tokenSesion, dispositivoId, cantidad);
+  });
+}
+
 function rpcSubirFotoEvidencia(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType) {
   return ejecutarRpcSeguro_(function () {
     return subirFotoEvidencia(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType);

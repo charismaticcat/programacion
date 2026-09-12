@@ -826,6 +826,26 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   registrando lo más relevante de esta sesión." — recomendación práctica para dividir el trabajo entre
   quien proyecta/lee los aportes de preparación y quien va diligenciando las respuestas del consolidado.
 
+## 4.26 Décimo cuarto lote: cantidad declarada del listado en PDF, ver el PDF y cambiar a QR, todo desde Revisión y cierre
+
+- **Nueva columna `CANTIDAD_LISTADO_ASISTENCIA`** (`AccesosGrupo`, `Access.gs`): con el método "Listado en
+  PDF" no existe un conteo de firmas en vivo (nadie firma por celular), así que en "Revisión y cierre" el
+  grupo ahora **declara cuántas personas quedaron registradas/firmadas en el listado físico**
+  (`campoCantidadListadoCierre`, autoguardado con `rpcGuardarCantidadListadoAsistencia`) — ese número
+  reemplaza al "0 han firmado" que quedaba fijo en ese método.
+- **Mensaje unificado**: la línea de conteos ahora dice, para el método PDF, "N participantes registrados
+  — M **han firmado asistencia en formato PDF**" (antes solo "han firmado", igual que QR, dando a entender
+  un conteo en vivo que en realidad nunca ocurría) — `textoFirmantesCierre` cambia según el método
+  (`cargarVerificacionFirmantesCierre_`, `JS.html`). El aviso adicional debajo también se simplificó,
+  quitando la frase redundante con el título de la sección.
+- **Ver el PDF del listado** ("👁 Ver PDF del listado"): enlace directo al PDF ya subido
+  (`obtenerInfoListadoAsistencia`, `Asistencia.gs`, vía `https://drive.google.com/file/d/<id>/view`) —
+  visible solo si ya se subió alguno.
+- **Cambiar método a QR desde Revisión y cierre** ("🔄 Cambiar método a QR / enlace"): antes solo se podía
+  cambiar de método desde la pantalla de Participación; ahora también se puede hacer aquí mismo, al final,
+  sin tener que retroceder — reutiliza `elegirMetodoAsistencia` (mismo guardado que ya existía y que ya
+  permitía pasar de Listado a QR en cualquier momento) y refresca los paneles propios de esta pantalla.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

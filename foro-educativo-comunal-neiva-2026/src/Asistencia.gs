@@ -106,6 +106,47 @@ function subirListadoAsistencia(idGrupo, tokenSesion, dispositivoId, datosBase64
   }, 30000);
 }
 
+/**
+ * Info del listado de asistencia en PDF (método "Listado en PDF") para la
+ * pantalla de Revisión y cierre: enlace para verlo y la cantidad de
+ * personas que el grupo declaró como registradas/firmadas en ese listado
+ * — reemplaza al conteo de firmas en vivo, que no aplica a este método
+ * (spec del usuario: "0 han firmado asistencia en formato PDF").
+ */
+function obtenerInfoListadoAsistencia(idGrupo) {
+  var hoja = obtenerHoja_(HOJA_ACCESOS_GRUPO_, cabecerasAccesosGrupo_());
+  var mapa = obtenerMapaCabeceras_(hoja);
+  var fila = buscarFilaPorColumna_(hoja, mapa, "ID_GRUPO", String(idGrupo || "").trim());
+  if (fila === -1) return { idListado: "", urlListado: "", cantidad: 0 };
+  var idListado = String(hoja.getRange(fila, mapa["ID_LISTADO_ASISTENCIA"]).getValue() || "").trim();
+  var cantidad = Number(hoja.getRange(fila, mapa["CANTIDAD_LISTADO_ASISTENCIA"]).getValue() || 0);
+  return {
+    idListado: idListado,
+    urlListado: idListado ? "https://drive.google.com/file/d/" + idListado + "/view" : "",
+    cantidad: cantidad
+  };
+}
+
+/**
+ * Guarda (autoguardado) la cantidad de personas registradas/firmadas en
+ * el listado físico de asistencia — spec del usuario: se ingresa al
+ * final (Revisión y cierre) cuando el grupo usó el método "Listado en
+ * PDF".
+ */
+function guardarCantidadListadoAsistencia(idGrupo, tokenSesion, dispositivoId, cantidad) {
+  idGrupo = String(idGrupo || "").trim();
+  if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
+    return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión ya no está activa en este dispositivo." };
+  }
+  var valor = Math.max(0, Math.round(Number(cantidad) || 0));
+  var hoja = obtenerHoja_(HOJA_ACCESOS_GRUPO_, cabecerasAccesosGrupo_());
+  var mapa = obtenerMapaCabeceras_(hoja);
+  var fila = buscarFilaPorColumna_(hoja, mapa, "ID_GRUPO", idGrupo);
+  if (fila === -1) return { ok: false, mensaje: "No existe acceso para este grupo." };
+  hoja.getRange(fila, mapa["CANTIDAD_LISTADO_ASISTENCIA"]).setValue(valor);
+  return { ok: true, cantidad: valor };
+}
+
 /** Sube la fotografía de evidencia del encuentro a 06_EVIDENCIAS/GRUPO N. */
 function subirFotoEvidencia(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType) {
   idGrupo = String(idGrupo || "").trim();
