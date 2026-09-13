@@ -57,17 +57,12 @@ function guardarMetodoAsistencia(idGrupo, tokenSesion, dispositivoId, metodo) {
   var mapa = obtenerMapaCabeceras_(hoja);
   var fila = buscarFilaPorColumna_(hoja, mapa, "ID_GRUPO", idGrupo);
   if (fila === -1) return { ok: false, mensaje: "No existe acceso para este grupo." };
-  // Con QR elegido, se puede cambiar a listado en PDF siempre que el
-  // informe del grupo todavía no se haya generado (spec del usuario:
-  // "permitir cambio a PDF... siempre y cuando no se haya generado un
-  // informe"); una vez generado, ya no — validado también aquí, no solo
-  // en el cliente (JS.html actualizarBloqueoMetodoAsistencia_). De PDF a
-  // QR sigue permitido en cualquier momento.
-  var metodoActual = String(hoja.getRange(fila, mapa["METODO_ASISTENCIA"]).getValue() || "").toUpperCase();
-  var estadoActual = String(hoja.getRange(fila, mapa["ESTADO"]).getValue() || "").toUpperCase();
-  if (metodoActual === "QR" && metodo === "LISTADO" && estadoActual === "INFORME_GENERADO") {
-    return { ok: false, mensaje: "El informe de este grupo ya fue generado: no es posible cambiar de QR/enlace a listado en PDF." };
-  }
+  // Cambiar de método es SIEMPRE posible en cualquiera de los dos
+  // sentidos (spec del usuario: "cambiar de QR a PDF y PDF a QR debe ser
+  // posible"), sin restricción por el estado del informe — corrige el
+  // bloqueo de QR->Listado tras generar informe de un lote anterior, que
+  // impedía volver a PDF una vez generado. No borra nada de lo ya
+  // capturado con el método anterior (ver comentario de cabecera).
   hoja.getRange(fila, mapa["METODO_ASISTENCIA"]).setValue(metodo);
   return { ok: true };
 }

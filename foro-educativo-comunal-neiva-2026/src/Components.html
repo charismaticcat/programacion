@@ -167,17 +167,23 @@ function renderParticipacionEstamento(datos, idContenedor) {
 /**
  * Resumen del total: si el grupo eligió el método QR, muestra
  * "firmantes / participantes declarados" para comparar la firma en vivo
- * contra el conteo manual; si no, solo el total declarado. `idResumen`
- * permite mostrarlo tanto en Participación como en Confirmación de
- * caracterización.
+ * contra el conteo manual; si no, el total declarado seguido de la
+ * cantidad registrada en el listado de asistencia en PDF (spec del
+ * usuario: debe quedar justo debajo de "Total de participantes
+ * declarados"). `idResumen` permite mostrarlo tanto en Participación como
+ * en Confirmación de caracterización.
  */
-function renderResumenParticipacionEstamento(idResumen, datos, metodoAsistencia, totalFirmantes) {
+function renderResumenParticipacionEstamento(idResumen, datos, metodoAsistencia, totalFirmantes, cantidadListado) {
   var contenedor = document.getElementById(idResumen);
   if (!contenedor || !datos) return;
   if (metodoAsistencia === "QR") {
     contenedor.textContent = "👥 Firmantes / participantes declarados: " + (totalFirmantes || 0) + " / " + (datos.totalGeneral || 0);
   } else {
-    contenedor.textContent = "👥 Total de participantes declarados: " + (datos.totalGeneral || 0);
+    var html = "👥 Total de participantes declarados: " + (datos.totalGeneral || 0);
+    if (metodoAsistencia === "LISTADO" && cantidadListado) {
+      html += "<br>Total de participantes en Listado de asistencia: " + cantidadListado;
+    }
+    contenedor.innerHTML = html;
   }
 }
 

@@ -443,6 +443,9 @@ iniciarSplashInicial();
  *   - responsable: al guardar el responsable de envío — sticker de Giphy
  *     "Cargando Sticker by dipielbella" (no es un gif de Drive del
  *     usuario, se mantiene del lote anterior).
+ *   - listado: al subir el listado de asistencia en PDF — mismo sticker
+ *     "Cargando Sticker by dipielbella" que "responsable" (el usuario
+ *     volvió a compartir este mismo gif para este momento puntual).
  *
  * Los 6 gifs de Drive se embeben como data: URI (GIFS_DATAURI_, ver
  * GifsData.html) en vez de enlazarlos por URL a Drive: el hotlink externo
@@ -463,7 +466,11 @@ var GIFS_CARGA_ACCION_ = {
   aportes: { texto: "Enviando aportes…" },
   sesionDefinitiva: { texto: "Enviando de forma definitiva…" },
   valoracionAsistencia: { texto: "Enviando…" },
-  informe: { texto: "Generando el informe… Esto puede tomar hasta dos minutos, no cierre esta ventana." }
+  informe: { texto: "Generando el informe… Esto puede tomar hasta dos minutos, no cierre esta ventana." },
+  // Mismo sticker "Cargando" que "responsable" (spec del usuario: compartió
+  // este mismo gif de nuevo, ahora como indicador de carga de la subida
+  // del listado de asistencia en PDF) — ver rama especial más abajo.
+  listado: { texto: "Subiendo listado de asistencia…" }
 };
 
 function mostrarCargaAccion_(tipo, texto) {
@@ -476,7 +483,7 @@ function mostrarCargaAccion_(tipo, texto) {
 
   var gif = GIFS_CARGA_ACCION_[tipo];
   var dataUri = typeof GIFS_DATAURI_ !== "undefined" ? GIFS_DATAURI_[tipo] : null;
-  if (tipo === "responsable") {
+  if (tipo === "responsable" || tipo === "listado") {
     img.src = URL_STICKER_CARGANDO_RESPONSABLE_;
     img.classList.remove("oculto");
     emoji.classList.add("oculto");
@@ -716,7 +723,6 @@ function intentarValidarAcceso(forzar) {
       estado.asistenciaCerrada = !!(estadoGrupo && estadoGrupo.informeGenerado);
       estado.informeGenerado = !!(estadoGrupo && estadoGrupo.informeGenerado);
       actualizarPanelFirmantesCerrado_();
-      actualizarBloqueoMetodoAsistencia_();
     }, function () {});
 
     // Retomar donde el grupo se quedó (spec del usuario: "si se cae la
@@ -1213,24 +1219,7 @@ function mostrarPanelMetodoAsistencia(metodo) {
   var filaContador = document.getElementById("filaContadorParticipantesTarjeta");
   if (filaContador) filaContador.classList.toggle("oculto", ocultarConteoFirmas);
   if (metodo === "QR") cargarEnlaceAsistencia();
-  actualizarBloqueoMetodoAsistencia_();
-}
-
-/**
- * Con QR elegido, se puede cambiar a listado en PDF SIEMPRE QUE el
- * informe del grupo todavía no se haya generado (spec del usuario:
- * "permitir cambio a PDF si es posible siempre y cuando no se haya
- * generado un informe" — corrige el bloqueo total del lote anterior). Si
- * tienen PDF, pueden pasarse a QR en cualquier momento, generado o no.
- */
-function actualizarBloqueoMetodoAsistencia_() {
-  var btnListado = document.getElementById("btnMetodoListado");
-  if (!btnListado) return;
-  var bloqueado = estado.metodoAsistencia === "QR" && !!estado.asistenciaCerrada;
-  btnListado.disabled = bloqueado;
-  btnListado.title = bloqueado
-    ? "El informe del grupo ya fue generado: no es posible cambiar de QR/enlace a listado en PDF."
-    : "";
+  if (metodo === "LISTADO") cargarCantidadListado_();
 }
 
 function cargarEnlaceAsistencia() {
@@ -1525,14 +1514,22 @@ document.getElementById("btnSubirListado").addEventListener("click", function ()
     return;
   }
   leerArchivoComoBase64_(archivo, function (base64) {
-    mostrarCargaAccion_("valoracionAsistencia", "Enviando el listado de asistencia…");
+    mostrarCargaAccion_("listado", "Subiendo listado de asistencia…");
     llamarServidor(
       "rpcSubirListadoAsistencia",
       [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, base64, archivo.name, archivo.type],
       function (r) {
         ocultarCargaAccion_();
-        mostrarMensaje("mensajeMetodoAsistencia", r.ok ? "Listado subido correctamente." : (r.mensaje || "No fue posible subir el listado."), r.ok ? "exito" : "error");
-        if (r.ok) input.value = "";
+        mostrarMensaje("mensajeMetodoAsistencia", r.ok ? "PDF subido correctamente." : (r.mensaje || "No fue posible subir el listado."), r.ok ? "exito" : "error");
+        if (r.ok) {
+          input.value = "";
+          // Apenas se sube el PDF, se despliega de inmediato la casilla
+          // para declarar cuántas personas quedaron registradas en el
+          // listado (spec del usuario) — reutiliza el mismo mecanismo de
+          // Revisión y cierre (rpcGuardarCantidadListadoAsistencia).
+          document.getElementById("panelCantidadListado").classList.remove("oculto");
+          cargarCantidadListado_();
+        }
       },
       function (error) {
         ocultarCargaAccion_();
@@ -1541,6 +1538,43 @@ document.getElementById("btnSubirListado").addEventListener("click", function ()
       }
     );
   });
+});
+
+/**
+ * Cantidad declarada del listado de asistencia (método PDF), en
+ * Participación — misma fuente/RPC que "panelListadoCierre" en Revisión y
+ * cierre (rpcObtenerInfoListadoAsistencia / rpcGuardarCantidadListadoAsistencia),
+ * para que ambas pantallas queden siempre sincronizadas.
+ */
+function cargarCantidadListado_() {
+  if (!estado.idGrupo) return;
+  llamarServidor("rpcObtenerInfoListadoAsistencia", [estado.idGrupo], function (info) {
+    estado.cantidadListado = (info && info.cantidad) || 0;
+    var campo = document.getElementById("campoCantidadListado");
+    if (campo && document.activeElement !== campo) campo.value = estado.cantidadListado || "";
+    var panel = document.getElementById("panelCantidadListado");
+    if (panel && info && info.idListado) panel.classList.remove("oculto");
+    renderResumenParticipacionEstamentoTodo();
+  }, function () {});
+}
+
+document.getElementById("campoCantidadListado").addEventListener("change", function () {
+  var valor = Math.max(0, parseInt(this.value, 10) || 0);
+  llamarServidor(
+    "rpcGuardarCantidadListadoAsistencia",
+    [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, valor],
+    function (r) {
+      if (!r.ok) {
+        mostrarMensaje("mensajeCantidadListado", r.mensaje || "No fue posible guardar.", "error");
+        return;
+      }
+      estado.cantidadListado = valor;
+      var campoCierre = document.getElementById("campoCantidadListadoCierre");
+      if (campoCierre) campoCierre.value = valor || "";
+      renderResumenParticipacionEstamentoTodo();
+      mostrarMensaje("mensajeCantidadListado", "Guardado.", "exito");
+    }
+  );
 });
 
 /* ------------------------------------------------------------------ *
@@ -1889,7 +1923,7 @@ function cargarParticipacionEstamento(alTerminar) {
 function renderResumenParticipacionEstamentoTodo() {
   RESUMENES_PARTICIPACION_ESTAMENTO_.forEach(function (idResumen) {
     if (document.getElementById(idResumen)) {
-      renderResumenParticipacionEstamento(idResumen, estado.participacionEstamento, estado.metodoAsistencia, estado.totalFirmantes || 0);
+      renderResumenParticipacionEstamento(idResumen, estado.participacionEstamento, estado.metodoAsistencia, estado.totalFirmantes || 0, estado.cantidadListado || 0);
     }
   });
 }
@@ -2950,6 +2984,12 @@ function alternarTodosDesplegablesSocializacion() {
 estado.valoracionCompletada = false;
 
 function prepararCierre() {
+  // Por defecto, gris hasta confirmar (con cargarValoracion) que la
+  // valoración ya fue enviada — spec del usuario: "Revisión y cierre y
+  // todo lo posterior deben aparecer en gris hasta que no se haya
+  // enviado la valoración". Evita también un parpadeo de contenido
+  // habilitado mientras llega la respuesta del servidor.
+  actualizarBloqueoCierrePorValoracion_();
   cargarValoracion();
   cargarVerificacionFirmantesCierre_();
   refrescarVistasFotoGrupo_();
@@ -3309,9 +3349,27 @@ function mostrarEstadoValoracion(valoracion) {
   }
 }
 
+/**
+ * "Revisión y cierre" y todo lo posterior de esa tarjeta (verificar
+ * firmantes, fotografía, generar informe) deben verse en gris hasta que
+ * la valoración del Foro (arriba, misma pantalla) ya se haya enviado —
+ * spec del usuario. El botón "Generar informe" YA estaba gateado por
+ * separado (actualizarBotonGenerarInforme); esto solo agrega el bloqueo
+ * VISUAL de toda la sección, para que quede claro desde el primer
+ * vistazo que hay que valorar primero.
+ */
+function actualizarBloqueoCierrePorValoracion_() {
+  var tarjeta = document.getElementById("tarjetaCierrePasos");
+  if (!tarjeta) return;
+  tarjeta.classList.toggle("cierre-bloqueado", !estado.valoracionCompletada);
+  var aviso = document.getElementById("avisoCierreBloqueadoPorValoracion");
+  if (aviso) aviso.classList.toggle("oculto", !!estado.valoracionCompletada);
+}
+
 function actualizarBotonGenerarInforme() {
   var boton = document.getElementById("btnGenerarInforme");
   var aviso = document.getElementById("avisoResponsablePrincipal");
+  actualizarBloqueoCierrePorValoracion_();
   // Cualquier integrante del grupo con sesión activa puede generar el
   // informe (spec del usuario: revierte la restricción de "solo el
   // responsable principal"); pero solo se genera UNA vez en total —
@@ -3456,7 +3514,7 @@ document.getElementById("btnGenerarInforme").addEventListener("click", function 
       document.getElementById("enlaceInformeGenerado").href = r.url;
       document.getElementById("btnEnviarInformePorCorreo").disabled = true;
       mostrarMensaje("mensajeEnvioInforme", "", "");
-      document.getElementById("notaEnvioInforme").textContent = "Descargue el informe (botón de arriba) para habilitar el envío por correo al responsable del grupo.";
+      document.getElementById("notaEnvioInforme").textContent = "Descargue el informe (botón de arriba) para habilitar el envío por correo a las Instituciones Educativas y al responsable del grupo.";
       // Al generar el informe, la asistencia queda cerrada (spec del
       // usuario) — se refleja de inmediato en el encabezado permanente.
       estado.asistenciaCerrada = true;
@@ -3477,7 +3535,7 @@ document.getElementById("enlaceInformeGenerado").addEventListener("click", funct
   llamarServidor("rpcMarcarInformeDescargado", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
     if (!r.ok) return;
     document.getElementById("btnEnviarInformePorCorreo").disabled = false;
-    document.getElementById("notaEnvioInforme").textContent = "Ya puede enviar el informe por correo al responsable del grupo.";
+    document.getElementById("notaEnvioInforme").textContent = "Ya puede enviar el informe por correo a las Instituciones Educativas y al responsable del grupo.";
   }, function () {});
 });
 

@@ -1131,6 +1131,56 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   — código muerto sin riesgo, no se tocó más para minimizar el alcance del cambio. Verificado de forma
   estática (`node --check`, IDs sin duplicar); no probado en vivo desde un navegador en este entorno.
 
+## 4.38 Vigésimo sexto lote: foto junto al método de asistencia, cantidad del listado en Participación, gris hasta valorar, y cambio de método siempre posible
+
+- **"Fotografía general del grupo debe aparecer en la misma casilla de subir PDF y QR"**: el bloque completo
+  se movió de la tarjeta "Participación y asistencia" a la tarjeta "Método de asistencia del grupo", justo
+  después de los paneles de QR y de Listado en PDF (visible siempre, sin importar el método elegido).
+- **"Cuando se sube PDF debe decir PDF subido correctamente"**: el mensaje de éxito de "Subir listado"
+  cambió de "Listado subido correctamente." a "PDF subido correctamente."
+- **"Enseguida desplegarse casilla de cantidad de firmantes... y debe registrarse enseguida de 👥 Total de
+  participantes declarados: / Total de participantes en Listado de asistencia:"**: al subir el PDF con
+  éxito se despliega de inmediato, dentro del mismo panel de "Listado en PDF", el campo "Cantidad de
+  personas registradas en el listado de asistencia" (mismo mecanismo que ya existía en Revisión y cierre:
+  `rpcGuardarCantidadListadoAsistencia`/`rpcObtenerInfoListadoAsistencia`, autoguardado al cambiar el
+  valor). El valor declarado aparece en una segunda línea, justo debajo de "👥 Total de participantes
+  declarados:", con el texto "Total de participantes en Listado de asistencia: N" —
+  `renderResumenParticipacionEstamento` (Components.html) ya es una función compartida por Participación,
+  Confirmación de caracterización y "Revisar todo", así que agregar esa segunda línea ahí la deja visible
+  automáticamente **en las tres pantallas**, incluida "la confirmación de la caracterización" tal como se
+  pidió, sin duplicar HTML/lógica. El campo de Participación y el de Revisión y cierre quedan sincronizados
+  entre sí (cada guardado exitoso actualiza también el valor mostrado en el otro).
+- **Sticker de carga para la subida del listado**: el gif "Cargando Sticker by dipielbella" que el usuario
+  compartió de nuevo (esta vez por Drive, `1MqumC6-CeumTVkMtlkHILfgTz7sHQarb` — confirmado por metadatos
+  como el mismo gif ya usado para "Guardar responsable de envío") ahora también se muestra como indicador de
+  carga al subir el PDF del listado (`GIFS_CARGA_ACCION_.listado`, misma URL de Giphy ya cableada para
+  "responsable").
+- **"Revisión y cierre y todo lo posterior deben aparecer en gris hasta que no se haya enviado la
+  valoración"**: la tarjeta "Revisión y cierre" (verificar firmantes, fotografía, "Generar informe") se ve
+  en gris y no reacciona a clics (`opacity`, `grayscale`, `pointer-events:none`) mientras la valoración del
+  Foro (misma pantalla, tarjeta de arriba) no se haya enviado, con un aviso "🔒 Complete primero la
+  valoración..." — se recalcula cada vez que se entra a la pantalla y cada vez que cambia el estado de la
+  valoración (enviarla la desbloquea al instante, sin recargar). El botón "Generar informe" ya exigía la
+  valoración por separado desde un lote anterior; esto añade el bloqueo visual de toda la sección.
+- **"Cambiar de QR a PDF y PDF a QR debe ser posible"**: se quitó la restricción que impedía volver de QR a
+  Listado en PDF una vez generado el informe del grupo (tanto la validación del servidor en
+  `guardarMetodoAsistencia`, Asistencia.gs, como el bloqueo del botón en el cliente,
+  `actualizarBloqueoMetodoAsistencia_`, JS.html) — cambiar de método es ahora siempre posible en cualquiera
+  de los dos sentidos, sin borrar lo ya capturado con el método anterior (la decisión de no borrar nada al
+  cambiar de método ya venía de un lote anterior y se mantiene).
+- **"Envíe el informe al correo de las Instituciones Educativas y al responsable..."**: se corrigió el texto
+  del paso 2 de "Para terminar, complete estos pasos" (antes decía "al correo del responsable" únicamente) y
+  los avisos junto al botón "Enviar informe por correo" — el envío en sí (`enviarInformeGrupo`, Correo.gs)
+  ya enviaba al responsable de envío Y en copia a los correos institucionales de todas las IE del grupo
+  desde un lote anterior; solo el texto en pantalla no lo reflejaba con precisión. Se verificó leyendo
+  `enviarInformeGrupo` de punta a punta: destinatario principal = responsable de envío (o el correo de
+  acceso inicial si no hay responsable registrado), copia = asistentes de envío + correos institucionales de
+  cada IE del grupo + `COPIAS_CORREO` de la configuración.
+- **Nota de transparencia**: verificado de forma estática (`node --check` en los bloques `<script>`
+  extraídos de JS.html/Index.html/Components.html, con el falso positivo ya conocido y documentado en lotes
+  anteriores al extraer el bloque de Index.html; conteo de IDs duplicados y balance de
+  div/section/header/footer en Index.html). No probado en vivo desde un navegador en este entorno.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

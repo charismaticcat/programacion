@@ -809,6 +809,14 @@ details.socializacion-ie[open] summary { margin-bottom: 8px; }
   margin: 0 0 14px;
 }
 .contador-participantes-tarjeta strong { font-size: 1.2rem; }
+
+/* ---------- Revisión y cierre: gris hasta enviar la valoración del Foro ---------- */
+#tarjetaCierrePasos.cierre-bloqueado #contenidoCierrePasos {
+  opacity: 0.45;
+  filter: grayscale(1);
+  pointer-events: none;
+  user-select: none;
+}
 .comparativo-firmantes-qr {
   background: var(--verde-claro);
   color: var(--verde-oscuro);
