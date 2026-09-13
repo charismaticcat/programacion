@@ -154,6 +154,11 @@ var PASOS_PROGRESO_ = [
   { id: "pantallaRevisionCierre", etiqueta: "Cierre" }
 ];
 var indiceMaximoOrdenPantallas_ = 0;
+// Pantalla visible en este momento — se necesita para poder refrescar la
+// barra (qué botón queda "activo") desde una respuesta async que llega
+// después de cambiarPantalla (p. ej. rpcEstadoGrupo al validar el acceso),
+// sin tener que repetir el cambio de pantalla en sí.
+var pantallaActual_ = "";
 (function inicializarBarraProgresoNav_() {
   var contenedor = document.getElementById("barraProgresoNav");
   if (!contenedor) return;
@@ -191,6 +196,7 @@ document.getElementById("btnIrInicio").addEventListener("click", function () {
 });
 
 function cambiarPantalla(idPantalla) {
+  pantallaActual_ = idPantalla;
   ORDEN_PANTALLAS.forEach(function (id) {
     document.getElementById(id).classList.toggle("visible", id === idPantalla);
   });
@@ -723,6 +729,20 @@ function intentarValidarAcceso(forzar) {
       estado.asistenciaCerrada = !!(estadoGrupo && estadoGrupo.informeGenerado);
       estado.informeGenerado = !!(estadoGrupo && estadoGrupo.informeGenerado);
       actualizarPanelFirmantesCerrado_();
+
+      // Habilita la barra de progreso hasta donde el grupo REALMENTE haya
+      // avanzado en la nube (spec del usuario: "si ya hay avances locales
+      // y en la nube puedes retomar en cualquier punto ya realizado y
+      // habilitar la barra"), sin depender ÚNICAMENTE de ULTIMA_PANTALLA
+      // (que cambiarPantalla ya usó más arriba, vía destinoResumenPantalla_)
+      // — así, aunque esa columna no reflejara el punto más lejano, el
+      // progreso real (Sesión 1/2 enviada, informe generado) igual
+      // desbloquea los pasos correspondientes de la barra.
+      var pantallaMasLejanaCloud_ = "pantallaParticipacion";
+      if (estadoGrupo && estadoGrupo.sesion1Enviada) pantallaMasLejanaCloud_ = "pantallaSesion2";
+      if (estadoGrupo && (estadoGrupo.sesion2Enviada || estadoGrupo.informeGenerado)) pantallaMasLejanaCloud_ = "pantallaRevisionCierre";
+      indiceMaximoOrdenPantallas_ = Math.max(indiceMaximoOrdenPantallas_, ORDEN_PANTALLAS.indexOf(pantallaMasLejanaCloud_));
+      actualizarBarraProgresoNav_(pantallaActual_ || "pantallaAcceso");
     }, function () {});
 
     // Retomar donde el grupo se quedó (spec del usuario: "si se cae la

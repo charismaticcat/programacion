@@ -1181,6 +1181,29 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   anteriores al extraer el bloque de Index.html; conteo de IDs duplicados y balance de
   div/section/header/footer en Index.html). No probado en vivo desde un navegador en este entorno.
 
+## 4.39 Vigésimo séptimo lote: la barra de progreso navegable se habilita también con el progreso real en la nube
+
+- **"Si ya hay avances locales y en la nube puedes retomar en cualquier punto ya realizado y habilitar la
+  barra"**: hasta este lote, al validar el código de acceso la barra de progreso navegable solo se
+  desbloqueaba (a) hasta "Participación" de entrada, y (b) hasta la pantalla exacta guardada en
+  `ULTIMA_PANTALLA` (si existía) al saltar ahí con `destinoResumenPantalla_`. Ahora, además, la respuesta de
+  `rpcEstadoGrupo` (que ya se pedía en ese mismo momento) también desbloquea la barra según el progreso real
+  del grupo en la nube — si `sesion1Enviada` es verdadero se desbloquea al menos hasta "Sesión 2", y si
+  `sesion2Enviada` o `informeGenerado` es verdadero se desbloquea hasta "Cierre" — de forma que el avance
+  real del grupo (no solo la última pantalla puntual) siempre deja la barra navegable hasta ahí, sin importar
+  desde qué dispositivo se ingrese. Se agregó `pantallaActual_` (qué pantalla está visible en este momento)
+  para poder refrescar correctamente qué botón de la barra queda "activo" cuando esta respuesta llega de
+  forma asíncrona.
+- **Nota de transparencia**: verificado de forma estática (`node --check` sobre el bloque `<script>` de
+  JS.html). No se identificó una causa concreta de que la retoma NO ocurriera (la cadena
+  `cambiarPantalla`→`rpcGuardarUltimaPantalla`→`ULTIMA_PANTALLA` en `AccesosGrupo`, y su lectura en
+  `validarAccesoGrupo`→`destinoResumenPantalla_`→`cambiarPantalla`, se revisó de punta a punta sin encontrar
+  un defecto); este lote agrega una vía adicional e independiente para desbloquear la barra (progreso real
+  en la nube: Sesión 1/2 enviada, informe generado), que no depende de que `ULTIMA_PANTALLA` esté siempre
+  perfectamente al día. No probado en vivo desde un navegador en este entorno — si el problema persiste tras
+  este cambio, se necesita el detalle exacto de la reproducción (pantalla exacta antes de salir, pantalla a
+  la que llega al reingresar, mismo dispositivo o no) para seguir investigando.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:
