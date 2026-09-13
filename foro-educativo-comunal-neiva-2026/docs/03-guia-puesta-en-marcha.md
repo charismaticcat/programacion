@@ -1104,6 +1104,33 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
 - **Nota de transparencia**: verificado de forma estática (`node --check`); no probado en vivo desde un
   navegador en este entorno — conviene confirmar con conexión lenta que ambos logos ya se alcanzan a ver.
 
+## 4.37 Vigésimo quinto lote: invitados — no repetir la selección de IE, sin pedir datos personales, y estimado por hombres/mujeres
+
+- **"Luego de seleccionar las IE no debe devolverse a seleccionar las IE"**: marcar institución(es) en
+  "Instituciones que representan" ahora ES la elección de institución del invitado — se usa la primera
+  marcada para entrar directo a su preparación, sin volver a preguntar en una pantalla aparte ("Su
+  institución educativa" ya no aparece en el flujo normal, solo sigue existiendo para el enlace directo de
+  "invitados especiales", que nunca pasó por esa pantalla de marcar instituciones). Se exige marcar al menos
+  una institución para poder continuar.
+- **"Omite la parte de pedir datos personales"**: se eliminó del flujo la pantalla "Antes de empezar"
+  (nombre, rango de edad, sexo, años estudiando/año de graduación/profesión, vínculo con la IE, correo) —
+  al marcar la institución se entra directo a la Preparación (P1-P6). El estudiante actual/egresado(a) sigue
+  distinguiéndose correctamente (ayuda de cada pregunta, "Recuerdo que…" para egresados(as)) porque ese dato
+  ya se eligió en el primer paso ("¿Quiénes son?") y ahora viaja directo del cliente en cada llamada
+  (`rpcObtenerPreparacionIEInvitado`/`rpcGuardarPreparacionIEInvitado`), en vez de leerse de una
+  caracterización que ya no se pide. El informe consolidado de invitados sigue funcionando (los conteos de
+  estudiantes/egresados(as)/adultos responsables se mantienen), solo que ahora todos aparecen sin nombre
+  registrado, ya que no se vuelve a pedir.
+- **"Solo deja cantidad de hombres y mujeres"**: en "Instituciones que representan", los campos por
+  institución cambiaron de "Estudiantes"/"Egresados(as)" a "Hombres"/"Mujeres" — columnas
+  `CANTIDAD_HOMBRES`/`CANTIDAD_MUJERES` en `DeclaracionInvitadosIE` (antes `CANTIDAD_ESTUDIANTES`/
+  `CANTIDAD_EGRESADOS`; renombradas directamente, sin mantener las viejas, porque la función se agregó hace
+  muy poco y no hay datos reales todavía) y en la tabla del informe.
+- **Nota de transparencia**: las pantallas "Su institución educativa" (caso enlace directo) y "Antes de
+  empezar" siguen en el HTML/CSS por si se necesitan más adelante, pero ya no se usan desde el flujo normal
+  — código muerto sin riesgo, no se tocó más para minimizar el alcance del cambio. Verificado de forma
+  estática (`node --check`, IDs sin duplicar); no probado en vivo desde un navegador en este entorno.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

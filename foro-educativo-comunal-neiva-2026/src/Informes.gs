@@ -384,19 +384,19 @@ function generarInformeGrupo(idGrupo) {
   );
 
   // Estimado agregado que los propios invitados declararon por institución,
-  // ANTES de registrarse individualmente (pantalla "Instituciones que
-  // representan", Invitados.gs) — solo un estimado, distinto del conteo
-  // real de personas que sí diligenciaron sus aportes (arriba/abajo).
+  // ANTES de registrarse (pantalla "Instituciones que representan",
+  // Invitados.gs) — solo un estimado, distinto del conteo real de
+  // personas que sí diligenciaron sus aportes (arriba/abajo).
   var declaracionInvitados = obtenerDeclaracionInvitadosGrupo_(idGrupo);
   var idsConDeclaracion = Object.keys(declaracionInvitados);
   if (idsConDeclaracion.length) {
     var institucionesPorIdDecl = {};
     obtenerInstitucionesDelGrupo(idGrupo).forEach(function (ie) { institucionesPorIdDecl[ie.idIE] = ie.institucion; });
-    parrafo_(body, "Estimado declarado por los propios invitados, por institución (previo al registro individual de cada quien):");
-    var filasDeclaracion = [["Institución", "Estudiantes (estimado)", "Egresados(as) (estimado)"]].concat(
+    parrafo_(body, "Estimado declarado por los propios invitados, por institución (previo al registro):");
+    var filasDeclaracion = [["Institución", "Hombres (estimado)", "Mujeres (estimado)"]].concat(
       idsConDeclaracion.map(function (idIE) {
         var d = declaracionInvitados[idIE];
-        return [institucionesPorIdDecl[idIE] || idIE, String(d.cantidadEstudiantes), String(d.cantidadEgresados)];
+        return [institucionesPorIdDecl[idIE] || idIE, String(d.cantidadHombres), String(d.cantidadMujeres)];
       })
     );
     tablaSimple_(body, filasDeclaracion);

@@ -72,14 +72,13 @@ function cabecerasAportesInvitadosPreparacion_() {
 
 /**
  * Estimado agregado, declarado por los propios invitados ANTES de
- * registrarse individualmente ("¿cuántos estudiantes/egresados(as) traen
- * de cada institución?") — pantalla "Instituciones que representan",
- * entre "Su grupo" y "Su institución educativa". Es solo un estimado
- * informativo (no bloquea nada ni reemplaza el registro individual de
- * cada quien), guardado por IE con upsert simple.
+ * registrarse ("¿cuántos hombres y mujeres traen de cada institución?")
+ * — pantalla "Instituciones que representan", entre "Su grupo" y la
+ * preparación misma. Es solo un estimado informativo (no bloquea nada),
+ * guardado por IE con upsert simple.
  */
 function cabecerasDeclaracionInvitadosIE_() {
-  return ["CLAVE", "ID_GRUPO", "ID_IE", "CANTIDAD_ESTUDIANTES", "CANTIDAD_EGRESADOS", "ULTIMA_ACTUALIZACION"];
+  return ["CLAVE", "ID_GRUPO", "ID_IE", "CANTIDAD_HOMBRES", "CANTIDAD_MUJERES", "ULTIMA_ACTUALIZACION"];
 }
 
 function _claveDeclaracionInvitadosIE_(idGrupo, idIE) {
@@ -103,8 +102,8 @@ function guardarInstitucionesRepresentadasInvitado(idGrupo, declaraciones) {
   (Array.isArray(declaraciones) ? declaraciones : []).forEach(function (d) {
     var idIE = String((d && d.idIE) || "").trim();
     if (!idIE || !idsValidos[idIE]) return;
-    var estudiantes = Math.max(0, Math.round(Number(d.cantidadEstudiantes) || 0));
-    var egresados = Math.max(0, Math.round(Number(d.cantidadEgresados) || 0));
+    var hombres = Math.max(0, Math.round(Number(d.cantidadHombres) || 0));
+    var mujeres = Math.max(0, Math.round(Number(d.cantidadMujeres) || 0));
     conLock_(function () {
       upsertFila_(
         HOJA_DECLARACION_INVITADOS_IE_,
@@ -114,8 +113,8 @@ function guardarInstitucionesRepresentadasInvitado(idGrupo, declaraciones) {
         {
           ID_GRUPO: idGrupo,
           ID_IE: idIE,
-          CANTIDAD_ESTUDIANTES: estudiantes,
-          CANTIDAD_EGRESADOS: egresados,
+          CANTIDAD_HOMBRES: hombres,
+          CANTIDAD_MUJERES: mujeres,
           ULTIMA_ACTUALIZACION: new Date()
         }
       );
@@ -136,10 +135,10 @@ function obtenerDeclaracionInvitadosGrupo_(idGrupo) {
   filas.forEach(function (f) {
     if (String(f.ID_GRUPO || "").trim() !== idGrupo) return;
     var idIE = String(f.ID_IE || "").trim();
-    var estudiantes = Number(f.CANTIDAD_ESTUDIANTES || 0);
-    var egresados = Number(f.CANTIDAD_EGRESADOS || 0);
-    if (!estudiantes && !egresados) return;
-    porIE[idIE] = { cantidadEstudiantes: estudiantes, cantidadEgresados: egresados };
+    var hombres = Number(f.CANTIDAD_HOMBRES || 0);
+    var mujeres = Number(f.CANTIDAD_MUJERES || 0);
+    if (!hombres && !mujeres) return;
+    porIE[idIE] = { cantidadHombres: hombres, cantidadMujeres: mujeres };
   });
   return porIE;
 }
@@ -362,11 +361,13 @@ function guardarCaracterizacionInvitado(tokenInvitado, idIE, dispositivoId, dato
  * blanco por defecto (construcción libre, NUNCA se prellenan con el
  * resumen sugerido del Informe Ejecutivo) salvo que el propio invitado ya
  * haya guardado un avance con este mismo token, caso en el que se
- * recupera SU propio borrador. La ayuda de cada pregunta depende también
- * de ROL_ESTUDIANTE (estudiante actual vs. egresado/a), ya guardado por
- * guardarCaracterizacionInvitado antes de llegar aquí.
+ * recupera SU propio borrador. `rolEstudiante` (estudiante actual vs.
+ * egresado/a) llega directo del cliente — se eligió desde el primer paso
+ * ("¿Quiénes son?") y ya no pasa por una pantalla de caracterización
+ * intermedia (spec del usuario: "omite la parte de pedir datos
+ * personales").
  */
-function obtenerPreparacionIEInvitado(tokenInvitado, idIE, dispositivoId) {
+function obtenerPreparacionIEInvitado(tokenInvitado, idIE, dispositivoId, rolEstudiante) {
   var sesion = sesionInvitadoValida_(tokenInvitado, idIE, dispositivoId);
   if (!sesion) return null;
 
@@ -375,7 +376,7 @@ function obtenerPreparacionIEInvitado(tokenInvitado, idIE, dispositivoId) {
   var fila = buscarFilaPorColumna_(hoja, mapa, "TOKEN_INVITADO", String(tokenInvitado || "").trim());
   var guardado = fila === -1 ? null : leerFilaComoObjeto_(hoja, fila, mapa);
 
-  var preguntas = preguntasPreparacionInvitado_(sesion.TIPO_INVITADO, guardado ? guardado.ROL_ESTUDIANTE : "");
+  var preguntas = preguntasPreparacionInvitado_(sesion.TIPO_INVITADO, rolEstudiante);
   var respuestas = {};
   preguntas.forEach(function (p) {
     respuestas[p.clave] = guardado ? String(guardado[p.clave] || "") : "";
@@ -391,9 +392,12 @@ function obtenerPreparacionIEInvitado(tokenInvitado, idIE, dispositivoId) {
 /**
  * Guarda las respuestas del invitado — en SU PROPIA fila de
  * AportesInvitadosPreparacion (clave TOKEN_INVITADO), independiente de la
- * fila oficial de la IE en PreparacionIE.
+ * fila oficial de la IE en PreparacionIE. También guarda ROL_ESTUDIANTE
+ * (llega del cliente en cada guardado) para que el informe consolidado
+ * final siga pudiendo distinguir estudiantes actuales de egresados(as),
+ * ya que no hay una pantalla de caracterización separada que lo guarde.
  */
-function guardarPreparacionIEInvitado(tokenInvitado, idIE, tipoInvitado, dispositivoId, respuestas) {
+function guardarPreparacionIEInvitado(tokenInvitado, idIE, tipoInvitado, dispositivoId, respuestas, rolEstudiante) {
   var sesion = sesionInvitadoValida_(tokenInvitado, idIE, dispositivoId);
   if (!sesion) return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión de invitado ya no es válida." };
 
@@ -403,6 +407,7 @@ function guardarPreparacionIEInvitado(tokenInvitado, idIE, tipoInvitado, disposi
     TIPO_INVITADO: String(sesion.TIPO_INVITADO || tipoInvitado || "").toUpperCase(),
     ULTIMA_ACTUALIZACION: new Date()
   };
+  if (rolEstudiante) datos.ROL_ESTUDIANTE = String(rolEstudiante).trim().toUpperCase();
   PREGUNTAS_PREPARACION_.forEach(function (p) {
     datos[p.clave] = String((respuestas || {})[p.clave] || "");
   });

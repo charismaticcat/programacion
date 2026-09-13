@@ -842,11 +842,13 @@ document.getElementById("btnContinuarInvitadoGrupo").addEventListener("click", f
 });
 
 /**
- * Paso nuevo (lote 18): estimado agregado de estudiantes/egresados(as)
- * por institución del grupo (hasta 6, las que tenga ese grupo), antes de
- * que cada quien elija SU institución y se registre individualmente.
- * Puramente informativo — "Continuar" nunca se bloquea, aunque no
- * marquen ninguna institución.
+ * Paso "Instituciones que representan": estimado agregado de hombres y
+ * mujeres por institución del grupo (hasta 6, las que tenga ese grupo).
+ * Además, la(s) institución(es) marcadas aquí SON la elección de
+ * institución del propio invitado — ya no se vuelve a preguntar en una
+ * pantalla aparte (spec del usuario: "luego de seleccionar las IE no
+ * debe devolverse a seleccionar las IE"): se exige marcar al menos una
+ * para poder continuar, y se usa la primera marcada.
  */
 function abrirInstitucionesRepresentadasInvitado_() {
   var contenedor = document.getElementById("listaInstitucionesRepresentadasInvitado");
@@ -858,15 +860,15 @@ function abrirInstitucionesRepresentadasInvitado_() {
       "<input type='checkbox' data-rep-ie-check data-rep-ie-indice='" + indice + "'> " + escapeHtml(ie.institucion) +
       "</label>" +
       "<div class='fila-institucion-representada-cantidades'>" +
-      "<label>Estudiantes <input type='number' min='0' data-rep-ie-estudiantes data-rep-ie-indice='" + indice + "' disabled value='0'></label>" +
-      "<label>Egresados(as) <input type='number' min='0' data-rep-ie-egresados data-rep-ie-indice='" + indice + "' disabled value='0'></label>" +
+      "<label>Hombres <input type='number' min='0' data-rep-ie-hombres data-rep-ie-indice='" + indice + "' disabled value='0'></label>" +
+      "<label>Mujeres <input type='number' min='0' data-rep-ie-mujeres data-rep-ie-indice='" + indice + "' disabled value='0'></label>" +
       "</div></div>";
   });
   contenedor.innerHTML = html || "<p class='ayuda'>Este grupo todavía no tiene instituciones activas.</p>";
   contenedor.querySelectorAll("[data-rep-ie-check]").forEach(function (check) {
     check.addEventListener("change", function () {
       var indice = this.getAttribute("data-rep-ie-indice");
-      contenedor.querySelectorAll("[data-rep-ie-indice='" + indice + "'][data-rep-ie-estudiantes], [data-rep-ie-indice='" + indice + "'][data-rep-ie-egresados]")
+      contenedor.querySelectorAll("[data-rep-ie-indice='" + indice + "'][data-rep-ie-hombres], [data-rep-ie-indice='" + indice + "'][data-rep-ie-mujeres]")
         .forEach(function (campo) { campo.disabled = !this.checked; }.bind(this));
     });
   });
@@ -887,53 +889,50 @@ document.getElementById("btnContinuarInvitadoInstituciones").addEventListener("c
     if (!ie) return;
     if (check.checked) institucionesMarcadas.push(ie);
     if (!check.checked) return;
-    var estudiantes = contenedor.querySelector("[data-rep-ie-estudiantes][data-rep-ie-indice='" + indice + "']");
-    var egresados = contenedor.querySelector("[data-rep-ie-egresados][data-rep-ie-indice='" + indice + "']");
+    var hombres = contenedor.querySelector("[data-rep-ie-hombres][data-rep-ie-indice='" + indice + "']");
+    var mujeres = contenedor.querySelector("[data-rep-ie-mujeres][data-rep-ie-indice='" + indice + "']");
     declaraciones.push({
       idIE: ie.idIE,
-      cantidadEstudiantes: estudiantes ? estudiantes.value : 0,
-      cantidadEgresados: egresados ? egresados.value : 0
+      cantidadHombres: hombres ? hombres.value : 0,
+      cantidadMujeres: mujeres ? mujeres.value : 0
     });
   });
+
+  if (!institucionesMarcadas.length) {
+    mostrarMensaje("mensajeInvitadoInstituciones", "Marquen al menos una institución.", "error");
+    return;
+  }
   estadoInvitado.institucionesMarcadas_ = institucionesMarcadas;
 
-  function continuarAInstitucion() {
-    var instituciones = institucionesMarcadas.length ? institucionesMarcadas : estadoInvitado.institucionesDelGrupoSeleccionado;
-    document.getElementById("nombreGrupoInvitadoIE").textContent = estadoInvitado.grupoSeleccionado;
-    var select = document.getElementById("campoIEInvitado");
-    select.innerHTML = "";
-    instituciones.forEach(function (ie) {
-      var opcion = document.createElement("option");
-      opcion.value = ie.idIE;
-      opcion.textContent = ie.institucion;
-      select.appendChild(opcion);
-    });
+  function continuarAPreparar() {
     document.getElementById("overlayInvitadoInstituciones").classList.add("oculto");
-    document.getElementById("overlayInvitadoIE").classList.remove("oculto");
+    entrarAPrepararInstitucion_(institucionesMarcadas[0].idIE, "mensajeInvitadoInstituciones");
   }
 
   if (!declaraciones.length) {
-    continuarAInstitucion();
+    continuarAPreparar();
     return;
   }
   var idGrupoDeclarante = (estadoInvitado.institucionesDelGrupoSeleccionado[0] || {}).idGrupo || "";
   llamarServidor("rpcGuardarInstitucionesRepresentadasInvitado", [idGrupoDeclarante, declaraciones], function () {
-    continuarAInstitucion();
+    continuarAPreparar();
   }, function () {
     // El estimado es informativo — un fallo al guardarlo no debe bloquear el flujo.
-    continuarAInstitucion();
+    continuarAPreparar();
   });
 });
 
-document.getElementById("btnContinuarInvitadoIE").addEventListener("click", function () {
-  var idIE = document.getElementById("campoIEInvitado").value;
-  if (!idIE) {
-    mostrarMensaje("mensajeInvitadoIE", "Seleccionen su institución educativa.", "error");
-    return;
-  }
+/**
+ * Entra a la sesión de invitado de una IE concreta y va DIRECTO a la
+ * preparación — se omite por completo la pantalla de caracterización
+ * (spec del usuario: "omite la parte de pedir datos personales"). Se
+ * reutiliza tanto desde "Instituciones que representan" (flujo normal)
+ * como desde "Su institución educativa" (enlace directo).
+ */
+function entrarAPrepararInstitucion_(idIE, idMensajeError) {
   llamarServidor("rpcIniciarAccesoInvitado", [idIE, estadoInvitado.tipoInvitado, estado.dispositivoId], function (r) {
     if (!r.ok) {
-      mostrarMensaje("mensajeInvitadoIE", r.mensaje || "No fue posible ingresar.", "error");
+      mostrarMensaje(idMensajeError, r.mensaje || "No fue posible ingresar.", "error");
       return;
     }
     estadoInvitado.tokenInvitado = r.tokenInvitado;
@@ -942,8 +941,17 @@ document.getElementById("btnContinuarInvitadoIE").addEventListener("click", func
     estadoInvitado.idGrupo = r.idGrupo;
     estadoInvitado.grupo = r.grupo;
     document.getElementById("overlayInvitadoIE").classList.add("oculto");
-    abrirCaracterizacionInvitado_();
+    abrirPreparacionInvitado_();
   });
+}
+
+document.getElementById("btnContinuarInvitadoIE").addEventListener("click", function () {
+  var idIE = document.getElementById("campoIEInvitado").value;
+  if (!idIE) {
+    mostrarMensaje("mensajeInvitadoIE", "Seleccionen su institución educativa.", "error");
+    return;
+  }
+  entrarAPrepararInstitucion_(idIE, "mensajeInvitadoIE");
 });
 
 /**
@@ -1059,7 +1067,7 @@ function abrirPreparacionInvitado_() {
       : (estadoInvitado.rolEstudiante === "GRADUADO" ? "Egresados(as)" : "Estudiantes actuales");
   llamarServidor(
     "rpcObtenerPreparacionIEInvitado",
-    [estadoInvitado.tokenInvitado, estadoInvitado.idIE, estado.dispositivoId],
+    [estadoInvitado.tokenInvitado, estadoInvitado.idIE, estado.dispositivoId, estadoInvitado.rolEstudiante],
     function (datos) {
       if (!datos) return;
       renderPreguntasInvitado(datos.preguntas, datos.respuestas);
@@ -1081,7 +1089,7 @@ var temporizadorGuardadoInvitado_ = null;
 function guardarPreparacionInvitadoActual_(manual, callback) {
   llamarServidor(
     "rpcGuardarPreparacionIEInvitado",
-    [estadoInvitado.tokenInvitado, estadoInvitado.idIE, estadoInvitado.tipoInvitado, estado.dispositivoId, recolectarRespuestasInvitado_()],
+    [estadoInvitado.tokenInvitado, estadoInvitado.idIE, estadoInvitado.tipoInvitado, estado.dispositivoId, recolectarRespuestasInvitado_(), estadoInvitado.rolEstudiante],
     function (r) {
       if (manual) mostrarMensaje("mensajePreparacionInvitado", r.ok ? "Avance guardado." : (r.mensaje || "No fue posible guardar."), r.ok ? "exito" : "error");
       if (callback) callback(!!r.ok);

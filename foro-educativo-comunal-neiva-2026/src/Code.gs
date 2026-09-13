@@ -232,9 +232,9 @@ function rpcGuardarInstitucionesRepresentadasInvitado(idGrupo, declaraciones) {
   });
 }
 
-function rpcObtenerPreparacionIEInvitado(tokenInvitado, idIE, dispositivoId) {
+function rpcObtenerPreparacionIEInvitado(tokenInvitado, idIE, dispositivoId, rolEstudiante) {
   return ejecutarRpcSeguro_(function () {
-    return obtenerPreparacionIEInvitado(tokenInvitado, idIE, dispositivoId);
+    return obtenerPreparacionIEInvitado(tokenInvitado, idIE, dispositivoId, rolEstudiante);
   });
 }
 
@@ -244,9 +244,9 @@ function rpcGuardarCaracterizacionInvitado(tokenInvitado, idIE, dispositivoId, d
   });
 }
 
-function rpcGuardarPreparacionIEInvitado(tokenInvitado, idIE, tipoInvitado, dispositivoId, respuestas) {
+function rpcGuardarPreparacionIEInvitado(tokenInvitado, idIE, tipoInvitado, dispositivoId, respuestas, rolEstudiante) {
   return ejecutarRpcSeguro_(function () {
-    return guardarPreparacionIEInvitado(tokenInvitado, idIE, tipoInvitado, dispositivoId, respuestas);
+    return guardarPreparacionIEInvitado(tokenInvitado, idIE, tipoInvitado, dispositivoId, respuestas, rolEstudiante);
   });
 }
 
