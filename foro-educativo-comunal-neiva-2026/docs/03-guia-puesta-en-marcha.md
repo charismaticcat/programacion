@@ -1204,6 +1204,31 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   este cambio, se necesita el detalle exacto de la reproducción (pantalla exacta antes de salir, pantalla a
   la que llega al reingresar, mismo dispositivo o no) para seguir investigando.
 
+## 4.40 Vigésimo octavo lote: mismo gif "Cargando" en todas las cargas y cambios de pantalla del flujo de invitados
+
+- **"Usa este gif para todas las cargas y cambios de pantalla en los perfiles de estudiantes, egresados y
+  acudientes"**: el mismo sticker "Cargando" (Giphy `SYIu9YMtvUc6tBzDH6`, el mismo gif que el usuario ya
+  había compartido antes por Drive como `1MqumC6-CeumTVkMtlkHILfgTz7sHQarb`, confirmado como el mismo
+  archivo — ya usado en "Guardar responsable de envío" y, desde el lote 26, en "Subir listado en PDF") ahora
+  se muestra en **todos** los pasos del flujo de invitados (nuevo tipo `GIFS_CARGA_ACCION_.invitado`),
+  reemplazando las transiciones instantáneas o sin indicador que había antes:
+  - Elegir tipo (Estudiante/Egresado(a)/Acudiente) → cargar la lista de grupos.
+  - Elegir grupo → abrir "Instituciones que representan" (sin llamada al servidor; se muestra el gif un
+    instante fijo de todas formas, para que la transición nunca se sienta abrupta).
+  - Marcar institución(es) → entrar a preparación (`rpcIniciarAccesoInvitado`).
+  - Enlace directo de invitado especial (`?t=TOKEN&invitado=...`) → cargar las instituciones del grupo
+    (`rpcInstitucionesDelGrupo`).
+  - Entrar a la pantalla de Preparación → cargar las preguntas/respuestas (`rpcObtenerPreparacionIEInvitado`)
+    — de paso corrige un pequeño parpadeo que había antes (la pantalla se mostraba vacía un instante, antes
+    de que llegaran las preguntas; ahora no se muestra hasta tenerlas listas).
+  - Enviar los aportes definitivos (antes usaba el gif genérico de "aportes", compartido con el flujo
+    principal de moderadores — ahora tiene su propio tipo `invitado`, así un cambio futuro al gif de
+    "aportes" del flujo principal no afecta sin querer al de invitados, y viceversa).
+  - Se agregaron manejadores de error (antes ausentes en varias de estas llamadas) que ocultan el gif y
+    dejan la pantalla siguiente visible igual, en vez de quedarse con el gif trabado si el servidor falla.
+- **Nota de transparencia**: verificado de forma estática (`node --check`). No probado en vivo desde un
+  navegador en este entorno.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

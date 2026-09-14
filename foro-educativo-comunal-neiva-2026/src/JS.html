@@ -476,7 +476,12 @@ var GIFS_CARGA_ACCION_ = {
   // Mismo sticker "Cargando" que "responsable" (spec del usuario: compartió
   // este mismo gif de nuevo, ahora como indicador de carga de la subida
   // del listado de asistencia en PDF) — ver rama especial más abajo.
-  listado: { texto: "Subiendo listado de asistencia…" }
+  listado: { texto: "Subiendo listado de asistencia…" },
+  // Mismo sticker "Cargando" para TODAS las cargas y cambios de pantalla
+  // del flujo de invitados (estudiantes, egresados(as) y acudientes) —
+  // spec del usuario: "usa este gif para todas las cargas y cambios de
+  // pantalla en los perfiles de estudiantes, egresados y acudientes".
+  invitado: { texto: "Cargando…" }
 };
 
 function mostrarCargaAccion_(tipo, texto) {
@@ -489,7 +494,7 @@ function mostrarCargaAccion_(tipo, texto) {
 
   var gif = GIFS_CARGA_ACCION_[tipo];
   var dataUri = typeof GIFS_DATAURI_ !== "undefined" ? GIFS_DATAURI_[tipo] : null;
-  if (tipo === "responsable" || tipo === "listado") {
+  if (tipo === "responsable" || tipo === "listado" || tipo === "invitado") {
     img.src = URL_STICKER_CARGANDO_RESPONSABLE_;
     img.classList.remove("oculto");
     emoji.classList.add("oculto");
@@ -834,7 +839,7 @@ document.querySelectorAll("[data-invitado-tipo]").forEach(function (boton) {
     estadoInvitado.tipoInvitado = boton.getAttribute("data-invitado-tipo");
     estadoInvitado.rolEstudiante = boton.getAttribute("data-rol-estudiante") || "";
     document.getElementById("overlayInvitadoTipo").classList.add("oculto");
-    document.getElementById("overlayInvitadoGrupo").classList.remove("oculto");
+    mostrarCargaAccion_("invitado", "Cargando grupos…");
     llamarServidor("rpcTodasLasInstituciones", [], function (instituciones) {
       estadoInvitado.todasLasInstituciones_ = instituciones || [];
       var grupos = [];
@@ -850,6 +855,12 @@ document.querySelectorAll("[data-invitado-tipo]").forEach(function (boton) {
         opcion.textContent = grupo;
         select.appendChild(opcion);
       });
+      ocultarCargaAccion_();
+      document.getElementById("overlayInvitadoGrupo").classList.remove("oculto");
+    }, function (error) {
+      ocultarCargaAccion_();
+      console.error("rpcTodasLasInstituciones", error);
+      document.getElementById("overlayInvitadoGrupo").classList.remove("oculto");
     });
   });
 });
@@ -864,7 +875,11 @@ document.getElementById("btnContinuarInvitadoGrupo").addEventListener("click", f
   estadoInvitado.institucionesDelGrupoSeleccionado = (estadoInvitado.todasLasInstituciones_ || [])
     .filter(function (ie) { return ie.grupo === grupo; });
   document.getElementById("overlayInvitadoGrupo").classList.add("oculto");
-  abrirInstitucionesRepresentadasInvitado_();
+  mostrarCargaAccion_("invitado", "Cargando instituciones…");
+  setTimeout(function () {
+    ocultarCargaAccion_();
+    abrirInstitucionesRepresentadasInvitado_();
+  }, 400);
 });
 
 /**
@@ -956,8 +971,10 @@ document.getElementById("btnContinuarInvitadoInstituciones").addEventListener("c
  * como desde "Su institución educativa" (enlace directo).
  */
 function entrarAPrepararInstitucion_(idIE, idMensajeError) {
+  mostrarCargaAccion_("invitado", "Ingresando…");
   llamarServidor("rpcIniciarAccesoInvitado", [idIE, estadoInvitado.tipoInvitado, estado.dispositivoId], function (r) {
     if (!r.ok) {
+      ocultarCargaAccion_();
       mostrarMensaje(idMensajeError, r.mensaje || "No fue posible ingresar.", "error");
       return;
     }
@@ -968,6 +985,10 @@ function entrarAPrepararInstitucion_(idIE, idMensajeError) {
     estadoInvitado.grupo = r.grupo;
     document.getElementById("overlayInvitadoIE").classList.add("oculto");
     abrirPreparacionInvitado_();
+  }, function (error) {
+    ocultarCargaAccion_();
+    console.error("rpcIniciarAccesoInvitado", error);
+    mostrarMensaje(idMensajeError, "Ocurrió un error de comunicación con el servidor. Intenten de nuevo.", "error");
   });
 }
 
@@ -997,6 +1018,7 @@ if (INVITADO_TIPO_ACCESO && ID_GRUPO_ACCESO) {
   estadoInvitado.rolEstudiante = INVITADO_TIPO_ACCESO === "ESTUDIANTE" ? "ESTUDIANTE" : "";
   estadoInvitado.viaEnlaceDirecto_ = true;
   document.getElementById("btnCerrarInvitadoIE").textContent = "Cancelar";
+  mostrarCargaAccion_("invitado", "Cargando instituciones…");
   llamarServidor("rpcInstitucionesDelGrupo", [ID_GRUPO_ACCESO], function (instituciones) {
     estadoInvitado.grupoSeleccionado = NOMBRE_GRUPO_ACCESO;
     estadoInvitado.institucionesDelGrupoSeleccionado = instituciones || [];
@@ -1009,6 +1031,11 @@ if (INVITADO_TIPO_ACCESO && ID_GRUPO_ACCESO) {
       opcion.textContent = ie.institucion;
       select.appendChild(opcion);
     });
+    ocultarCargaAccion_();
+    document.getElementById("overlayInvitadoIE").classList.remove("oculto");
+  }, function (error) {
+    ocultarCargaAccion_();
+    console.error("rpcInstitucionesDelGrupo", error);
     document.getElementById("overlayInvitadoIE").classList.remove("oculto");
   });
 }
@@ -1091,15 +1118,26 @@ function abrirPreparacionInvitado_() {
     estadoInvitado.tipoInvitado !== "ESTUDIANTE"
       ? "Adultos responsables de un(a) estudiante"
       : (estadoInvitado.rolEstudiante === "GRADUADO" ? "Egresados(as)" : "Estudiantes actuales");
+  // El gif ya puede estar visible desde entrarAPrepararInstitucion_ (se
+  // deja así, sin ocultarlo entre medio) — mostrarCargaAccion_ es
+  // idempotente, así que llamarlo de nuevo aquí no causa parpadeo y cubre
+  // también al otro punto de entrada a esta función.
+  mostrarCargaAccion_("invitado", "Cargando preparación…");
   llamarServidor(
     "rpcObtenerPreparacionIEInvitado",
     [estadoInvitado.tokenInvitado, estadoInvitado.idIE, estado.dispositivoId, estadoInvitado.rolEstudiante],
     function (datos) {
+      ocultarCargaAccion_();
+      document.getElementById("overlayInvitadoPreparacion").classList.remove("oculto");
       if (!datos) return;
       renderPreguntasInvitado(datos.preguntas, datos.respuestas);
+    },
+    function (error) {
+      ocultarCargaAccion_();
+      console.error("rpcObtenerPreparacionIEInvitado", error);
+      document.getElementById("overlayInvitadoPreparacion").classList.remove("oculto");
     }
   );
-  document.getElementById("overlayInvitadoPreparacion").classList.remove("oculto");
 }
 
 function recolectarRespuestasInvitado_() {
@@ -1142,7 +1180,7 @@ document.getElementById("btnEnviarPreparacionInvitado").addEventListener("click"
         mostrarMensaje("mensajePreparacionInvitado", "No fue posible guardar antes de enviar. Intenten de nuevo.", "error");
         return;
       }
-      mostrarCargaAccion_("aportes");
+      mostrarCargaAccion_("invitado", "Enviando aportes…");
       llamarServidor(
         "rpcMarcarPreparacionEnviadaInvitado",
         [estadoInvitado.tokenInvitado, estadoInvitado.idIE, estado.dispositivoId],
