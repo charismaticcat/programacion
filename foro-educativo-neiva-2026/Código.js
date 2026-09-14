@@ -283,6 +283,25 @@ function doGet(e) {
     return paginaValoracionFEM_(idForoValoracion);
   }
 
+  /*
+   * =================================================
+   * PANEL DE ACCESOS "SUPERADMIN"
+   * =================================================
+   *
+   * .../exec?panel=superadmin
+   *
+   * Página pública mínima, independiente del resto del formulario
+   * (mismo patrón que las dos rutas anteriores), sin ningún código ni
+   * token de acceso: una sola pantalla con iconos hacia las carpetas
+   * de Drive y los documentos del Foro.
+   */
+  const panelSolicitado =
+    String(parametros.panel || "").trim().toLowerCase();
+
+  if (panelSolicitado === "superadmin") {
+    return paginaSuperAdminFEM_();
+  }
+
 const token =
   String(
     parametros.t ||
@@ -6897,6 +6916,179 @@ function paginaValoracionFEM_(idForo){
 
   return HtmlService.createHtmlOutput(html)
     .setTitle(tituloPagina+" — FEM 2026")
+    .addMetaTag("viewport","width=device-width, initial-scale=1");
+}
+
+/*
+ * PANEL DE ACCESOS "SUPERADMIN" — FEM 2026.
+ *
+ * Página pública mínima e independiente del resto del formulario
+ * (mismo patrón que paginaAsistenciaQR_ y paginaValoracionFEM_):
+ * una sola pantalla, sin ningún código ni token de acceso, con
+ * iconos que abren en pestaña nueva las carpetas de Drive y los
+ * documentos del Foro que pidió el usuario. Al hacer clic se muestra,
+ * a modo de transición, una animación de "cargando" elegida al azar
+ * entre varias (no un GIF externo: se generan con CSS para no
+ * depender de ningún servicio de terceros que pueda dejar de
+ * funcionar o bloquear el hotlink).
+ *
+ * Acceso: .../exec?panel=superadmin
+ *
+ * ADVERTENCIA DE SEGURIDAD (se pidió explícitamente "sin código", así
+ * que se implementó tal cual, pero debe quedar dicho): esta pantalla
+ * no autentica a quien la abre — cualquier persona con el enlace
+ * exacto puede verla. La protección real de cada carpeta o documento
+ * la sigue dando el permiso para compartir que tenga ese archivo en
+ * Drive (público/"cualquiera con el enlace" o restringido a
+ * cuentas concretas), no esta página.
+ */
+function paginaSuperAdminFEM_(){
+  const escHtml_=function(t){ return String(t||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); };
+  const escAttr_=function(t){ return String(t||"").replace(/"/g,"&quot;"); };
+
+  const secciones=[
+    {
+      titulo:"Carpetas de Drive",
+      items:[
+        {icono:"📁", nombre:"Carpeta General del Foro", url:"https://drive.google.com/drive/folders/1ftcnjZxG4QK4P8wbHFtD9-tAZcMbtH3K?usp=drive_link"},
+        {icono:"📷", nombre:"Fotos de Evidencia FEM 2026", url:"https://drive.google.com/drive/folders/1SKJO52KuTk5qiLeqa2Wosr4ckJRK6ZPZ?usp=drive_link"},
+        {icono:"🗂️", nombre:"Informes por Grupo (enviados y editables)", url:"https://drive.google.com/drive/folders/1CiEY8InrLPwzohka2eRDLl_jtE_oR59q?usp=drive_link"},
+        {icono:"🏫", nombre:"Informes Enviados por IE", url:"https://drive.google.com/drive/folders/1IqcFgQUSKocvGX3JwvNOu-xJzt0gfKc8?usp=drive_link"}
+      ]
+    },
+    {
+      titulo:"Informes Sintéticos",
+      items:[
+        {icono:"📄", nombre:"Informe Sintético Municipal FEM 2026", url:"https://docs.google.com/document/d/1zfd2GXSHiJ-vRa0ugqjRqdXbXRrySv2ROC7fOkkaYgo/edit?usp=drive_link"},
+        {icono:"📄", nombre:"Síntesis Grupo 1", url:"https://docs.google.com/document/d/1QGLrKTKEEzvNU6b4YWaPf5mdHURf-hL-TVIngfuhWLc/edit?usp=drive_link"},
+        {icono:"📄", nombre:"Síntesis Grupo 2", url:"https://docs.google.com/document/d/1xoHE3E2yHgGOBOFuO2_NSc2AhUujUwfRVlIz3eyQN-Y/edit?usp=sharing"},
+        {icono:"📄", nombre:"Síntesis Grupo 3", url:"https://docs.google.com/document/d/14NDJ52CArtGXGG0SrjqZloru-nyA2-VVw-ImB_MgC8A/edit?usp=drive_link"},
+        {icono:"📄", nombre:"Síntesis Grupo 4", url:"https://docs.google.com/document/d/1pSxRhlvQRcdcPA3knSyNC1HmGAMhwHODHMCNO834L_E/edit?usp=drive_link"},
+        {icono:"📄", nombre:"Síntesis Grupo 5", url:"https://docs.google.com/document/d/1cZ2QTkSR_OWTLTsqSbGRCEqBWw9lbJd3YfCHqcirrS4/edit?usp=drive_link"},
+        {icono:"📄", nombre:"Síntesis Grupo 6", url:"https://docs.google.com/document/d/1y6pYoaZJDtgjXwwP5bVwtsJtJbqF79T1NnZazRBKzHk/edit?usp=drive_link"}
+      ]
+    },
+    {
+      titulo:"Datos",
+      items:[
+        {icono:"📊", nombre:"Hoja de Cálculo — Respuestas por IE y Totales", url:"https://docs.google.com/spreadsheets/d/1zmgqQwaF8kJG6MOqKt_ssM9R5GRwjcRRMk7XZPLH-lA/edit?usp=sharing"}
+      ]
+    },
+    {
+      titulo:"Multimedia y Recursos",
+      items:[
+        {icono:"❓", nombre:"FAQs", url:"https://drive.google.com/file/d/1sI2g4NKUVJ5PyyK3IyotPmIaJ9SfulUj/view?usp=drive_link"},
+        {icono:"🖼️", nombre:"Infografías y Multimedia FEM 2026", url:"https://notebook.google.com/notebook/f3411916-7e06-416c-913c-07f4c5d1bfa4/artifact/013a4b58-85b9-441d-90e9-0b76978c8ae0?utm_source=nlm_web_share&utm_medium=google_oo&utm_campaign=art_share_1&utm_content=&utm_smc=nlm_web_share_google_oo_art_share_1_"},
+        {icono:"▶️", nombre:"Video Resumen Sintético de 36 IE", url:"https://youtu.be/dNrRaB4Cfcw"},
+        {icono:"⬇️", nombre:"Descargable", url:"https://drive.google.com/file/d/1GD1cz-IkcXqAOIE1pqN0RRaSTwvtDXK7/view?usp=drive_link"},
+        {icono:"🖥️", nombre:"Informe Interno", url:"https://docs.google.com/presentation/d/1jkUifTiXyyNNU_NRUtdB2mcg9bM_cadW/edit?usp=drive_link&ouid=112531563624782647495&rtpof=true&sd=true"},
+        {icono:"🎨", nombre:"Infografía FEM 2026", url:"https://drive.google.com/file/d/1YW6sBBEPRGcHM9NYbF2-gXa3OoJjoAeX/view?usp=drive_link"}
+      ]
+    }
+  ];
+
+  const tarjetaHtml_=function(item){
+    return '<button type="button" class="tarjeta" data-url="'+escAttr_(item.url)+'" data-nombre="'+escAttr_(item.nombre)+'">'+
+      '<span class="tarjetaIcono">'+item.icono+'</span>'+
+      '<span class="tarjetaNombre">'+escHtml_(item.nombre)+'</span>'+
+      '</button>';
+  };
+
+  const seccionesHtml=secciones.map(function(s){
+    return '<section class="seccion"><h2>'+escHtml_(s.titulo)+'</h2><div class="grid">'+
+      s.items.map(tarjetaHtml_).join('')+
+      '</div></section>';
+  }).join('');
+
+  let logoFemUrl="", logoSemUrl="";
+  try{ logoFemUrl=urlPublicaLogoDrive_(LOGO_ENCABEZADO_ID); }catch(e){}
+  try{ logoSemUrl=urlPublicaLogoDrive_(LOGO_PIE_ID); }catch(e){}
+
+  const html=
+    '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'+
+    '<meta name="viewport" content="width=device-width, initial-scale=1">'+
+    '<base target="_top">'+
+    '<title>Panel de Accesos — FEM 2026</title>'+
+    '<style>'+
+    '*{box-sizing:border-box;}'+
+    'body{font-family:Arial,Helvetica,sans-serif;background:#F7F8FA;color:#252525;margin:0;padding:0 0 40px;}'+
+    'header{background:#fff;border-bottom:1px solid #DADCE0;padding:18px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}'+
+    'header img{height:44px;width:auto;border-radius:6px;}'+
+    'header h1{font-size:18px;color:#0B6A44;margin:0;}'+
+    'header p{margin:3px 0 0;color:#5F6368;font-size:12.5px;}'+
+    'main{max-width:1040px;margin:0 auto;padding:22px 20px 0;}'+
+    '.seccion{margin-bottom:30px;}'+
+    '.seccion h2{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:#5F6368;border-bottom:1px solid #DADCE0;padding-bottom:6px;margin:0 0 14px;}'+
+    '.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;}'+
+    '.tarjeta{display:flex;flex-direction:column;align-items:center;gap:8px;background:#fff;border:1px solid #DADCE0;border-radius:14px;padding:18px 12px;cursor:pointer;font-family:inherit;text-align:center;transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease;}'+
+    '.tarjeta:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(11,106,68,.14);border-color:#0B6A44;}'+
+    '.tarjeta:active{transform:translateY(0);}'+
+    '.tarjetaIcono{font-size:30px;line-height:1;}'+
+    '.tarjetaNombre{font-size:12.5px;color:#252525;font-weight:600;line-height:1.35;}'+
+    '#overlay{position:fixed;inset:0;background:rgba(247,248,250,.95);display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;z-index:999;}'+
+    '#overlay.activo{display:flex;}'+
+    '#overlayTexto{color:#0B6A44;font-weight:700;font-size:14px;text-align:center;padding:0 24px;}'+
+    '@keyframes girarFEM{to{transform:rotate(360deg);}}'+
+    '.loaderSpin{border:5px solid #DADCE0;border-top-color:#0B6A44;border-radius:50%;width:60px;height:60px;animation:girarFEM .8s linear infinite;}'+
+    '@keyframes rebotarFEM{0%,80%,100%{transform:scale(.4);opacity:.5;}40%{transform:scale(1);opacity:1;}}'+
+    '.loaderDots{display:flex;gap:8px;align-items:center;}'+
+    '.loaderDots span{width:14px;height:14px;border-radius:50%;background:#0B6A44;display:inline-block;animation:rebotarFEM 1.1s ease-in-out infinite;}'+
+    '.loaderDots span:nth-child(2){animation-delay:.15s;background:#F4B400;}'+
+    '.loaderDots span:nth-child(3){animation-delay:.3s;}'+
+    '@keyframes pulsarFEM{0%{transform:scale(.3);opacity:1;}100%{transform:scale(1.7);opacity:0;}}'+
+    '.loaderPulso{position:relative;width:60px;height:60px;}'+
+    '.loaderPulso span{position:absolute;inset:0;border:4px solid #0B6A44;border-radius:50%;animation:pulsarFEM 1.2s ease-out infinite;}'+
+    '.loaderPulso span:nth-child(2){animation-delay:.4s;border-color:#F4B400;}'+
+    '@keyframes barraFEM{0%{transform:translateX(-100%);}100%{transform:translateX(250%);}}'+
+    '.loaderBarra{width:140px;height:10px;border-radius:6px;background:#DADCE0;overflow:hidden;}'+
+    '.loaderBarra span{display:block;width:40%;height:100%;background:#0B6A44;border-radius:6px;animation:barraFEM .9s ease-in-out infinite;}'+
+    '@keyframes girarCuadroFEM{0%{transform:rotate(0deg) scale(1);}50%{transform:rotate(180deg) scale(.7);}100%{transform:rotate(360deg) scale(1);}}'+
+    '.loaderCuadros{display:flex;gap:6px;}'+
+    '.loaderCuadros span{width:16px;height:16px;background:#0B6A44;display:inline-block;animation:girarCuadroFEM 1s ease-in-out infinite;}'+
+    '.loaderCuadros span:nth-child(2){background:#F4B400;animation-delay:.12s;}'+
+    '.loaderCuadros span:nth-child(3){animation-delay:.24s;}'+
+    'footer{max-width:1040px;margin:24px auto 0;padding:0 20px;color:#5F6368;font-size:11px;line-height:1.5;}'+
+    '</style></head><body>'+
+    '<header>'+
+    (logoFemUrl?'<img src="'+escAttr_(logoFemUrl)+'" alt="Logo FEM">':'')+
+    (logoSemUrl?'<img src="'+escAttr_(logoSemUrl)+'" alt="Logo SEM">':'')+
+    '<div><h1>Panel de Accesos — Foro Educativo Institucional Neiva 2026</h1>'+
+    '<p>Toque un icono para abrir el recurso en una pestaña nueva.</p></div>'+
+    '</header>'+
+    '<main>'+seccionesHtml+'</main>'+
+    '<footer>Este panel no pide código de acceso: cualquier persona con este enlace puede verlo. La protección de cada carpeta o documento la determina su propio permiso para compartir en Google Drive.</footer>'+
+    '<div id="overlay"><div id="loaderSlot"></div><div id="overlayTexto">Abriendo…</div></div>'+
+    '<script>'+
+    '(function(){'+
+    'var loaders=['+
+    '\'<div class="loaderSpin"></div>\',' +
+    '\'<div class="loaderDots"><span></span><span></span><span></span></div>\',' +
+    '\'<div class="loaderPulso"><span></span><span></span></div>\',' +
+    '\'<div class="loaderBarra"><span></span></div>\',' +
+    '\'<div class="loaderCuadros"><span></span><span></span><span></span></div>\'' +
+    '];'+
+    'var overlay=document.getElementById("overlay");'+
+    'var slot=document.getElementById("loaderSlot");'+
+    'var texto=document.getElementById("overlayTexto");'+
+    'var tarjetas=document.querySelectorAll(".tarjeta");'+
+    'for(var i=0;i<tarjetas.length;i++){'+
+    'tarjetas[i].addEventListener("click",function(ev){'+
+    'var boton=ev.currentTarget;'+
+    'var url=boton.getAttribute("data-url");'+
+    'var nombre=boton.getAttribute("data-nombre");'+
+    'window.open(url,"_blank","noopener");'+
+    'slot.innerHTML=loaders[Math.floor(Math.random()*loaders.length)];'+
+    'texto.textContent="Abriendo "+nombre+"…";'+
+    'overlay.className="activo";'+
+    'setTimeout(function(){ overlay.className=""; },1100);'+
+    '});'+
+    '}'+
+    '})();'+
+    '</script>'+
+    '</body></html>';
+
+  return HtmlService.createHtmlOutput(html)
+    .setTitle("Panel de Accesos — FEM 2026")
     .addMetaTag("viewport","width=device-width, initial-scale=1");
 }
 
