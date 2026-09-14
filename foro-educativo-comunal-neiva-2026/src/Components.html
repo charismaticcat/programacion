@@ -379,9 +379,31 @@ function renderAportesInvitadosGrupo(datos) {
   datos.forEach(function (ie) {
     html += "<details class='socializacion-ie'>";
     html += "<summary>" + escapeHtml(ie.institucion) + "</summary>";
-    ie.aportes.forEach(function (aporte) {
-      var etiqueta = aporte.tipoInvitado === "ESTUDIANTE" ? "🧑‍🎓 Un(a) estudiante o egresado(a)" : "👨‍👩‍👧 Un adulto responsable de un(a) estudiante";
-      html += "<p class='ayuda' style='font-weight:600;margin-top:12px;'>" + etiqueta + "</p>";
+
+    // Estudiantes/egresados(as) se agrupan bajo UN solo encabezado con el
+    // conteo de cada uno (spec del usuario: "(cantidad) estudiantes y
+    // (cantidad) egresados/as opinaron sobre:", en vez de repetir la
+    // etiqueta genérica antes de cada aporte individual). Los adultos
+    // responsables mantienen su propia etiqueta por aporte, sin cambios.
+    var aportesEstudiantes = ie.aportes.filter(function (a) { return a.tipoInvitado === "ESTUDIANTE"; });
+    var aportesAdultos = ie.aportes.filter(function (a) { return a.tipoInvitado !== "ESTUDIANTE"; });
+
+    if (aportesEstudiantes.length) {
+      var totalEgresados = aportesEstudiantes.filter(function (a) { return a.rolEstudiante === "GRADUADO"; }).length;
+      var totalEstudiantesActuales = aportesEstudiantes.length - totalEgresados;
+      html += "<p class='ayuda' style='font-weight:600;margin-top:12px;'>🧑‍🎓 " + totalEstudiantesActuales +
+        " estudiantes y " + totalEgresados + " egresados/as opinaron sobre:</p>";
+      aportesEstudiantes.forEach(function (aporte) {
+        aporte.secciones.forEach(function (seccion) {
+          html += "<div class='socializacion-seccion'>";
+          html += "<h4>" + escapeHtml(seccion.titulo) + "</h4>";
+          html += "<p>" + escapeHtml(seccion.texto) + "</p>";
+          html += "</div>";
+        });
+      });
+    }
+    aportesAdultos.forEach(function (aporte) {
+      html += "<p class='ayuda' style='font-weight:600;margin-top:12px;'>👨‍👩‍👧 Un adulto responsable de un(a) estudiante</p>";
       aporte.secciones.forEach(function (seccion) {
         html += "<div class='socializacion-seccion'>";
         html += "<h4>" + escapeHtml(seccion.titulo) + "</h4>";
@@ -420,14 +442,22 @@ function renderPreguntasPreparacionIE(preguntas, respuestas) {
   agregarAccionesTextareas_(contenedor);
 }
 
-/** Igual que renderPreguntasPreparacionIE, para el acceso de invitado (sin código) — ids/atributos propios. */
-function renderPreguntasInvitado(preguntas, respuestas) {
+/**
+ * Igual que renderPreguntasPreparacionIE, para el acceso de invitado (sin
+ * código) — ids/atributos propios. `textoInicial` (spec del usuario) se
+ * usa SOLO cuando todavía no hay ninguna respuesta guardada — nunca pisa
+ * un borrador ya escrito — para que cada respuesta inicie mencionando la(s)
+ * institución(es) representadas; no cuenta como "ya respondida" (el
+ * indicador ✓ sigue mirando la respuesta real, no el texto inicial).
+ */
+function renderPreguntasInvitado(preguntas, respuestas, textoInicial) {
   var contenedor = document.getElementById("preguntasPreparacionInvitado");
   if (!contenedor) return;
   var html = "";
   (preguntas || []).forEach(function (p) {
-    var texto = (respuestas && respuestas[p.clave]) || "";
-    var tieneContenido = String(texto).trim() !== "";
+    var guardado = (respuestas && respuestas[p.clave]) || "";
+    var texto = guardado || (textoInicial || "");
+    var tieneContenido = String(guardado).trim() !== "";
     html += "<details class='pregunta-preparacion-colapsable'>";
     html += "<summary>" + escapeHtml(p.titulo) + (tieneContenido ? " <span class='marca-con-contenido'>✓</span>" : "") + "</summary>";
     html += "<p class='ayuda'>" + escapeHtml(p.ayuda) + "</p>";

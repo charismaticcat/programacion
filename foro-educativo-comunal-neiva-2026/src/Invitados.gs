@@ -365,7 +365,10 @@ function guardarCaracterizacionInvitado(tokenInvitado, idIE, dispositivoId, dato
  * egresado/a) llega directo del cliente — se eligió desde el primer paso
  * ("¿Quiénes son?") y ya no pasa por una pantalla de caracterización
  * intermedia (spec del usuario: "omite la parte de pedir datos
- * personales").
+ * personales"). El único texto inicial que sí se agrega (solo en el
+ * cliente, JS.html/Components.html, cuando no hay borrador todavía) es
+ * "En la Institución Educativa <nombre>;" — no es un resumen sugerido de
+ * respuesta, solo identifica la(s) institución(es) representadas.
  */
 function obtenerPreparacionIEInvitado(tokenInvitado, idIE, dispositivoId, rolEstudiante) {
   var sesion = sesionInvitadoValida_(tokenInvitado, idIE, dispositivoId);
@@ -488,7 +491,15 @@ function obtenerAportesInvitadosGrupo(idGrupo) {
     if (!secciones.length) return;
     var idIE = String(f.ID_IE || "").trim();
     if (!porIE[idIE]) porIE[idIE] = [];
-    porIE[idIE].push({ tipoInvitado: String(f.TIPO_INVITADO || "").toUpperCase(), secciones: secciones });
+    porIE[idIE].push({
+      tipoInvitado: String(f.TIPO_INVITADO || "").toUpperCase(),
+      // Distingue estudiante actual de egresado(a) dentro de "ESTUDIANTE"
+      // (spec del usuario: "(cantidad) estudiantes y (cantidad)
+      // egresados/as opinaron sobre:", en vez de repetir la misma
+      // etiqueta genérica por cada aporte individual).
+      rolEstudiante: String(f.ROL_ESTUDIANTE || "").toUpperCase(),
+      secciones: secciones
+    });
   });
 
   return obtenerInstitucionesDelGrupo(idGrupo)

@@ -1253,6 +1253,43 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
 - **Nota de transparencia**: verificado de forma estática (`node --check`, IDs sin duplicar, balance de
   div/section/header/footer en Index.html). No probado en vivo desde un navegador en este entorno.
 
+## 4.42 Trigésimo lote: conteo de estudiantes/egresados en aportes de invitados, texto inicial por IE representada, y dos preguntas nuevas en ConectaEduca
+
+- **"Cambiar Un(a) estudiante o egresado(a) por (cantidad) estudiantes y (cantidad) egresados/as opinaron
+  sobre:"**: en "¿Qué institución o participante va a preparar sus aportes?" → "Aportes ya enviados por
+  estudiantes, egresados y adultos responsables invitados", los aportes de estudiantes/egresados(as) de cada
+  IE ya no repiten la etiqueta genérica "🧑‍🎓 Un(a) estudiante o egresado(a)" antes de cada aporte
+  individual — se agrupan bajo un solo encabezado con el conteo real de cada uno: "🧑‍🎓 N estudiantes y M
+  egresados/as opinaron sobre:", seguido de todas sus respuestas. Los aportes de adultos responsables no
+  cambiaron. Se agregó `ROL_ESTUDIANTE` a cada aporte que devuelve `obtenerAportesInvitadosGrupo` (antes solo
+  se enviaba `tipoInvitado`) para poder distinguir estudiante actual de egresado(a).
+- **"En el formato de textarea, se debe iniciar con el texto que diga: En la Institución Educativa (nombre);
+  y mencionar cada IE que haya sido seleccionada"**: cuando un(a) estudiante/egresado(a) invitado(a) abre
+  Preparación y todavía no tiene ningún borrador guardado, las 6 respuestas empiezan con "En la Institución
+  Educativa \<nombre>; " (o "En las Instituciones Educativas \<nombre1>, \<nombre2> y \<nombre3>; " si marcó
+  más de una en "Instituciones que representan" — las respuestas solo quedan asociadas a la primera marcada,
+  pero el texto deja constancia de todas las que representa). Nunca se sobrescribe un borrador ya existente.
+  El indicador "✓ ya respondida" sigue mirando la respuesta real guardada, no este texto inicial, así que no
+  se marca como respondida solo por tener el texto de apertura.
+  - Nota de transparencia: como este texto queda dentro del valor real del textarea, es técnicamente posible
+    enviar una respuesta que sea solo ese texto inicial sin escribir nada más — no se agregó una validación
+    de servidor que descuente ese texto para exigir contenido real más allá de él (la app ya confiaba en el
+    criterio del respondiente para escribir algo genuino en las demás preguntas, así que se mantiene el
+    mismo criterio aquí).
+- **"Aumentar una pregunta en estudiantes... apreciación objetiva sobre los programas de articulación del
+  SENA" + "Aumentar pregunta sobre intensificaciones... dejar estas dos nuevas preguntas para sección de
+  ConectaEduca"**: se agregaron dos preguntas nuevas de grupo en Sesión 2 — ConectaEduca, tarjeta "Antes de
+  registrar actores" (mismo lugar y mismo tratamiento — sin rango de palabras, no obligatorias para el envío
+  definitivo — que las dos preguntas de grupo que ya existían ahí: "Necesidades de articulación" y
+  "Oportunidades identificadas"):
+  - "Apreciación sobre los programas de articulación del SENA" (columna `APRECIACION_SENA_GRUPO`).
+  - "Intensificaciones dentro de la institución educativa" (columna `INTENSIFICACIONES_GRUPO`).
+  Ambas quedan incluidas también en la vista de solo lectura (tras el envío definitivo), en "Revisar todo
+  antes de enviar", y en el informe final del grupo (Informes.gs), igual que las dos preguntas existentes.
+- **Nota de transparencia**: verificado de forma estática (`node --check`, IDs sin duplicar, balance de
+  div/section/header/footer/label/textarea en Index.html). No probado en vivo desde un navegador en este
+  entorno.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

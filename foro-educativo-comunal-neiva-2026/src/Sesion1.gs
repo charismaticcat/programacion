@@ -23,6 +23,11 @@ function cabecerasSesion1Comunal_() {
     // aquí por simplicidad, igual que el resto: no son por actor, son
     // UN solo par de respuestas por grupo.
     "NECESIDADES_ARTICULACION_GRUPO", "OPORTUNIDADES_GRUPO",
+    // Dos preguntas nuevas de grupo, también antes de ConectaEduca (spec
+    // del usuario): apreciación objetiva de los y las estudiantes sobre
+    // los programas de articulación del SENA, e intensificaciones dentro
+    // de la institución educativa.
+    "APRECIACION_SENA_GRUPO", "INTENSIFICACIONES_GRUPO",
     // Segunda parte de ConectaEduca (Sesión 2) — min 50/máx 400 palabras.
     "PRIORIDADES_CE", "ACUERDOS_CE", "PROPUESTAS_CE", "RUTA_CE",
     // Espacio libre y opcional por sesión para hallazgos propios de la

@@ -1133,6 +1133,26 @@ document.getElementById("btnContinuarInvitadoCaracterizacion").addEventListener(
   );
 });
 
+/**
+ * Texto con el que debe INICIAR cada respuesta de preparación del
+ * invitado (spec del usuario: "en el formato de textarea, se debe
+ * iniciar con el texto que diga: En la Institución Educativa (nombre)")
+ * — menciona cada institución marcada en "Instituciones que representan"
+ * (institucionesMarcadas_), no solo la primera (que es la única a la que
+ * quedan asociadas las respuestas, ver entrarAPrepararInstitucion_), para
+ * que quede constancia de a cuáles representa quien responde. Si llegó
+ * por enlace directo (sin pasar por "Instituciones que representan"), se
+ * usa la única institución de ese enlace.
+ */
+function _textoInicialPreparacionInvitado_() {
+  var nombres = (estadoInvitado.institucionesMarcadas_ || []).map(function (ie) { return ie.institucion; });
+  if (!nombres.length && estadoInvitado.institucion) nombres = [estadoInvitado.institucion];
+  if (!nombres.length) return "";
+  if (nombres.length === 1) return "En la Institución Educativa " + nombres[0] + "; ";
+  var ultimo = nombres[nombres.length - 1];
+  return "En las Instituciones Educativas " + nombres.slice(0, -1).join(", ") + " y " + ultimo + "; ";
+}
+
 function abrirPreparacionInvitado_() {
   document.getElementById("nombreIEInvitadoPrep").textContent = estadoInvitado.institucion;
   document.getElementById("tipoInvitadoTexto").textContent =
@@ -1151,7 +1171,7 @@ function abrirPreparacionInvitado_() {
       ocultarCargaAccion_();
       document.getElementById("overlayInvitadoPreparacion").classList.remove("oculto");
       if (!datos) return;
-      renderPreguntasInvitado(datos.preguntas, datos.respuestas);
+      renderPreguntasInvitado(datos.preguntas, datos.respuestas, _textoInicialPreparacionInvitado_());
     },
     function (error) {
       ocultarCargaAccion_();
@@ -2205,6 +2225,7 @@ var CAMPOS_SESION1 = [
   "REFLEXIONES", "DESAFIOS", "APUESTAS", "CONCLUSIONES",
   "PRIORIDADES", "PROPUESTAS_COLECTIVAS", "ACUERDOS", "RUTA",
   "NECESIDADES_ARTICULACION_GRUPO", "OPORTUNIDADES_GRUPO",
+  "APRECIACION_SENA_GRUPO", "INTENSIFICACIONES_GRUPO",
   "PRIORIDADES_CE", "ACUERDOS_CE", "PROPUESTAS_CE", "RUTA_CE",
   "APORTE_PROPIO_S1_TITULO", "APORTE_PROPIO_S1_TEXTO", "APORTE_PROPIO_S2_TITULO", "APORTE_PROPIO_S2_TEXTO"
 ];
@@ -2285,6 +2306,8 @@ var PREGUNTAS_SOLO_LECTURA_SESION1_ = [
 var PREGUNTAS_SOLO_LECTURA_SESION2_ = [
   { clave: "NECESIDADES_ARTICULACION_GRUPO", etiqueta: "Necesidades de articulación" },
   { clave: "OPORTUNIDADES_GRUPO", etiqueta: "Oportunidades identificadas" },
+  { clave: "APRECIACION_SENA_GRUPO", etiqueta: "Apreciación sobre los programas de articulación del SENA" },
+  { clave: "INTENSIFICACIONES_GRUPO", etiqueta: "Intensificaciones dentro de la institución educativa" },
   { clave: "PRIORIDADES_CE", etiqueta: "Prioridades" },
   { clave: "ACUERDOS_CE", etiqueta: "Acuerdos" },
   { clave: "PROPUESTAS_CE", etiqueta: "Propuestas" },
@@ -3157,6 +3180,8 @@ var CAMPOS_REVISAR_SESION1_ = [
 var CAMPOS_REVISAR_SESION2_ = [
   { clave: "NECESIDADES_ARTICULACION_GRUPO", etiqueta: "Necesidades de articulación" },
   { clave: "OPORTUNIDADES_GRUPO", etiqueta: "Oportunidades identificadas" },
+  { clave: "APRECIACION_SENA_GRUPO", etiqueta: "Apreciación sobre los programas de articulación del SENA" },
+  { clave: "INTENSIFICACIONES_GRUPO", etiqueta: "Intensificaciones dentro de la institución educativa" },
   { clave: "PRIORIDADES_CE", etiqueta: "Prioridades (ConectaEduca)" },
   { clave: "ACUERDOS_CE", etiqueta: "Acuerdos entre instituciones (ConectaEduca)" },
   { clave: "PROPUESTAS_CE", etiqueta: "Propuestas (ConectaEduca)" },

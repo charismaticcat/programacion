@@ -341,6 +341,14 @@ function generarInformeGrupo(idGrupo) {
     subtitulo_(body, "Oportunidades identificadas");
     parrafo_(body, sesion1.OPORTUNIDADES_GRUPO);
   }
+  if (String(sesion1.APRECIACION_SENA_GRUPO || "").trim()) {
+    subtitulo_(body, "Apreciación sobre los programas de articulación del SENA");
+    parrafo_(body, sesion1.APRECIACION_SENA_GRUPO);
+  }
+  if (String(sesion1.INTENSIFICACIONES_GRUPO || "").trim()) {
+    subtitulo_(body, "Intensificaciones dentro de la institución educativa");
+    parrafo_(body, sesion1.INTENSIFICACIONES_GRUPO);
+  }
   if (conectaEduca.length) {
     var filasCE = [["Actor / entidad", "Tipo", "Área", "IE interesadas"]].concat(
       conectaEduca.map(function (r) {
