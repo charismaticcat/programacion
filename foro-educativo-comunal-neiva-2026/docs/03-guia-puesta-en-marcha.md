@@ -1327,6 +1327,23 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   "Aportes de (rol)"; si la intención era otra (p. ej. cambiar cómo se agrupan/almacenan los aportes en el
   origen de datos), avisar para ajustarlo.
 
+## 4.44 Trigésimo segundo lote: aportes de invitados agrupados por rol, no por IE
+
+- **"Los aportes se deben reunir como Estudiantes, egresados y acudientes y no como aportes de (IE)"**:
+  corrige la interpretación del lote anterior — "Aportes ya enviados por estudiantes, egresados y adultos
+  responsables invitados" (Selección de IE) ahora agrupa en primer lugar por ROL, con tres secciones fijas
+  "🧑‍🎓 Estudiantes (N)", "🎓 Egresados(as) (N)" y "👨‍👩‍👧 Acudientes (N)" (cada una solo aparece si hay al
+  menos un aporte de ese rol) — ya no hay un `<details>` por institución. Dentro de cada sección, cada aporte
+  individual sigue mostrando la institución de la que viene (queda archivado bajo una sola en la base de
+  datos) como una pequeña etiqueta antes de sus respuestas, seguida de sus secciones/preguntas diligenciadas
+  — igual que antes, solo que reordenado: rol primero, institución después, en vez de institución primero.
+  La función se reescribió por completo en `Components.html`
+  (`renderAportesInvitadosGrupo`/`_seccionAportesInvitadosPorRol_`): aplana los datos que ya llegan agrupados
+  por IE desde el servidor (`obtenerAportesInvitadosGrupo`, sin cambios) y los reagrupa por rol en el
+  cliente, sin tocar el modelo de datos del servidor.
+- **Nota de transparencia**: verificado de forma estática (`node --check`). No probado en vivo desde un
+  navegador en este entorno.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

@@ -361,67 +361,60 @@ function renderListaIEPreparacion(instituciones, idsEnviados) {
 
 /**
  * Sección de invitados al final de Selección de IE: los aportes YA
- * ENVIADOS por estudiantes/egresados y adultos responsables invitados,
- * agrupados por IE — con el MISMO formato visual que los aportes
- * institucionales (renderSocializacionPreparacion: <details> por
- * institución, un bloque con título por pregunta diligenciada). Solo
- * aparece aquí, en el listado agregado — ya no se repite dentro de la
+ * ENVIADOS por estudiantes/egresados y adultos responsables invitados —
+ * agrupados por ROL (Estudiantes, Egresados(as), Acudientes), NO por IE
+ * (spec del usuario: "los aportes se deben reunir como Estudiantes,
+ * egresados y acudientes y no como aportes de (IE)" — corrige un lote
+ * anterior que agrupaba primero por institución). Cada aporte individual
+ * conserva la institución de la que viene, mostrada como una etiqueta
+ * antes de sus respuestas — quien responde puede representar más de una
+ * (ver _textoInicialPreparacionInvitado_, JS.html, que ya las menciona
+ * todas dentro del propio texto de la respuesta), pero solo queda
+ * archivado bajo UNA institución en la base de datos. Solo aparece aquí,
+ * en el listado agregado del grupo — ya no se repite dentro de la
  * pantalla de cada IE individual.
  */
 function renderAportesInvitadosGrupo(datos) {
   var contenedor = document.getElementById("listaInvitadosPreparacion");
   if (!contenedor) return;
-  if (!datos || !datos.length) {
-    contenedor.innerHTML = "<p class='ayuda'>Todavía no hay aportes de invitados en ninguna institución de este grupo.</p>";
-    return;
-  }
-  var html = "";
-  datos.forEach(function (ie) {
-    html += "<details class='socializacion-ie'>";
-    html += "<summary>" + escapeHtml(ie.institucion) + "</summary>";
 
-    // Todos los aportes (estudiantes/egresados(as) y adultos
-    // responsables) se agrupan bajo un encabezado por ROL, no por
-    // persona (spec del usuario: "las respuestas no deben aparecer como
-    // si fueran de una sola IE sino: Aportes de (rol)" — quien responde
-    // puede representar más de una institución, así que agrupar por
-    // persona bajo el <details> de una sola IE se leía como si la
-    // respuesta fuera exclusiva de esa IE; el encabezado "Aportes de…"
-    // dejar claro que es el rol quien opina, y el propio texto de cada
-    // respuesta —ver _textoInicialPreparacionInvitado_, JS.html— ya
-    // menciona todas las instituciones que esa persona representa).
-    var aportesEstudiantes = ie.aportes.filter(function (a) { return a.tipoInvitado === "ESTUDIANTE"; });
-    var aportesAdultos = ie.aportes.filter(function (a) { return a.tipoInvitado !== "ESTUDIANTE"; });
-
-    if (aportesEstudiantes.length) {
-      var totalEgresados = aportesEstudiantes.filter(function (a) { return a.rolEstudiante === "GRADUADO"; }).length;
-      var totalEstudiantesActuales = aportesEstudiantes.length - totalEgresados;
-      html += "<p class='ayuda' style='font-weight:600;margin-top:12px;'>🧑‍🎓 Aportes de estudiantes (" +
-        totalEstudiantesActuales + ") y egresados/as (" + totalEgresados + "):</p>";
-      aportesEstudiantes.forEach(function (aporte) {
-        aporte.secciones.forEach(function (seccion) {
-          html += "<div class='socializacion-seccion'>";
-          html += "<h4>" + escapeHtml(seccion.titulo) + "</h4>";
-          html += "<p>" + escapeHtml(seccion.texto) + "</p>";
-          html += "</div>";
-        });
-      });
-    }
-    if (aportesAdultos.length) {
-      html += "<p class='ayuda' style='font-weight:600;margin-top:12px;'>👨‍👩‍👧 Aportes de acudientes (" +
-        aportesAdultos.length + "):</p>";
-      aportesAdultos.forEach(function (aporte) {
-        aporte.secciones.forEach(function (seccion) {
-          html += "<div class='socializacion-seccion'>";
-          html += "<h4>" + escapeHtml(seccion.titulo) + "</h4>";
-          html += "<p>" + escapeHtml(seccion.texto) + "</p>";
-          html += "</div>";
-        });
-      });
-    }
-    html += "</details>";
+  var estudiantesActuales = [];
+  var egresados = [];
+  var acudientes = [];
+  (datos || []).forEach(function (ie) {
+    ie.aportes.forEach(function (aporte) {
+      var conIE = { institucion: ie.institucion, secciones: aporte.secciones };
+      if (aporte.tipoInvitado === "ESTUDIANTE") {
+        (aporte.rolEstudiante === "GRADUADO" ? egresados : estudiantesActuales).push(conIE);
+      } else {
+        acudientes.push(conIE);
+      }
+    });
   });
-  contenedor.innerHTML = html;
+
+  var html =
+    _seccionAportesInvitadosPorRol_("🧑‍🎓 Estudiantes", estudiantesActuales) +
+    _seccionAportesInvitadosPorRol_("🎓 Egresados(as)", egresados) +
+    _seccionAportesInvitadosPorRol_("👨‍👩‍👧 Acudientes", acudientes);
+  contenedor.innerHTML = html || "<p class='ayuda'>Todavía no hay aportes de invitados en ninguna institución de este grupo.</p>";
+}
+
+/** Un <details> con todos los aportes de un rol (estudiantes, egresados(as) o acudientes), cada uno con su IE. */
+function _seccionAportesInvitadosPorRol_(titulo, lista) {
+  if (!lista.length) return "";
+  var html = "<details class='socializacion-ie'>";
+  html += "<summary>" + escapeHtml(titulo) + " (" + lista.length + ")</summary>";
+  lista.forEach(function (aporte) {
+    html += "<p class='ayuda' style='font-weight:600;margin-top:12px;'>" + escapeHtml(aporte.institucion) + "</p>";
+    aporte.secciones.forEach(function (seccion) {
+      html += "<div class='socializacion-seccion'>";
+      html += "<h4>" + escapeHtml(seccion.titulo) + "</h4>";
+      html += "<p>" + escapeHtml(seccion.texto) + "</p>";
+      html += "</div>";
+    });
+  });
+  html += "</details>";
+  return html;
 }
 
 /** Las 6 preguntas editables de la Sesión de preparación de una IE (título + ayuda + textarea). */
