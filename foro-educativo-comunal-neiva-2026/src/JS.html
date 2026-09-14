@@ -33,6 +33,7 @@ var estado = {
   socializacionPreparacion: [],
   explicacionConectaEducaVista: false,
   fotoGrupoMasTardeConfirmado: false,
+  avisoColaboradoresMostrado: false,
   enlacesInvitados: null
 };
 
@@ -195,7 +196,27 @@ document.getElementById("btnIrInicio").addEventListener("click", function () {
   cambiarPantalla("pantallaInicio");
 });
 
+// Índice de Participación en ORDEN_PANTALLAS — más allá de este punto,
+// elegir método de asistencia es obligatorio (ver guarda en cambiarPantalla).
+var INDICE_PARTICIPACION_ = ORDEN_PANTALLAS.indexOf("pantallaParticipacion");
+
 function cambiarPantalla(idPantalla) {
+  // Seleccionar un método de asistencia (QR o PDF) es obligatorio para
+  // continuar a Confirmación de caracterización y a cualquier pantalla
+  // posterior (spec del usuario) — btnContinuarAParticipacion ya lo
+  // exigía, pero solo por ese único botón; esta misma validación aquí,
+  // dentro de cambiarPantalla, cierra también otras formas de llegar más
+  // allá de Participación sin haber elegido método (la barra de progreso
+  // navegable, "Editar en…" desde Revisar todo, o cualquier llamada
+  // directa a cambiarPantalla) — nunca deja avanzar, redirige de vuelta.
+  if (
+    estado.idGrupo &&
+    ORDEN_PANTALLAS.indexOf(idPantalla) > INDICE_PARTICIPACION_ &&
+    estado.metodoAsistencia !== "QR" && estado.metodoAsistencia !== "LISTADO"
+  ) {
+    idPantalla = "pantallaParticipacion";
+    mostrarMensaje("mensajeSeleccionMetodo", "Elige un método de asistencia (QR o PDF) antes de continuar.", "error");
+  }
   pantallaActual_ = idPantalla;
   ORDEN_PANTALLAS.forEach(function (id) {
     document.getElementById(id).classList.toggle("visible", id === idPantalla);
@@ -1336,6 +1357,24 @@ document.getElementById("btnContinuarAParticipacion").addEventListener("click", 
   // se muestra aquí (spec del usuario: "solo debe aparecer en la
   // confirmación de autorización [de caracterización], no antes") — queda
   // únicamente en btnConfirmarCaracterizacion, más abajo.
+  // Recordatorio de hasta 4 colaboradores (responsable de envío + hasta 3
+  // asistentes) que pueden recibir el informe — spec del usuario: "al dar
+  // continuar, recordar que es posible tener hasta 4 colaboradores". Se
+  // muestra una sola vez por sesión, no en cada clic.
+  if (!estado.avisoColaboradoresMostrado) {
+    estado.avisoColaboradoresMostrado = true;
+    confirmarAccion(
+      "Recuerda que puedes registrar hasta 4 colaboradores (el responsable de envío y hasta 3 asistentes) " +
+        "para que reciban el informe del grupo — lo encuentras en \"Responsable de envío\", más abajo en " +
+        "esta misma pantalla.",
+      function () {
+        cambiarPantalla("pantallaConfirmacionCaracterizacion");
+      },
+      "Colaboradores del grupo",
+      { textoConfirmar: "Entendido, continuar", textoCancelar: "Volver a revisar" }
+    );
+    return;
+  }
   cambiarPantalla("pantallaConfirmacionCaracterizacion");
 });
 
@@ -1690,6 +1729,21 @@ function refrescarVistasFotoGrupo_() {
   if (btnCambiarFoto) btnCambiarFoto.textContent = estado.fotoGrupoId ? "✏️ Cambiar fotografía" : "📷 Agregar fotografía";
   var formCaracterizacion = document.getElementById("formularioFotoGrupoCaracterizacion");
   if (formCaracterizacion) formCaracterizacion.classList.add("oculto");
+  // Si todavía no se ha subido la fotografía (spec del usuario: "si se
+  // pide subir fotografía más adelante, no debe aparecer opción de
+  // cambiar ni de subir fotografía en caracterización") NO debe aparecer
+  // ni "Cambiar fotografía" ni "Subir fotografía" en Confirmación de
+  // caracterización — el gate obligatorio de Participación ya exige
+  // subirla o aplazarla explícitamente antes de llegar aquí, así que
+  // llegar sin fotoGrupoId siempre significa que se aplazó; se vuelve a
+  // pedir en Revisión y cierre (última pantalla donde sí se exige, antes
+  // de generar el informe), no en medio del recorrido. Se usa fotoGrupoId
+  // (dato del servidor) en vez del flag local fotoGrupoMasTardeConfirmado
+  // para que funcione igual sin importar desde qué dispositivo se entre.
+  var filaBotonFotoCaracterizacion = document.getElementById("filaBotonFotoCaracterizacion");
+  if (filaBotonFotoCaracterizacion) {
+    filaBotonFotoCaracterizacion.classList.toggle("oculto", !estado.fotoGrupoId);
+  }
   var btnCambiarFotoCierre = document.getElementById("btnCambiarFotoCierre");
   if (btnCambiarFotoCierre) btnCambiarFotoCierre.textContent = estado.fotoGrupoId ? "✏️ Cambiar fotografía" : "📷 Agregar fotografía";
   var formCierre = document.getElementById("formularioFotoGrupoCierre");

@@ -1229,6 +1229,30 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
 - **Nota de transparencia**: verificado de forma estática (`node --check`). No probado en vivo desde un
   navegador en este entorno.
 
+## 4.41 Vigésimo noveno lote: foto oculta en caracterización si se aplazó, método obligatorio reforzado, y recordatorio de colaboradores
+
+- **"Si se pide subir fotografía más adelante, no debe aparecer opción de cambiar fotografía ni de subir
+  fotografía en pantalla de caracterización"**: la fila con el botón "Cambiar/Agregar fotografía" (y su
+  formulario) en Confirmación de caracterización ahora se oculta por completo mientras no haya una foto ya
+  subida (`estado.fotoGrupoId` vacío) — como el gate obligatorio de Participación ya exige subir la foto o
+  aplazarla explícitamente antes de continuar, llegar a Caracterización sin foto siempre significa que se
+  aplazó, así que no tiene sentido ofrecer la opción ahí: se vuelve a pedir en Revisión y cierre (donde de
+  verdad se exige, antes de generar el informe), tal como ya decía el propio mensaje de "más tarde". Se usa
+  el dato del servidor (`fotoGrupoId`), no el flag local del dispositivo, para que se comporte igual sin
+  importar desde qué dispositivo se entre.
+- **"Seleccionar un tipo de asistencia es obligatorio para continuar a pantalla de caracterización"**: ya lo
+  exigía el botón "Continuar" de Participación, pero solo ahí — se agregó la misma validación directamente
+  dentro de `cambiarPantalla` (la función central de navegación), así que ahora también queda bloqueado
+  intentar llegar a Caracterización (o a cualquier pantalla posterior) sin método elegido por otras vías: la
+  barra de progreso navegable, los enlaces "Editar en…" de "Revisar todo", o cualquier otra llamada directa
+  — en cualquiera de esos casos, redirige de vuelta a Participación con el mismo aviso.
+- **"Al dar continuar, recordar que es posible tener hasta 4 colaboradores"**: al pulsar "Continuar" en
+  Participación (una vez superados los dos gates anteriores — método y fotografía), aparece un aviso
+  recordando que se pueden registrar hasta 4 colaboradores (responsable de envío + hasta 3 asistentes) para
+  recibir el informe, con un botón para continuar. Se muestra una sola vez por sesión, no en cada clic.
+- **Nota de transparencia**: verificado de forma estática (`node --check`, IDs sin duplicar, balance de
+  div/section/header/footer en Index.html). No probado en vivo desde un navegador en este entorno.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:
