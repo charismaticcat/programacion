@@ -27,7 +27,7 @@ function cabecerasSesion1Comunal_() {
     // del usuario): apreciación objetiva de los y las estudiantes sobre
     // los programas de articulación del SENA, e intensificaciones dentro
     // de la institución educativa.
-    "APRECIACION_SENA_GRUPO", "INTENSIFICACIONES_GRUPO",
+    "APRECIACION_SENA_GRUPO", "PROFUNDIZACIONES_GRUPO",
     // Segunda parte de ConectaEduca (Sesión 2) — min 50/máx 400 palabras.
     "PRIORIDADES_CE", "ACUERDOS_CE", "PROPUESTAS_CE", "RUTA_CE",
     // Espacio libre y opcional por sesión para hallazgos propios de la

@@ -1344,6 +1344,40 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
 - **Nota de transparencia**: verificado de forma estática (`node --check`). No probado en vivo desde un
   navegador en este entorno.
 
+## 4.45 Trigésimo tercer lote: botón general/específico en cada pregunta, validación antes del gif, confirmación por rol, y renombre a "Profundizaciones"
+
+- **"'Como marcaron más de una institución...' debe aparecer en cada pregunta"**: el botón general/específico
+  (lote anterior) ya no vive en un solo bloque arriba de las 6 preguntas — ahora se repite DENTRO de cada una
+  de las 6 (`renderPreguntasInvitado` recibe un nuevo parámetro `mostrarBotonModoTexto`). El modo elegido
+  sigue siendo un solo estado compartido (`estadoInvitado.modoTextoInicial_`): un clic en cualquiera de las
+  12 copias del botón (2 por pregunta × 6 preguntas) actualiza las 6 respuestas y dejan las 12 copias con el
+  mismo estado activo/inactivo — un único listener delegado en `document` (`[data-modo-texto-btn]`) en vez de
+  12 listeners individuales, porque estos botones se repintan cada vez que se abre la pantalla.
+- **"No aparece pregunta para articulación SENA ni para Profundizaciones"**: verificado en el repositorio —
+  ambas preguntas SÍ están en el HTML desplegado desde el lote anterior (@43); lo más probable es una página
+  ya abierta desde antes de ese despliegue (las apps de Google Apps Script no se actualizan solas en una
+  pestaña ya cargada — hace falta recargarla por completo). De paso, se renombró la segunda pregunta de
+  "Intensificaciones" a **"Profundizaciones dentro de la institución educativa"** (columna
+  `PROFUNDIZACIONES_GRUPO`, antes `INTENSIFICACIONES_GRUPO` — el cambio es seguro porque la pregunta se
+  agregó apenas en el lote anterior, sin datos reales todavía) — si el problema persiste tras recargar la
+  página por completo, avisar para seguir investigando.
+- **"¿Enviar sus aportes para EDUARDO SANTOS? no debe aparecer como x IE sino como rol"**: el mensaje de
+  confirmación al enviar los aportes de un invitado cambió de "¿Enviar sus aportes para \<institución>?" a
+  "¿Enviar los aportes de \<rol>?" (estudiantes actuales / egresados(as) / adultos responsables de un(a)
+  estudiante), igual que ya se había corregido para el listado agrupado de "Aportes ya enviados".
+- **"'Respondan todas las preguntas antes de enviar' debe aparecer antes de iniciar carga de gif"**: antes,
+  al pulsar "Enviar nuestros aportes" con preguntas sin responder, se mostraba el gif y se hacía el viaje al
+  servidor ANTES de que apareciera este mensaje (el servidor ya lo rechazaba, pero solo después). Ahora se
+  valida primero en el propio dispositivo (que las 6 respuestas no estén vacías) y, si falta alguna, el
+  mensaje aparece de inmediato sin mostrar el gif ni llamar al servidor.
+- **"Si ya hay barra de progreso, quitar gif"**: para los tipos de carga que muestran la barra de progreso
+  simulada ("informe" e "invitado"), ya no se muestra ningún gif/emoji encima — solo el texto y la barra, sin
+  duplicar la señal de "algo está avanzando".
+- **Nota de transparencia**: verificado de forma estática (`node --check` con el falso positivo ya conocido
+  al extraer el bloque de Index.html; IDs sin duplicar; balance de
+  div/section/header/footer/label/textarea/button en Index.html). No probado en vivo desde un navegador en
+  este entorno.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

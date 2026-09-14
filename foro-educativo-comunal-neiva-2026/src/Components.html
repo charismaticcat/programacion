@@ -451,7 +451,7 @@ function renderPreguntasPreparacionIE(preguntas, respuestas) {
  * institución(es) representadas; no cuenta como "ya respondida" (el
  * indicador ✓ sigue mirando la respuesta real, no el texto inicial).
  */
-function renderPreguntasInvitado(preguntas, respuestas, textoInicial) {
+function renderPreguntasInvitado(preguntas, respuestas, textoInicial, mostrarBotonModoTexto) {
   var contenedor = document.getElementById("preguntasPreparacionInvitado");
   if (!contenedor) return;
   var html = "";
@@ -462,6 +462,20 @@ function renderPreguntasInvitado(preguntas, respuestas, textoInicial) {
     html += "<details class='pregunta-preparacion-colapsable'>";
     html += "<summary>" + escapeHtml(p.titulo) + (tieneContenido ? " <span class='marca-con-contenido'>✓</span>" : "") + "</summary>";
     html += "<p class='ayuda'>" + escapeHtml(p.ayuda) + "</p>";
+    // Botón general/específico repetido en CADA pregunta (spec del
+    // usuario: "debe aparecer en cada pregunta") — solo cuando el
+    // invitado marcó más de una institución; con una sola, ambos
+    // formatos son idénticos. El modo elegido es compartido entre las 6
+    // preguntas (un solo estado, ver JS.html), así que los botones de
+    // todas se ven siempre en el mismo estado activo/inactivo.
+    if (mostrarBotonModoTexto) {
+      html += "<div class='fila-modo-texto-inicial-invitado'>";
+      html += "<p class='ayuda'>Como marcaron más de una institución, elijan cómo quieren empezar esta respuesta:</p>";
+      html += "<div class='fila-botones'>";
+      html += "<button type='button' class='btn btn-secundario btn-modo-texto-inicial' data-modo-texto-btn='general'>📋 Responder de forma general</button>";
+      html += "<button type='button' class='btn btn-secundario btn-modo-texto-inicial' data-modo-texto-btn='especifico'>🏫 Responder mencionando cada institución</button>";
+      html += "</div></div>";
+    }
     html += "<textarea id='campo_inv_prep_" + p.clave + "' data-inv-prep-pregunta='" + p.clave + "' rows='10'>" +
       escapeHtml(texto) + "</textarea>";
     html += "</details>";

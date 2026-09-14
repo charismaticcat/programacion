@@ -515,7 +515,15 @@ function mostrarCargaAccion_(tipo, texto) {
 
   var gif = GIFS_CARGA_ACCION_[tipo];
   var dataUri = typeof GIFS_DATAURI_ !== "undefined" ? GIFS_DATAURI_[tipo] : null;
-  if (tipo === "responsable" || tipo === "listado" || tipo === "invitado") {
+  // "informe" e "invitado" muestran la barra de progreso simulada — con
+  // ella visible, no se muestra ningún gif/emoji encima (spec del
+  // usuario: "si ya hay barra de progreso, quitar gif"), para no
+  // duplicar la señal de "algo está avanzando".
+  var usaBarraProgreso = tipo === "informe" || tipo === "invitado";
+  if (usaBarraProgreso) {
+    img.classList.add("oculto");
+    emoji.classList.add("oculto");
+  } else if (tipo === "responsable" || tipo === "listado") {
     img.src = URL_STICKER_CARGANDO_RESPONSABLE_;
     img.classList.remove("oculto");
     emoji.classList.add("oculto");
@@ -539,7 +547,7 @@ function mostrarCargaAccion_(tipo, texto) {
   // invitados encadena varias llamadas al servidor seguidas, así que se
   // reutiliza la misma barra simulada para que la espera se sienta con
   // avance real, en vez de solo el gif estático).
-  if (tipo === "informe" || tipo === "invitado") {
+  if (usaBarraProgreso) {
     iniciarBarraProgresoInforme_();
   } else {
     detenerBarraProgresoInforme_(false);
@@ -1198,10 +1206,16 @@ function _textoInicialPreparacionInvitado_() {
 /**
  * Botón "General"/"Específico" para elegir el formato del texto inicial
  * (solo tiene sentido con más de una institución representada, si no,
- * ambos formatos son iguales) — cambiar de modo SOLO reemplaza el texto
- * inicial en los campos que están vacíos o que todavía tienen
- * exactamente el texto inicial anterior sin tocar; nunca borra algo que
- * ya se haya escrito encima.
+ * ambos formatos son iguales) — se repite en CADA una de las 6 preguntas
+ * (spec del usuario: "debe aparecer en cada pregunta"), pero el modo
+ * elegido es un solo estado compartido (estadoInvitado.modoTextoInicial_),
+ * así que un clic en cualquiera de las 12 copias del botón actualiza las
+ * 6 respuestas y dejan las 12 copias con el mismo estado activo/inactivo.
+ * Cambiar de modo SOLO reemplaza el texto inicial en los campos que están
+ * vacíos o que todavía tienen exactamente el texto inicial anterior sin
+ * tocar; nunca borra algo que ya se haya escrito encima. Un solo listener
+ * delegado (en vez de 12) porque estos botones se repintan cada vez que
+ * se abre esta pantalla (renderPreguntasInvitado).
  */
 function _aplicarModoTextoInicialInvitado_(nuevoModo) {
   var anterior = _textoInicialPreparacionInvitado_();
@@ -1212,14 +1226,16 @@ function _aplicarModoTextoInicialInvitado_(nuevoModo) {
     if (!el) return;
     if (el.value === "" || el.value === anterior) el.value = nuevo;
   });
-  document.getElementById("btnModoTextoGeneralInvitado").classList.toggle("btn-metodo-activo", nuevoModo !== "especifico");
-  document.getElementById("btnModoTextoEspecificoInvitado").classList.toggle("btn-metodo-activo", nuevoModo === "especifico");
+  _actualizarBotonesModoTextoInicialInvitado_();
 }
-document.getElementById("btnModoTextoGeneralInvitado").addEventListener("click", function () {
-  _aplicarModoTextoInicialInvitado_("general");
-});
-document.getElementById("btnModoTextoEspecificoInvitado").addEventListener("click", function () {
-  _aplicarModoTextoInicialInvitado_("especifico");
+function _actualizarBotonesModoTextoInicialInvitado_() {
+  document.querySelectorAll("[data-modo-texto-btn]").forEach(function (boton) {
+    boton.classList.toggle("btn-metodo-activo", boton.getAttribute("data-modo-texto-btn") === estadoInvitado.modoTextoInicial_);
+  });
+}
+document.addEventListener("click", function (evento) {
+  var boton = evento.target.closest("[data-modo-texto-btn]");
+  if (boton) _aplicarModoTextoInicialInvitado_(boton.getAttribute("data-modo-texto-btn"));
 });
 
 function abrirPreparacionInvitado_() {
@@ -1228,16 +1244,12 @@ function abrirPreparacionInvitado_() {
     estadoInvitado.tipoInvitado !== "ESTUDIANTE"
       ? "Adultos responsables de un(a) estudiante"
       : (estadoInvitado.rolEstudiante === "GRADUADO" ? "Egresados(as)" : "Estudiantes actuales");
-  // "General" es siempre el punto de partida al abrir esta pantalla —
-  // solo se muestra el botón para cambiar de modo si de verdad hay más
-  // de una institución representada (con una sola, ambos formatos son
-  // idénticos).
+  // "General" es siempre el punto de partida al abrir esta pantalla — el
+  // botón de cambiar de modo solo se pinta (dentro de cada pregunta, ver
+  // renderPreguntasInvitado) si de verdad hay más de una institución
+  // representada (con una sola, ambos formatos son idénticos).
   estadoInvitado.modoTextoInicial_ = "general";
-  document.getElementById("btnModoTextoGeneralInvitado").classList.add("btn-metodo-activo");
-  document.getElementById("btnModoTextoEspecificoInvitado").classList.remove("btn-metodo-activo");
-  document.getElementById("filaModoTextoInicialInvitado").classList.toggle(
-    "oculto", _institucionesRepresentadasInvitado_().length <= 1
-  );
+  var mostrarBotonModoTexto = _institucionesRepresentadasInvitado_().length > 1;
   // El gif ya puede estar visible desde entrarAPrepararInstitucion_ (se
   // deja así, sin ocultarlo entre medio) — mostrarCargaAccion_ es
   // idempotente, así que llamarlo de nuevo aquí no causa parpadeo y cubre
@@ -1250,7 +1262,8 @@ function abrirPreparacionInvitado_() {
       ocultarCargaAccion_();
       document.getElementById("overlayInvitadoPreparacion").classList.remove("oculto");
       if (!datos) return;
-      renderPreguntasInvitado(datos.preguntas, datos.respuestas, _textoInicialPreparacionInvitado_());
+      renderPreguntasInvitado(datos.preguntas, datos.respuestas, _textoInicialPreparacionInvitado_(), mostrarBotonModoTexto);
+      _actualizarBotonesModoTextoInicialInvitado_();
     },
     function (error) {
       ocultarCargaAccion_();
@@ -1293,8 +1306,30 @@ document.addEventListener("input", function (evento) {
   }, 2000);
 });
 
+/** "estudiantes actuales" / "egresados(as)" / "adultos responsables de un(a) estudiante" — spec del usuario: identificar por ROL, no por IE. */
+function _etiquetaRolInvitado_() {
+  return estadoInvitado.tipoInvitado !== "ESTUDIANTE"
+    ? "adultos responsables de un(a) estudiante"
+    : (estadoInvitado.rolEstudiante === "GRADUADO" ? "egresados(as)" : "estudiantes actuales");
+}
+
 document.getElementById("btnEnviarPreparacionInvitado").addEventListener("click", function () {
-  confirmarAccion("¿Enviar sus aportes para " + estadoInvitado.institucion + "?", function () {
+  // Se valida ANTES de mostrar el gif/confirmación (spec del usuario:
+  // "debe aparecer antes de iniciar carga de gif") — el servidor ya
+  // rechazaba el envío con este mismo mensaje si faltaba alguna
+  // pregunta, pero solo después de mostrar el gif y hacer el viaje de
+  // ida y vuelta al servidor; validar aquí primero evita ese paso
+  // innecesario cuando el problema ya se puede ver en el propio
+  // dispositivo.
+  var faltan = CAMPOS_PREPARACION_.some(function (clave) {
+    var el = document.getElementById("campo_inv_prep_" + clave);
+    return !el || !el.value.trim();
+  });
+  if (faltan) {
+    mostrarMensaje("mensajePreparacionInvitado", "Respondan todas las preguntas antes de enviar.", "error");
+    return;
+  }
+  confirmarAccion("¿Enviar los aportes de " + _etiquetaRolInvitado_() + "?", function () {
     guardarPreparacionInvitadoActual_(false, function (guardadoOk) {
       if (!guardadoOk) {
         mostrarMensaje("mensajePreparacionInvitado", "No fue posible guardar antes de enviar. Intenten de nuevo.", "error");
@@ -2304,7 +2339,7 @@ var CAMPOS_SESION1 = [
   "REFLEXIONES", "DESAFIOS", "APUESTAS", "CONCLUSIONES",
   "PRIORIDADES", "PROPUESTAS_COLECTIVAS", "ACUERDOS", "RUTA",
   "NECESIDADES_ARTICULACION_GRUPO", "OPORTUNIDADES_GRUPO",
-  "APRECIACION_SENA_GRUPO", "INTENSIFICACIONES_GRUPO",
+  "APRECIACION_SENA_GRUPO", "PROFUNDIZACIONES_GRUPO",
   "PRIORIDADES_CE", "ACUERDOS_CE", "PROPUESTAS_CE", "RUTA_CE",
   "APORTE_PROPIO_S1_TITULO", "APORTE_PROPIO_S1_TEXTO", "APORTE_PROPIO_S2_TITULO", "APORTE_PROPIO_S2_TEXTO"
 ];
@@ -2386,7 +2421,7 @@ var PREGUNTAS_SOLO_LECTURA_SESION2_ = [
   { clave: "NECESIDADES_ARTICULACION_GRUPO", etiqueta: "Necesidades de articulación" },
   { clave: "OPORTUNIDADES_GRUPO", etiqueta: "Oportunidades identificadas" },
   { clave: "APRECIACION_SENA_GRUPO", etiqueta: "Apreciación sobre los programas de articulación del SENA" },
-  { clave: "INTENSIFICACIONES_GRUPO", etiqueta: "Intensificaciones dentro de la institución educativa" },
+  { clave: "PROFUNDIZACIONES_GRUPO", etiqueta: "Profundizaciones dentro de la institución educativa" },
   { clave: "PRIORIDADES_CE", etiqueta: "Prioridades" },
   { clave: "ACUERDOS_CE", etiqueta: "Acuerdos" },
   { clave: "PROPUESTAS_CE", etiqueta: "Propuestas" },
@@ -3260,7 +3295,7 @@ var CAMPOS_REVISAR_SESION2_ = [
   { clave: "NECESIDADES_ARTICULACION_GRUPO", etiqueta: "Necesidades de articulación" },
   { clave: "OPORTUNIDADES_GRUPO", etiqueta: "Oportunidades identificadas" },
   { clave: "APRECIACION_SENA_GRUPO", etiqueta: "Apreciación sobre los programas de articulación del SENA" },
-  { clave: "INTENSIFICACIONES_GRUPO", etiqueta: "Intensificaciones dentro de la institución educativa" },
+  { clave: "PROFUNDIZACIONES_GRUPO", etiqueta: "Profundizaciones dentro de la institución educativa" },
   { clave: "PRIORIDADES_CE", etiqueta: "Prioridades (ConectaEduca)" },
   { clave: "ACUERDOS_CE", etiqueta: "Acuerdos entre instituciones (ConectaEduca)" },
   { clave: "PROPUESTAS_CE", etiqueta: "Propuestas (ConectaEduca)" },
