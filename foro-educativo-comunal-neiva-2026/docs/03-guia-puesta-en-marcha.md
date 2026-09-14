@@ -1290,6 +1290,43 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   div/section/header/footer/label/textarea en Index.html). No probado en vivo desde un navegador en este
   entorno.
 
+## 4.43 Trigésimo primer lote: aportes agrupados por rol, barra de progreso para invitados, y texto inicial general/específico con nombres capitalizados
+
+- **"Las respuestas no deben aparecer como si fueran de una sola IE sino: Aportes de (rol)"**: en "Aportes ya
+  enviados por estudiantes, egresados y adultos responsables invitados" (pantalla de Selección de IE), el
+  encabezado de cada grupo pasó de "N estudiantes y M egresados/as opinaron sobre:" a "Aportes de estudiantes
+  (N) y egresados/as (M):", y los adultos responsables (antes con una etiqueta repetida por cada aporte)
+  ahora también se agrupan bajo un único "Aportes de acudientes (N):" — en ambos casos la etiqueta encabeza
+  por ROL, no da la impresión de pertenecer en exclusiva a la IE bajo la que está ese `<details>` (el propio
+  texto de cada respuesta ya menciona, desde el lote anterior, todas las instituciones que esa persona
+  representa).
+- **"Debe cargar más rápido o mostrar una barra de progreso mientras se muestra el gif"**: el flujo de
+  invitados encadena varias llamadas al servidor seguidas (instituciones → ingresar a la IE → cargar
+  preparación); ahora, mientras se muestra el gif "Cargando" de ese flujo, también aparece la barra de
+  progreso simulada que ya se usaba para "Generando el informe…" (avanza hasta 90% y se completa al 100% en
+  cuanto el servidor de verdad responde), para que la espera se sienta con avance real en vez de un gif
+  estático fijo.
+- **"En textarea dar botón, responder de forma general o específicando una IE"**: cuando el invitado marcó
+  más de una institución en "Instituciones que representan", aparecen dos botones arriba de las 6 preguntas
+  de Preparación — "📋 Responder de forma general" (por defecto) y "🏫 Responder mencionando cada
+  institución" — que cambian el texto con el que empieza cada respuesta:
+  - **General**: mantiene la estructura ya existente, "En las Instituciones Educativas Eduardo Santos,
+    Gabriel García Márquez y Jairo Mosquera Moreno; " — con una diferencia: los nombres de las IE ahora se
+    capitalizan (solo la inicial de cada palabra en mayúscula) en vez de mostrarse tal cual están guardados
+    en mayúsculas sostenidas.
+  - **Específico**: una frase por institución, una tras otra — "en la Institución Educativa Eduardo Santos en
+    la Institución Educativa Gabriel García Márquez en la Institución Educativa Jairo Mosquera Moreno " —
+    para que quien responde pueda intercalar su comentario propio de cada una.
+  Cambiar de modo solo reemplaza el texto en los campos que siguen vacíos o que todavía tienen exactamente el
+  texto inicial anterior sin tocar — nunca borra algo que ya se haya escrito encima. Con una sola institución
+  representada, ambos formatos son idénticos, así que los botones no se muestran.
+- **Nota de transparencia**: verificado de forma estática (`node --check` con el falso positivo ya conocido
+  al extraer el bloque de Index.html; IDs sin duplicar; balance de div/section/header/footer/label/textarea/
+  button en Index.html). No probado en vivo desde un navegador en este entorno — la interpretación de "las
+  respuestas no deben aparecer como si fueran de una sola IE" se resolvió reformulando el encabezado como
+  "Aportes de (rol)"; si la intención era otra (p. ej. cambiar cómo se agrupan/almacenan los aportes en el
+  origen de datos), avisar para ajustarlo.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

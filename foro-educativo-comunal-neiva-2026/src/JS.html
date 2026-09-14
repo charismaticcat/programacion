@@ -531,10 +531,15 @@ function mostrarCargaAccion_(tipo, texto) {
   document.getElementById("textoCargaAccion").textContent = texto || (gif && gif.texto) || "Cargando…";
   overlay.classList.remove("oculto");
 
-  // Barra de progreso propia de "Generando el informe…" (spec del
-  // usuario) — el resto de acciones ya tienen la barra indeterminada de
-  // abajo, así que esta solo se muestra para tipo === "informe".
-  if (tipo === "informe") {
+  // Barra de progreso propia de "Generando el informe…" — el resto de
+  // acciones ya tienen la barra indeterminada de abajo, así que esta
+  // solo se muestra para tipo === "informe" y, desde este lote, también
+  // para "invitado" (spec del usuario: "debe cargar más rápido o mostrar
+  // una barra de progreso mientras se muestra el gif" — el flujo de
+  // invitados encadena varias llamadas al servidor seguidas, así que se
+  // reutiliza la misma barra simulada para que la espera se sienta con
+  // avance real, en vez de solo el gif estático).
+  if (tipo === "informe" || tipo === "invitado") {
     iniciarBarraProgresoInforme_();
   } else {
     detenerBarraProgresoInforme_(false);
@@ -828,7 +833,11 @@ var estadoInvitado = {
   idIE: "",
   institucion: "",
   idGrupo: "",
-  grupo: ""
+  grupo: "",
+  // "general" (una sola frase con todas las IE) o "especifico" (una
+  // frase por IE) — spec del usuario: botón para elegir cómo iniciar las
+  // respuestas cuando se representa más de una institución.
+  modoTextoInicial_: "general"
 };
 
 document.getElementById("btnSoyInvitado").addEventListener("click", function () {
@@ -1133,25 +1142,85 @@ document.getElementById("btnContinuarInvitadoCaracterizacion").addEventListener(
   );
 });
 
-/**
- * Texto con el que debe INICIAR cada respuesta de preparación del
- * invitado (spec del usuario: "en el formato de textarea, se debe
- * iniciar con el texto que diga: En la Institución Educativa (nombre)")
- * — menciona cada institución marcada en "Instituciones que representan"
- * (institucionesMarcadas_), no solo la primera (que es la única a la que
- * quedan asociadas las respuestas, ver entrarAPrepararInstitucion_), para
- * que quede constancia de a cuáles representa quien responde. Si llegó
- * por enlace directo (sin pasar por "Instituciones que representan"), se
- * usa la única institución de ese enlace.
- */
-function _textoInicialPreparacionInvitado_() {
+/** "EDUARDO SANTOS" -> "Eduardo Santos" (spec del usuario: "nombres de IE solo con inicial Mayúscula"). */
+function _capitalizarNombreIE_(nombre) {
+  return String(nombre || "").toLowerCase().replace(/(^|\s)([a-záéíóúñü])/g, function (coincidencia, separador, letra) {
+    return separador + letra.toUpperCase();
+  });
+}
+
+/** Nombres de las instituciones representadas por el invitado, ya capitalizados, sin duplicados. */
+function _institucionesRepresentadasInvitado_() {
   var nombres = (estadoInvitado.institucionesMarcadas_ || []).map(function (ie) { return ie.institucion; });
   if (!nombres.length && estadoInvitado.institucion) nombres = [estadoInvitado.institucion];
+  return nombres.map(_capitalizarNombreIE_);
+}
+
+/**
+ * Texto con el que puede INICIAR cada respuesta de preparación del
+ * invitado — dos formatos posibles a elegir con un botón (spec del
+ * usuario), "general" por defecto:
+ *   - general: una sola frase mencionando todas las instituciones
+ *     representadas, ej. "En las Instituciones Educativas Eduardo
+ *     Santos, Gabriel García Márquez y Jairo Mosquera Moreno; ".
+ *   - específico: una frase POR institución, una tras otra, ej. "en la
+ *     Institución Educativa Eduardo Santos en la Institución Educativa
+ *     Gabriel García Márquez ", para que quien responde pueda intercalar
+ *     su comentario propio de cada una.
+ * Menciona TODAS las instituciones marcadas en "Instituciones que
+ * representan" (institucionesMarcadas_), no solo la primera (que es la
+ * única a la que quedan asociadas las respuestas, ver
+ * entrarAPrepararInstitucion_), para que quede constancia de a cuáles
+ * representa quien responde. Si llegó por enlace directo (sin pasar por
+ * "Instituciones que representan"), se usa la única institución de ese
+ * enlace.
+ */
+function _textoInicialGeneralInvitado_() {
+  var nombres = _institucionesRepresentadasInvitado_();
   if (!nombres.length) return "";
   if (nombres.length === 1) return "En la Institución Educativa " + nombres[0] + "; ";
   var ultimo = nombres[nombres.length - 1];
   return "En las Instituciones Educativas " + nombres.slice(0, -1).join(", ") + " y " + ultimo + "; ";
 }
+function _textoInicialEspecificoInvitado_() {
+  var nombres = _institucionesRepresentadasInvitado_();
+  if (!nombres.length) return "";
+  if (nombres.length === 1) return "En la Institución Educativa " + nombres[0] + "; ";
+  return nombres.map(function (nombre) { return "en la Institución Educativa " + nombre; }).join(" ") + " ";
+}
+/** El texto inicial que corresponde al modo actualmente elegido (estadoInvitado.modoTextoInicial_, "general" por defecto). */
+function _textoInicialPreparacionInvitado_() {
+  return estadoInvitado.modoTextoInicial_ === "especifico"
+    ? _textoInicialEspecificoInvitado_()
+    : _textoInicialGeneralInvitado_();
+}
+
+/**
+ * Botón "General"/"Específico" para elegir el formato del texto inicial
+ * (solo tiene sentido con más de una institución representada, si no,
+ * ambos formatos son iguales) — cambiar de modo SOLO reemplaza el texto
+ * inicial en los campos que están vacíos o que todavía tienen
+ * exactamente el texto inicial anterior sin tocar; nunca borra algo que
+ * ya se haya escrito encima.
+ */
+function _aplicarModoTextoInicialInvitado_(nuevoModo) {
+  var anterior = _textoInicialPreparacionInvitado_();
+  estadoInvitado.modoTextoInicial_ = nuevoModo;
+  var nuevo = _textoInicialPreparacionInvitado_();
+  CAMPOS_PREPARACION_.forEach(function (clave) {
+    var el = document.getElementById("campo_inv_prep_" + clave);
+    if (!el) return;
+    if (el.value === "" || el.value === anterior) el.value = nuevo;
+  });
+  document.getElementById("btnModoTextoGeneralInvitado").classList.toggle("btn-metodo-activo", nuevoModo !== "especifico");
+  document.getElementById("btnModoTextoEspecificoInvitado").classList.toggle("btn-metodo-activo", nuevoModo === "especifico");
+}
+document.getElementById("btnModoTextoGeneralInvitado").addEventListener("click", function () {
+  _aplicarModoTextoInicialInvitado_("general");
+});
+document.getElementById("btnModoTextoEspecificoInvitado").addEventListener("click", function () {
+  _aplicarModoTextoInicialInvitado_("especifico");
+});
 
 function abrirPreparacionInvitado_() {
   document.getElementById("nombreIEInvitadoPrep").textContent = estadoInvitado.institucion;
@@ -1159,6 +1228,16 @@ function abrirPreparacionInvitado_() {
     estadoInvitado.tipoInvitado !== "ESTUDIANTE"
       ? "Adultos responsables de un(a) estudiante"
       : (estadoInvitado.rolEstudiante === "GRADUADO" ? "Egresados(as)" : "Estudiantes actuales");
+  // "General" es siempre el punto de partida al abrir esta pantalla —
+  // solo se muestra el botón para cambiar de modo si de verdad hay más
+  // de una institución representada (con una sola, ambos formatos son
+  // idénticos).
+  estadoInvitado.modoTextoInicial_ = "general";
+  document.getElementById("btnModoTextoGeneralInvitado").classList.add("btn-metodo-activo");
+  document.getElementById("btnModoTextoEspecificoInvitado").classList.remove("btn-metodo-activo");
+  document.getElementById("filaModoTextoInicialInvitado").classList.toggle(
+    "oculto", _institucionesRepresentadasInvitado_().length <= 1
+  );
   // El gif ya puede estar visible desde entrarAPrepararInstitucion_ (se
   // deja así, sin ocultarlo entre medio) — mostrarCargaAccion_ es
   // idempotente, así que llamarlo de nuevo aquí no causa parpadeo y cubre
