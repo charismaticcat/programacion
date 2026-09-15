@@ -6950,7 +6950,7 @@ function paginaSuperAdminFEM_(){
     {
       titulo:"Carpetas de Drive",
       items:[
-        {icono:"📁", nombre:"Carpeta General del Foro", url:"https://drive.google.com/drive/folders/1ftcnjZxG4QK4P8wbHFtD9-tAZcMbtH3K?usp=drive_link"},
+        {icono:"📁", nombre:"Carpeta General del Foro", url:"https://drive.google.com/drive/folders/1AY0imIHCT51gIb-nsbweR7aAkZeLkEMK?usp=drive_link"},
         {icono:"📷", nombre:"Fotos de Evidencia FEM 2026", url:"https://drive.google.com/drive/folders/1SKJO52KuTk5qiLeqa2Wosr4ckJRK6ZPZ?usp=drive_link"},
         {icono:"🗂️", nombre:"Informes por Grupo (enviados y editables)", url:"https://drive.google.com/drive/folders/1CiEY8InrLPwzohka2eRDLl_jtE_oR59q?usp=drive_link"},
         {icono:"🏫", nombre:"Informes Enviados por IE", url:"https://drive.google.com/drive/folders/1IqcFgQUSKocvGX3JwvNOu-xJzt0gfKc8?usp=drive_link"}
@@ -6978,9 +6978,9 @@ function paginaSuperAdminFEM_(){
       titulo:"Multimedia y Recursos",
       items:[
         {icono:"❓", nombre:"FAQs", url:"https://drive.google.com/file/d/1sI2g4NKUVJ5PyyK3IyotPmIaJ9SfulUj/view?usp=drive_link"},
-        {icono:"🖼️", nombre:"Infografías y Multimedia FEM 2026", url:"https://notebook.google.com/notebook/f3411916-7e06-416c-913c-07f4c5d1bfa4/artifact/013a4b58-85b9-441d-90e9-0b76978c8ae0?utm_source=nlm_web_share&utm_medium=google_oo&utm_campaign=art_share_1&utm_content=&utm_smc=nlm_web_share_google_oo_art_share_1_"},
+        {icono:"🖼️", nombre:"Mapa Mental Resumen FEMI 2026", url:"https://notebook.google.com/notebook/f3411916-7e06-416c-913c-07f4c5d1bfa4/artifact/013a4b58-85b9-441d-90e9-0b76978c8ae0?utm_source=nlm_web_share&utm_medium=google_oo&utm_campaign=art_share_1&utm_content=&utm_smc=nlm_web_share_google_oo_art_share_1_"},
         {icono:"▶️", nombre:"Video Resumen Sintético de 36 IE", url:"https://youtu.be/dNrRaB4Cfcw"},
-        {icono:"⬇️", nombre:"Descargable", url:"https://drive.google.com/file/d/1GD1cz-IkcXqAOIE1pqN0RRaSTwvtDXK7/view?usp=drive_link"},
+        {icono:"⬇️", nombre:"Video descargable", url:"https://drive.google.com/file/d/1GD1cz-IkcXqAOIE1pqN0RRaSTwvtDXK7/view?usp=drive_link"},
         {icono:"🖥️", nombre:"Informe Interno", url:"https://docs.google.com/presentation/d/1jkUifTiXyyNNU_NRUtdB2mcg9bM_cadW/edit?usp=drive_link&ouid=112531563624782647495&rtpof=true&sd=true"},
         {icono:"🎨", nombre:"Infografía FEM 2026", url:"https://drive.google.com/file/d/1YW6sBBEPRGcHM9NYbF2-gXa3OoJjoAeX/view?usp=drive_link"}
       ]
