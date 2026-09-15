@@ -1638,17 +1638,45 @@ la Sesión 1").
   vieja Preparación. No probado en vivo desde un navegador — en particular, no se probó el temporizador ni
   el guardado real del checklist con `GRUPO-PRUEBA`.
 
+## 4.52 Cuadragésimo lote: ruta/horario de Metodología (item 12) y solo asistencia en PDF (item 13)
+
+- **Item 12**: la tarjeta "Ruta del Encuentro..." (pantallaMetodologia, Encuentro-only) todavía describía el
+  recorrido lineal de antes de la Sección C/D (incluía "Sesión de preparación" e incluso "Sesión 2:
+  ConectaEduca" como si fueran pasos de Encuentro). Se reescribió la lista de 8 a 7 pasos (sin ConectaEduca,
+  con "Sesión de socialización" en vez de "Sesión de preparación") y se agregó un aviso de horario arriba de
+  la lista: "Este Encuentro se realiza de 7:00 a. m. a 12:00 m. Conecta Educa es una jornada aparte, de
+  2:00 p. m. a 5:00 p. m., con su propia puerta de acceso (mismo código del grupo) — no hace falta terminar
+  aquí para poder entrar a Conecta Educa."
+- **Item 13**: se ocultaron `btnMetodoQR`/`panelMetodoQR` (envueltos en `<div class="fila-botones oculto">`,
+  sin borrar — mismo patrón de todo el proyecto) y `panelMetodoListado` quedó siempre visible, sin necesidad
+  de elegirlo con un clic. En `intentarValidarAcceso` (JS.html), si el método guardado del grupo no es ya
+  `"LISTADO"` (grupo nuevo, o un valor `"QR"` de antes de este cambio) se fuerza a `"LISTADO"` automáticamente
+  llamando a `elegirMetodoAsistencia("LISTADO")`, que ya se encarga de guardarlo — no se tocó `Asistencia.gs`:
+  el backend siempre aceptó cualquiera de los dos métodos, el cambio es puramente de qué se ofrece en la UI.
+  Se agregó un botón "📥 Descargar formato de asistencia" que enlaza al PDF oficial del Encuentro (Drive
+  `1rB1diE0iMthTDclJSxfazqJzld76nRx8`, dado por el usuario) — nueva clave `FORMATO_ASISTENCIA_ENCUENTRO_ID`
+  en `Config.gs`, pasada a la plantilla desde `Code.gs` e insertada directo en el `href` con
+  `<?!= FORMATO_ASISTENCIA_ENCUENTRO_ID ?>` (no hizo falta pasarlo también a JS.html: es un enlace estático,
+  no una imagen que necesite `urlImagenDrive`/miniatura).
+- **Alcance del item 13 acotado a Encuentro por ahora**: `pantallaParticipacion` sigue siendo la misma
+  pantalla compartida con ConectaEduca (Lote 38) — por ahora ambas secciones ven el mismo formato de
+  asistencia del Encuentro. El formato propio de ConectaEduca (Drive `1sO3ddWU9PcL3CMnygYgSleTxs17qb_lS`,
+  item 18) requiere separar la pantalla de asistencia por sección, que es justamente el trabajo de la
+  Sección E — se hace ahí, no aquí, para no tocar dos veces la misma pantalla.
+- Verificado: `node --check` sobre `Config.gs`/`Code.gs` y los bloques `<script>` de `Index.html`/`JS.html`
+  (limpio, mismos dos falsos positivos ya conocidos en Index.html/AsistenciaPublica.html); IDs sin duplicar y
+  balance de etiquetas OK en `Index.html`. No probado en vivo desde un navegador.
+
 ### Backlog restante del Documento Orientador FEM2026
 
-Quedan pendientes, en el orden ya confirmado con el usuario: item 11 completado arriba; **12** (rutas de
-navegación + horario en la tarjeta de Metodología, que todavía describe el recorrido lineal antiguo); **13**
-(ocultar QR, dejar solo asistencia en PDF con el formato específico del Drive); **14-15** (rediseño del
-consentimiento informado: listado descargable/copiable/enviable por correo, mover "cantidad de asistentes"
-al final, dividir en las dos partes del evento); **16** (reemplazar las 11 preguntas actuales de Sesión 1 por
-las preguntas reales del Foro Educativo Institucional, ya transcritas en una respuesta anterior de esta
+Quedan pendientes, en el orden ya confirmado con el usuario: **14-15** (rediseño del consentimiento
+informado: listado descargable/copiable/enviable por correo, mover "cantidad de asistentes" al final,
+dividir en las dos partes del evento); **16** (reemplazar las 11 preguntas actuales de Sesión 1 por las
+preguntas reales del Foro Educativo Institucional, ya transcritas en una respuesta anterior de esta
 conversación) — el más grande y el que más se beneficia de los items 9-10 ya resueltos. Luego Sección E
-(ConectaEduca: consentimiento y asistencia propios), F (valoraciones separadas, escala numérica, texto
-"la sesión de hoy") y G (nueva opción de estamento "Funcionario Secretaría de Educación").
+(ConectaEduca: consentimiento y asistencia propios, lo que también permitirá terminar el item 13 dándole a
+ConectaEduca su propio formato de asistencia), F (valoraciones separadas, escala numérica, texto "la sesión
+de hoy") y G (nueva opción de estamento "Funcionario Secretaría de Educación").
 
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 

@@ -111,14 +111,17 @@
   <section id="pantallaMetodologia" class="pantalla">
     <div class="tarjeta">
       <h2 class="titulo-seccion">Ruta del Encuentro de voces que construyen territorio</h2>
+      <p class="mensaje info">🕖 Este Encuentro se realiza de <strong>7:00 a. m. a 12:00 m.</strong> Conecta
+        Educa es una jornada aparte, de <strong>2:00 p. m. a 5:00 p. m.</strong>, con su propia puerta de
+        acceso (mismo código del grupo) — no hace falta terminar aquí para poder entrar a Conecta Educa.</p>
       <ol>
         <li>Consentimiento informado y método de asistencia del grupo.</li>
         <li>Participación y asistencia: matriz de estamentos por IE y responsable de envío.</li>
         <li>Confirmación de la caracterización del grupo.</li>
-        <li>Sesión de preparación: cada IE (o participante invitado) diligencia sus aportes.</li>
+        <li>Sesión de socialización: registro en vivo de qué institución ya socializó sus reflexiones,
+          conclusiones y propuestas del Foro Educativo Institucional.</li>
         <li>Sesión 1: Consolidado de Socialización y Construcción colectiva del grupo (incluye el
           aporte propio opcional).</li>
-        <li>Sesión 2: ConectaEduca — diálogo con el sector productivo y la educación superior.</li>
         <li>Revisión y cierre: verificación de firmantes y valoración del Encuentro.</li>
         <li>Generación del informe único del grupo, descarga y envío por correo.</li>
       </ol>
@@ -214,17 +217,18 @@
 
   <!-- 6. PARTICIPACIÓN -->
   <section id="pantallaParticipacion" class="pantalla">
-    <!-- Método de asistencia — al inicio de la pantalla, como pide el flujo:
-         cada grupo elige EXACTAMENTE UNO de dos métodos, QR o PDF (nunca
-         ambos): con QR se firma por celular y se ve el conteo de firmas en
-         vivo; con PDF se sube el listado firmado en papel y desaparece el
-         conteo de firmas (no aplica). Es obligatorio elegir uno para
-         continuar. -->
+    <!-- Método de asistencia — desde el item 13 (Documento Orientador
+         FEM2026) el QR se ocultó y solo queda el listado en PDF (spec:
+         "ocultar la asistencia por QR y dejar solo asistencia en PDF,
+         usando el formato de asistencia del foro"). btnMetodoQR/
+         panelMetodoQR quedan en el HTML sin borrar, por si se necesita
+         reactivar el QR más adelante. -->
     <div class="tarjeta">
       <h2 class="titulo-seccion">Método de asistencia del grupo</h2>
-      <p class="ayuda">Elige UNO de los dos métodos para registrar la asistencia de este grupo. Puedes
-        cambiarlo en cualquier momento sin perder lo ya registrado.</p>
-      <div class="fila-botones">
+      <p class="ayuda">Descarguen el formato oficial de asistencia, regístrenla en papel durante el
+        encuentro y suban el listado ya firmado aquí.</p>
+      <a class="btn btn-secundario" href="https://drive.google.com/file/d/<?!= FORMATO_ASISTENCIA_ENCUENTRO_ID ?>/view" target="_blank">📥 Descargar formato de asistencia</a>
+      <div class="fila-botones oculto">
         <button class="btn btn-secundario" id="btnMetodoQR" data-metodo-asistencia="QR">📱 QR / enlace</button>
         <button class="btn btn-secundario" id="btnMetodoListado" data-metodo-asistencia="LISTADO">📄 Listado en PDF</button>
       </div>
@@ -245,7 +249,7 @@
         </div>
       </div>
 
-      <div id="panelMetodoListado" class="oculto" style="margin-top:14px;">
+      <div id="panelMetodoListado" style="margin-top:14px;">
         <label for="campoArchivoListado">PDF del listado firmado en papel</label>
         <input type="file" id="campoArchivoListado" accept="application/pdf">
         <div class="fila-botones">

@@ -53,6 +53,7 @@ function doGet(e) {
   template.LOGO_DESARROLLADOR_ID = getConfig().LOGO_DESARROLLADOR_ID;
   template.LOGO_ENCUENTRO_ID = getConfig().LOGO_ENCUENTRO_ID;
   template.LOGO_CONECTAEDUCA_ID = getConfig().LOGO_CONECTAEDUCA_ID;
+  template.FORMATO_ASISTENCIA_ENCUENTRO_ID = getConfig().FORMATO_ASISTENCIA_ENCUENTRO_ID;
   try {
     asegurarLogosSplashPublicos_();
   } catch (err) {

@@ -61,6 +61,11 @@ var CONFIG_POR_DEFECTO_ = {
   // ya pudo haberse marcado "SI" antes de que estos dos logos existieran)
   // — ver asegurarLogosSeccionPublicos_ en Drive.gs.
   LOGOS_SECCION_PUBLICOS: "",
+  // Formato de asistencia oficial del Encuentro (Documento Orientador
+  // FEM2026, item 13) — se descarga, se imprime/firma en papel y se
+  // sube ya diligenciado en Participación (panelMetodoListado, Index.html).
+  // ID real de Drive dado por el usuario.
+  FORMATO_ASISTENCIA_ENCUENTRO_ID: "1rB1diE0iMthTDclJSxfazqJzld76nRx8",
   // FEI 3.1 enviaba siempre como "calidadeducacion@alcaldianeiva.gov.co"
   // (REMITENTE_FEM, Código.js). Se deja vacío por defecto (usa la cuenta
   // que ejecuta el script, siempre válida) — antes de configurar ese

@@ -1016,7 +1016,15 @@ function intentarValidarAcceso(forzar) {
     renderFotoGrupo(estado.fotoGrupoId, "previaFotoGrupo", "formularioFotoGrupo", estado.grupo);
     document.getElementById("panelFirmantes").classList.remove("oculto");
 
-    mostrarPanelMetodoAsistencia(estado.metodoAsistencia);
+    // Desde el item 13 (Documento Orientador FEM2026) el único método de
+    // asistencia es el listado en PDF — si el grupo no lo tenía guardado
+    // todavía (o traía "QR" de antes de este cambio), se fuerza aquí sin
+    // esperar un clic; elegirMetodoAsistencia ya se encarga de guardarlo.
+    if (estado.metodoAsistencia !== "LISTADO") {
+      elegirMetodoAsistencia("LISTADO");
+    } else {
+      mostrarPanelMetodoAsistencia(estado.metodoAsistencia);
+    }
     iniciarHeartbeat();
     iniciarPollingFirmantes();
     cargarRolesForo();
