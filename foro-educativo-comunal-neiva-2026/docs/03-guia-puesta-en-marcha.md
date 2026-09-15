@@ -1696,14 +1696,65 @@ la Sesión 1").
   etiquetas OK en `Index.html`. No probado en vivo desde un navegador — en particular, no se probó el envío
   real de `enviarFormatoAsistenciaPorCorreo` ni el flujo completo de gate en el checkbox.
 
+## 4.54 Cuadragésimo segundo lote: las 11 preguntas reales del FEI reemplazan a Sesión 1 (item 16)
+
+El más grande de la Sección D — reemplaza las 8 preguntas genéricas de Sesión 1 (REFLEXIONES, DESAFIOS,
+APUESTAS, CONCLUSIONES, PRIORIDADES, PROPUESTAS_COLECTIVAS, ACUERDOS, RUTA) por las 11 preguntas reales del
+punto 3.1 del Documento Orientador FEM2026, agrupadas en sus 3 temas originales, con nuevas claves de campo
+(`FEM2025_P1/P2`, `CURRICULO_P1..P5`, `GOBIERNO_P1..P4`):
+
+- **1. Avances FEM2025 y políticas públicas** (2 preguntas): avances en los retos/propósitos del FEM2025;
+  avances en la implementación de preescolar (jardín, prejardín).
+- **2. Currículos que nazcan del territorio** (5 preguntas): pertinencia de los currículos con la realidad
+  territorial; acciones para transformarlos (mín. 3, máx. 5 acciones); equipos de trabajo institucional;
+  articulación de esos equipos; mecanismos de seguimiento.
+- **3. Gobierno en instituciones educativas donde participar signifique decidir** (4 preguntas): participación
+  y democracia en la toma de decisiones; acciones para una participación más incidente (mín. 3, máx. 5
+  acciones); equipos de trabajo institucional; mecanismos de seguimiento.
+- **"Mismos criterios de contador de palabras y tipo de selección que ya usa la app"**: se interpretó como
+  aplicar a las 11 preguntas el mismo criterio que ya tenían las 4 preguntas más exigentes de la Sesión 1
+  original (50-400 palabras, contador en vivo) y hacerlas todas obligatorias para el envío definitivo — antes
+  la app tenía dos niveles distintos (4 preguntas con rango de palabras + 4 sin rango); como las 11 nuevas
+  son todas preguntas orientadoras igual de centrales del FEI, no había una forma natural de mantener esa
+  distinción de dos niveles, así que se unificó en el nivel más exigente que ya existía.
+- **Sin cambio de tipo de campo**: las preguntas "enunciar mínimo 3, máximo 5 acciones concretas" siguen
+  siendo textareas de texto libre (igual que el resto) — no se construyó un input de lista/repetible nuevo,
+  ya que el pedido no especificaba una interfaz distinta y el criterio de "mismo tipo de selección que ya usa
+  la app" no señala ningún campo de opción múltiple existente del que copiar un patrón.
+- **`Sesion1.gs`**: `cabecerasSesion1Comunal_()` con las 11 columnas nuevas; REFLEXIONES..RUTA (las 8 viejas)
+  se movieron al bloque de "columnas heredadas, ya no se muestran en pantalla" (mismo patrón que
+  PROPUESTAS_IE/EXPERIENCIAS/etc de una versión anterior) — se conservan por si algún grupo ya las hubiera
+  diligenciado, pero no se pierden ni se leen más. `CAMPOS_SESION1_CON_RANGO_PALABRAS_` y
+  `CAMPOS_SESION1_OBLIGATORIOS_` apuntan ahora a las 11 nuevas.
+- **Punto de fuga encontrado y corregido durante el propio desarrollo**: `CAMPOS_SESION1` en JS.html (el
+  arreglo que controla tanto `recolectarCamposSesion1()`/autoguardado como `cargarSesion1()`/carga desde la
+  nube) todavía tenía los nombres de campo viejos — sin este cambio, los 11 textareas nuevos habrían quedado
+  completamente desconectados del guardado y la carga (visualmente presentes pero inertes). Se corrigió junto
+  con `PREGUNTAS_SOLO_LECTURA_SESION1_` (vista de solo lectura tras el envío) y `CAMPOS_REVISAR_SESION1_`
+  ("Revisar todo antes de enviar", Revisión y cierre).
+- **`Informes.gs`**: el informe generado ahora presenta las 11 preguntas agrupadas por sus 3 temas, en vez
+  de los dos bloques "Consolidado de Socialización"/"Construcción colectiva del grupo" (fusionados en uno).
+- **`Tests.gs`**: `testFlujoCompletoGrupoPrueba` ahora llena las 11 claves nuevas (con las 4 originales ya
+  no habría alcanzado el mínimo de campos obligatorios que exige `enviarSesion1Definitiva`).
+- **"Aportes de preparación por institución" (`tarjetaSocializacionPreparacion`, dentro de Sesión 1) se
+  ocultó**: dependía enteramente de la vieja "Preparación" (oculta desde el item 9) — sin ningún productor de
+  datos, siempre se habría visto vacía junto a las preguntas nuevas. Se dejó con `class="oculto"` sin
+  borrarla, y se quitó la llamada a `cargarSocializacionPreparacion()` en `cambiarPantalla` (la función en sí
+  queda intacta). El botón "Atrás" de Sesión 1 apuntaba a `pantallaSeleccionIEPreparacion` (también oculta,
+  del mismo item 9) — se corrigió a `pantallaSesionSocializacion`, su verdadero paso anterior desde el Lote 39.
+- Verificado: `node --check` sobre `Sesion1.gs`/`Informes.gs`/`Tests.gs` y los bloques `<script>` de
+  `Index.html`/`JS.html` (limpio, mismos dos falsos positivos ya conocidos); búsqueda exhaustiva en todo el
+  proyecto de los 8 nombres de campo viejos para confirmar que solo quedan en el bloque de columnas heredadas
+  de `Sesion1.gs` (intencional); IDs sin duplicar y balance de etiquetas OK en `Index.html`. No probado en
+  vivo desde un navegador — en particular, no se verificó visualmente el guardado/autoguardado real de los
+  11 campos nuevos ni la generación del informe con datos reales.
+
 ### Backlog restante del Documento Orientador FEM2026
 
-Queda pendiente, en el orden ya confirmado con el usuario: **16** (reemplazar las 11 preguntas actuales de
-Sesión 1 por las preguntas reales del Foro Educativo Institucional, ya transcritas en una respuesta anterior
-de esta conversación) — el más grande y el que más se beneficia de los items 9-10 ya resueltos. Luego Sección
-E (ConectaEduca: consentimiento y asistencia propios, lo que también permitirá terminar el item 13 dándole a
-ConectaEduca su propio formato de asistencia), F (valoraciones separadas, escala numérica, texto "la sesión
-de hoy") y G (nueva opción de estamento "Funcionario Secretaría de Educación").
+Queda pendiente, en el orden ya confirmado con el usuario: Sección E (ConectaEduca: consentimiento y
+asistencia propios, lo que también permitirá terminar el item 13 dándole a ConectaEduca su propio formato de
+asistencia), F (valoraciones separadas, escala numérica, texto "la sesión de hoy") y G (nueva opción de
+estamento "Funcionario Secretaría de Educación").
 
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 

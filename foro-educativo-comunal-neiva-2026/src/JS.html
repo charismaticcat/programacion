@@ -315,7 +315,10 @@ function cambiarPantalla(idPantalla) {
   if (idPantalla === "pantallaSesion1") {
     cargarSesion1();
     cargarRecursosSesion1();
-    cargarSocializacionPreparacion();
+    // cargarSocializacionPreparacion() ya no se llama: dependía de
+    // "Preparación" (oculta desde el item 9), así que su contenedor
+    // (tarjetaSocializacionPreparacion) siempre estaría vacío — queda
+    // oculto en Index.html en vez de mostrarse vacío.
     // "Continuar a Revisión y cierre" no se habilita hasta que Sesión 1 se
     // envió de forma definitiva (spec del usuario) — se refresca cada vez
     // que se entra a esta pantalla, no solo tras hacer clic en Enviar,
@@ -2668,8 +2671,10 @@ document.getElementById("btnVerTodosFirmantes").addEventListener("click", functi
 // (preguntas de grupo + segunda parte + aporte propio) — todos comparten
 // el mismo autoguardado y el mismo UPSERT-por-grupo (Sesion1.gs).
 var CAMPOS_SESION1 = [
-  "REFLEXIONES", "DESAFIOS", "APUESTAS", "CONCLUSIONES",
-  "PRIORIDADES", "PROPUESTAS_COLECTIVAS", "ACUERDOS", "RUTA",
+  // Sesión 1 — las 11 preguntas reales del FEI (item 16, Documento Orientador FEM2026).
+  "FEM2025_P1", "FEM2025_P2",
+  "CURRICULO_P1", "CURRICULO_P2", "CURRICULO_P3", "CURRICULO_P4", "CURRICULO_P5",
+  "GOBIERNO_P1", "GOBIERNO_P2", "GOBIERNO_P3", "GOBIERNO_P4",
   "NECESIDADES_ARTICULACION_GRUPO", "OPORTUNIDADES_GRUPO",
   "APRECIACION_SENA_GRUPO", "PROFUNDIZACIONES_GRUPO",
   "PRIORIDADES_CE", "ACUERDOS_CE", "PROPUESTAS_CE", "RUTA_CE",
@@ -2737,16 +2742,19 @@ function cargarSesion1() {
   });
 }
 
-/** Preguntas de "Construcción colectiva del grupo" (Sesión 1) para la vista de solo lectura. */
+/** Las 11 preguntas reales del FEI (item 16, Sesión 1) para la vista de solo lectura. */
 var PREGUNTAS_SOLO_LECTURA_SESION1_ = [
-  { clave: "REFLEXIONES", etiqueta: "Reflexiones" },
-  { clave: "DESAFIOS", etiqueta: "Desafíos comunes" },
-  { clave: "APUESTAS", etiqueta: "Apuestas compartidas" },
-  { clave: "CONCLUSIONES", etiqueta: "Conclusiones" },
-  { clave: "PRIORIDADES", etiqueta: "Prioridades" },
-  { clave: "PROPUESTAS_COLECTIVAS", etiqueta: "Propuestas colectivas" },
-  { clave: "ACUERDOS", etiqueta: "Acuerdos" },
-  { clave: "RUTA", etiqueta: "Ruta de trabajo" }
+  { clave: "FEM2025_P1", etiqueta: "Avances en los retos y propósitos del FEM2025" },
+  { clave: "FEM2025_P2", etiqueta: "Avances en la implementación de preescolar (jardín, prejardín)" },
+  { clave: "CURRICULO_P1", etiqueta: "Pertinencia de los currículos con la realidad territorial" },
+  { clave: "CURRICULO_P2", etiqueta: "Acciones para transformar los currículos" },
+  { clave: "CURRICULO_P3", etiqueta: "Equipos de trabajo institucional (currículo)" },
+  { clave: "CURRICULO_P4", etiqueta: "Articulación de los equipos de trabajo (currículo)" },
+  { clave: "CURRICULO_P5", etiqueta: "Mecanismos de seguimiento (currículo)" },
+  { clave: "GOBIERNO_P1", etiqueta: "Participación y democracia en la toma de decisiones" },
+  { clave: "GOBIERNO_P2", etiqueta: "Acciones para una participación más incidente" },
+  { clave: "GOBIERNO_P3", etiqueta: "Equipos de trabajo institucional (gobierno)" },
+  { clave: "GOBIERNO_P4", etiqueta: "Mecanismos de seguimiento (gobierno)" }
 ];
 /** Preguntas de ConectaEduca (Sesión 2) para la vista de solo lectura (sin la tabla de actores, que no se bloquea). */
 var PREGUNTAS_SOLO_LECTURA_SESION2_ = [
@@ -3617,14 +3625,17 @@ document.getElementById("btnAsistenciaVerificada").addEventListener("click", fun
  * arriesgar guardar el valor equivocado.
  * ------------------------------------------------------------------ */
 var CAMPOS_REVISAR_SESION1_ = [
-  { clave: "REFLEXIONES", etiqueta: "Reflexiones" },
-  { clave: "DESAFIOS", etiqueta: "Desafíos comunes" },
-  { clave: "APUESTAS", etiqueta: "Apuestas compartidas" },
-  { clave: "CONCLUSIONES", etiqueta: "Conclusiones" },
-  { clave: "PRIORIDADES", etiqueta: "Prioridades" },
-  { clave: "PROPUESTAS_COLECTIVAS", etiqueta: "Propuestas colectivas" },
-  { clave: "ACUERDOS", etiqueta: "Acuerdos" },
-  { clave: "RUTA", etiqueta: "Ruta de trabajo" },
+  { clave: "FEM2025_P1", etiqueta: "Avances en los retos y propósitos del FEM2025" },
+  { clave: "FEM2025_P2", etiqueta: "Avances en la implementación de preescolar (jardín, prejardín)" },
+  { clave: "CURRICULO_P1", etiqueta: "Pertinencia de los currículos con la realidad territorial" },
+  { clave: "CURRICULO_P2", etiqueta: "Acciones para transformar los currículos" },
+  { clave: "CURRICULO_P3", etiqueta: "Equipos de trabajo institucional (currículo)" },
+  { clave: "CURRICULO_P4", etiqueta: "Articulación de los equipos de trabajo (currículo)" },
+  { clave: "CURRICULO_P5", etiqueta: "Mecanismos de seguimiento (currículo)" },
+  { clave: "GOBIERNO_P1", etiqueta: "Participación y democracia en la toma de decisiones" },
+  { clave: "GOBIERNO_P2", etiqueta: "Acciones para una participación más incidente" },
+  { clave: "GOBIERNO_P3", etiqueta: "Equipos de trabajo institucional (gobierno)" },
+  { clave: "GOBIERNO_P4", etiqueta: "Mecanismos de seguimiento (gobierno)" },
   { clave: "APORTE_PROPIO_S1_TITULO", etiqueta: "Aporte propio del grupo — Título", tipo: "text" },
   { clave: "APORTE_PROPIO_S1_TEXTO", etiqueta: "Aporte propio del grupo — Descripción" }
 ];

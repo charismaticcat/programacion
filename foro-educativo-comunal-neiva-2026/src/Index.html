@@ -566,9 +566,10 @@
   <section id="pantallaSesion1" class="pantalla">
     <div class="tarjeta">
       <h2 class="titulo-seccion">Consolidado de Socialización</h2>
-      <p class="ayuda">Luego de leer los aportes de cada IE, y de los invitados, registre lo más relevante de
-        la socialización (un consolidado por grupo, no por IE). Opcionalmente, en caso de existir
-        hallazgos, reflexiones o propuestas propias de la comunidad que no encajen en las preguntas
+      <p class="ayuda">Con base en lo socializado por cada institución educativa (Sesión de socialización,
+        pantalla anterior), registre las respuestas colectivas del grupo a las preguntas orientadoras del
+        Foro Educativo Institucional (un consolidado por grupo, no por IE). Opcionalmente, en caso de
+        existir hallazgos, reflexiones o propuestas propias de la comunidad que no encajen en las preguntas
         anteriores pueden escribirlos al final. Todos los campos son obligatorios.</p>
 
       <div class="tarjeta-recursos">
@@ -578,7 +579,7 @@
         <div id="listaRecursosSesion1Botones" class="fila-botones-recursos"></div>
       </div>
 
-      <div class="tarjeta-socializacion" id="tarjetaSocializacionPreparacion">
+      <div class="tarjeta-socializacion oculto" id="tarjetaSocializacionPreparacion">
         <h3 class="subtitulo-campo">🗣️ Aportes de preparación por institución</h3>
         <p class="ayuda">Lo que cada institución envió en la Sesión de preparación, para socializar
           oralmente con el grupo y la comunidad asistente. Si durante la socialización surgen cambios frente
@@ -606,36 +607,58 @@
       </div>
 
       <div id="camposEditablesSesion1">
-        <h3 class="subtitulo-campo">Reflexiones</h3>
-        <p class="ayuda">Ideas centrales que dejó la socialización: qué aprendizajes, coincidencias o tensiones
-          surgieron al escuchar a las instituciones del grupo.</p>
-        <textarea lang="es" spellcheck="true" id="campo_REFLEXIONES" data-campo-sesion1="REFLEXIONES" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
-        <h3 class="subtitulo-campo">Desafíos comunes</h3>
-        <p class="ayuda">Dificultades o retos que varias instituciones del grupo comparten y que conviene
-          abordar juntas.</p>
-        <textarea lang="es" spellcheck="true" id="campo_DESAFIOS" data-campo-sesion1="DESAFIOS" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
-        <h3 class="subtitulo-campo">Apuestas compartidas</h3>
-        <p class="ayuda">Compromisos o líneas de trabajo que el grupo decide impulsar en conjunto de aquí en
-          adelante.</p>
-        <textarea lang="es" spellcheck="true" id="campo_APUESTAS" data-campo-sesion1="APUESTAS" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
-        <h3 class="subtitulo-campo">Conclusiones</h3>
-        <p class="ayuda">Síntesis final de lo discutido en esta sesión: lo más importante para dejar
-          registrado.</p>
-        <textarea lang="es" spellcheck="true" id="campo_CONCLUSIONES" data-campo-sesion1="CONCLUSIONES" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+        <h3 class="subtitulo-campo" style="margin-top:0;">1. Avances FEM2025 y políticas públicas</h3>
 
-        <h3 class="subtitulo-campo">Prioridades</h3>
-        <p class="ayuda">Asuntos que el grupo considera más urgentes o importantes de atender.</p>
-        <textarea lang="es" spellcheck="true" id="campo_PRIORIDADES" data-campo-sesion1="PRIORIDADES"></textarea>
-        <h3 class="subtitulo-campo">Propuestas colectivas</h3>
-        <p class="ayuda">Iniciativas concretas que el grupo propone para atender esas prioridades.</p>
-        <textarea lang="es" spellcheck="true" id="campo_PROPUESTAS_COLECTIVAS" data-campo-sesion1="PROPUESTAS_COLECTIVAS"></textarea>
-        <h3 class="subtitulo-campo">Acuerdos</h3>
-        <p class="ayuda">Compromisos específicos a los que llegó el grupo (quién, qué y cuándo, si aplica).</p>
-        <textarea lang="es" spellcheck="true" id="campo_ACUERDOS" data-campo-sesion1="ACUERDOS"></textarea>
-        <h3 class="subtitulo-campo">Ruta de trabajo</h3>
-        <p class="ayuda">Pasos siguientes que el grupo definió para llevar estas propuestas y acuerdos a la
-          práctica.</p>
-        <textarea lang="es" spellcheck="true" id="campo_RUTA" data-campo-sesion1="RUTA"></textarea>
+        <p class="ayuda">¿Cómo hemos avanzado, desde nuestra institución educativa, en el logro de los retos
+          y propósitos planteados en el FEM2025?</p>
+        <textarea lang="es" spellcheck="true" id="campo_FEM2025_P1" data-campo-sesion1="FEM2025_P1" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+
+        <p class="ayuda">¿Cómo hemos avanzado, desde nuestra institución educativa, en la implementación de
+          los nuevos grados del nivel de preescolar (jardín, prejardín)?</p>
+        <textarea lang="es" spellcheck="true" id="campo_FEM2025_P2" data-campo-sesion1="FEM2025_P2" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+
+        <h3 class="subtitulo-campo">2. Currículos que nazcan del territorio</h3>
+
+        <p class="ayuda">¿Consideran que los currículos actuales que se desarrollan en las instituciones
+          educativas son pertinentes con sus realidades territoriales (sociales, culturales, productivas)?
+          ¿Por qué?</p>
+        <textarea lang="es" spellcheck="true" id="campo_CURRICULO_P1" data-campo-sesion1="CURRICULO_P1" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+
+        <p class="ayuda">¿Qué acciones se están implementando para la transformación de los currículos,
+          haciéndolos más pertinentes y contextualizados en la Institución Educativa? (Enunciar mínimo 3,
+          máximo 5 acciones concretas)</p>
+        <textarea lang="es" spellcheck="true" id="campo_CURRICULO_P2" data-campo-sesion1="CURRICULO_P2" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+
+        <p class="ayuda">¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y
+          desarrollar estas acciones?</p>
+        <textarea lang="es" spellcheck="true" id="campo_CURRICULO_P3" data-campo-sesion1="CURRICULO_P3" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+
+        <p class="ayuda">¿Cómo se están articulando estos equipos de trabajo para lograr currículos más
+          pertinentes territorialmente?</p>
+        <textarea lang="es" spellcheck="true" id="campo_CURRICULO_P4" data-campo-sesion1="CURRICULO_P4" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+
+        <p class="ayuda">¿Qué mecanismos de seguimiento se están implementando para que dichas acciones se
+          cumplan?</p>
+        <textarea lang="es" spellcheck="true" id="campo_CURRICULO_P5" data-campo-sesion1="CURRICULO_P5" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+
+        <h3 class="subtitulo-campo">3. Gobierno en instituciones educativas donde participar signifique decidir</h3>
+
+        <p class="ayuda">¿Consideran que la toma de decisiones en las instituciones educativas actualmente es
+          participativa y democrática? ¿Por qué?</p>
+        <textarea lang="es" spellcheck="true" id="campo_GOBIERNO_P1" data-campo-sesion1="GOBIERNO_P1" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+
+        <p class="ayuda">¿Qué tipo de acciones se están implementando para que las comunidades y diferentes
+          actores interesados en la educación puedan participar de manera más incidente en el desarrollo y
+          el enfoque institucional? (Enunciar mínimo 3, máximo 5 acciones concretas)</p>
+        <textarea lang="es" spellcheck="true" id="campo_GOBIERNO_P2" data-campo-sesion1="GOBIERNO_P2" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+
+        <p class="ayuda">¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y
+          desarrollar estas acciones?</p>
+        <textarea lang="es" spellcheck="true" id="campo_GOBIERNO_P3" data-campo-sesion1="GOBIERNO_P3" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+
+        <p class="ayuda">¿Qué mecanismos de seguimiento se están implementando para garantizar las acciones
+          encaminadas a promover gobiernos educativos democráticos?</p>
+        <textarea lang="es" spellcheck="true" id="campo_GOBIERNO_P4" data-campo-sesion1="GOBIERNO_P4" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
 
         <details class="desplegable-aporte">
           <summary>➕ Aporte propio del grupo (opcional)</summary>
@@ -654,7 +677,7 @@
       </div>
     </div>
     <div class="fila-botones">
-      <button class="btn btn-secundario" data-ir="pantallaSeleccionIEPreparacion">Atrás</button>
+      <button class="btn btn-secundario" data-ir="pantallaSesionSocializacion">Atrás</button>
       <button class="btn btn-primario" id="btnContinuarACierreEncuentro" data-ir="pantallaRevisionCierre" disabled title="Envíe primero Sesión 1 de forma definitiva">Continuar a Revisión y cierre</button>
     </div>
     <p class="ayuda oculto" id="avisoSesion1NoEnviada" style="text-align:center;">Envíe Sesión 1 de forma

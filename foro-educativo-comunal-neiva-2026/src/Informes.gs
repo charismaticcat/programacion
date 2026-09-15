@@ -307,11 +307,34 @@ function generarInformeGrupo(idGrupo) {
     });
   }
 
-  // Consolidado de Socialización (Sesión 1, tarjeta 1).
+  // Sesión 1 — las 11 preguntas reales del Foro Educativo Institucional
+  // (item 16, Documento Orientador FEM2026), agrupadas por sus 3 temas.
   titulo1_(body, "Consolidado de Socialización (Sesión 1)");
+  subtitulo_(body, "1. Avances FEM2025 y políticas públicas");
   [
-    ["Reflexiones", "REFLEXIONES"], ["Desafíos comunes", "DESAFIOS"],
-    ["Apuestas compartidas", "APUESTAS"], ["Conclusiones", "CONCLUSIONES"]
+    ["Avances en los retos y propósitos del FEM2025", "FEM2025_P1"],
+    ["Avances en la implementación de preescolar (jardín, prejardín)", "FEM2025_P2"]
+  ].forEach(function (par) {
+    subtitulo_(body, par[0]);
+    parrafo_(body, sesion1[par[1]]);
+  });
+  subtitulo_(body, "2. Currículos que nazcan del territorio");
+  [
+    ["Pertinencia de los currículos con la realidad territorial", "CURRICULO_P1"],
+    ["Acciones para transformar los currículos", "CURRICULO_P2"],
+    ["Equipos de trabajo institucional", "CURRICULO_P3"],
+    ["Articulación de los equipos de trabajo", "CURRICULO_P4"],
+    ["Mecanismos de seguimiento", "CURRICULO_P5"]
+  ].forEach(function (par) {
+    subtitulo_(body, par[0]);
+    parrafo_(body, sesion1[par[1]]);
+  });
+  subtitulo_(body, "3. Gobierno en instituciones educativas donde participar signifique decidir");
+  [
+    ["Participación y democracia en la toma de decisiones", "GOBIERNO_P1"],
+    ["Acciones para una participación más incidente", "GOBIERNO_P2"],
+    ["Equipos de trabajo institucional", "GOBIERNO_P3"],
+    ["Mecanismos de seguimiento", "GOBIERNO_P4"]
   ].forEach(function (par) {
     subtitulo_(body, par[0]);
     parrafo_(body, sesion1[par[1]]);
@@ -322,16 +345,6 @@ function generarInformeGrupo(idGrupo) {
     subtitulo_(body, sesion1.APORTE_PROPIO_S1_TITULO || "Aporte propio del grupo");
     parrafo_(body, sesion1.APORTE_PROPIO_S1_TEXTO);
   }
-
-  // Construcción colectiva del grupo.
-  titulo1_(body, "Construcción colectiva del grupo");
-  [
-    ["Prioridades", "PRIORIDADES"], ["Propuestas colectivas", "PROPUESTAS_COLECTIVAS"],
-    ["Acuerdos", "ACUERDOS"], ["Ruta de trabajo", "RUTA"]
-  ].forEach(function (par) {
-    subtitulo_(body, par[0]);
-    parrafo_(body, sesion1[par[1]]);
-  });
 
   // ConectaEduca.
   titulo1_(body, "ConectaEduca — oportunidades de articulación");

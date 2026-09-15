@@ -154,14 +154,18 @@ function testFlujoCompletoGrupoPrueba() {
     "longitud mínima y máxima de palabras funcionan correctamente en este entorno de pruebas.";
 
   var guardado = guardarSesion1("GRUPO-PRUEBA", tokenSesion, dispositivoId, {
-    REFLEXIONES: TEXTO_PRUEBA_50_PALABRAS_,
-    DESAFIOS: TEXTO_PRUEBA_50_PALABRAS_,
-    APUESTAS: TEXTO_PRUEBA_50_PALABRAS_,
-    CONCLUSIONES: TEXTO_PRUEBA_50_PALABRAS_,
-    PRIORIDADES: "Texto de prueba — prioridades.",
-    PROPUESTAS_COLECTIVAS: "Texto de prueba — propuestas colectivas.",
-    ACUERDOS: "Texto de prueba — acuerdos.",
-    RUTA: "Texto de prueba — ruta de trabajo.",
+    // Las 11 preguntas reales del FEI (item 16) — todas exigen 50-400 palabras.
+    FEM2025_P1: TEXTO_PRUEBA_50_PALABRAS_,
+    FEM2025_P2: TEXTO_PRUEBA_50_PALABRAS_,
+    CURRICULO_P1: TEXTO_PRUEBA_50_PALABRAS_,
+    CURRICULO_P2: TEXTO_PRUEBA_50_PALABRAS_,
+    CURRICULO_P3: TEXTO_PRUEBA_50_PALABRAS_,
+    CURRICULO_P4: TEXTO_PRUEBA_50_PALABRAS_,
+    CURRICULO_P5: TEXTO_PRUEBA_50_PALABRAS_,
+    GOBIERNO_P1: TEXTO_PRUEBA_50_PALABRAS_,
+    GOBIERNO_P2: TEXTO_PRUEBA_50_PALABRAS_,
+    GOBIERNO_P3: TEXTO_PRUEBA_50_PALABRAS_,
+    GOBIERNO_P4: TEXTO_PRUEBA_50_PALABRAS_,
     NECESIDADES_ARTICULACION_GRUPO: "Texto de prueba — necesidades de articulación.",
     OPORTUNIDADES_GRUPO: "Texto de prueba — oportunidades identificadas.",
     PRIORIDADES_CE: TEXTO_PRUEBA_50_PALABRAS_,

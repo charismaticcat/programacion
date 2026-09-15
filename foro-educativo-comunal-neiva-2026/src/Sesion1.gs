@@ -15,10 +15,15 @@ var HOJA_SESION1_COMUNAL_ = "Sesion1Comunal";
 function cabecerasSesion1Comunal_() {
   return [
     "ID_GRUPO",
-    // Consolidado de Socialización (Sesión 1, tarjeta 1) — 4 preguntas, min 50/máx 400 palabras.
-    "REFLEXIONES", "DESAFIOS", "APUESTAS", "CONCLUSIONES",
-    // Construcción colectiva del grupo (Sesión 1, tarjeta 2).
-    "PRIORIDADES", "PROPUESTAS_COLECTIVAS", "ACUERDOS", "RUTA",
+    // Sesión 1 (item 16, Documento Orientador FEM2026): las 11 preguntas
+    // reales del Foro Educativo Institucional (punto 3.1 del documento),
+    // agrupadas por sus 3 temas — reemplazan a las 8 preguntas genéricas
+    // anteriores (REFLEXIONES...RUTA, ver columnas heredadas más abajo).
+    // Min 50/máx 400 palabras, las 11 obligatorias (mismos criterios que
+    // ya usaba la app).
+    "FEM2025_P1", "FEM2025_P2",
+    "CURRICULO_P1", "CURRICULO_P2", "CURRICULO_P3", "CURRICULO_P4", "CURRICULO_P5",
+    "GOBIERNO_P1", "GOBIERNO_P2", "GOBIERNO_P3", "GOBIERNO_P4",
     // Preguntas de grupo antes de ConectaEduca (Sesión 2) — se guardan
     // aquí por simplicidad, igual que el resto: no son por actor, son
     // UN solo par de respuestas por grupo.
@@ -39,23 +44,33 @@ function cabecerasSesion1Comunal_() {
     "APORTE_PROPIO_S1_TITULO", "APORTE_PROPIO_S1_TEXTO",
     "APORTE_PROPIO_S2_TITULO", "APORTE_PROPIO_S2_TEXTO",
     // Columnas heredadas de versiones anteriores de la app, ya no se
-    // muestran en pantalla (spec: "elimina todo y solo deja..."), pero se
-    // conservan aquí para no perder ni desalinear datos ya capturados por
-    // grupos que las hayan diligenciado antes de este cambio.
+    // muestran en pantalla, pero se conservan aquí para no perder ni
+    // desalinear datos ya capturados por grupos que las hayan
+    // diligenciado antes de este cambio. REFLEXIONES..RUTA eran las 8
+    // preguntas genéricas de Sesión 1 antes del item 16 (Documento
+    // Orientador FEM2026), reemplazadas por FEM2025_P1..GOBIERNO_P4.
+    "REFLEXIONES", "DESAFIOS", "APUESTAS", "CONCLUSIONES",
+    "PRIORIDADES", "PROPUESTAS_COLECTIVAS", "ACUERDOS", "RUTA",
     "PROPUESTAS_IE", "EXPERIENCIAS", "RETOS", "APORTES_TERRITORIALES", "CONVERGENCIAS", "IDENTIDAD",
     "ULTIMA_ACTUALIZACION"
   ];
 }
 
-/** Campos con mínimo 50 / máximo 400 palabras (Sesión 1 tarjeta 1 + ConectaEduca segunda parte). */
-var CAMPOS_SESION1_CON_RANGO_PALABRAS_ = ["REFLEXIONES", "DESAFIOS", "APUESTAS", "CONCLUSIONES", "PRIORIDADES_CE", "ACUERDOS_CE", "PROPUESTAS_CE", "RUTA_CE"];
+/** Campos con mínimo 50 / máximo 400 palabras (Sesión 1 + ConectaEduca segunda parte). */
+var CAMPOS_SESION1_CON_RANGO_PALABRAS_ = [
+  "FEM2025_P1", "FEM2025_P2",
+  "CURRICULO_P1", "CURRICULO_P2", "CURRICULO_P3", "CURRICULO_P4", "CURRICULO_P5",
+  "GOBIERNO_P1", "GOBIERNO_P2", "GOBIERNO_P3", "GOBIERNO_P4",
+  "PRIORIDADES_CE", "ACUERDOS_CE", "PROPUESTAS_CE", "RUTA_CE"
+];
 var MIN_PALABRAS_SESION1_ = 50;
 var MAX_PALABRAS_SESION1_ = 400;
 
-/** Campos obligatorios para el envío definitivo de Sesión 1 (la síntesis colectiva). */
+/** Campos obligatorios para el envío definitivo de Sesión 1 — las 11 preguntas reales del FEI (item 16). */
 var CAMPOS_SESION1_OBLIGATORIOS_ = [
-  "REFLEXIONES", "DESAFIOS", "APUESTAS", "CONCLUSIONES",
-  "PRIORIDADES", "PROPUESTAS_COLECTIVAS", "ACUERDOS", "RUTA"
+  "FEM2025_P1", "FEM2025_P2",
+  "CURRICULO_P1", "CURRICULO_P2", "CURRICULO_P3", "CURRICULO_P4", "CURRICULO_P5",
+  "GOBIERNO_P1", "GOBIERNO_P2", "GOBIERNO_P3", "GOBIERNO_P4"
 ];
 
 /** Campos obligatorios para el envío definitivo de Sesión 2 / ConectaEduca (Sesion1.gs los guarda, ConectaEduca.gs los valida). */
