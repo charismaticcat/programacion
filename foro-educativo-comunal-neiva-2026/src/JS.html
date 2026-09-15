@@ -83,13 +83,19 @@ function urlImagenDrive(idArchivo, ancho) {
 // (más abajo), así que pantallaPerteneceASeccionActual_ las rechaza y
 // nada en la app navega hacia ellas. pantallaSesionSocializacion las
 // reemplaza (item 10).
+// Confirmación de caracterización se movió al final del recorrido, justo
+// antes de Revisión y cierre (spec del usuario) — antes iba justo después
+// de Participación, como paso intermedio obligatorio hacia las sesiones
+// de trabajo; ahora es el último chequeo ("verificar que todo esté
+// correcto") antes de valorar y generar el informe.
 var ORDEN_PANTALLAS = [
   "pantallaEleccionSeccion", "pantallaAcceso", "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia",
-  "pantallaConsentimientoGrupo", "pantallaConsentimientoConectaEduca", "pantallaParticipacion", "pantallaConfirmacionCaracterizacion",
+  "pantallaConsentimientoGrupo", "pantallaConsentimientoConectaEduca", "pantallaParticipacion",
   "pantallaInvitadosEspeciales",
   "pantallaPreSocializacion", "pantallaSeleccionIEPreparacion", "pantallaPreparacionIE",
   "pantallaSesionSocializacion",
-  "pantallaSesion1", "pantallaSesion2", "pantallaRevisionCierre",
+  "pantallaSesion1", "pantallaSesion2",
+  "pantallaConfirmacionCaracterizacion", "pantallaRevisionCierre",
   "pantallaInformeGenerado", "pantallaDespedida"
 ];
 
@@ -196,15 +202,15 @@ function llamarServidor(nombreFuncion, args, onExito, onError) {
  */
 var PASOS_PROGRESO_ENCUENTRO_ = [
   { id: "pantallaParticipacion", etiqueta: "Participación" },
-  { id: "pantallaConfirmacionCaracterizacion", etiqueta: "Caracterización" },
   { id: "pantallaSesionSocializacion", etiqueta: "Socialización" },
   { id: "pantallaSesion1", etiqueta: "Sesión 1" },
+  { id: "pantallaConfirmacionCaracterizacion", etiqueta: "Caracterización" },
   { id: "pantallaRevisionCierre", etiqueta: "Cierre" }
 ];
 var PASOS_PROGRESO_CONECTAEDUCA_ = [
   { id: "pantallaParticipacion", etiqueta: "Participación" },
-  { id: "pantallaConfirmacionCaracterizacion", etiqueta: "Caracterización" },
   { id: "pantallaSesion2", etiqueta: "Conecta Educa" },
+  { id: "pantallaConfirmacionCaracterizacion", etiqueta: "Caracterización" },
   { id: "pantallaRevisionCierre", etiqueta: "Cierre" }
 ];
 function pasosProgresoSeccionActual_() {
@@ -865,9 +871,13 @@ function cargarRecursosSesion1() {
  * Sesión de socialización (Documento Orientador FEM2026, sección D,
  * item 10) — reemplaza a "Preparación" (item 9): checklist de qué IE ya
  * socializó, con un temporizador de apoyo (10 min + botón "+2 minutos")
- * por institución. Al dar "Finalizar" se abre la ventana de "Datos
- * relevantes" de esa IE para anotar lo compartido; también se puede
- * abrir esa ventana en cualquier momento sin pasar por el temporizador.
+ * por institución. Mientras el temporizador corre, la pantalla se parte
+ * a la mitad (spec del usuario): una mitad el reloj, la otra un textarea
+ * con botón "Guardar" para consolidar en vivo lo compartido por esa IE
+ * — "Finalizar" guarda lo que haya en ese textarea y cierra el panel. El
+ * cuadro emergente "Datos relevantes" (modalDatosRelevantesIE) se
+ * conserva solo para editar una IE que YA NO está en temporizador
+ * (data-editar-socializacion-ie).
  * ------------------------------------------------------------------ */
 var estadoSocializacion = {
   datos: [],
@@ -897,6 +907,62 @@ function _actualizarRelojSocializacion_() {
   document.getElementById("relojSocializacion").textContent = _formatoRelojSocializacion_(estadoSocializacion.segundosRestantes);
 }
 
+/**
+ * Sonidos sutiles para cada momento del temporizador (spec del usuario) —
+ * tonos cortos generados con Web Audio API (sin archivos externos que
+ * alojar), volumen bajo a propósito. Si el navegador bloquea audio sin
+ * interacción previa del usuario, falla en silencio: nunca debe romper
+ * el temporizador.
+ */
+var contextoAudioSocializacion_ = null;
+var PATRONES_SONIDO_SOCIALIZACION_ = {
+  inicio: [{ freq: 660, dur: 0.12 }],
+  mitad: [{ freq: 550, dur: 0.1 }, { freq: 550, dur: 0.1, gap: 0.08 }],
+  cierre: [{ freq: 440, dur: 0.1 }, { freq: 440, dur: 0.1, gap: 0.08 }, { freq: 440, dur: 0.1, gap: 0.08 }],
+  fin: [{ freq: 330, dur: 0.3 }]
+};
+function reproducirSonidoSocializacion_(tipo) {
+  try {
+    if (!contextoAudioSocializacion_) {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      contextoAudioSocializacion_ = new Ctx();
+    }
+    var ctx = contextoAudioSocializacion_;
+    if (ctx.state === "suspended") ctx.resume();
+    var tiempo = ctx.currentTime;
+    (PATRONES_SONIDO_SOCIALIZACION_[tipo] || []).forEach(function (nota) {
+      tiempo += nota.gap || 0;
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = nota.freq;
+      gain.gain.setValueAtTime(0.0001, tiempo);
+      gain.gain.exponentialRampToValueAtTime(0.06, tiempo + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, tiempo + nota.dur);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(tiempo);
+      osc.stop(tiempo + nota.dur + 0.02);
+      tiempo += nota.dur;
+    });
+  } catch (e) {
+    // Silencioso a propósito — ver comentario arriba.
+  }
+}
+
+/** Aviso visual breve (destello + texto) para cada momento del temporizador. */
+function mostrarAvisoMomentoSocializacion_(texto) {
+  var el = document.getElementById("avisoMomentoSocializacion");
+  if (!el) return;
+  el.textContent = texto;
+  el.classList.remove("oculto");
+  el.classList.remove("aviso-socializacion-flash");
+  // Forzar reflow para poder reiniciar la animación si ya se había mostrado antes.
+  void el.offsetWidth;
+  el.classList.add("aviso-socializacion-flash");
+}
+
 function iniciarTemporizadorSocializacionIE_(idIE, nombreIE) {
   clearInterval(estadoSocializacion.temporizadorId);
   estadoSocializacion.ieActivaId = idIE;
@@ -904,25 +970,68 @@ function iniciarTemporizadorSocializacionIE_(idIE, nombreIE) {
   estadoSocializacion.segundosRestantes = SEGUNDOS_INICIALES_SOCIALIZACION_;
   document.getElementById("nombreIESocializando").textContent = nombreIE;
   _actualizarRelojSocializacion_();
+  var registro = estadoSocializacion.datos.find(function (ie) { return ie.idIE === idIE; });
+  var campoNotas = document.getElementById("campoDatosRelevantesEnVivo");
+  if (campoNotas) campoNotas.value = registro ? (registro.datosRelevantes || "") : "";
+  mostrarMensaje("mensajeDatosRelevantesEnVivo", "");
   document.getElementById("panelTemporizadorSocializacion").classList.remove("oculto");
   document.getElementById("panelTemporizadorSocializacion").scrollIntoView({ behavior: "smooth", block: "center" });
+  mostrarAvisoMomentoSocializacion_("🟢 Socialización de " + nombreIE + " iniciada.");
+  reproducirSonidoSocializacion_("inicio");
   estadoSocializacion.temporizadorId = setInterval(function () {
     estadoSocializacion.segundosRestantes--;
     _actualizarRelojSocializacion_();
+    if (estadoSocializacion.segundosRestantes === 300) {
+      mostrarAvisoMomentoSocializacion_("🟡 Mitad de la socialización alcanzada.");
+      reproducirSonidoSocializacion_("mitad");
+    } else if (estadoSocializacion.segundosRestantes === 60) {
+      mostrarAvisoMomentoSocializacion_("🟠 Último minuto — cierre de la socialización de " + estadoSocializacion.ieActivaNombre + ".");
+      reproducirSonidoSocializacion_("cierre");
+    } else if (estadoSocializacion.segundosRestantes === 0) {
+      mostrarAvisoMomentoSocializacion_("🔴 Fin de la socialización.");
+      reproducirSonidoSocializacion_("fin");
+    }
   }, 1000);
 }
 
 document.getElementById("btnMas2MinSocializacion").addEventListener("click", function () {
   estadoSocializacion.segundosRestantes += 120;
   _actualizarRelojSocializacion_();
+  mostrarAvisoMomentoSocializacion_("➕ Se añadieron 2 minutos a la presentación de " + estadoSocializacion.ieActivaNombre + ".");
+});
+
+/** Guarda lo escrito en el textarea en vivo (botón "Guardar" o al presionar "Finalizar"). */
+function guardarDatosRelevantesEnVivo_(callback) {
+  var idIE = estadoSocializacion.ieActivaId;
+  if (!idIE) {
+    if (callback) callback();
+    return;
+  }
+  var texto = document.getElementById("campoDatosRelevantesEnVivo").value;
+  llamarServidor("rpcGuardarSocializacionIE", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, idIE, true, texto], function (r) {
+    if (!r.ok) {
+      mostrarMensaje("mensajeDatosRelevantesEnVivo", r.mensaje || "No fue posible guardar.", "error");
+      return;
+    }
+    mostrarMensaje("mensajeDatosRelevantesEnVivo", "Guardado.", "exito");
+    cargarSocializacionIE();
+    if (callback) callback();
+  }, function () {
+    mostrarMensaje("mensajeDatosRelevantesEnVivo", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+  });
+}
+
+document.getElementById("btnGuardarDatosRelevantesEnVivo").addEventListener("click", function () {
+  guardarDatosRelevantesEnVivo_();
 });
 
 document.getElementById("btnFinalizarSocializacionIE").addEventListener("click", function () {
   clearInterval(estadoSocializacion.temporizadorId);
   document.getElementById("panelTemporizadorSocializacion").classList.add("oculto");
-  abrirDatosRelevantesSocializacionIE_(estadoSocializacion.ieActivaId, estadoSocializacion.ieActivaNombre);
+  guardarDatosRelevantesEnVivo_();
 });
 
+/** Cuadro emergente "Datos relevantes" — solo para editar una IE que ya no está en temporizador. */
 function abrirDatosRelevantesSocializacionIE_(idIE, nombreIE) {
   var registro = estadoSocializacion.datos.find(function (ie) { return ie.idIE === idIE; });
   document.getElementById("tituloDatosRelevantesIE").textContent = "Datos relevantes de " + (nombreIE || (registro && registro.institucion) || "");
@@ -1917,14 +2026,14 @@ document.getElementById("btnContinuarAParticipacion").addEventListener("click", 
         "para que reciban el informe del grupo — lo encuentras en \"Responsable de envío\", más abajo en " +
         "esta misma pantalla.",
       function () {
-        cambiarPantalla("pantallaConfirmacionCaracterizacion");
+        irTrasParticipacion_();
       },
       "Colaboradores del grupo",
       { textoConfirmar: "Entendido, continuar", textoCancelar: "Volver a revisar" }
     );
     return;
   }
-  cambiarPantalla("pantallaConfirmacionCaracterizacion");
+  irTrasParticipacion_();
 });
 
 /** Instituciones del grupo cuya columna en la matriz de participación por estamento quedó en cero. */
@@ -1937,18 +2046,37 @@ function institucionesSinParticipacionMarcada_() {
 }
 
 /**
- * Tras confirmar la caracterización: Encuentro va directo a la Sesión de
+ * Tras "Continuar" en Participación: Encuentro va directo a la Sesión de
  * socialización (item 10 — reemplaza a "invitados especiales"/"Sesión de
  * preparación", ambas ocultas desde el item 9); ConectaEduca (item 8) va
- * directo a su propia pantalla.
+ * directo a su propia pantalla. Confirmación de caracterización ya NO es
+ * el siguiente paso aquí (spec del usuario: se movió al final del
+ * recorrido, justo antes de Revisión y cierre — ver
+ * irTrasConfirmarCaracterizacion_ más abajo).
  */
-function irTrasConfirmarCaracterizacion_() {
+function irTrasParticipacion_() {
   if (estado.seccion === "CONECTAEDUCA") {
     cambiarPantalla("pantallaSesion2");
     return;
   }
   cambiarPantalla("pantallaSesionSocializacion");
 }
+
+/**
+ * Tras confirmar la caracterización: a Revisión y cierre — igual para
+ * ambas secciones, ya no hace falta ramificar por estado.seccion (spec
+ * del usuario: Caracterización pasó a ser el último chequeo antes de
+ * cerrar, en vez del paso intermedio entre Participación y las sesiones
+ * de trabajo que era antes).
+ */
+function irTrasConfirmarCaracterizacion_() {
+  cambiarPantalla("pantallaRevisionCierre");
+}
+
+/** "Atrás, corregir" de Confirmación de caracterización: vuelve a la sesión de trabajo de la sección actual. */
+document.getElementById("btnAtrasCaracterizacion").addEventListener("click", function () {
+  cambiarPantalla(estado.seccion === "CONECTAEDUCA" ? "pantallaSesion2" : "pantallaSesion1");
+});
 
 // La advertencia "Verifique la participación por institución" solo se
 // muestra aquí, en la confirmación de caracterización (spec del

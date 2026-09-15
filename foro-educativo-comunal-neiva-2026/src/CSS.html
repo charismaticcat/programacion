@@ -180,6 +180,41 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--verde); bor
   color: var(--verde-oscuro);
   margin: 8px 0;
 }
+/* Pantalla partida del temporizador de socialización: una mitad para el
+   reloj, la otra para consolidar en vivo lo compartido por la IE. */
+.panel-partido-socializacion {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  align-items: stretch;
+  margin-top: 10px;
+}
+.mitad-socializacion {
+  flex: 1 1 260px;
+  min-width: 260px;
+}
+.mitad-temporizador-socializacion {
+  border-right: 1px solid var(--gris-borde);
+  padding-right: 20px;
+}
+@media (max-width: 640px) {
+  .mitad-temporizador-socializacion { border-right: none; border-bottom: 1px solid var(--gris-borde); padding-right: 0; padding-bottom: 16px; }
+}
+.mitad-notas-socializacion textarea { min-height: 220px; }
+.aviso-socializacion {
+  text-align: center;
+  font-weight: 700;
+  border-radius: var(--radio);
+  padding: 8px 12px;
+  background: var(--verde-claro);
+  color: var(--verde-oscuro);
+  margin: 4px 0 10px;
+}
+@keyframes destelloSocializacion {
+  0% { box-shadow: 0 0 0 0 rgba(11, 106, 68, 0.45); }
+  100% { box-shadow: 0 0 0 14px rgba(11, 106, 68, 0); }
+}
+.aviso-socializacion-flash { animation: destelloSocializacion 1.1s ease-out; }
 button.btn, a.btn {
   display: inline-block;
   border: none;

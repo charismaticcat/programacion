@@ -216,6 +216,9 @@
         oficial de asistencia (Parte 1) para que sea impreso y diligenciado en papel durante el encuentro.
         <strong>Quien reciba este listado debe encargarse de imprimirlo y, al finalizar, reportar la
         cantidad total de asistentes y los cargos de los asistentes por institución educativa.</strong></p>
+      <p class="mensaje info"><strong>⚠️ Solo se acepta este formato oficial</strong> — descargado, impreso y
+        diligenciado tal cual. Al subir el listado firmado en Participación, no se aceptarán formatos ni
+        plantillas distintas a la provista aquí.</p>
       <div class="fila-botones">
         <a class="btn btn-secundario" href="https://drive.google.com/file/d/<?!= FORMATO_ASISTENCIA_ENCUENTRO_ID ?>/view" target="_blank" id="btnDescargarFormatoAsistenciaConsentimiento">📥 Descargar</a>
         <button type="button" class="btn btn-secundario" id="btnCopiarFormatoAsistenciaConsentimiento">📋 Copiar enlace</button>
@@ -268,6 +271,9 @@
         oficial de asistencia de Conecta Educa para que sea impreso y diligenciado en papel durante la
         sesión. <strong>Quien reciba este listado debe encargarse de imprimirlo y, al finalizar, reportar la
         cantidad total de asistentes y los cargos de los asistentes por institución educativa.</strong></p>
+      <p class="mensaje info"><strong>⚠️ Solo se acepta este formato oficial</strong> — descargado, impreso y
+        diligenciado tal cual. Al subir el listado firmado en Participación, no se aceptarán formatos ni
+        plantillas distintas a la provista aquí.</p>
       <div class="fila-botones">
         <a class="btn btn-secundario" href="https://drive.google.com/file/d/<?!= FORMATO_ASISTENCIA_CONECTAEDUCA_ID ?>/view" target="_blank" id="btnDescargarFormatoAsistenciaConsentimientoCE">📥 Descargar</a>
         <button type="button" class="btn btn-secundario" id="btnCopiarFormatoAsistenciaConsentimientoCE">📋 Copiar enlace</button>
@@ -328,6 +334,9 @@
 
       <div id="panelMetodoListado" style="margin-top:14px;">
         <label for="campoArchivoListado">PDF del listado firmado en papel</label>
+        <p class="mensaje info"><strong>⚠️ Solo se acepta el formato oficial de asistencia</strong> —
+          descargado con el botón "Descargar formato de asistencia" (arriba), impreso y diligenciado tal
+          cual. No se aceptarán listados en un formato o diseño distinto al provisto.</p>
         <p class="ayuda">Si todavía no lo tienes a mano, puedes subirlo más adelante, desde esta misma
           pantalla.</p>
         <input type="file" id="campoArchivoListado" accept="application/pdf">
@@ -427,41 +436,6 @@
     </div>
   </section>
 
-  <!-- 7. CONFIRMACIÓN DE CARACTERIZACIÓN -->
-  <section id="pantallaConfirmacionCaracterizacion" class="pantalla">
-    <div class="tarjeta">
-      <h2 class="titulo-seccion">Confirmación de caracterización</h2>
-      <p class="ayuda">Verifica que toda la información del grupo sea correcta antes de continuar a las
-        sesiones de trabajo.</p>
-      <div id="fichaCaracterizacionGrupo"></div>
-
-      <h3 class="subtitulo-campo" style="margin-top:20px;">Participación por estamento e institución</h3>
-      <p class="ayuda">Los participantes del <span id="nombreGrupoAvisoPlazoFirmas">grupo</span> podrán firmar
-        hasta el momento en que se genere el informe. Se recomienda ir revisando que el número de firmantes
-        sea igual a los reportados en el cuadro de participación.</p>
-      <div id="resumenParticipacionEstamentoCaracterizacion" class="resumen-participacion-estamento"></div>
-      <div id="contenedorParticipacionEstamentoCaracterizacion" class="tabla-horizontal-desplazable"></div>
-
-      <div id="pieFotoCaracterizacion" class="pie-foto-grupo oculto"></div>
-      <div class="fila-botones" style="justify-content:center;" id="filaBotonFotoCaracterizacion">
-        <button type="button" class="btn btn-secundario" id="btnCambiarFotoCaracterizacion">✏️ Cambiar fotografía</button>
-      </div>
-      <div id="formularioFotoGrupoCaracterizacion" class="oculto">
-        <input type="file" id="campoFotoGrupoCaracterizacion" accept="image/*">
-        <div class="fila-botones">
-          <button class="btn btn-secundario" id="btnSubirFotoGrupoCaracterizacion">Subir fotografía del grupo</button>
-        </div>
-        <div id="mensajeFotoGrupoCaracterizacion"></div>
-      </div>
-
-      <p class="ayuda texto-cargando" id="avisoCargandoCaracterizacion"><span class="spinner-cargando"></span> Cargando información…</p>
-      <div class="fila-botones">
-        <button class="btn btn-secundario" data-ir="pantallaParticipacion">Atrás, corregir</button>
-        <button class="btn btn-primario oculto" id="btnConfirmarCaracterizacion">Confirmo que la información es correcta</button>
-      </div>
-    </div>
-  </section>
-
   <!-- 7bis. INVITADOS ESPECIALES — subpágina de "Preparación", oculta (item 9,
        ver nota más abajo, antes de pantallaPreSocializacion): ya no es
        alcanzable desde la navegación, queda en el HTML sin borrar. -->
@@ -526,17 +500,37 @@
       <div id="listaSocializacionIE"></div>
     </div>
 
+    <!-- Pantalla partida (spec del usuario): una mitad el temporizador, la
+         otra mitad para consolidar en vivo lo compartido por la IE, en vez
+         del cuadro emergente "Datos relevantes" que se abría antes solo al
+         finalizar (ese cuadro se conserva para editar una IE que ya no
+         está en temporizador — ver data-editar-socializacion-ie). -->
     <div class="tarjeta oculto" id="panelTemporizadorSocializacion">
       <h3 class="subtitulo-campo" id="nombreIESocializando"></h3>
-      <p class="temporizador-socializacion" id="relojSocializacion">10:00</p>
-      <div class="fila-botones" style="justify-content:center;">
-        <button type="button" class="btn btn-secundario" id="btnMas2MinSocializacion">+2 minutos</button>
-        <button type="button" class="btn btn-primario" id="btnFinalizarSocializacionIE">Finalizar</button>
+      <p class="aviso-socializacion oculto" id="avisoMomentoSocializacion"></p>
+      <div class="panel-partido-socializacion">
+        <div class="mitad-socializacion mitad-temporizador-socializacion">
+          <p class="temporizador-socializacion" id="relojSocializacion">10:00</p>
+          <div class="fila-botones" style="justify-content:center;">
+            <button type="button" class="btn btn-secundario" id="btnMas2MinSocializacion">+2 minutos</button>
+            <button type="button" class="btn btn-primario" id="btnFinalizarSocializacionIE">Finalizar</button>
+          </div>
+        </div>
+        <div class="mitad-socializacion mitad-notas-socializacion">
+          <label for="campoDatosRelevantesEnVivo">Datos relevantes de esta IE</label>
+          <p class="ayuda">Consignen aquí, en vivo, lo más relevante que comparta la institución mientras
+            socializa.</p>
+          <textarea id="campoDatosRelevantesEnVivo" rows="10" placeholder="Escriban aquí mientras escuchan…"></textarea>
+          <div id="mensajeDatosRelevantesEnVivo"></div>
+          <div class="fila-botones">
+            <button type="button" class="btn btn-secundario" id="btnGuardarDatosRelevantesEnVivo">💾 Guardar</button>
+          </div>
+        </div>
       </div>
     </div>
 
     <div class="fila-botones">
-      <button class="btn btn-secundario" data-ir="pantallaConfirmacionCaracterizacion">Atrás</button>
+      <button class="btn btn-secundario" data-ir="pantallaParticipacion">Atrás</button>
       <button class="btn btn-primario" data-ir="pantallaSesion1">Continuar a Sesión 1</button>
     </div>
   </section>
@@ -733,14 +727,14 @@
     </div>
     <div class="fila-botones">
       <button class="btn btn-secundario" data-ir="pantallaSesionSocializacion">Atrás</button>
-      <button class="btn btn-primario" id="btnContinuarACierreEncuentro" data-ir="pantallaRevisionCierre" disabled title="Envíe primero Sesión 1 de forma definitiva">Continuar a Revisión y cierre</button>
+      <button class="btn btn-primario" id="btnContinuarACierreEncuentro" data-ir="pantallaConfirmacionCaracterizacion" disabled title="Envíe primero Sesión 1 de forma definitiva">Continuar a Confirmación de caracterización</button>
     </div>
     <p class="ayuda oculto" id="avisoSesion1NoEnviada" style="text-align:center;">Envíe Sesión 1 de forma
       definitiva (botón de arriba) para poder continuar.</p>
   </section>
 
   <!-- 9. CONECTAEDUCA (sección independiente, item 8: se llega directo desde
-       Confirmación de caracterización, no desde Sesión 1) -->
+       Participación, no desde Sesión 1) -->
   <section id="pantallaSesion2" class="pantalla">
     <div class="tarjeta">
       <h2 class="titulo-seccion">Conecta Educa</h2>
@@ -847,7 +841,46 @@
       </div>
     </div>
     <div class="fila-botones">
-      <button class="btn btn-primario" data-ir="pantallaRevisionCierre">Continuar a revisión y cierre</button>
+      <button class="btn btn-primario" data-ir="pantallaConfirmacionCaracterizacion">Continuar a Confirmación de caracterización</button>
+    </div>
+  </section>
+
+  <!-- 9bis. CONFIRMACIÓN DE CARACTERIZACIÓN — movida al final del recorrido,
+       justo antes de Revisión y cierre (spec del usuario): antes iba justo
+       después de Participación, como paso intermedio hacia las sesiones de
+       trabajo; ahora es el último chequeo de que la información del grupo
+       esté correcta, antes de valorar y generar el informe. -->
+  <section id="pantallaConfirmacionCaracterizacion" class="pantalla">
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">Confirmación de caracterización</h2>
+      <p class="ayuda">Verifica que toda la información del grupo sea correcta antes de continuar a la
+        valoración y el cierre.</p>
+      <div id="fichaCaracterizacionGrupo"></div>
+
+      <h3 class="subtitulo-campo" style="margin-top:20px;">Participación por estamento e institución</h3>
+      <p class="ayuda">Los participantes del <span id="nombreGrupoAvisoPlazoFirmas">grupo</span> podrán firmar
+        hasta el momento en que se genere el informe. Se recomienda ir revisando que el número de firmantes
+        sea igual a los reportados en el cuadro de participación.</p>
+      <div id="resumenParticipacionEstamentoCaracterizacion" class="resumen-participacion-estamento"></div>
+      <div id="contenedorParticipacionEstamentoCaracterizacion" class="tabla-horizontal-desplazable"></div>
+
+      <div id="pieFotoCaracterizacion" class="pie-foto-grupo oculto"></div>
+      <div class="fila-botones" style="justify-content:center;" id="filaBotonFotoCaracterizacion">
+        <button type="button" class="btn btn-secundario" id="btnCambiarFotoCaracterizacion">✏️ Cambiar fotografía</button>
+      </div>
+      <div id="formularioFotoGrupoCaracterizacion" class="oculto">
+        <input type="file" id="campoFotoGrupoCaracterizacion" accept="image/*">
+        <div class="fila-botones">
+          <button class="btn btn-secundario" id="btnSubirFotoGrupoCaracterizacion">Subir fotografía del grupo</button>
+        </div>
+        <div id="mensajeFotoGrupoCaracterizacion"></div>
+      </div>
+
+      <p class="ayuda texto-cargando" id="avisoCargandoCaracterizacion"><span class="spinner-cargando"></span> Cargando información…</p>
+      <div class="fila-botones">
+        <button class="btn btn-secundario" id="btnAtrasCaracterizacion">Atrás, corregir</button>
+        <button class="btn btn-primario oculto" id="btnConfirmarCaracterizacion">Confirmo que la información es correcta</button>
+      </div>
     </div>
   </section>
 

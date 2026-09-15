@@ -1870,6 +1870,96 @@ subir en cualquier momento después, desde el mismo panel de Participación.
 Verificado: bloques `<script>` de `Index.html` (mismo falso positivo ya conocido)/`JS.html` (limpio); IDs sin
 duplicar y balance de etiquetas OK. No probado en vivo desde un navegador.
 
+## 4.58 Cuadragésimo sexto lote: advertencia de formato único, confirmación de carpetas por grupo, y Caracterización movida al final
+
+Tres pedidos sueltos del usuario.
+
+- **"Solo se debe subir el formato que se descarga, se imprime y se llena — no se aceptarán formatos
+  diferentes"**: como no es técnicamente viable validar en el servidor que un PDF subido sea realmente el
+  formato oficial (no hay forma de verificar la plantilla de un PDF sin OCR/procesamiento complejo, fuera de
+  alcance de este pedido), se resolvió con advertencias destacadas (`class="mensaje info"`, con ⚠️ y texto en
+  negrita) en los tres puntos donde el grupo interactúa con el listado: los dos consentimientos informados
+  (Encuentro y Conecta Educa, junto al botón de descarga) y el panel de subida en Participación (justo antes
+  del `<input type="file">`). Es una regla explicada y resaltada para las personas, no una validación técnica.
+- **"Generar carpeta por cada grupo con las asistencias en la carpeta de asistencias del proyecto"**: ya
+  estaba implementado desde antes (Fase 17) — `asegurarCarpetaAsistenciaGrupo_()` (Drive.gs) crea/reutiliza una
+  carpeta `GRUPO N` dentro de `02_ASISTENCIA` (una de las 6 subcarpetas raíz del proyecto en Drive) y
+  `subirListadoAsistencia()` (Asistencia.gs) ya sube ahí cada PDF. No se tocó nada — se verificó el código
+  existente para confirmarlo.
+- **Confirmación de caracterización movida al final del recorrido** (antes iba justo después de Participación,
+  como paso intermedio hacia las sesiones de trabajo): el usuario confirmó, ante una pregunta de aclaración,
+  que debía ir justo antes de Revisión y cierre — como último chequeo de que la información del grupo está
+  correcta, en vez de un paso intermedio. Cambios:
+  - `ORDEN_PANTALLAS` (JS.html) y las dos `PASOS_PROGRESO_*_` (barra de progreso navegable) reordenados:
+    `pantallaConfirmacionCaracterizacion` pasó de estar entre `pantallaParticipacion` y las sesiones de
+    trabajo, a estar entre `pantallaSesion1`/`pantallaSesion2` y `pantallaRevisionCierre`.
+  - **Nueva función `irTrasParticipacion_()`** (antes esta lógica de ramificar por `estado.seccion` vivía en
+    `irTrasConfirmarCaracterizacion_`): "Continuar" en Participación ahora va directo a
+    `pantallaSesionSocializacion` (Encuentro) o `pantallaSesion2` (Conecta Educa), sin pasar por
+    Caracterización.
+  - **`irTrasConfirmarCaracterizacion_()` simplificada**: ya no ramifica por sección — confirmar la
+    caracterización ahora siempre lleva a `pantallaRevisionCierre` (ambas secciones convergen ahí).
+  - **Nuevo botón `btnAtrasCaracterizacion`** en la pantalla de Caracterización (reemplaza el `data-ir`
+    estático que antes apuntaba a Participación): como la pantalla anterior ahora depende de la sección
+    (Sesión 1 o Sesión 2), el "Atrás, corregir" necesita lógica, no un destino fijo.
+  - **Botones "Continuar" de Sesión 1 y Sesión 2** (`btnContinuarACierreEncuentro` y el de Conecta Educa):
+    apuntaban a `pantallaRevisionCierre`, ahora apuntan a `pantallaConfirmacionCaracterizacion` (con el texto
+    actualizado a "Continuar a Confirmación de caracterización").
+  - **"Atrás" de Sesión de socialización**: apuntaba a `pantallaConfirmacionCaracterizacion` (su vecino
+    anterior en el recorrido viejo), ahora apunta a `pantallaParticipacion` (su vecino anterior real ahora).
+  - Las dos referencias a `pantallaConfirmacionCaracterizacion` que quedaron en `pantallaInvitadosEspeciales` y
+    `pantallaPreSocializacion` (subpáginas de la vieja "Preparación", ocultas desde el item 9) **no se
+    tocaron** — son código muerto inalcanzable, no vale la pena su mantenimiento.
+  - La ficha de caracterización, la matriz de participación por estamento y la fotografía siguen funcionando
+    igual (se recargan cada vez que se entra a la pantalla, sin importar su posición en el recorrido); el
+    único texto ajustado fue la frase introductoria ("...antes de continuar a la valoración y el cierre" en
+    vez de "...a las sesiones de trabajo").
+- Verificado: bloques `<script>` de `Index.html`/`JS.html` (mismo falso positivo ya conocido en Index, limpio
+  en JS); IDs sin duplicar y balance de etiquetas (`div`/`section`/`p`/`button`/`label`/`textarea`/`a`) OK. No
+  probado en vivo desde un navegador — en particular, no se verificó visualmente el recorrido completo con las
+  nuevas rutas.
+
+## 4.59 Cuadragésimo séptimo lote: pantalla partida y alarmas sutiles en Sesión de socialización
+
+Pedido suelto del usuario sobre el temporizador de la Sesión de socialización (item 10).
+
+- **Pantalla partida**: el panel del temporizador (antes solo el reloj + "+2 minutos"/"Finalizar") ahora se
+  divide en dos mitades (`.panel-partido-socializacion`, flex 50/50 que colapsa a una columna en móvil): la
+  izquierda con el reloj y los mismos botones de siempre; la derecha con un textarea "Datos relevantes de esta
+  IE" y un botón "💾 Guardar" — para consolidar en vivo lo que comparte la institución mientras el temporizador
+  corre, en vez de escribirlo después en una ventana emergente.
+  - **"Finalizar" ya no abre el cuadro emergente**: ahora guarda directamente lo que haya en el textarea en
+    vivo (`guardarDatosRelevantesEnVivo_()`) y cierra el panel — el flujo antiguo (temporizador → modal
+    "Datos relevantes" al finalizar) se reemplazó por el flujo en vivo.
+  - **El cuadro emergente `modalDatosRelevantesIE` se conserva**, pero solo para el botón "✏️" de una IE que
+    YA terminó (no está en temporizador) — permite editar sus notas sin tener que reiniciar el reloj.
+  - Al iniciar el temporizador de una IE, el textarea en vivo se prellena con lo que ya tuviera guardado esa
+    IE (por si se reanuda una socialización interrumpida).
+- **Alarmas sutiles (sonido + visual) en 4 momentos**, todas dentro del mismo `setInterval` que ya llevaba la
+  cuenta regresiva (comparación exacta contra el segundo restante, sin riesgo de "saltarse" un umbral porque
+  el reloj siempre decrementa de a uno):
+  - **Inicio** (arranca en 10:00): al llamar `iniciarTemporizadorSocializacionIE_`, antes de arrancar el
+    intervalo.
+  - **Mitad alcanzada** (quedan 5:00): `segundosRestantes === 300`.
+  - **Cierre** (queda 1:00): `segundosRestantes === 60`.
+  - **Fin** (llega a 0:00): `segundosRestantes === 0`.
+  - **Sonido**: `reproducirSonidoSocializacion_(tipo)` genera tonos cortos con Web Audio API (osciladores
+    seno, volumen bajo ~0.06, sin archivos de audio que alojar en Drive) — un pitido para inicio, dos para
+    mitad, tres para cierre, uno largo y grave para fin. Envuelto en `try/catch` silencioso: si el navegador
+    bloquea audio sin interacción previa del usuario (política común de autoplay), el temporizador sigue
+    funcionando con normalidad, solo sin sonido.
+  - **Visual**: `mostrarAvisoMomentoSocializacion_(texto)` muestra un mensaje (`#avisoMomentoSocializacion`,
+    arriba del reloj) con un destello CSS (`@keyframes destelloSocializacion`, un halo verde que se desvanece
+    en ~1.1s) — se reinicia la animación en cada llamada (forzando reflow) para que dispare de nuevo aunque el
+    mensaje sea igual al anterior.
+  - **"+2 minutos" también avisa**: adaptado del pedido "Añadir dos minutos a la presentación de (IE
+    nombre)" — el botón ya existía desde el Lote 39; se le agregó el mismo aviso visual nombrando la IE, para
+    que quede claro a quién se le extendió el tiempo.
+- Verificado: bloques `<script>` de `Index.html`/`JS.html` (mismo falso positivo ya conocido en Index, limpio
+  en JS); IDs sin duplicar, balance de etiquetas OK, balance de llaves `{`/`}` de `CSS.html` OK (299/299). No
+  probado en vivo desde un navegador — en particular, no se verificó el sonido real en ningún navegador (la
+  política de autoplay varía por navegador y por si hubo interacción previa del usuario en la página).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:
