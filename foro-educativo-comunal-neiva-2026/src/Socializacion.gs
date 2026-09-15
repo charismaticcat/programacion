@@ -102,63 +102,73 @@ function generarPdfAportesRelevantesSocializacion(idGrupo, tokenSesion, disposit
   var grupoInfo = obtenerGrupoPorId(idGrupo);
   if (!grupoInfo) return { ok: false, mensaje: "Grupo no encontrado." };
 
-  return conLock_(function () {
-    var conAportes = obtenerSocializacionGrupo(idGrupo).filter(function (ie) {
-      return String(ie.datosRelevantes || "").trim();
-    });
-    if (!conAportes.length) {
-      return { ok: false, mensaje: "Todavía no hay datos relevantes registrados en la Sesión de socialización de este grupo." };
-    }
+  var conAportes = obtenerSocializacionGrupo(idGrupo).filter(function (ie) {
+    return String(ie.datosRelevantes || "").trim();
+  });
+  if (!conAportes.length) {
+    return { ok: false, mensaje: "Todavía no hay datos relevantes registrados en la Sesión de socialización de este grupo." };
+  }
 
+  // Crear el Doc y exportarlo a PDF puede tardar varios segundos (llamadas
+  // reales a Docs/Drive) — a propósito, esta parte NO va dentro de
+  // conLock_(): el lock de Apps Script (LockService.getScriptLock()) es
+  // de todo el proyecto, compartido por cualquier grupo que esté
+  // guardando algo al mismo tiempo, así que mantenerlo tomado durante
+  // varios segundos de trabajo lento podía sentirse como que el resto de
+  // la app "se queda pegado" mientras tanto. Solo se usa el lock más
+  // abajo, para la escritura final (rápida) en la hoja de seguimiento.
+  var config = getConfig();
+  var carpetaGrupo = asegurarCarpetaGrupo_(grupoInfo.grupo);
+  var nombreBase = "Aportes relevantes del " + grupoInfo.grupo;
+
+  var doc = DocumentApp.create(nombreBase);
+  var docFile = DriveApp.getFileById(doc.getId());
+  carpetaGrupo.addFile(docFile);
+  try {
+    DriveApp.getRootFolder().removeFile(docFile);
+  } catch (e) {
+    Logger.log("No fue posible quitar el Doc de aportes relevantes de la raíz de Drive: " + e.message);
+  }
+
+  var body = doc.getBody();
+  body.clear();
+  body.setPageWidth(612).setPageHeight(792).setMarginTop(30).setMarginBottom(30).setMarginLeft(50).setMarginRight(50);
+
+  var pTitulo = body.appendParagraph(nombreBase);
+  pTitulo.setHeading(DocumentApp.ParagraphHeading.TITLE).setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+  pTitulo.editAsText().setForegroundColor(COLOR_VERDE_INFORME_);
+  var pSubtitulo = body.appendParagraph("Sesión de socialización — " + config.NOMBRE_FORO);
+  pSubtitulo.setAlignment(DocumentApp.HorizontalAlignment.CENTER).editAsText().setItalic(true);
+  body.appendParagraph(formatearFechaLargaEs_(new Date(), true)).setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+
+  conAportes.forEach(function (ie) {
+    titulo1_(body, ie.institucion);
+    parrafo_(body, ie.datosRelevantes);
+  });
+
+  doc.saveAndClose();
+  var pdfBlob = DriveApp.getFileById(doc.getId()).getAs(MimeType.PDF);
+  pdfBlob.setName(nombreBase + ".pdf");
+  var pdfFile = carpetaGrupo.createFile(pdfBlob);
+  hacerPublicoSiEsPosible_(pdfFile);
+  var url = pdfFile.getUrl();
+
+  return conLock_(function () {
+    // Se regenera cada vez (nunca acumula copias): la versión anterior
+    // (si la había, guardada en la hoja de seguimiento) se manda a la
+    // papelera después de que la nueva ya quedó lista — así, si algo
+    // falla arriba, la anterior sigue disponible en vez de perderse.
     var anterior = obtenerAportesRelevantesSocializacionGrupo_(idGrupo);
     if (anterior) {
       try { if (anterior.DOC_ID) DriveApp.getFileById(anterior.DOC_ID).setTrashed(true); } catch (e) { Logger.log("No se pudo eliminar el Doc anterior de aportes relevantes: " + e.message); }
       try { if (anterior.PDF_ID) DriveApp.getFileById(anterior.PDF_ID).setTrashed(true); } catch (e) { Logger.log("No se pudo eliminar el PDF anterior de aportes relevantes: " + e.message); }
     }
-
-    var config = getConfig();
-    var carpetaGrupo = asegurarCarpetaGrupo_(grupoInfo.grupo);
-    var nombreBase = "Aportes relevantes del " + grupoInfo.grupo;
-
-    var doc = DocumentApp.create(nombreBase);
-    var docFile = DriveApp.getFileById(doc.getId());
-    carpetaGrupo.addFile(docFile);
-    try {
-      DriveApp.getRootFolder().removeFile(docFile);
-    } catch (e) {
-      Logger.log("No fue posible quitar el Doc de aportes relevantes de la raíz de Drive: " + e.message);
-    }
-
-    var body = doc.getBody();
-    body.clear();
-    body.setPageWidth(612).setPageHeight(792).setMarginTop(30).setMarginBottom(30).setMarginLeft(50).setMarginRight(50);
-
-    var pTitulo = body.appendParagraph(nombreBase);
-    pTitulo.setHeading(DocumentApp.ParagraphHeading.TITLE).setAlignment(DocumentApp.HorizontalAlignment.CENTER);
-    pTitulo.editAsText().setForegroundColor(COLOR_VERDE_INFORME_);
-    var pSubtitulo = body.appendParagraph("Sesión de socialización — " + config.NOMBRE_FORO);
-    pSubtitulo.setAlignment(DocumentApp.HorizontalAlignment.CENTER).editAsText().setItalic(true);
-    body.appendParagraph(formatearFechaLargaEs_(new Date(), true)).setAlignment(DocumentApp.HorizontalAlignment.CENTER);
-
-    conAportes.forEach(function (ie) {
-      titulo1_(body, ie.institucion);
-      parrafo_(body, ie.datosRelevantes);
-    });
-
-    doc.saveAndClose();
-    var pdfBlob = DriveApp.getFileById(doc.getId()).getAs(MimeType.PDF);
-    pdfBlob.setName(nombreBase + ".pdf");
-    var pdfFile = carpetaGrupo.createFile(pdfBlob);
-    hacerPublicoSiEsPosible_(pdfFile);
-    var url = pdfFile.getUrl();
-
     upsertFila_(HOJA_APORTES_RELEVANTES_SOCIALIZACION_, cabecerasAportesRelevantesSocializacion_(), "ID_GRUPO", idGrupo, {
       DOC_ID: doc.getId(),
       PDF_ID: pdfFile.getId(),
       URL: url,
       FECHA: new Date()
     });
-
     return { ok: true, url: url };
-  }, 30000);
+  }, 15000);
 }

@@ -684,8 +684,11 @@ function mostrarCargaAccion_(tipo, texto) {
   // "informe" e "invitado" muestran la barra de progreso simulada — con
   // ella visible, no se muestra ningún gif/emoji encima (spec del
   // usuario: "si ya hay barra de progreso, quitar gif"), para no
-  // duplicar la señal de "algo está avanzando".
-  var usaBarraProgreso = tipo === "informe" || tipo === "invitado";
+  // duplicar la señal de "algo está avanzando". "aportesRelevantesSocializacion"
+  // se agrega aquí por el mismo motivo: genera un Doc y lo exporta a PDF
+  // (Socializacion.gs), una operación de varios segundos que con el
+  // ⏳ estático se sentía "trabada" aunque estuviera avanzando.
+  var usaBarraProgreso = tipo === "informe" || tipo === "invitado" || tipo === "aportesRelevantesSocializacion";
   if (usaBarraProgreso) {
     img.classList.add("oculto");
     emoji.classList.add("oculto");

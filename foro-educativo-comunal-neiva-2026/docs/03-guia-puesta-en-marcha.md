@@ -2003,6 +2003,33 @@ reales que ya captura la Sesión de socialización (pantalla anterior) desde el 
   Components); IDs sin duplicar y balance de etiquetas OK en los tres HTML. No probado en vivo desde un
   navegador — en particular, no se generó un PDF real ni se verificó su contenido/formato en Drive.
 
+## 4.61 Fix: "Generar PDF de aportes relevantes" se quedaba trabado
+
+El usuario reportó que el botón nuevo del Lote 48 se quedaba en "Generando PDF…" sin resolver. Sin acceso a
+los logs de ejecución reales (este proyecto no tiene un proyecto de GCP enlazado para `clasp logs`), el
+diagnóstico fue por revisión de código, comparando contra el único patrón equivalente que sí lleva tiempo en
+producción (`generarInformeGrupo`, Informes.gs) para encontrar qué era distinto en el código nuevo:
+
+- **Se reescribió `generarPdfAportesRelevantesSocializacion()`** (Socializacion.gs) para sacar la parte lenta
+  (crear el `DocumentApp`, escribir el cuerpo, exportarlo a PDF — llamadas reales a Docs/Drive que pueden
+  tardar varios segundos) de dentro de `conLock_()`. Antes, todo el proceso —incluida esa parte lenta— corría
+  bajo `LockService.getScriptLock()`, que es un lock de **todo el proyecto**, compartido por cualquier grupo
+  que esté guardando algo al mismo tiempo (autoguardado de Sesión 1/2, Socialización, valoración, etc.) —
+  mantenerlo tomado varios segundos podía encadenar esperas y sentirse como que la app entera se trababa, no
+  solo el botón. Ahora el lock solo envuelve la escritura final (rápida) en la hoja de seguimiento
+  `AportesRelevantesSocializacion` y el borrado del PDF/Doc anterior — timeout bajado de 30s a 15s, acorde a
+  lo que realmente protege. `generarInformeGrupo`/`generarInformeCompletoGrupo` tienen el mismo patrón de raíz
+  (todo el proceso lento bajo el mismo lock global) — no se tocó en este lote por no ser lo reportado, pero
+  queda como riesgo conocido si vuelve a pasar algo parecido con "Generar informe".
+- **`mostrarCargaAccion_` (JS.html)**: el nuevo botón usaba el ⏳ estático genérico en vez de la barra de
+  progreso simulada que ya existía para "informe"/"invitado" (acciones igual de lentas) — se agregó
+  `"aportesRelevantesSocializacion"` a esa lista, para que se vea que algo avanza en vez de una espera con un
+  ícono inmóvil, que es fácil de leer como "se quedó pegado" aunque el servidor sí estuviera trabajando.
+- Verificado: `node --check` sobre `Socializacion.gs` y el bloque `<script>` de `JS.html` (limpio). No se pudo
+  confirmar en vivo si esto resuelve el reporte original del usuario — no hay logs de ejecución disponibles
+  para este proyecto (`clasp logs` requiere un proyecto de GCP vinculado, no configurado aquí); si sigue
+  pasando, hace falta vincular uno para poder ver la traza real del error.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:
