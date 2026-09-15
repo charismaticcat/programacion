@@ -88,6 +88,34 @@ var ORDEN_PANTALLAS = [
 // retoma directamente en ellas ni se marcan como "última pantalla".
 var PANTALLAS_NO_RESUMIBLES_ = ["pantallaEleccionSeccion", "pantallaAcceso", "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia"];
 
+/**
+ * Documento Orientador FEM2026, sección D, item 8: "trasladar toda la
+ * sesión de ConectaEduca a su propia pantalla" — ConectaEduca ya no es
+ * un paso intermedio del recorrido único, sino su propia rama. Estas
+ * listas dicen qué pantallas son de uso compartido (código, consentimiento,
+ * participación/asistencia, caracterización, cierre — todavía sin
+ * duplicar por sección, eso es la Sección E/F del pedido) y cuáles son
+ * exclusivas de cada sección, para poder filtrar la barra de progreso
+ * navegable y evitar que "retomar donde se quedó" mande a alguien a una
+ * pantalla de la sección contraria.
+ */
+var PANTALLAS_COMUNES_SECCION_ = [
+  "pantallaEleccionSeccion", "pantallaAcceso", "pantallaConsentimientoGrupo", "pantallaParticipacion",
+  "pantallaConfirmacionCaracterizacion", "pantallaRevisionCierre", "pantallaInformeGenerado", "pantallaDespedida"
+];
+var PANTALLAS_SOLO_ENCUENTRO_ = [
+  "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia", "pantallaInvitadosEspeciales",
+  "pantallaPreSocializacion", "pantallaSeleccionIEPreparacion", "pantallaPreparacionIE", "pantallaSesion1"
+];
+var PANTALLAS_SOLO_CONECTAEDUCA_ = ["pantallaSesion2"];
+
+/** true si `idPantalla` es alcanzable desde la sección actualmente elegida (estado.seccion). */
+function pantallaPerteneceASeccionActual_(idPantalla) {
+  if (PANTALLAS_COMUNES_SECCION_.indexOf(idPantalla) !== -1) return true;
+  if (estado.seccion === "CONECTAEDUCA") return PANTALLAS_SOLO_CONECTAEDUCA_.indexOf(idPantalla) !== -1;
+  return PANTALLAS_SOLO_ENCUENTRO_.indexOf(idPantalla) !== -1;
+}
+
 // Algunas pantallas necesitan una selección previa (ej. cuál IE se está
 // preparando) que solo vive en el estado del dispositivo actual, no en el
 // servidor — retomar ahí directamente fallaría, así que en esos casos se
@@ -103,6 +131,13 @@ function destinoResumenPantalla_(ultimaPantalla) {
   if (MAPA_RESUMEN_PANTALLA_[ultimaPantalla]) ultimaPantalla = MAPA_RESUMEN_PANTALLA_[ultimaPantalla];
   if (PANTALLAS_NO_RESUMIBLES_.indexOf(ultimaPantalla) !== -1) return null;
   if (ORDEN_PANTALLAS.indexOf(ultimaPantalla) === -1) return null;
+  // ULTIMA_PANTALLA es una sola columna compartida por todo el grupo, pero
+  // Encuentro y ConectaEduca ahora son ramas separadas (item 8) — si la
+  // última pantalla guardada pertenece a la sección contraria a la elegida
+  // ahora (p. ej. el grupo venía de Sesión 1 y alguien entra por la puerta
+  // de ConectaEduca en la tarde), no se retoma ahí: se deja que el
+  // recorrido normal de ESTA sección decida por dónde empezar.
+  if (!pantallaPerteneceASeccionActual_(ultimaPantalla)) return null;
   return ultimaPantalla;
 }
 
@@ -147,24 +182,40 @@ function llamarServidor(nombreFuncion, args, onExito, onError) {
  * de forma definitiva). Ir hacia atrás siempre es seguro: esas pantallas
  * ya son las mismas que "✏️ Editar en…" de Revisar todo permite abrir.
  */
-var PASOS_PROGRESO_ = [
+var PASOS_PROGRESO_ENCUENTRO_ = [
   { id: "pantallaParticipacion", etiqueta: "Participación" },
   { id: "pantallaConfirmacionCaracterizacion", etiqueta: "Caracterización" },
   { id: "pantallaSeleccionIEPreparacion", etiqueta: "Preparación" },
   { id: "pantallaSesion1", etiqueta: "Sesión 1" },
-  { id: "pantallaSesion2", etiqueta: "Sesión 2" },
   { id: "pantallaRevisionCierre", etiqueta: "Cierre" }
 ];
+var PASOS_PROGRESO_CONECTAEDUCA_ = [
+  { id: "pantallaParticipacion", etiqueta: "Participación" },
+  { id: "pantallaConfirmacionCaracterizacion", etiqueta: "Caracterización" },
+  { id: "pantallaSesion2", etiqueta: "Conecta Educa" },
+  { id: "pantallaRevisionCierre", etiqueta: "Cierre" }
+];
+function pasosProgresoSeccionActual_() {
+  return estado.seccion === "CONECTAEDUCA" ? PASOS_PROGRESO_CONECTAEDUCA_ : PASOS_PROGRESO_ENCUENTRO_;
+}
 var indiceMaximoOrdenPantallas_ = 0;
 // Pantalla visible en este momento — se necesita para poder refrescar la
 // barra (qué botón queda "activo") desde una respuesta async que llega
 // después de cambiarPantalla (p. ej. rpcEstadoGrupo al validar el acceso),
 // sin tener que repetir el cambio de pantalla en sí.
 var pantallaActual_ = "";
-(function inicializarBarraProgresoNav_() {
+/**
+ * Reconstruye los botones de la barra de progreso navegable según la
+ * sección elegida (Encuentro/ConectaEduca, item 8) — se llama al cargar
+ * la página (con la lista por defecto, antes de elegir sección) y de
+ * nuevo cada vez que se elige/cambia de sección, para que los botones
+ * mostrados sean siempre los de la rama correcta.
+ */
+function reconstruirBarraProgresoNav_() {
   var contenedor = document.getElementById("barraProgresoNav");
   if (!contenedor) return;
-  PASOS_PROGRESO_.forEach(function (paso) {
+  contenedor.innerHTML = "";
+  pasosProgresoSeccionActual_().forEach(function (paso) {
     var boton = document.createElement("button");
     boton.type = "button";
     boton.className = "paso-progreso";
@@ -175,7 +226,9 @@ var pantallaActual_ = "";
     });
     contenedor.appendChild(boton);
   });
-})();
+  actualizarBarraProgresoNav_(pantallaActual_ || "pantallaAcceso");
+}
+reconstruirBarraProgresoNav_();
 
 function actualizarBarraProgresoNav_(idPantalla) {
   var indiceActual = ORDEN_PANTALLAS.indexOf(idPantalla);
@@ -194,7 +247,10 @@ document.getElementById("btnIrInicio").addEventListener("click", function () {
   // botón no hace nada hasta ese momento (en la práctica, en esa
   // pantalla ya se está viendo "Inicio" desde el flujo normal).
   if (!estado.idGrupo) return;
-  cambiarPantalla("pantallaInicio");
+  // "pantallaInicio" (bienvenida) es exclusiva de la sección Encuentro
+  // (item 8) — en ConectaEduca no hay un equivalente, así que "Inicio"
+  // lleva a Participación, su primer paso real.
+  cambiarPantalla(estado.seccion === "CONECTAEDUCA" ? "pantallaParticipacion" : "pantallaInicio");
 });
 
 // Índice de Participación en ORDEN_PANTALLAS — más allá de este punto,
@@ -251,13 +307,13 @@ function cambiarPantalla(idPantalla) {
     cargarSesion1();
     cargarRecursosSesion1();
     cargarSocializacionPreparacion();
-    // "Continuar a Sesión 2" no se habilita hasta que Sesión 1 se envió
-    // de forma definitiva (spec del usuario) — se refresca cada vez que
-    // se entra a esta pantalla, no solo tras hacer clic en Enviar, para
-    // que también quede correcto al retomar desde otro dispositivo/día.
+    // "Continuar a Revisión y cierre" no se habilita hasta que Sesión 1 se
+    // envió de forma definitiva (spec del usuario) — se refresca cada vez
+    // que se entra a esta pantalla, no solo tras hacer clic en Enviar,
+    // para que también quede correcto al retomar desde otro dispositivo/día.
     llamarServidor("rpcEstadoGrupo", [estado.idGrupo], function (estadoGrupo) {
       estado.sesion1Enviada = !!(estadoGrupo && estadoGrupo.sesion1Enviada);
-      actualizarGateSesion2_();
+      actualizarGateContinuarCierre_();
       actualizarEstadoEnvioSesion1_();
     }, function () {});
   }
@@ -340,6 +396,9 @@ function aplicarSeccionElegida_(seccion) {
       logo.classList.add("oculto");
     }
   }
+  // La barra de progreso navegable tiene pasos distintos por sección
+  // (item 8) — se reconstruye cada vez que se elige/cambia de sección.
+  reconstruirBarraProgresoNav_();
 }
 
 document.querySelectorAll("[data-elegir-seccion]").forEach(function (boton) {
@@ -859,9 +918,16 @@ function intentarValidarAcceso(forzar) {
       // — así, aunque esa columna no reflejara el punto más lejano, el
       // progreso real (Sesión 1/2 enviada, informe generado) igual
       // desbloquea los pasos correspondientes de la barra.
+      // Encuentro y ConectaEduca son ramas separadas (item 8) — el
+      // avance en la nube de una no dice nada sobre la otra, así que cada
+      // una calcula su propio punto más lejano alcanzado.
       var pantallaMasLejanaCloud_ = "pantallaParticipacion";
-      if (estadoGrupo && estadoGrupo.sesion1Enviada) pantallaMasLejanaCloud_ = "pantallaSesion2";
-      if (estadoGrupo && (estadoGrupo.sesion2Enviada || estadoGrupo.informeGenerado)) pantallaMasLejanaCloud_ = "pantallaRevisionCierre";
+      if (estado.seccion === "CONECTAEDUCA") {
+        pantallaMasLejanaCloud_ = "pantallaSesion2";
+        if (estadoGrupo && (estadoGrupo.sesion2Enviada || estadoGrupo.informeGenerado)) pantallaMasLejanaCloud_ = "pantallaRevisionCierre";
+      } else {
+        if (estadoGrupo && estadoGrupo.sesion1Enviada) pantallaMasLejanaCloud_ = "pantallaRevisionCierre";
+      }
       indiceMaximoOrdenPantallas_ = Math.max(indiceMaximoOrdenPantallas_, ORDEN_PANTALLAS.indexOf(pantallaMasLejanaCloud_));
       actualizarBarraProgresoNav_(pantallaActual_ || "pantallaAcceso");
     }, function () {});
@@ -870,11 +936,21 @@ function intentarValidarAcceso(forzar) {
     // señal o se cambia de dispositivo, solo pedir código de ingreso y
     // retomar desde la última parte que se dejó") — si el grupo (desde
     // cualquier dispositivo) ya había avanzado más allá de la
-    // introducción, se salta el carrusel de bienvenida y la introducción
-    // (Inicio/Presentación/Metodología) y se va directo a esa pantalla.
+    // introducción EN ESTA MISMA SECCIÓN (destinoResumenPantalla_ ya
+    // descarta un avance de la sección contraria), se salta el carrusel
+    // de bienvenida y la introducción y se va directo a esa pantalla.
     var destinoResumen = destinoResumenPantalla_(r.ultimaPantalla);
     if (destinoResumen) {
       cambiarPantalla(destinoResumen);
+      return;
+    }
+
+    // ConectaEduca no tiene pantallas de introducción propias (Inicio/
+    // Presentación/Metodología son exclusivas de Encuentro, item 8) — va
+    // directo a Consentimiento o Participación, igual que
+    // irTrasMetodologia_ al terminar la introducción de Encuentro.
+    if (estado.seccion === "CONECTAEDUCA") {
+      cambiarPantalla(estado.consentimientoGrupo ? "pantallaParticipacion" : "pantallaConsentimientoGrupo");
       return;
     }
 
@@ -1611,6 +1687,13 @@ function institucionesSinParticipacionMarcada_() {
  * igual que antes.
  */
 function irTrasConfirmarCaracterizacion_() {
+  // ConectaEduca (item 8) no pasa por invitados especiales ni por
+  // Preparación (exclusivas de Encuentro) — va directo a su propia
+  // pantalla.
+  if (estado.seccion === "CONECTAEDUCA") {
+    cambiarPantalla("pantallaSesion2");
+    return;
+  }
   var totales = (estado.participacionEstamento && estado.participacionEstamento.totalesPorEstamento) || {};
   var hayInvitados = (Number(totales.ESTUDIANTES) || 0) + (Number(totales.EGRESADOS) || 0) + (Number(totales.PADRES) || 0) > 0;
   cambiarPantalla(hayInvitados ? "pantallaInvitadosEspeciales" : "pantallaPreSocializacion");
@@ -2540,9 +2623,14 @@ function renderRespuestasSoloLectura_(idContenedor, preguntas, claveTituloAporte
   contenedor.innerHTML = html;
 }
 
-/** "Continuar a Sesión 2" solo se habilita cuando Sesión 1 ya se envió de forma definitiva (spec del usuario). */
-function actualizarGateSesion2_() {
-  var boton = document.getElementById("btnContinuarASesion2");
+/**
+ * "Continuar a Revisión y cierre" (rama Encuentro) solo se habilita cuando
+ * Sesión 1 ya se envió de forma definitiva (spec del usuario) — desde el
+ * item 8, este botón ya no lleva a ConectaEduca (rama aparte, sin este
+ * candado), así que el nombre se actualizó para reflejar su destino real.
+ */
+function actualizarGateContinuarCierre_() {
+  var boton = document.getElementById("btnContinuarACierreEncuentro");
   var aviso = document.getElementById("avisoSesion1NoEnviada");
   if (boton) boton.disabled = !estado.sesion1Enviada;
   if (aviso) aviso.classList.toggle("oculto", !!estado.sesion1Enviada);
@@ -2637,7 +2725,7 @@ document.getElementById("btnEnviarSesion1").addEventListener("click", function (
       ocultarCargaAccion_();
       mostrarMensaje("mensajeSesion1", r.ok ? "Sesión 1 enviada." : (r.mensaje || "No fue posible enviar."), r.ok ? "exito" : "error");
       if (r.ok || r.codigo === "YA_ENVIADO") estado.sesion1Enviada = true;
-      actualizarGateSesion2_();
+      actualizarGateContinuarCierre_();
       actualizarEstadoEnvioSesion1_();
     }, function (error) {
       ocultarCargaAccion_();

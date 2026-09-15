@@ -1528,6 +1528,64 @@ propia entrada por código) — el primer paso de la Sección C confirmada con e
   se resolvió moviendo ese bloque a después de la definición de `cambiarPantalla()`. No probado en vivo desde
   un navegador (en particular, no se pudo verificar visualmente que los dos logos de Drive carguen).
 
+## 4.50 Trigésimo octavo lote: ConectaEduca como rama independiente del recorrido (item 8)
+
+Cubre el item 8 (D. Sección "Encuentro de voces que construyen territorio"): "trasladar toda la sesión
+actual de ConectaEduca a su nueva pantalla propia" — hasta este lote, ConectaEduca era un paso intermedio
+("Sesión 2") del mismo recorrido lineal de Encuentro; ahora es una rama propia, alcanzable directo desde la
+puerta de ConectaEduca (Lote 37) sin pasar por Metodología, Preparación ni Sesión 1.
+
+- **Verificación previa (antes de tocar nada)**: se confirmó leyendo `enviarSesion1Definitiva` (Sesion1.gs) y
+  `enviarSesion2Definitiva` (ConectaEduca.gs) que el servidor **nunca exigió Sesión 1 enviada para poder
+  enviar Sesión 2** — esa restricción ("Continuar a Sesión 2" deshabilitado hasta enviar Sesión 1") era
+  puramente un botón deshabilitado en el cliente. Esto significa que darle a ConectaEduca su propia puerta,
+  sin pasar por Sesión 1, es seguro: el backend ya trataba ambos envíos como independientes.
+- **Nuevas listas de pertenencia por sección** (JS.html): `PANTALLAS_COMUNES_SECCION_` (código, consentimiento,
+  participación, caracterización, cierre — todavía compartidas, ver Sección E/F pendiente),
+  `PANTALLAS_SOLO_ENCUENTRO_` (Inicio, Presentación, Metodología, Invitados especiales, Preparación completa,
+  Sesión 1) y `PANTALLAS_SOLO_CONECTAEDUCA_` (solo `pantallaSesion2`) — con `pantallaPerteneceASeccionActual_()`
+  para consultarlas.
+- **Ruta de ConectaEduca tras el código**: `intentarValidarAcceso` ahora, para `estado.seccion ===
+  "CONECTAEDUCA"`, salta directo a Consentimiento/Participación (sin carrusel de IE, sin Inicio/Presentación/
+  Metodología). Y `irTrasConfirmarCaracterizacion_` (que antes SIEMPRE mandaba a "Invitados especiales" o
+  "Preparación") ahora, para ConectaEduca, va directo a `pantallaSesion2` — este último fue el punto de fuga
+  más importante detectado durante el propio desarrollo: sin este cambio, cualquiera que entrara por la
+  puerta de ConectaEduca habría terminado de todos modos en el flujo de Preparación de Encuentro al confirmar
+  la caracterización.
+- **Ruta de Encuentro tras Sesión 1**: el botón "Continuar a Sesión 2" de `pantallaSesion1` (`data-ir`) ahora
+  apunta directo a `pantallaRevisionCierre` — renombrado a `btnContinuarACierreEncuentro`, con su texto
+  actualizado a "Continuar a Revisión y cierre" — porque Encuentro ya no visita ConectaEduca en su propio
+  recorrido. La función de gate se renombró de `actualizarGateSesion2_` a `actualizarGateContinuarCierre_`
+  (mismo comportamiento: deshabilitado hasta que Sesión 1 se envíe de forma definitiva).
+- **"Retomar donde se quedó" ahora es consciente de la sección**: `destinoResumenPantalla_` descarta la
+  última pantalla guardada (`ULTIMA_PANTALLA`, una sola columna compartida por todo el grupo) si esa
+  pantalla no pertenece a la sección con la que se está entrando ahora — evita que alguien que entre por
+  ConectaEduca en la tarde sea enviado a una pantalla de Encuentro que el grupo dejó a medias en la mañana
+  (o viceversa). El cálculo de "hasta dónde desbloquear la barra de progreso según lo avanzado en la nube"
+  también se separó por sección (antes usaba `sesion1Enviada`/`sesion2Enviada` mezclados sin distinguir).
+- **Barra de progreso navegable con pasos distintos por sección**: `PASOS_PROGRESO_ENCUENTRO_` (Participación,
+  Caracterización, Preparación, Sesión 1, Cierre) y `PASOS_PROGRESO_CONECTAEDUCA_` (Participación,
+  Caracterización, Conecta Educa, Cierre). `inicializarBarraProgresoNav_` (antes una IIFE de una sola vez) se
+  convirtió en `reconstruirBarraProgresoNav_()`, invocable varias veces — se llama al cargar la página (lista
+  por defecto de Encuentro, antes de elegir sección) y de nuevo cada vez que se elige/cambia de sección desde
+  `aplicarSeccionElegida_` (Lote 37).
+- **"🏠 Inicio" (encabezado) también depende de la sección**: para Encuentro sigue yendo a la pantalla de
+  bienvenida; para ConectaEduca (que no tiene bienvenida propia) va a Participación, su primer paso real.
+- **Deliberadamente NO tocado en este lote** (para no ensanchar el cambio más allá de la navegación): la
+  pantalla "Revisión y cierre" sigue siendo una sola para ambas secciones (un único informe, una sola
+  valoración) — su encabezado todavía dice "Valoración del Encuentro de voces..." incluso para quien solo
+  pasó por ConectaEduca, y "Revisar todo antes de enviar" sigue mostrando las secciones de Sesión 1 Y
+  ConectaEduca aunque el grupo solo haya usado una de las dos ramas (se ven en blanco las que no aplican).
+  Arreglar esto de raíz es exactamente el trabajo de los items 19-22 (valoraciones separadas) — items 3 y 12
+  (texto de rutas/horario en la tarjeta de Metodología, que sigue describiendo el recorrido lineal antiguo)
+  también quedan pendientes, ya notados en el lote anterior.
+- Verificado: `node --check` sobre los bloques `<script>` de `Index.html`/`JS.html`/`AsistenciaPublica.html`
+  (los mismos dos falsos positivos ya conocidos, reconfirmados) y revisión manual completa del grafo de
+  navegación (todos los `data-ir` y llamadas a `cambiarPantalla` de Index.html/JS.html) para confirmar que
+  ninguna pantalla compartida deja una ruta hacia una pantalla de la sección contraria. IDs sin duplicar y
+  balance de etiquetas OK en `Index.html`. No probado en vivo desde un navegador — en particular, no se
+  probó de punta a punta el recorrido de ConectaEduca con datos reales de `GRUPO-PRUEBA`.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:
