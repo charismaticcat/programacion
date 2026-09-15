@@ -437,7 +437,7 @@ function generarInformeGrupo(idGrupo) {
   titulo1_(body, "Insumos para el Foro Educativo Municipal FEM 2026");
   parrafo_(
     body,
-    "Este informe consolida los resultados del " + grupoInfo.grupo + " del Foro Educativo Comunal Neiva 2026 " +
+    "Este informe consolida los resultados del " + grupoInfo.grupo + " del Encuentro de voces que construyen territorio, Neiva 2026, " +
       "como insumo directo para el Foro Educativo Municipal FEM 2026."
   );
 

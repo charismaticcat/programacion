@@ -72,7 +72,7 @@ function validarAccesoGrupo(token, codigo, dispositivoId, forzar) {
       return {
         ok: false,
         codigo: "BLOQUEADO_POR_HORARIO",
-        mensaje: "El Foro Educativo Comunal se habilitará a las " + hora + ". Por favor ingrese nuevamente a partir de esa hora."
+        mensaje: "El Encuentro de voces que construyen territorio se habilitará a las " + hora + ". Por favor ingrese nuevamente a partir de esa hora."
       };
     }
   }

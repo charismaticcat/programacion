@@ -21,8 +21,8 @@ var CLAVE_PROP_SPREADSHEET_COMUNAL = "SPREADSHEET_ID_COMUNAL";
 /** Valores por defecto — se usan para sembrar ConfiguracionComunal la primera vez y como fallback. */
 var CONFIG_POR_DEFECTO_ = {
   ID_FORO_COMUNAL: "FEC-NEIVA-2026",
-  NOMBRE_FORO: "Foro Educativo Comunal Neiva 2026",
-  SUBTITULO: "Encuentro de voces que construyen territorio",
+  NOMBRE_FORO: "Encuentro de voces que construyen territorio",
+  SUBTITULO: "Foro Educativo Comunal Neiva 2026",
   FECHA: "2026-09-24",
   CARPETA_DRIVE_ID: "",
   // URL del deployment publicado (Implementar → Nueva implementación →
@@ -91,7 +91,7 @@ function getConfig() {
   var ss;
 
   if (!spreadsheetId) {
-    ss = SpreadsheetApp.create("Foro Educativo Comunal Neiva 2026 — Datos");
+    ss = SpreadsheetApp.create("Encuentro de voces que construyen territorio Neiva 2026 — Datos");
     spreadsheetId = ss.getId();
     props.setProperty(CLAVE_PROP_SPREADSHEET_COMUNAL, spreadsheetId);
     inicializarHojasBase_(ss);

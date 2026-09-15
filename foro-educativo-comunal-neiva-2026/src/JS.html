@@ -3675,13 +3675,13 @@ function actualizarBotonGenerarInforme() {
     var emoji, pregunta;
     if (nota < 3) {
       emoji = "😭";
-      pregunta = "😭 ¡Debemos hacerlo mejor! ¿Qué sugerencias, recomendaciones o propuestas tienen para fortalecer la organización y desarrollo del Foro Educativo Comunal?";
+      pregunta = "😭 ¡Debemos hacerlo mejor! ¿Qué sugerencias, recomendaciones o propuestas tienen para fortalecer la organización y desarrollo del Encuentro de voces que construyen territorio?";
     } else if (nota <= 4) {
       emoji = "😬";
-      pregunta = "😬 ¡Pasamos raspados! ¿Quieren decirnos qué funcionó bien para " + (estado.grupo || "el grupo") + " y qué pudo haber sido mejor para fortalecer la organización y desarrollo del Foro Educativo Comunal?";
+      pregunta = "😬 ¡Pasamos raspados! ¿Quieren decirnos qué funcionó bien para " + (estado.grupo || "el grupo") + " y qué pudo haber sido mejor para fortalecer la organización y desarrollo del Encuentro de voces que construyen territorio?";
     } else {
       emoji = "🎉";
-      pregunta = "🎉 ¡Bravo, gracias por el reconocimiento! ¿Quieren decirnos qué hicimos bien para " + (estado.grupo || "el grupo") + " para merecer el reconocimiento de ustedes? Y de paso también pueden decirnos cómo mejorar para fortalecer la organización y desarrollo del Foro Educativo Comunal.";
+      pregunta = "🎉 ¡Bravo, gracias por el reconocimiento! ¿Quieren decirnos qué hicimos bien para " + (estado.grupo || "el grupo") + " para merecer el reconocimiento de ustedes? Y de paso también pueden decirnos cómo mejorar para fortalecer la organización y desarrollo del Encuentro de voces que construyen territorio.";
     }
 
     notaTexto.textContent = emoji + " Nuestra nota fue de: " + nota.toFixed(1) + " / 5.0 " + emoji;
@@ -3831,7 +3831,7 @@ function actualizarAvisoDestinatariosInforme_() {
     return;
   }
   aviso.textContent = "Este informe llegará también a los correos de las instituciones educativas que " +
-    "conformaron el " + (estado.grupo || "grupo") + " del Foro Educativo Comunal 2026: " +
+    "conformaron el " + (estado.grupo || "grupo") + " del Encuentro de voces que construyen territorio, Neiva 2026: " +
     nombresIE.join(", ") + ".";
 }
 
@@ -3849,7 +3849,7 @@ function actualizarBotonFinalizarForo_() {
 
 // La fotografía ya se exigió antes de poder generar el informe (ver
 // btnGenerarInforme más arriba), así que aquí ya no hace falta volver a
-// pedirla. "Finalizar Foro Comunal Educativo 2026" reemplaza al antiguo
+// pedirla. "Finalizar Encuentro de voces que construyen territorio" reemplaza al antiguo
 // botón genérico "Continuar" (spec del usuario) y solo se puede accionar
 // una vez — se deshabilita de inmediato al hacer clic.
 document.getElementById("btnFinalizarForo").addEventListener("click", function () {

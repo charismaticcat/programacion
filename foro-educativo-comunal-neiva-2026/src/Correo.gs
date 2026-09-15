@@ -261,12 +261,12 @@ var DESTINATARIOS_RECORRIDO_PRUEBA_ = [
 ];
 
 function _construirCorreoRecorridoPrueba_(grupoNombre, codigo, url) {
-  var asunto = "🎓 Envío de grupo — recorrido de prueba — Foro Educativo Comunal Neiva 2026 — " + grupoNombre;
+  var asunto = "🎓 Envío de grupo — recorrido de prueba — Encuentro de voces que construyen territorio, Neiva 2026 — " + grupoNombre;
   var textoEnlace = "Ingresar como " + grupoNombre + " (recorrido de prueba)";
 
   var cuerpoTexto =
     "Secretaría de Educación de Neiva\n\n" +
-    "Envío de grupo — recorrido de prueba del Foro Educativo Comunal Neiva 2026.\n\n" +
+    "Envío de grupo — recorrido de prueba del Encuentro de voces que construyen territorio, Neiva 2026.\n\n" +
     "Se le asignó al azar el acceso real del " + grupoNombre + " para que recorra la aplicación de " +
     "principio a fin antes de la puesta en producción.\n\n" +
     "Código de acceso: " + codigo + "\n\n" +
@@ -274,21 +274,21 @@ function _construirCorreoRecorridoPrueba_(grupoNombre, codigo, url) {
     "Este código y este enlace son de uso interno para la prueba: no deben compartirse fuera de la " +
     "Secretaría de Educación.\n\n" +
     "Secretaría de Educación de Neiva\n" +
-    "Foro Educativo Comunal Neiva 2026\n" +
-    "\"Encuentro de voces que construyen territorio\"";
+    "Encuentro de voces que construyen territorio\n" +
+    "\"Foro Educativo Comunal Neiva 2026\"";
 
   var cuerpoHTML =
     "<div style=\"background:#F7F8FA;padding:28px 12px;font-family:Arial,Helvetica,sans-serif;\">" +
     "<div style=\"max-width:520px;margin:0 auto;background:#FFFFFF;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.10);\">" +
     "<div style=\"background:#0B6A44;padding:26px 28px;text-align:center;\">" +
-    "<div style=\"color:#FFFFFF;font-size:20px;font-weight:700;\">Foro Educativo Comunal</div>" +
+    "<div style=\"color:#FFFFFF;font-size:20px;font-weight:700;\">Encuentro de voces que construyen territorio</div>" +
     "<div style=\"color:#CFE8DC;font-size:14px;margin-top:2px;\">Neiva 2026</div>" +
     "</div>" +
     "<div style=\"padding:28px 28px 8px;\">" +
     "<div style=\"display:inline-block;background:#FFF8E1;color:#7A5B00;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:6px 12px;border-radius:20px;margin:0 0 16px;\">🧪 Envío de grupo — recorrido de prueba</div>" +
     "<p style=\"font-size:16px;color:#333333;margin:0 0 14px;\">Estimado(a) colaborador(a) de la Secretaría de Educación de Neiva:</p>" +
     "<p style=\"font-size:15px;color:#4A4A4A;line-height:1.6;margin:0 0 22px;\">" +
-    "Le compartimos un acceso de prueba para recorrer el Foro Educativo Comunal Neiva 2026 de principio " +
+    "Le compartimos un acceso de prueba para recorrer el Encuentro de voces que construyen territorio, Neiva 2026, de principio " +
     "a fin, con los datos reales del <strong>" + grupoNombre + "</strong>, asignado al azar." +
     "</p>" +
     "<div style=\"background:#F7F8FA;border-left:6px solid #F4B400;border-radius:10px;padding:16px 20px;margin:0 0 24px;text-align:center;\">" +
@@ -308,7 +308,7 @@ function _construirCorreoRecorridoPrueba_(grupoNombre, codigo, url) {
     "</div>" +
     "<div style=\"background:#F7F8FA;padding:18px 28px;text-align:center;border-top:1px solid #E5E7EA;\">" +
     "<p style=\"font-size:13px;color:#0B6A44;font-weight:700;margin:0;\">Secretaría de Educación de Neiva</p>" +
-    "<p style=\"font-size:12px;color:#888888;margin:4px 0 0;font-style:italic;\">“Encuentro de voces que construyen territorio”</p>" +
+    "<p style=\"font-size:12px;color:#888888;margin:4px 0 0;font-style:italic;\">“Foro Educativo Comunal Neiva 2026”</p>" +
     "</div>" +
     "</div>" +
     "</div>";

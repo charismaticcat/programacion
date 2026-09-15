@@ -1429,14 +1429,62 @@ segura e independiente de la sección B del pedido del usuario:
 
 ### Backlog pendiente (Documento Orientador FEM2026 — resto del pedido)
 
-El resto del pedido (renombrado global, división en dos secciones independientes "Encuentro de voces..." /
-"ConectaEduca" con navegación, consentimientos, asistencia y valoración propios de cada una, nueva "Sesión de
-socialización" con temporizador, reemplazo completo de las preguntas de Sesión 1, y el nuevo campo de
-estamento) es una reestructuración grande y profundamente interdependiente — no es seguro intentarla de golpe
-sin ir verificando cada pieza. Queda para los próximos lotes, en este orden sugerido (ver la respuesta al
-usuario en esta misma conversación para el detalle completo item por item y las dos preguntas abiertas: el
-listado real de las IE por grupo, y la confirmación de si el renombrado global debe esperar a la división en
-dos secciones o hacerse ya).
+El resto del pedido (división en dos secciones independientes "Encuentro de voces..." / "ConectaEduca" con
+navegación, consentimientos, asistencia y valoración propios de cada una, nueva "Sesión de socialización" con
+temporizador, reemplazo completo de las preguntas de Sesión 1, y el nuevo campo de estamento) es una
+reestructuración grande y profundamente interdependiente — no es seguro intentarla de golpe sin ir verificando
+cada pieza. El usuario confirmó el orden sugerido para los próximos lotes: **C (división estructural en dos
+secciones) → D (Encuentro de voces...) → E (ConectaEduca) → F (valoraciones) → G (estamento)**. El listado
+real de IE por grupo NO hace falta para la "Sesión de socialización" (item 10): una sola persona ingresa los
+datos, así que basta con reutilizar el listado de IE ya disponible por grupo (`estado.instituciones`); el
+usuario aclaró que ese listado real de instituciones solo hace falta más adelante para la caracterización, no
+para esto.
+
+## 4.48 Trigésimo sexto lote: renombrado global "Foro Comunal" → "Encuentro de voces que construyen territorio"
+
+Cubre el item 1 del Documento Orientador FEM2026 (Sección A), hecho como lote independiente (spec del
+usuario: "Do it separately", antes de encarar la división en dos secciones de la Sección C).
+
+- **`Config.gs`**: se intercambiaron los valores de `NOMBRE_FORO` y `SUBTITULO` en `CONFIG_POR_DEFECTO_` —
+  ahora `NOMBRE_FORO = "Encuentro de voces que construyen territorio"` (el nombre grande, en el encabezado,
+  el título de pestaña, los asuntos de correo, la portada del informe, etc. — todo lo que ya usaba
+  `config.NOMBRE_FORO`/`NOMBRE_FORO` como variable de plantilla se actualizó automáticamente, sin tocar cada
+  archivo) y `SUBTITULO = "Foro Educativo Comunal Neiva 2026"` (pasa a ser el subtítulo entre comillas debajo
+  del título, y aparece igual en la portada del informe vía `config.SUBTITULO`). **Importante**: esto solo
+  cambia el valor por defecto (`CONFIG_POR_DEFECTO_`, usado al sembrar la hoja `ConfiguracionComunal` la
+  primera vez o como fallback); si la hoja `ConfiguracionComunal` de la instalación real ya tiene una fila
+  `NOMBRE_FORO`/`SUBTITULO` con el valor viejo, hay que actualizarla ahí manualmente (o borrar esas dos filas
+  para que vuelva a tomar el default) — el código no sobrescribe valores ya guardados en la hoja.
+- Se dejó sin tocar todo identificador interno no visible para el usuario, por riesgo de romper continuidad
+  de datos ya existentes: nombres de hoja (`GruposComunal`, `ConfiguracionComunal`, `ParticipacionComunal`,
+  `Sesion1Comunal`, `InformesComunal`, `EnviosDiferidosComunal`, `HOJA_RESPONSABLES_COMUNAL_`,
+  `HOJA_VALORACION_COMUNAL_`), la clave de `PropertiesService` (`SPREADSHEET_ID_COMUNAL`), el valor
+  `ID_FORO_COMUNAL: "FEC-NEIVA-2026"` (prefijo real de los códigos de acceso ya generados y distribuidos,
+  visible en el placeholder "FEC-XXXXX" del campo de código), y los comentarios de encabezado de cada
+  archivo (`* X.gs — Foro Educativo Comunal Neiva 2026`, puramente documentales). Renombrar cualquiera de
+  estos habría hecho que el código dejara de encontrar hojas/propiedades/códigos ya existentes.
+- **Textos de UI reemplazados uno por uno** (no un reemplazo ciego de todo el archivo, por convivir en los
+  mismos archivos con los identificadores internos de arriba que no debían tocarse):
+  - `Index.html`: "Presentación del Foro" → "Presentación del Encuentro"; "Ruta del Foro Educativo Comunal" →
+    "Ruta del Encuentro de voces que construyen territorio"; el párrafo de bienvenida, el aviso de
+    sistematización en el consentimiento, las 4 preguntas de valoración + la abierta condicional, el paso a
+    paso final, el botón "Finalizar..." y el texto de despedida.
+  - `AsistenciaPublica.html`: la misma sección de valoración (texto idéntico al de `Index.html`) y el mensaje
+    de agradecimiento final.
+  - `JS.html`: las 3 variantes de la pregunta abierta de valoración (según nota 😭/😬/🎉) y el aviso de a qué
+    correos institucionales llega el informe.
+  - `Access.gs`: el mensaje de "se habilitará a las [hora]" cuando el acceso está bloqueado por horario.
+  - `Correo.gs`: asunto, cuerpo de texto y cuerpo HTML del correo de "recorrido de prueba" (`_construirCorreoRecorridoPrueba_`) — aquí también se intercambiaron nombre/subtítulo, igual que en `Config.gs`, para que el encabezado grande del correo diga "Encuentro de voces que construyen territorio" y el pie de página entre comillas diga "Foro Educativo Comunal Neiva 2026".
+  - `Informes.gs`: el párrafo final "Insumos para el Foro Educativo Municipal FEM 2026" que menciona de qué
+    evento vienen los resultados consolidados.
+- Verificado: `node --check` sobre cada `.gs` (copiados a `.js` en un directorio temporal, ya que `node
+  --check` no reconoce la extensión `.gs` directamente) y sobre los bloques `<script>` de `Index.html`,
+  `AsistenciaPublica.html` y `JS.html` (con las etiquetas de plantilla de Apps Script recortadas) — todos
+  limpios salvo los dos falsos positivos ya conocidos y reconfirmados en cada lote (`Index.html` y
+  `AsistenciaPublica.html` fallan solo por `var TOKEN_ACCESO = ;` / `var ID_GRUPO = ;`, variables de
+  plantilla que quedan vacías al recortar `<?!= ... ?>` fuera de una petición real de Apps Script — no es un
+  bug). IDs sin duplicar y balance de etiquetas OK en los dos archivos HTML tocados. No probado en vivo desde
+  un navegador.
 
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
