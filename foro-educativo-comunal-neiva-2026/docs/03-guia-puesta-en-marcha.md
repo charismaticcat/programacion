@@ -1854,6 +1854,22 @@ puertas —Encuentro y Conecta Educa— de principio a fin, generar el informe) 
 para producción; ningún lote de esta serie se probó fuera de `node --check` y las verificaciones estáticas
 descritas en cada sección.
 
+## 4.57 Cuadragésimo quinto lote: "Subir más tarde" en el listado de asistencia
+
+Pedido suelto del usuario, fuera del Documento Orientador: en Participación, "Método de asistencia del grupo"
+solo tenía "Subir listado" — quien no tuviera el PDF firmado a mano en ese momento no tenía forma explícita de
+aplazarlo, a diferencia de la fotografía del grupo (que sí tiene "Subir más tarde" desde el Lote de la Fase
+25/26). Se agregó el mismo patrón: botón `btnListadoMasTarde` junto a "Subir listado" que solo marca
+`estado.listadoAsistenciaMasTardeConfirmado = true` y muestra un mensaje tranquilizador — no sube nada, y a
+diferencia de la fotografía (que sí es obligatoria para generar el informe, `FOTO_REQUERIDA` en
+`generarInformeCompletoGrupo`), el listado nunca tuvo ni tiene un candado equivalente, así que no hizo falta
+replicar el segundo aviso de confirmación en "Continuar" ni un punto de re-exigencia en Revisión y cierre
+(ítem 19 del lote anterior, además, ya quitó de ahí todo lo relacionado con asistencia) — el listado se puede
+subir en cualquier momento después, desde el mismo panel de Participación.
+
+Verificado: bloques `<script>` de `Index.html` (mismo falso positivo ya conocido)/`JS.html` (limpio); IDs sin
+duplicar y balance de etiquetas OK. No probado en vivo desde un navegador.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

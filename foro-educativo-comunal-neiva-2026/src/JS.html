@@ -34,6 +34,7 @@ var estado = {
   socializacionPreparacion: [],
   explicacionConectaEducaVista: false,
   fotoGrupoMasTardeConfirmado: false,
+  listadoAsistenciaMasTardeConfirmado: false,
   avisoColaboradoresMostrado: false,
   enlacesInvitados: null,
   seccion: ""
@@ -2184,6 +2185,20 @@ document.getElementById("btnSubirListado").addEventListener("click", function ()
       }
     );
   });
+});
+
+// "Subir más tarde" no sube nada: solo tranquiliza a quien diligencia de
+// que puede seguir con el resto del instrumento — el listado se puede
+// subir en cualquier momento después, desde este mismo panel (no hay
+// candado que lo exija para continuar ni para generar el informe).
+document.getElementById("btnListadoMasTarde").addEventListener("click", function () {
+  estado.listadoAsistenciaMasTardeConfirmado = true;
+  mostrarMensaje(
+    "mensajeMetodoAsistencia",
+    "De acuerdo — puedes continuar con el instrumento. Cuando lo tengas a mano, vuelve a esta pantalla para " +
+      "subir el listado firmado.",
+    "info"
+  );
 });
 
 /**
