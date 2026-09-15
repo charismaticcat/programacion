@@ -705,6 +705,14 @@ function cargarRecursosSesion1() {
  * ------------------------------------------------------------------ */
 if (NOMBRE_GRUPO_ACCESO) {
   document.getElementById("nombreGrupoAcceso").textContent = "Grupo: " + NOMBRE_GRUPO_ACCESO;
+  // Número de grupo en tamaño grande, entre "Acceso del grupo" y "Código
+  // de acceso" (spec del usuario) — mismo dato (NOMBRE_GRUPO_ACCESO,
+  // p.ej. "Grupo 3"), solo con más énfasis visual.
+  var elNumeroGrupoAcceso = document.getElementById("numeroGrupoAcceso");
+  if (elNumeroGrupoAcceso) {
+    elNumeroGrupoAcceso.textContent = NOMBRE_GRUPO_ACCESO;
+    elNumeroGrupoAcceso.classList.remove("oculto");
+  }
 }
 
 function intentarValidarAcceso(forzar) {

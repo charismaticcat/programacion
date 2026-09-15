@@ -1393,6 +1393,51 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   navegador en este entorno; se intentó ejecutar `testCrearPerfilPruebaCompleto()` de forma remota
   (`clasp run`) — ver el resultado exacto en la respuesta de este lote.
 
+## 4.47 Trigésimo quinto lote (parcial): pantalla de acceso — invitados ocultos, número de grupo, modo de visualización
+
+Primer lote de un backlog mucho más grande (Documento Orientador FEM2026, sección "Encuentro voces que
+construyen territorio" — ver más abajo "Backlog pendiente" para el resto). Este lote cubre solo la parte
+segura e independiente de la sección B del pedido del usuario:
+
+- **"Ocultar el perfil de invitados"**: el botón "🎓 Somos invitados..." (y su separador "o") ya no se
+  muestran en la pantalla de Acceso — quedan en el HTML con `class="oculto"`, sin borrar el flujo completo de
+  invitados (por si se necesita reactivar más adelante).
+- **"Mostrar el número de grupo en tamaño grande... debajo de 'Acceso del grupo' y encima de 'Código de
+  acceso'"**: se agregó `#numeroGrupoAcceso`, que muestra el mismo dato ya disponible (`NOMBRE_GRUPO_ACCESO`,
+  p. ej. "Grupo 3") con tipografía grande, justo en esa posición.
+- **"Modo de visualización... 'No podrá ingresar información hasta que ingrese el código del grupo'"**: se
+  agregó como aviso permanente dentro de la propia pantalla de Acceso (en vez de una pantalla nueva aparte,
+  ya que esa pantalla YA es, por definición, el único punto donde no se puede ingresar nada hasta escribir el
+  código — una pantalla separada habría sido redundante con la misma).
+- **"Investigar y corregir el error intermitente 'Ocurrió un error de comunicación'"**: revisado el código —
+  el manejo de errores ya está correcto en ambos lados: cada RPC de servidor pasa por `ejecutarRpcSeguro_`
+  (Utils.gs, desde un lote anterior), que atrapa cualquier excepción y devuelve `{ok:false, mensaje:...}` en
+  vez de dejarla sin controlar; y el cliente (`llamarServidor`, JS.html) solo muestra "Ocurrió un error de
+  comunicación..." cuando `google.script.run` falla a nivel de TRANSPORTE (no cuando el servidor responde con
+  un error de negocio, que ya llega con un mensaje propio). No se encontró un error de código que lo cause —
+  es coherente con una falla intermitente de red/conexión, no con un bug de lógica. Se evaluó agregar un
+  reintento automático, pero se descartó: varias operaciones (`appendRow` en `iniciarAccesoInvitado`,
+  `registrarParticipante`, `guardarActorConectaEduca`, etc.) NO son idempotentes — si el servidor sí llegó a
+  ejecutar la escritura pero la respuesta se perdió en el camino, un reintento automático podría duplicar esa
+  fila. Diagnosticar la causa real (¿tiempos de espera de `LockService`? ¿llamadas lentas bajo carga?
+  ¿problemas de red del dispositivo?) requiere ver el Registro de ejecuciones de Apps Script en el momento
+  real en que ocurre, algo a lo que no tengo acceso en este entorno (`clasp run` sigue bloqueado por el mismo
+  permiso de cuenta reportado en un lote anterior). Si vuelve a pasar, lo más útil sería anotar la hora exacta
+  y qué acción se estaba haciendo, para buscarlo en ese registro.
+- **Nota de transparencia**: verificado de forma estática (`node --check` con el falso positivo ya conocido;
+  IDs sin duplicar; balance de etiquetas en Index.html). No probado en vivo desde un navegador.
+
+### Backlog pendiente (Documento Orientador FEM2026 — resto del pedido)
+
+El resto del pedido (renombrado global, división en dos secciones independientes "Encuentro de voces..." /
+"ConectaEduca" con navegación, consentimientos, asistencia y valoración propios de cada una, nueva "Sesión de
+socialización" con temporizador, reemplazo completo de las preguntas de Sesión 1, y el nuevo campo de
+estamento) es una reestructuración grande y profundamente interdependiente — no es seguro intentarla de golpe
+sin ir verificando cada pieza. Queda para los próximos lotes, en este orden sugerido (ver la respuesta al
+usuario en esta misma conversación para el detalle completo item por item y las dos preguntas abiertas: el
+listado real de las IE por grupo, y la confirmación de si el renombrado global debe esperar a la división en
+dos secciones o hacerse ya).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

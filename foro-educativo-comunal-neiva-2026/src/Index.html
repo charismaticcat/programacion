@@ -134,14 +134,17 @@
     <div class="tarjeta">
       <h2 class="titulo-seccion">Acceso del grupo</h2>
       <p class="ayuda" id="nombreGrupoAcceso"></p>
+      <p class="numero-grupo-acceso oculto" id="numeroGrupoAcceso"></p>
+      <p class="mensaje info" id="avisoModoVisualizacionAcceso">🔒 Modo de visualización — no podrá ingresar
+        información hasta que ingrese el código del grupo.</p>
       <label for="campoCodigoAcceso">Código de acceso</label>
       <input type="text" id="campoCodigoAcceso" placeholder="FEC-XXXXX" autocomplete="off">
       <div id="mensajeAcceso"></div>
       <div class="fila-botones">
         <button class="btn btn-primario" id="btnValidarAcceso">Ingresar</button>
       </div>
-      <p class="separador-o">o</p>
-      <div class="fila-botones">
+      <p class="separador-o oculto" id="separadorInvitadoAcceso">o</p>
+      <div class="fila-botones oculto" id="filaBotonInvitadoAcceso">
         <button class="btn btn-secundario" id="btnSoyInvitado">🎓 Somos invitados (estudiantes, egresados y adultos responsables)</button>
       </div>
     </div>
