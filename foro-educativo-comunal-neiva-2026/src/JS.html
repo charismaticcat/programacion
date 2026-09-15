@@ -74,11 +74,19 @@ function urlImagenDrive(idArchivo, ancho) {
 // Inicio/Presentación/Metodología se muestran DESPUÉS de validar el
 // código (ver intentarValidarAcceso), como introducción antes de
 // Participación.
+// pantallaInvitadosEspeciales/pantallaPreSocializacion/pantallaSeleccionIEPreparacion/
+// pantallaPreparacionIE son la vieja "Preparación", oculta desde el item 9
+// (Documento Orientador FEM2026) — se dejan en el orden solo para no
+// romper índices de código antiguo; ya no están en PANTALLAS_SOLO_ENCUENTRO_
+// (más abajo), así que pantallaPerteneceASeccionActual_ las rechaza y
+// nada en la app navega hacia ellas. pantallaSesionSocializacion las
+// reemplaza (item 10).
 var ORDEN_PANTALLAS = [
   "pantallaEleccionSeccion", "pantallaAcceso", "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia",
   "pantallaConsentimientoGrupo", "pantallaParticipacion", "pantallaConfirmacionCaracterizacion",
   "pantallaInvitadosEspeciales",
   "pantallaPreSocializacion", "pantallaSeleccionIEPreparacion", "pantallaPreparacionIE",
+  "pantallaSesionSocializacion",
   "pantallaSesion1", "pantallaSesion2", "pantallaRevisionCierre",
   "pantallaInformeGenerado", "pantallaDespedida"
 ];
@@ -104,8 +112,8 @@ var PANTALLAS_COMUNES_SECCION_ = [
   "pantallaConfirmacionCaracterizacion", "pantallaRevisionCierre", "pantallaInformeGenerado", "pantallaDespedida"
 ];
 var PANTALLAS_SOLO_ENCUENTRO_ = [
-  "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia", "pantallaInvitadosEspeciales",
-  "pantallaPreSocializacion", "pantallaSeleccionIEPreparacion", "pantallaPreparacionIE", "pantallaSesion1"
+  "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia",
+  "pantallaSesionSocializacion", "pantallaSesion1"
 ];
 var PANTALLAS_SOLO_CONECTAEDUCA_ = ["pantallaSesion2"];
 
@@ -185,7 +193,7 @@ function llamarServidor(nombreFuncion, args, onExito, onError) {
 var PASOS_PROGRESO_ENCUENTRO_ = [
   { id: "pantallaParticipacion", etiqueta: "Participación" },
   { id: "pantallaConfirmacionCaracterizacion", etiqueta: "Caracterización" },
-  { id: "pantallaSeleccionIEPreparacion", etiqueta: "Preparación" },
+  { id: "pantallaSesionSocializacion", etiqueta: "Socialización" },
   { id: "pantallaSesion1", etiqueta: "Sesión 1" },
   { id: "pantallaRevisionCierre", etiqueta: "Cierre" }
 ];
@@ -303,6 +311,7 @@ function cambiarPantalla(idPantalla) {
   }
   if (idPantalla === "pantallaSeleccionIEPreparacion") cargarListaIEPreparacion();
   if (idPantalla === "pantallaPreparacionIE") cargarPreparacionIE();
+  if (idPantalla === "pantallaSesionSocializacion") cargarSocializacionIE();
   if (idPantalla === "pantallaSesion1") {
     cargarSesion1();
     cargarRecursosSesion1();
@@ -821,17 +830,123 @@ inicializarContadoresPalabras();
 
 /* ------------------------------------------------------------------ *
  * Recursos descargables (Informe Ejecutivo, etc.) — la ventana emergente
- * con estos archivos solo aparece automáticamente en Preparación (para
- * la IE, ver cargarPreparacionIE), nunca en Socialización/Sesión 1 (spec
- * del usuario). En Sesión 1 se deja únicamente la sección en pantalla
- * "📎 Archivos de apoyo para esta sesión" (listaRecursosSesion1Botones),
- * sin ventana emergente.
+ * con estos archivos aparecía automáticamente en "Preparación" (para la
+ * IE); desde que esa pantalla se ocultó (item 9, Documento Orientador
+ * FEM2026), item 11 pide trasladar ese pop-up a Sesión 1, así que ahora
+ * se abre aquí, una sola vez por sesión, además de la sección fija
+ * "📎 Archivos de apoyo para esta sesión" (listaRecursosSesion1Botones)
+ * que ya existía en pantalla.
  * ------------------------------------------------------------------ */
 function cargarRecursosSesion1() {
   llamarServidor("rpcObtenerRecursosSesion1", [estado.idGrupo], function (recursos) {
     renderRecursosSesion1(recursos || []);
+    if (!estado.recursosSesion1Mostrado) {
+      estado.recursosSesion1Mostrado = true;
+      abrirModal("modalRecursosSesion1");
+    }
   });
 }
+
+/* ------------------------------------------------------------------ *
+ * Sesión de socialización (Documento Orientador FEM2026, sección D,
+ * item 10) — reemplaza a "Preparación" (item 9): checklist de qué IE ya
+ * socializó, con un temporizador de apoyo (10 min + botón "+2 minutos")
+ * por institución. Al dar "Finalizar" se abre la ventana de "Datos
+ * relevantes" de esa IE para anotar lo compartido; también se puede
+ * abrir esa ventana en cualquier momento sin pasar por el temporizador.
+ * ------------------------------------------------------------------ */
+var estadoSocializacion = {
+  datos: [],
+  ieActivaId: "",
+  ieActivaNombre: "",
+  segundosRestantes: 0,
+  temporizadorId: null
+};
+var SEGUNDOS_INICIALES_SOCIALIZACION_ = 600;
+
+function cargarSocializacionIE() {
+  llamarServidor("rpcObtenerSocializacionGrupo", [estado.idGrupo], function (datos) {
+    estadoSocializacion.datos = Array.isArray(datos) ? datos : [];
+    renderChecklistSocializacionIE(estadoSocializacion.datos);
+  }, function () {
+    mostrarMensaje("mensajeGlobal", "No fue posible cargar el listado de instituciones. Intente de nuevo.", "error");
+  });
+}
+
+function _formatoRelojSocializacion_(segundos) {
+  var m = Math.floor(Math.abs(segundos) / 60);
+  var s = Math.abs(segundos) % 60;
+  return (segundos < 0 ? "-" : "") + (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+}
+
+function _actualizarRelojSocializacion_() {
+  document.getElementById("relojSocializacion").textContent = _formatoRelojSocializacion_(estadoSocializacion.segundosRestantes);
+}
+
+function iniciarTemporizadorSocializacionIE_(idIE, nombreIE) {
+  clearInterval(estadoSocializacion.temporizadorId);
+  estadoSocializacion.ieActivaId = idIE;
+  estadoSocializacion.ieActivaNombre = nombreIE;
+  estadoSocializacion.segundosRestantes = SEGUNDOS_INICIALES_SOCIALIZACION_;
+  document.getElementById("nombreIESocializando").textContent = nombreIE;
+  _actualizarRelojSocializacion_();
+  document.getElementById("panelTemporizadorSocializacion").classList.remove("oculto");
+  document.getElementById("panelTemporizadorSocializacion").scrollIntoView({ behavior: "smooth", block: "center" });
+  estadoSocializacion.temporizadorId = setInterval(function () {
+    estadoSocializacion.segundosRestantes--;
+    _actualizarRelojSocializacion_();
+  }, 1000);
+}
+
+document.getElementById("btnMas2MinSocializacion").addEventListener("click", function () {
+  estadoSocializacion.segundosRestantes += 120;
+  _actualizarRelojSocializacion_();
+});
+
+document.getElementById("btnFinalizarSocializacionIE").addEventListener("click", function () {
+  clearInterval(estadoSocializacion.temporizadorId);
+  document.getElementById("panelTemporizadorSocializacion").classList.add("oculto");
+  abrirDatosRelevantesSocializacionIE_(estadoSocializacion.ieActivaId, estadoSocializacion.ieActivaNombre);
+});
+
+function abrirDatosRelevantesSocializacionIE_(idIE, nombreIE) {
+  var registro = estadoSocializacion.datos.find(function (ie) { return ie.idIE === idIE; });
+  document.getElementById("tituloDatosRelevantesIE").textContent = "Datos relevantes de " + (nombreIE || (registro && registro.institucion) || "");
+  document.getElementById("campoDatosRelevantesIE").value = registro ? registro.datosRelevantes || "" : "";
+  document.getElementById("campoDatosRelevantesIE").setAttribute("data-ie-actual", idIE);
+  mostrarMensaje("mensajeDatosRelevantesIE", "");
+  abrirModal("modalDatosRelevantesIE");
+}
+
+document.getElementById("btnGuardarDatosRelevantesIE").addEventListener("click", function () {
+  var idIE = document.getElementById("campoDatosRelevantesIE").getAttribute("data-ie-actual");
+  var texto = document.getElementById("campoDatosRelevantesIE").value;
+  llamarServidor("rpcGuardarSocializacionIE", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, idIE, true, texto], function (r) {
+    if (!r.ok) {
+      mostrarMensaje("mensajeDatosRelevantesIE", r.mensaje || "No fue posible guardar.", "error");
+      return;
+    }
+    cerrarModal("modalDatosRelevantesIE");
+    cargarSocializacionIE();
+  }, function () {
+    mostrarMensaje("mensajeDatosRelevantesIE", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+  });
+});
+
+document.addEventListener("click", function (evento) {
+  var iniciar = evento.target.closest("[data-iniciar-socializacion-ie]");
+  if (iniciar) {
+    var idIE = iniciar.getAttribute("data-iniciar-socializacion-ie");
+    var registro = estadoSocializacion.datos.find(function (ie) { return ie.idIE === idIE; });
+    iniciarTemporizadorSocializacionIE_(idIE, registro ? registro.institucion : "");
+  }
+  var editar = evento.target.closest("[data-editar-socializacion-ie]");
+  if (editar) {
+    var idIEEditar = editar.getAttribute("data-editar-socializacion-ie");
+    var registroEditar = estadoSocializacion.datos.find(function (ie) { return ie.idIE === idIEEditar; });
+    abrirDatosRelevantesSocializacionIE_(idIEEditar, registroEditar ? registroEditar.institucion : "");
+  }
+});
 
 /* ------------------------------------------------------------------ *
  * Acceso
@@ -1680,23 +1795,17 @@ function institucionesSinParticipacionMarcada_() {
 }
 
 /**
- * Tras confirmar la caracterización: si el grupo declaró estudiantes/
- * egresados o padres/madres/acudientes en la matriz de participación por
- * estamento, se muestra primero la pantalla de "invitados especiales"
- * (spec del usuario); si no, se salta directo a la sesión de preparación,
- * igual que antes.
+ * Tras confirmar la caracterización: Encuentro va directo a la Sesión de
+ * socialización (item 10 — reemplaza a "invitados especiales"/"Sesión de
+ * preparación", ambas ocultas desde el item 9); ConectaEduca (item 8) va
+ * directo a su propia pantalla.
  */
 function irTrasConfirmarCaracterizacion_() {
-  // ConectaEduca (item 8) no pasa por invitados especiales ni por
-  // Preparación (exclusivas de Encuentro) — va directo a su propia
-  // pantalla.
   if (estado.seccion === "CONECTAEDUCA") {
     cambiarPantalla("pantallaSesion2");
     return;
   }
-  var totales = (estado.participacionEstamento && estado.participacionEstamento.totalesPorEstamento) || {};
-  var hayInvitados = (Number(totales.ESTUDIANTES) || 0) + (Number(totales.EGRESADOS) || 0) + (Number(totales.PADRES) || 0) > 0;
-  cambiarPantalla(hayInvitados ? "pantallaInvitadosEspeciales" : "pantallaPreSocializacion");
+  cambiarPantalla("pantallaSesionSocializacion");
 }
 
 // La advertencia "Verifique la participación por institución" solo se

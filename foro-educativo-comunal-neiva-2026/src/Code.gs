@@ -209,6 +209,22 @@ function rpcAportesInvitadosGrupo(idGrupo) {
   });
 }
 
+/* ------------------------------------------------------------------ *
+ * RPC — Sesión de socialización (Socializacion.gs, item 10: reemplaza a
+ * Preparación, item 9)
+ * ------------------------------------------------------------------ */
+function rpcObtenerSocializacionGrupo(idGrupo) {
+  return ejecutarRpcSeguro_(function () {
+    return obtenerSocializacionGrupo(idGrupo);
+  });
+}
+
+function rpcGuardarSocializacionIE(idGrupo, tokenSesion, dispositivoId, idIE, socializo, datosRelevantes) {
+  return ejecutarRpcSeguro_(function () {
+    return guardarSocializacionIE(idGrupo, tokenSesion, dispositivoId, idIE, socializo, datosRelevantes);
+  });
+}
+
 /** Enlaces (estudiante/egresado y acudiente) de la pantalla de invitados especiales, tras Confirmación de caracterización. */
 function rpcObtenerEnlacesInvitadosGrupo(idGrupo) {
   return ejecutarRpcSeguro_(function () {

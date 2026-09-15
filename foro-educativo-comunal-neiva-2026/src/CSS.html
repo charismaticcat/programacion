@@ -157,6 +157,29 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--verde); bor
 .tarjeta-seccion:hover, .tarjeta-seccion:focus-visible { border-color: var(--verde); transform: translateY(-2px); }
 .tarjeta-seccion h3 { color: var(--verde-oscuro); margin: 8px 0 6px; }
 .logo-tarjeta-seccion { max-width: 140px; max-height: 100px; margin: 0 auto 8px; display: block; }
+
+/* Sesión de socialización (Documento Orientador FEM2026, item 10). */
+.fila-socializacion-ie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--gris-borde);
+}
+.fila-socializacion-ie:last-child { border-bottom: none; }
+.fila-socializacion-ie .fila-botones { margin-top: 0; }
+.nombre-ie-socializacion { font-weight: 600; }
+.fila-socializacion-ie.socializo-hecho .nombre-ie-socializacion { color: var(--verde-oscuro); }
+.temporizador-socializacion {
+  text-align: center;
+  font-size: 2.8rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--verde-oscuro);
+  margin: 8px 0;
+}
 button.btn, a.btn {
   display: inline-block;
   border: none;

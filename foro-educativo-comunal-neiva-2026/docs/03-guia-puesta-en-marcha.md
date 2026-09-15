@@ -1586,6 +1586,70 @@ puerta de ConectaEduca (Lote 37) sin pasar por Metodología, Preparación ni Ses
   balance de etiquetas OK en `Index.html`. No probado en vivo desde un navegador — en particular, no se
   probó de punta a punta el recorrido de ConectaEduca con datos reales de `GRUPO-PRUEBA`.
 
+## 4.51 Trigésimo noveno lote: Sesión de socialización reemplaza a Preparación (items 9 + 10)
+
+Cubre juntos los items 9 ("ocultar Preparación y todas sus subpáginas") y 10 ("añadir una nueva Sesión de
+socialización") del Documento Orientador FEM2026, sección D — se hicieron en el mismo lote porque ocultar el
+uno sin tener listo el otro habría dejado un hueco en el recorrido de Encuentro (nada llevaría de
+Confirmación de caracterización a Sesión 1). También cubre el item 11 ("trasladar la página pop-up actual a
+la Sesión 1").
+
+- **Qué se ocultó (item 9)**: `pantallaInvitadosEspeciales`, `pantallaPreSocializacion`,
+  `pantallaSeleccionIEPreparacion` y `pantallaPreparacionIE` — la "Sesión de preparación" completa, donde
+  cada IE elegía un(a) responsable y editaba un resumen sugerido (extraído de su Informe Ejecutivo real)
+  antes de enviarlo. Mismo patrón de todo el proyecto: se dejan en el HTML/backend sin borrar (útiles si se
+  necesita reactivar esa lógica), simplemente ya no son alcanzables — se sacaron de
+  `PANTALLAS_SOLO_ENCUENTRO_` (Lote 38), así que `pantallaPerteneceASeccionActual_` las rechaza y ningún
+  botón ni llamada a `cambiarPantalla` restante en el código apunta hacia ellas (verificado con una revisión
+  completa de todos los `data-ir`/`cambiarPantalla` de Index.html y JS.html).
+- **Por qué se puede ocultar sin perder valor**: la Sesión de preparación producía contenido que luego se
+  socializaba oralmente en Sesión 1 (aportes leídos por cada IE). El item 16 (todavía pendiente) va a
+  reemplazar las preguntas actuales de Sesión 1 por las preguntas reales del Foro Educativo Institucional —
+  el contenido ya no se prepara por escrito de antemano por cada IE, sino que se construye en vivo a partir
+  de lo que cada institución socialice oralmente ese día, con el nuevo mecanismo de este lote llevando el
+  registro de quién ya pasó.
+- **Qué se agregó (item 10) — `Socializacion.gs` (nuevo) + `pantallaSesionSocializacion` (Index.html)**:
+  una sola persona (spec del usuario: "una persona va a ingresar los datos") lleva en vivo el checklist de
+  qué institución ya socializó, con un temporizador de apoyo de 10 minutos por IE (`+2 minutos`,
+  `Finalizar`). Al dar "Finalizar" (o en cualquier momento, sin depender del temporizador) se abre el modal
+  "Datos relevantes de [IE]" (`modalDatosRelevantesIE`, Modal.html) para anotar lo compartido; guardar ahí
+  marca esa IE como socializada Y guarda la nota, en una sola llamada (`guardarSocializacionIE`).
+  - Nueva hoja `SocializacionIE` (mismo patrón de clave compuesta `ID_GRUPO|ID_IE` que `PreparacionIE`/
+    `ParticipacionEstamento`, columna `CLAVE`): `obtenerSocializacionGrupo(idGrupo)` arma el checklist
+    completo (todas las IE del grupo, vía `obtenerInstitucionesDelGrupo` ya existente) cruzando lo guardado;
+    `guardarSocializacionIE(idGrupo, tokenSesion, dispositivoId, idIE, socializo, datosRelevantes)` hace el
+    UPSERT (con el mismo chequeo de sesión activa que el resto de escrituras del proyecto). RPCs nuevas:
+    `rpcObtenerSocializacionGrupo`/`rpcGuardarSocializacionIE` (Code.gs).
+  - El temporizador es puramente de cliente (no se guarda en el servidor ni se sincroniza entre
+    dispositivos) — es un apoyo visual para quien modera en vivo, no un dato del registro; lo único que se
+    persiste es el resultado (marcado + nota).
+  - Ruta: Confirmación de caracterización → Sesión de socialización → Sesión 1 (reemplaza a "→ invitados
+    especiales/Sesión de preparación → Sesión 1"). Nuevo paso "Socialización" en la barra de progreso
+    navegable de Encuentro (`PASOS_PROGRESO_ENCUENTRO_`), reemplazando al antiguo "Preparación".
+- **Item 11 — pop-up de recursos trasladado a Sesión 1**: la ventana emergente de documentos de apoyo
+  (Informe Ejecutivo, etc., `modalRecursosSesion1`) aparecía automáticamente solo en Preparación de la IE;
+  como esa pantalla ya no es alcanzable, ahora se abre automáticamente (una sola vez por sesión, mismo flag
+  `estado.recursosSesion1Mostrado`) al entrar a Sesión 1 — la lógica vive ahora en `cargarRecursosSesion1()`
+  en vez de en `cargarPreparacionIE()` (que queda intacta pero ya no se ejecuta).
+- Verificado: `node --check` sobre `Socializacion.gs` y el resto de `.gs` tocados (`Code.gs`, `Config.gs`), y
+  sobre los bloques `<script>` de `Index.html`, `JS.html` (limpio), `Components.html` y `Modal.html`; IDs sin
+  duplicar y balance de etiquetas OK en `Index.html`/`Modal.html`. Revisión manual del grafo completo de
+  navegación (como en el lote anterior) para confirmar que ninguna pantalla compartida sigue apuntando a la
+  vieja Preparación. No probado en vivo desde un navegador — en particular, no se probó el temporizador ni
+  el guardado real del checklist con `GRUPO-PRUEBA`.
+
+### Backlog restante del Documento Orientador FEM2026
+
+Quedan pendientes, en el orden ya confirmado con el usuario: item 11 completado arriba; **12** (rutas de
+navegación + horario en la tarjeta de Metodología, que todavía describe el recorrido lineal antiguo); **13**
+(ocultar QR, dejar solo asistencia en PDF con el formato específico del Drive); **14-15** (rediseño del
+consentimiento informado: listado descargable/copiable/enviable por correo, mover "cantidad de asistentes"
+al final, dividir en las dos partes del evento); **16** (reemplazar las 11 preguntas actuales de Sesión 1 por
+las preguntas reales del Foro Educativo Institucional, ya transcritas en una respuesta anterior de esta
+conversación) — el más grande y el que más se beneficia de los items 9-10 ya resueltos. Luego Sección E
+(ConectaEduca: consentimiento y asistencia propios), F (valoraciones separadas, escala numérica, texto
+"la sesión de hoy") y G (nueva opción de estamento "Funcionario Secretaría de Educación").
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

@@ -195,6 +195,7 @@ function inicializarHojasBase_(ss) {
   crear(HOJA_PARTICIPACION_ESTAMENTO_, cabecerasParticipacionEstamentoIE_());
   crear(HOJA_PREPARACION_IE_, cabecerasPreparacionIE_());
   crear(HOJA_INVITADOS_, cabecerasInvitadosPreparacion_());
+  crear(HOJA_SOCIALIZACION_IE_, cabecerasSocializacionIE_());
   crear(HOJA_APORTES_INVITADOS_, cabecerasAportesInvitadosPreparacion_());
   crear("EnviosDiferidosComunal", ["ID_GRUPO", "FECHA_REGISTRO", "REINTENTADO"]);
 

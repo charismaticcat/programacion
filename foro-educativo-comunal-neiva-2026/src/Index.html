@@ -378,9 +378,9 @@
     </div>
   </section>
 
-  <!-- 7bis. INVITADOS ESPECIALES (solo aparece si el grupo declaró
-       estudiantes/egresados o padres/madres/acudientes en la matriz de
-       participación por estamento) -->
+  <!-- 7bis. INVITADOS ESPECIALES — subpágina de "Preparación", oculta (item 9,
+       ver nota más abajo, antes de pantallaPreSocializacion): ya no es
+       alcanzable desde la navegación, queda en el HTML sin borrar. -->
   <section id="pantallaInvitadosEspeciales" class="pantalla">
     <div class="tarjeta">
       <h2 class="titulo-seccion">Espacio especial para invitados</h2>
@@ -429,7 +429,36 @@
     </div>
   </section>
 
-  <!-- 7ter. PRE-SOCIALIZACIÓN (sesión de preparación) -->
+  <!-- 7ter. SESIÓN DE SOCIALIZACIÓN (Documento Orientador FEM2026, item 10) —
+       reemplaza a "Sesión de preparación" (item 9: oculta junto con todas sus
+       subpáginas, ver abajo — quedan en el HTML sin borrar, por si se
+       necesitan reactivar, pero ya no son alcanzables desde la navegación). -->
+  <section id="pantallaSesionSocializacion" class="pantalla">
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">Sesión de socialización</h2>
+      <p class="ayuda">Marquen cada institución educativa a medida que socialice oralmente sus reflexiones,
+        conclusiones y propuestas del Foro Educativo Institucional (hasta 10 minutos por institución). Una
+        sola persona puede llevar este registro por el grupo.</p>
+      <div id="listaSocializacionIE"></div>
+    </div>
+
+    <div class="tarjeta oculto" id="panelTemporizadorSocializacion">
+      <h3 class="subtitulo-campo" id="nombreIESocializando"></h3>
+      <p class="temporizador-socializacion" id="relojSocializacion">10:00</p>
+      <div class="fila-botones" style="justify-content:center;">
+        <button type="button" class="btn btn-secundario" id="btnMas2MinSocializacion">+2 minutos</button>
+        <button type="button" class="btn btn-primario" id="btnFinalizarSocializacionIE">Finalizar</button>
+      </div>
+    </div>
+
+    <div class="fila-botones">
+      <button class="btn btn-secundario" data-ir="pantallaConfirmacionCaracterizacion">Atrás</button>
+      <button class="btn btn-primario" data-ir="pantallaSesion1">Continuar a Sesión 1</button>
+    </div>
+  </section>
+
+  <!-- A PARTIR DE AQUÍ: subpáginas de "Preparación", ocultas (item 9) —
+       ver nota arriba. -->
   <section id="pantallaPreSocializacion" class="pantalla">
     <div class="tarjeta">
       <h2 class="titulo-seccion">Sesión de preparación</h2>
