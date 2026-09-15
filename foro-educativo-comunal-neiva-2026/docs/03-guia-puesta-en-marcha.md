@@ -2030,6 +2030,71 @@ producción (`generarInformeGrupo`, Informes.gs) para encontrar qué era distint
   para este proyecto (`clasp logs` requiere un proyecto de GCP vinculado, no configurado aquí); si sigue
   pasando, hace falta vincular uno para poder ver la traza real del error.
 
+## 4.62 Cuadragésimo noveno lote: Conecta Educa pasa a operarlo un único administrador de la SEM
+
+Pedido del usuario: "para conecta Educa no pidas el mismo codigo, Genera 1 codigo de superadmin que solo
+manejen un admin dela SEM". Aclarado con una pregunta al usuario porque cambiaba quién puede entrar a
+Conecta Educa (los 6 grupos, o solo la Secretaría) — eligió **"Solo el admin de la SEM opera Conecta
+Educa"**: los grupos ya no entran directo a Conecta Educa con su propio código; un único administrador de
+la Secretaría de Educación de Neiva entra con un código maestro, elige el grupo de una lista y diligencia
+los datos de Conecta Educa en su nombre, uno a la vez, para los 6 grupos.
+
+Diseño: como todas las pantallas de Conecta Educa (`pantallaConsentimientoConectaEduca`,
+`pantallaParticipacion`, `pantallaSesion2`, `pantallaConfirmacionCaracterizacion`, `pantallaRevisionCierre`)
+ya solo dependían de tener una sesión de grupo válida (`idGrupo` + `dispositivoId` + `tokenSesion`,
+verificado con `sesionActivaPorIdGrupo_`) y no de CÓMO se consiguió esa sesión, bastó con darle a Conecta
+Educa una puerta de entrada distinta que termine reclamando esa misma sesión — sin tocar ninguna de esas
+pantallas ni sus RPC.
+
+- **Config.gs**: nuevo campo `CODIGO_SUPERADMIN_CONECTAEDUCA` (vacío por defecto) en `ConfiguracionComunal`.
+- **Access.gs**:
+  - `generarCodigoSuperadminConectaEduca()` — genera un código tipo `SEM-XXXXXX` una sola vez (si ya existe,
+    lo devuelve sin regenerar); solo se ejecuta a mano desde el editor de Apps Script, o editando la hoja
+    `ConfiguracionComunal` directamente. **Hace falta ejecutar esta función una vez (o poner el código a
+    mano en la hoja) antes de que la Secretaría pueda usar Conecta Educa** — ver nota abajo.
+  - `validarSuperadminConectaEduca(codigo)` — compara contra el código guardado; si aún no se generó
+    ninguno, devuelve un mensaje explicando que hay que contactar a la Secretaría. Si es válido, devuelve
+    la lista de grupos (`obtenerGrupos()`) para elegir.
+  - `iniciarSesionConectaEducaComoSuperadmin(codigoSuperadmin, idGrupo, dispositivoId, forzar)` — valida el
+    código, busca el grupo elegido en `AccesosGrupo`, y llama a `reclamarSesionGrupo_` (el mismo mecanismo
+    de sesión de siempre, Session.gs) para ese grupo — desde ahí en adelante es indistinguible de un acceso
+    normal por código de grupo.
+- **Code.gs**: `rpcValidarSuperadminConectaEduca` y `rpcIniciarSesionConectaEducaComoSuperadmin`.
+- **Index.html**: dos pantallas nuevas, insertadas antes de `pantallaConsentimientoGrupo`:
+  - `pantallaAccesoSuperadminConectaEduca` — pide el código de administrador.
+  - `pantallaSeleccionGrupoConectaEducaSuperadmin` — lista de grupos con botón "Diligenciar" por cada uno
+    (se puede volver aquí para cambiar de grupo, reingresando con el código o con "← Elegir otra sección").
+  - Texto de consentimiento de grupo y de la tarjeta "Conecta Educa" en la elección de sección actualizados
+    para explicar que ya no se entra con el código propio, sino que lo diligencia un administrador de la SEM
+    en representación del grupo.
+- **Components.html**: `renderListaGruposSuperadminConectaEduca(grupos)`.
+- **JS.html**:
+  - Se extrajo `aplicarSesionGrupoValidada_(r)` de `intentarValidarAcceso` — toda la lógica posterior a
+    validar una sesión de grupo (estado, barra de progreso, instituciones, foto, heartbeat, polling,
+    retomar dónde se quedó, redirección por sección) queda en una sola función, compartida ahora por el
+    acceso normal y por el acceso de superadmin — evita duplicar ~90 líneas y el riesgo de que diverjan.
+  - `estado.accionForzarSesion_` — el modal "sesión ya abierta en otro dispositivo" (`modalTomaSesion`/
+    `btnForzarSesion`) ahora es genérico: guarda qué reintentar (acceso normal o el de superadmin para el
+    grupo elegido) en vez de siempre reintentar `intentarValidarAcceso`.
+  - `pantallaAccesoParaSeccion_(seccion)` — Encuentro sigue yendo a `pantallaAcceso`; Conecta Educa ahora va
+    a `pantallaAccesoSuperadminConectaEduca`. Se usa tanto al elegir sección por primera vez como al
+    retomar la sección guardada en `localStorage` (`retomarSeccionElegida_`).
+  - `btnValidarSuperadminConectaEduca`, `btnCambiarSeccionAccesoSuperadmin`,
+    `btnCambiarSeccionDesdeSeleccionGrupo`, y el delegado `[data-elegir-grupo-superadmin]` (mismo patrón que
+    `[data-iniciar-socializacion-ie]`).
+  - `ORDEN_PANTALLAS`, `PANTALLAS_NO_RESUMIBLES_` y `PANTALLAS_SOLO_CONECTAEDUCA_` incluyen las dos
+    pantallas nuevas (son pantallas de entrada/selección, no de avance real — igual que `pantallaAcceso`).
+
+**Importante para la Secretaría**: mientras `CODIGO_SUPERADMIN_CONECTAEDUCA` esté vacío en
+`ConfiguracionComunal`, nadie puede entrar a Conecta Educa — hay que ejecutar
+`generarCodigoSuperadminConectaEduca()` una vez desde el editor de Apps Script (o pegar un código a mano en
+esa columna) y entregar ese código únicamente a la persona de la SEM que va a operar Conecta Educa.
+
+Verificado: `node --check` sobre Config.gs, Access.gs y Code.gs; extracción y `node --check` de los bloques
+`<script>` de Index.html, JS.html y Components.html (limpios, aparte de los dos falsos positivos
+permanentes ya conocidos: `TOKEN_ACCESO`/`ID_GRUPO` vacíos al striparse fuera de una petición real);
+sin IDs duplicados ni etiquetas sin cerrar en Index.html/Components.html.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

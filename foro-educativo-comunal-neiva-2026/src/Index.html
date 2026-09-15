@@ -152,7 +152,8 @@
         <img id="logoTarjetaConectaEduca" class="logo-tarjeta-seccion oculto" alt="">
         <h3>Conecta Educa</h3>
         <p class="ayuda">Conectar saberes, articular futuro — diálogo con el sector productivo y la educación
-          superior — 2:00 p. m. a 5:00 p. m.</p>
+          superior — 2:00 p. m. a 5:00 p. m. (acceso solo para administradores de la Secretaría de
+          Educación).</p>
       </button>
     </div>
   </section>
@@ -180,6 +181,42 @@
     </div>
   </section>
 
+  <!-- 4bis. ACCESO A CONECTA EDUCA COMO ADMINISTRADOR DE LA SEM (pedido del
+       usuario): Conecta Educa ya no se abre con el código propio de cada
+       grupo — un único administrador de la Secretaría de Educación tiene su
+       propio código y, tras validarlo, elige de una lista a qué grupo le va
+       a diligenciar Conecta Educa (pantallaSeleccionGrupoConectaEducaSuperadmin,
+       justo abajo). -->
+  <section id="pantallaAccesoSuperadminConectaEduca" class="pantalla">
+    <div class="tarjeta">
+      <button type="button" class="btn btn-secundario" id="btnCambiarSeccionAccesoSuperadmin" style="margin-bottom:14px;">← Elegir otra sección</button>
+      <img id="logoAccesoSuperadminConectaEduca" class="logo-tarjeta-seccion oculto" alt="" style="display:block;margin:0 auto 14px;">
+      <h2 class="titulo-seccion">Acceso — Conecta Educa</h2>
+      <p class="ayuda">Conecta Educa lo diligencia un administrador de la Secretaría de Educación de Neiva,
+        en representación de cada grupo — no se ingresa con el código del grupo. Ingrese el código de
+        administrador.</p>
+      <label for="campoCodigoSuperadminConectaEduca">Código de administrador</label>
+      <input type="text" id="campoCodigoSuperadminConectaEduca" placeholder="SEM-XXXXXX" autocomplete="off">
+      <div id="mensajeAccesoSuperadminConectaEduca"></div>
+      <div class="fila-botones">
+        <button class="btn btn-primario" id="btnValidarSuperadminConectaEduca">Continuar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4ter. SELECCIÓN DE GRUPO (administrador de Conecta Educa) -->
+  <section id="pantallaSeleccionGrupoConectaEducaSuperadmin" class="pantalla">
+    <div class="tarjeta">
+      <button type="button" class="btn btn-secundario" id="btnCambiarSeccionDesdeSeleccionGrupo" style="margin-bottom:14px;">← Elegir otra sección</button>
+      <h2 class="titulo-seccion">¿Qué grupo va a diligenciar?</h2>
+      <p class="ayuda">Elija el grupo para registrar sus datos de Conecta Educa. Puede volver a esta pantalla
+        en cualquier momento (botón "← Elegir otra sección" en cualquier pantalla de Conecta Educa, o
+        reingresando con el código de administrador) para cambiar de grupo.</p>
+      <div id="listaGruposSuperadminConectaEduca"></div>
+      <div id="mensajeSeleccionGrupoSuperadmin"></div>
+    </div>
+  </section>
+
   <!-- 5. CONSENTIMIENTO INFORMADO DEL GRUPO (sección 3.2 del Documento Orientador FEM2026;
        dividido en Parte 1/Parte 2 — item 15 — e incluye el listado de asistencia
        descargable/copiable/enviable por correo, obligatorio antes de continuar — item 14) -->
@@ -196,8 +233,8 @@
         trabajo colectivo por grupos de 10:00 a. m. a 12:00 m., para construir conclusiones colectivas.</p>
       <p><strong>Parte 2 — Conecta Educa (2:00 p. m. a 5:00 p. m.):</strong> segunda sesión, diálogo e
         interacción con representantes del sector productivo y de la educación superior del territorio, con
-        el propósito de fortalecer los vínculos entre la educación y el desarrollo local. Se ingresa por su
-        propia puerta de acceso, con el mismo código de este grupo.</p>
+        el propósito de fortalecer los vínculos entre la educación y el desarrollo local. La diligencia un
+        administrador de la Secretaría de Educación de Neiva, en representación del grupo.</p>
       <p><strong>La estructura que propone este aplicativo (sesiones, preguntas orientadoras, secciones)
         es una sugerencia de apoyo, no un molde fijo.</strong> La construcción de cada realidad comunal
         es de carácter autónomo: cada grupo puede adaptar el desarrollo del encuentro a sus propias

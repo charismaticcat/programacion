@@ -166,6 +166,116 @@ function guardarConsentimientoConectaEduca(idGrupo, tokenSesion, dispositivoId) 
   return { ok: true };
 }
 
+/* ------------------------------------------------------------------ *
+ * Acceso a Conecta Educa como administrador de la SEM (pedido del
+ * usuario): Conecta Educa dejó de abrirse con el código propio de cada
+ * grupo — ahora un único administrador de la Secretaría de Educación de
+ * Neiva tiene un código de acceso propio (CODIGO_SUPERADMIN_CONECTAEDUCA,
+ * ConfiguracionComunal), elige de una lista a qué grupo le va a
+ * diligenciar Conecta Educa, y de ahí en adelante usa exactamente el
+ * mismo recorrido que ya existía (consentimiento, participación, Sesión
+ * 2, caracterización, cierre) — nada de eso cambió, solo cómo se entra.
+ * ------------------------------------------------------------------ */
+
+/**
+ * Genera (si hace falta) el código único de administrador — idempotente,
+ * igual que el resto de generadores de credenciales de este proyecto:
+ * nunca regenera uno ya emitido. Se ejecuta manualmente desde el editor
+ * (o ConfiguracionComunal se edita directo, si la Secretaría prefiere
+ * fijar su propio código).
+ */
+function generarCodigoSuperadminConectaEduca() {
+  var config = getConfig();
+  if (String(config.CODIGO_SUPERADMIN_CONECTAEDUCA || "").trim()) {
+    return { ok: true, codigo: config.CODIGO_SUPERADMIN_CONECTAEDUCA, yaExistia: true };
+  }
+  var caracteres = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  var codigo = "SEM-";
+  for (var i = 0; i < 6; i++) {
+    codigo += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+  }
+  escribirConfig_("CODIGO_SUPERADMIN_CONECTAEDUCA", codigo);
+  return { ok: true, codigo: codigo, yaExistia: false };
+}
+
+/**
+ * Valida el código de administrador de Conecta Educa — a diferencia de
+ * validarAccesoGrupo, no depende de un TOKEN de un grupo en particular:
+ * es un único código para toda la instalación. Si es válido, devuelve
+ * también el catálogo de grupos para que el cliente muestre la lista de
+ * inmediato, sin una segunda llamada.
+ */
+function validarSuperadminConectaEduca(codigo) {
+  codigo = String(codigo || "").trim();
+  if (!codigo) return { ok: false, mensaje: "Ingrese el código de acceso." };
+  var codigoConfigurado = String(getConfig().CODIGO_SUPERADMIN_CONECTAEDUCA || "").trim();
+  if (!codigoConfigurado) {
+    return {
+      ok: false,
+      mensaje: "Todavía no se ha generado un código de administrador para Conecta Educa. Contacte a la Secretaría de Educación de Neiva."
+    };
+  }
+  if (codigo !== codigoConfigurado) {
+    return { ok: false, mensaje: "El código es incorrecto." };
+  }
+  return { ok: true, grupos: obtenerGrupos() };
+}
+
+/**
+ * Reclama sesión para el grupo que el administrador eligió — vuelve a
+ * validar el código (nunca se confía en que el cliente ya lo validó
+ * antes) y reutiliza reclamarSesionGrupo_, el mismo mecanismo de cupos
+ * por dispositivo que usa el acceso normal, para que el resto del
+ * recorrido de Conecta Educa (que exige sesionActivaPorIdGrupo_ en cada
+ * guardado) funcione sin ningún cambio.
+ */
+function iniciarSesionConectaEducaComoSuperadmin(codigoSuperadmin, idGrupo, dispositivoId, forzar) {
+  var validacion = validarSuperadminConectaEduca(codigoSuperadmin);
+  if (!validacion.ok) return validacion;
+
+  idGrupo = String(idGrupo || "").trim();
+  dispositivoId = String(dispositivoId || "").trim();
+  if (!idGrupo) return { ok: false, mensaje: "Debe elegir un grupo." };
+  if (!dispositivoId) return { ok: false, mensaje: "No fue posible identificar este dispositivo." };
+
+  var hoja = obtenerHoja_(HOJA_ACCESOS_GRUPO_, cabecerasAccesosGrupo_());
+  var mapa = obtenerMapaCabeceras_(hoja);
+  var numeroFila = buscarFilaPorColumna_(hoja, mapa, "ID_GRUPO", idGrupo);
+  if (numeroFila === -1) {
+    return { ok: false, mensaje: "Ese grupo todavía no tiene acceso generado (ejecutar generarAccesosGrupo)." };
+  }
+
+  var registro = hoja.getRange(numeroFila, 1, 1, hoja.getLastColumn()).getDisplayValues()[0];
+  var valorColumna = function (nombre) {
+    return mapa[nombre] ? String(registro[mapa[nombre] - 1] || "").trim() : "";
+  };
+  var grupo = valorColumna("GRUPO");
+  var estadoAcceso = valorColumna("ESTADO").toUpperCase();
+  if (estadoAcceso === "BLOQUEADO" || estadoAcceso === "INACTIVO") {
+    return { ok: false, mensaje: "Este grupo ya no está disponible." };
+  }
+
+  var sesion = reclamarSesionGrupo_(idGrupo, dispositivoId, !!forzar);
+  if (!sesion.ok) return sesion;
+
+  hoja.getRange(numeroFila, mapa["ULTIMA_ACTIVIDAD"]).setValue(new Date());
+
+  return {
+    ok: true,
+    idGrupo: idGrupo,
+    grupo: grupo,
+    tokenSesion: sesion.tokenSesion,
+    esPrincipal: sesion.esPrincipal,
+    instituciones: obtenerInstitucionesDelGrupo(idGrupo),
+    logoId: valorColumna("LOGO_ID"),
+    metodoAsistencia: valorColumna("METODO_ASISTENCIA"),
+    consentimientoGrupo: valorColumna("CONSENTIMIENTO_GRUPO") === "SI",
+    consentimientoConectaEduca: valorColumna("CONSENTIMIENTO_CONECTAEDUCA") === "SI",
+    fotoGrupoId: valorColumna("FOTO_GRUPO_ID"),
+    ultimaPantalla: valorColumna("ULTIMA_PANTALLA")
+  };
+}
+
 /** Único generador de código de acceso (evita caracteres ambiguos: sin I,O,0,1). */
 function generarCodigoAcceso_(codigosUsados) {
   var caracteres = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";

@@ -345,6 +345,21 @@ function rpcGuardarConsentimientoConectaEduca(idGrupo, tokenSesion, dispositivoI
   });
 }
 
+/* ------------------------------------------------------------------ *
+ * RPC — Acceso a Conecta Educa como administrador de la SEM (ver Access.gs)
+ * ------------------------------------------------------------------ */
+function rpcValidarSuperadminConectaEduca(codigo) {
+  return ejecutarRpcSeguro_(function () {
+    return validarSuperadminConectaEduca(codigo);
+  });
+}
+
+function rpcIniciarSesionConectaEducaComoSuperadmin(codigoSuperadmin, idGrupo, dispositivoId, forzar) {
+  return ejecutarRpcSeguro_(function () {
+    return iniciarSesionConectaEducaComoSuperadmin(codigoSuperadmin, idGrupo, dispositivoId, forzar);
+  });
+}
+
 function rpcGuardarUltimaPantalla(idGrupo, idPantalla) {
   return ejecutarRpcSeguro_(function () {
     return guardarUltimaPantallaGrupo(idGrupo, idPantalla);

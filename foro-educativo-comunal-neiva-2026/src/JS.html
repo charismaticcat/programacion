@@ -37,7 +37,11 @@ var estado = {
   listadoAsistenciaMasTardeConfirmado: false,
   avisoColaboradoresMostrado: false,
   enlacesInvitados: null,
-  seccion: ""
+  seccion: "",
+  // Acceso a Conecta Educa como administrador de la SEM (pedido del
+  // usuario) — ver iniciarSesionSuperadminConectaEduca_ más abajo.
+  codigoSuperadminConectaEduca: "",
+  accionForzarSesion_: null
 };
 
 /** URL de imagen para un archivo de Drive público (logos) — mismo patrón usado para el QR de asistencia. */
@@ -89,7 +93,9 @@ function urlImagenDrive(idArchivo, ancho) {
 // de trabajo; ahora es el último chequeo ("verificar que todo esté
 // correcto") antes de valorar y generar el informe.
 var ORDEN_PANTALLAS = [
-  "pantallaEleccionSeccion", "pantallaAcceso", "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia",
+  "pantallaEleccionSeccion", "pantallaAcceso",
+  "pantallaAccesoSuperadminConectaEduca", "pantallaSeleccionGrupoConectaEducaSuperadmin",
+  "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia",
   "pantallaConsentimientoGrupo", "pantallaConsentimientoConectaEduca", "pantallaParticipacion",
   "pantallaInvitadosEspeciales",
   "pantallaPreSocializacion", "pantallaSeleccionIEPreparacion", "pantallaPreparacionIE",
@@ -102,7 +108,11 @@ var ORDEN_PANTALLAS = [
 // Pantallas de "introducción" (no representan avance real del grupo, se
 // muestran siempre al validar el código por primera vez) — nunca se
 // retoma directamente en ellas ni se marcan como "última pantalla".
-var PANTALLAS_NO_RESUMIBLES_ = ["pantallaEleccionSeccion", "pantallaAcceso", "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia"];
+var PANTALLAS_NO_RESUMIBLES_ = [
+  "pantallaEleccionSeccion", "pantallaAcceso",
+  "pantallaAccesoSuperadminConectaEduca", "pantallaSeleccionGrupoConectaEducaSuperadmin",
+  "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia"
+];
 
 /**
  * Documento Orientador FEM2026, sección D, item 8: "trasladar toda la
@@ -125,7 +135,10 @@ var PANTALLAS_SOLO_ENCUENTRO_ = [
 ];
 // item 17 (Documento Orientador FEM2026): Conecta Educa tiene su propio
 // consentimiento informado, distinto del de pantallaConsentimientoGrupo.
-var PANTALLAS_SOLO_CONECTAEDUCA_ = ["pantallaConsentimientoConectaEduca", "pantallaSesion2"];
+var PANTALLAS_SOLO_CONECTAEDUCA_ = [
+  "pantallaAccesoSuperadminConectaEduca", "pantallaSeleccionGrupoConectaEducaSuperadmin",
+  "pantallaConsentimientoConectaEduca", "pantallaSesion2"
+];
 
 /** true si `idPantalla` es alcanzable desde la sección actualmente elegida (estado.seccion). */
 function pantallaPerteneceASeccionActual_(idPantalla) {
@@ -402,7 +415,8 @@ var TEXTOS_SECCION_ = {
 (function poblarLogosSeccion_() {
   [
     { id: "logoTarjetaEncuentro", logo: LOGO_ENCUENTRO_ID },
-    { id: "logoTarjetaConectaEduca", logo: LOGO_CONECTAEDUCA_ID }
+    { id: "logoTarjetaConectaEduca", logo: LOGO_CONECTAEDUCA_ID },
+    { id: "logoAccesoSuperadminConectaEduca", logo: LOGO_CONECTAEDUCA_ID }
   ].forEach(function (item) {
     var img = document.getElementById(item.id);
     if (img && item.logo) {
@@ -434,13 +448,31 @@ function aplicarSeccionElegida_(seccion) {
   reconstruirBarraProgresoNav_();
 }
 
+/**
+ * A qué pantalla de acceso ir según la sección elegida — Encuentro sigue
+ * pidiendo el código propio del grupo (pantallaAcceso); Conecta Educa ya
+ * no (pedido del usuario): pide el código de administrador de la SEM.
+ */
+function pantallaAccesoParaSeccion_(seccion) {
+  return seccion === "CONECTAEDUCA" ? "pantallaAccesoSuperadminConectaEduca" : "pantallaAcceso";
+}
+
 document.querySelectorAll("[data-elegir-seccion]").forEach(function (boton) {
   boton.addEventListener("click", function () {
-    aplicarSeccionElegida_(boton.getAttribute("data-elegir-seccion"));
-    cambiarPantalla("pantallaAcceso");
+    var seccion = boton.getAttribute("data-elegir-seccion");
+    aplicarSeccionElegida_(seccion);
+    cambiarPantalla(pantallaAccesoParaSeccion_(seccion));
   });
 });
 document.getElementById("btnCambiarSeccionAcceso").addEventListener("click", function () {
+  cambiarPantalla("pantallaEleccionSeccion");
+});
+document.getElementById("btnCambiarSeccionAccesoSuperadmin").addEventListener("click", function () {
+  estado.codigoSuperadminConectaEduca = "";
+  cambiarPantalla("pantallaEleccionSeccion");
+});
+document.getElementById("btnCambiarSeccionDesdeSeleccionGrupo").addEventListener("click", function () {
+  estado.codigoSuperadminConectaEduca = "";
   cambiarPantalla("pantallaEleccionSeccion");
 });
 
@@ -455,13 +487,69 @@ document.getElementById("btnCambiarSeccionAcceso").addEventListener("click", fun
   } catch (e) {}
   if (guardada && TEXTOS_SECCION_[guardada]) {
     aplicarSeccionElegida_(guardada);
-    cambiarPantalla("pantallaAcceso");
+    cambiarPantalla(pantallaAccesoParaSeccion_(guardada));
   }
 })();
+
+/* ------------------------------------------------------------------ *
+ * Acceso a Conecta Educa como administrador de la SEM (pedido del
+ * usuario) — ver Access.gs para la lógica del servidor.
+ * ------------------------------------------------------------------ */
+document.getElementById("btnValidarSuperadminConectaEduca").addEventListener("click", function () {
+  var codigo = document.getElementById("campoCodigoSuperadminConectaEduca").value.trim();
+  if (!codigo) {
+    mostrarMensaje("mensajeAccesoSuperadminConectaEduca", "Ingrese el código de acceso.", "error");
+    return;
+  }
+  mostrarCargaAccion_("acceso", "Validando código…");
+  llamarServidor("rpcValidarSuperadminConectaEduca", [codigo], function (r) {
+    ocultarCargaAccion_();
+    if (!r.ok) {
+      mostrarMensaje("mensajeAccesoSuperadminConectaEduca", r.mensaje || "No fue posible validar el código.", "error");
+      return;
+    }
+    estado.codigoSuperadminConectaEduca = codigo;
+    mostrarMensaje("mensajeAccesoSuperadminConectaEduca", "");
+    renderListaGruposSuperadminConectaEduca(r.grupos || []);
+    cambiarPantalla("pantallaSeleccionGrupoConectaEducaSuperadmin");
+  }, function () {
+    ocultarCargaAccion_();
+    mostrarMensaje("mensajeAccesoSuperadminConectaEduca", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+  });
+});
+
+function iniciarSesionSuperadminConectaEduca_(idGrupo, forzar) {
+  mostrarCargaAccion_("acceso", "Ingresando…");
+  llamarServidor(
+    "rpcIniciarSesionConectaEducaComoSuperadmin",
+    [estado.codigoSuperadminConectaEduca, idGrupo, estado.dispositivoId, !!forzar],
+    function (r) {
+      ocultarCargaAccion_();
+      if (!r.ok) {
+        if (r.codigo === "SESION_YA_ABIERTA") {
+          estado.accionForzarSesion_ = function () { iniciarSesionSuperadminConectaEduca_(idGrupo, true); };
+          document.getElementById("mensajeTomaSesion").textContent = r.mensaje;
+          abrirModal("modalTomaSesion");
+          return;
+        }
+        mostrarMensaje("mensajeSeleccionGrupoSuperadmin", r.mensaje || "No fue posible ingresar a ese grupo.", "error");
+        return;
+      }
+      aplicarSesionGrupoValidada_(r);
+    },
+    function () {
+      ocultarCargaAccion_();
+      mostrarMensaje("mensajeSeleccionGrupoSuperadmin", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+    }
+  );
+}
 
 document.addEventListener("click", function (evento) {
   var boton = evento.target.closest("[data-ir]");
   if (boton) cambiarPantalla(boton.getAttribute("data-ir"));
+
+  var elegirGrupoSuperadmin = evento.target.closest("[data-elegir-grupo-superadmin]");
+  if (elegirGrupoSuperadmin) iniciarSesionSuperadminConectaEduca_(elegirGrupoSuperadmin.getAttribute("data-elegir-grupo-superadmin"), false);
 
   var cerrar = evento.target.closest("[data-cerrar-modal]");
   if (cerrar) cerrarModal(cerrar.getAttribute("data-cerrar-modal"));
@@ -1093,6 +1181,120 @@ if (NOMBRE_GRUPO_ACCESO) {
   }
 }
 
+/**
+ * Todo lo que pasa tras validar el acceso a un grupo (código normal o
+ * código de administrador de Conecta Educa, ver
+ * iniciarSesionSuperadminConectaEduca_ más abajo): guarda el estado,
+ * habilita la barra de progreso, refresca las vistas de Participación y
+ * decide a qué pantalla ir. Extraída de intentarValidarAcceso para que
+ * ambos caminos de entrada compartan exactamente la misma lógica, sin
+ * duplicarla.
+ */
+function aplicarSesionGrupoValidada_(r) {
+  estado.idGrupo = r.idGrupo;
+  estado.grupo = r.grupo;
+  estado.tokenSesion = r.tokenSesion;
+  estado.esPrincipal = r.esPrincipal;
+  estado.instituciones = r.instituciones || [];
+  estado.metodoAsistencia = r.metodoAsistencia || "";
+  estado.logoId = r.logoId || "";
+  estado.consentimientoGrupo = !!r.consentimientoGrupo;
+  estado.consentimientoConectaEduca = !!r.consentimientoConectaEduca;
+  estado.fotoGrupoId = r.fotoGrupoId || "";
+
+  // La barra de progreso navegable debe poder usarse apenas se valida
+  // el código (spec del usuario), sin tener que pasar primero por
+  // Inicio/Presentación/Metodología — esas son solo introducción, no
+  // un candado real. Se habilita hasta Participación de una vez (o más
+  // allá, si el grupo ya venía más adelante — cambiarPantalla, más
+  // abajo, la sigue subiendo si corresponde).
+  indiceMaximoOrdenPantallas_ = Math.max(indiceMaximoOrdenPantallas_, ORDEN_PANTALLAS.indexOf("pantallaParticipacion"));
+  actualizarBarraProgresoNav_("pantallaAcceso");
+
+  document.getElementById("nombreGrupoParticipacion").textContent = r.grupo;
+  var elNombreGrupoAviso = document.getElementById("nombreGrupoAvisoPlazoFirmas");
+  if (elNombreGrupoAviso) elNombreGrupoAviso.textContent = r.grupo;
+  var elNombreGrupoBienvenida = document.getElementById("nombreGrupoBienvenida");
+  if (elNombreGrupoBienvenida) elNombreGrupoBienvenida.textContent = r.grupo;
+  poblarSelectInstituciones("campoIEResponsable", estado.instituciones);
+  poblarSelectInstituciones("campoIEAsistente", estado.instituciones);
+  renderListaInstituciones(estado.instituciones);
+  actualizarEtiquetasConectaEducaGrupo();
+  renderFotoGrupo(estado.fotoGrupoId, "previaFotoGrupo", "formularioFotoGrupo", estado.grupo);
+  document.getElementById("panelFirmantes").classList.remove("oculto");
+
+  // Desde el item 13 (Documento Orientador FEM2026) el único método de
+  // asistencia es el listado en PDF — si el grupo no lo tenía guardado
+  // todavía (o traía "QR" de antes de este cambio), se fuerza aquí sin
+  // esperar un clic; elegirMetodoAsistencia ya se encarga de guardarlo.
+  if (estado.metodoAsistencia !== "LISTADO") {
+    elegirMetodoAsistencia("LISTADO");
+  } else {
+    mostrarPanelMetodoAsistencia(estado.metodoAsistencia);
+  }
+  iniciarHeartbeat();
+  iniciarPollingFirmantes();
+  cargarRolesForo();
+  llamarServidor("rpcEstadoGrupo", [estado.idGrupo], function (estadoGrupo) {
+    estado.asistenciaCerrada = !!(estadoGrupo && estadoGrupo.informeGenerado);
+    estado.informeGenerado = !!(estadoGrupo && estadoGrupo.informeGenerado);
+    actualizarPanelFirmantesCerrado_();
+
+    // Habilita la barra de progreso hasta donde el grupo REALMENTE haya
+    // avanzado en la nube (spec del usuario: "si ya hay avances locales
+    // y en la nube puedes retomar en cualquier punto ya realizado y
+    // habilitar la barra"), sin depender ÚNICAMENTE de ULTIMA_PANTALLA
+    // (que cambiarPantalla ya usó más arriba, vía destinoResumenPantalla_)
+    // — así, aunque esa columna no reflejara el punto más lejano, el
+    // progreso real (Sesión 1/2 enviada, informe generado) igual
+    // desbloquea los pasos correspondientes de la barra.
+    // Encuentro y ConectaEduca son ramas separadas (item 8) — el
+    // avance en la nube de una no dice nada sobre la otra, así que cada
+    // una calcula su propio punto más lejano alcanzado.
+    var pantallaMasLejanaCloud_ = "pantallaParticipacion";
+    if (estado.seccion === "CONECTAEDUCA") {
+      pantallaMasLejanaCloud_ = "pantallaSesion2";
+      if (estadoGrupo && (estadoGrupo.sesion2Enviada || estadoGrupo.informeGenerado)) pantallaMasLejanaCloud_ = "pantallaRevisionCierre";
+    } else {
+      if (estadoGrupo && estadoGrupo.sesion1Enviada) pantallaMasLejanaCloud_ = "pantallaRevisionCierre";
+    }
+    indiceMaximoOrdenPantallas_ = Math.max(indiceMaximoOrdenPantallas_, ORDEN_PANTALLAS.indexOf(pantallaMasLejanaCloud_));
+    actualizarBarraProgresoNav_(pantallaActual_ || "pantallaAcceso");
+  }, function () {});
+
+  // Retomar donde el grupo se quedó (spec del usuario: "si se cae la
+  // señal o se cambia de dispositivo, solo pedir código de ingreso y
+  // retomar desde la última parte que se dejó") — si el grupo (desde
+  // cualquier dispositivo) ya había avanzado más allá de la
+  // introducción EN ESTA MISMA SECCIÓN (destinoResumenPantalla_ ya
+  // descarta un avance de la sección contraria), se salta el carrusel
+  // de bienvenida y la introducción y se va directo a esa pantalla.
+  var destinoResumen = destinoResumenPantalla_(r.ultimaPantalla);
+  if (destinoResumen) {
+    cambiarPantalla(destinoResumen);
+    return;
+  }
+
+  // ConectaEduca no tiene pantallas de introducción propias (Inicio/
+  // Presentación/Metodología son exclusivas de Encuentro, item 8) — va
+  // directo a Consentimiento o Participación, igual que
+  // irTrasMetodologia_ al terminar la introducción de Encuentro.
+  if (estado.seccion === "CONECTAEDUCA") {
+    cambiarPantalla(estado.consentimientoConectaEduca ? "pantallaParticipacion" : "pantallaConsentimientoConectaEduca");
+    return;
+  }
+
+  // El "recorrido" de logos de las IE del grupo va justo después de
+  // validar el código de acceso (spec), no antes — en ese punto ya se
+  // conoce con certeza a qué grupo pertenece este dispositivo. El
+  // código se pide antes que cualquier otra pantalla, así que Inicio/
+  // Presentación/Metodología (la introducción) se muestran DESPUÉS de
+  // validar, no antes.
+  mostrarCarruselIE(function () {
+    cambiarPantalla("pantallaInicio");
+  });
+}
+
 function intentarValidarAcceso(forzar) {
   var codigo = document.getElementById("campoCodigoAcceso").value.trim();
   if (!TOKEN_ACCESO) {
@@ -1108,6 +1310,7 @@ function intentarValidarAcceso(forzar) {
     ocultarCargaAccion_();
     if (!r.ok) {
       if (r.codigo === "SESION_YA_ABIERTA") {
+        estado.accionForzarSesion_ = function () { intentarValidarAcceso(true); };
         document.getElementById("mensajeTomaSesion").textContent = r.mensaje;
         abrirModal("modalTomaSesion");
         return;
@@ -1115,108 +1318,7 @@ function intentarValidarAcceso(forzar) {
       mostrarMensaje("mensajeAcceso", r.mensaje || "No fue posible validar el acceso.", "error");
       return;
     }
-    estado.idGrupo = r.idGrupo;
-    estado.grupo = r.grupo;
-    estado.tokenSesion = r.tokenSesion;
-    estado.esPrincipal = r.esPrincipal;
-    estado.instituciones = r.instituciones || [];
-    estado.metodoAsistencia = r.metodoAsistencia || "";
-    estado.logoId = r.logoId || "";
-    estado.consentimientoGrupo = !!r.consentimientoGrupo;
-    estado.consentimientoConectaEduca = !!r.consentimientoConectaEduca;
-    estado.fotoGrupoId = r.fotoGrupoId || "";
-
-    // La barra de progreso navegable debe poder usarse apenas se valida
-    // el código (spec del usuario), sin tener que pasar primero por
-    // Inicio/Presentación/Metodología — esas son solo introducción, no
-    // un candado real. Se habilita hasta Participación de una vez (o más
-    // allá, si el grupo ya venía más adelante — cambiarPantalla, más
-    // abajo, la sigue subiendo si corresponde).
-    indiceMaximoOrdenPantallas_ = Math.max(indiceMaximoOrdenPantallas_, ORDEN_PANTALLAS.indexOf("pantallaParticipacion"));
-    actualizarBarraProgresoNav_("pantallaAcceso");
-
-    document.getElementById("nombreGrupoParticipacion").textContent = r.grupo;
-    var elNombreGrupoAviso = document.getElementById("nombreGrupoAvisoPlazoFirmas");
-    if (elNombreGrupoAviso) elNombreGrupoAviso.textContent = r.grupo;
-    var elNombreGrupoBienvenida = document.getElementById("nombreGrupoBienvenida");
-    if (elNombreGrupoBienvenida) elNombreGrupoBienvenida.textContent = r.grupo;
-    poblarSelectInstituciones("campoIEResponsable", estado.instituciones);
-    poblarSelectInstituciones("campoIEAsistente", estado.instituciones);
-    renderListaInstituciones(estado.instituciones);
-    actualizarEtiquetasConectaEducaGrupo();
-    renderFotoGrupo(estado.fotoGrupoId, "previaFotoGrupo", "formularioFotoGrupo", estado.grupo);
-    document.getElementById("panelFirmantes").classList.remove("oculto");
-
-    // Desde el item 13 (Documento Orientador FEM2026) el único método de
-    // asistencia es el listado en PDF — si el grupo no lo tenía guardado
-    // todavía (o traía "QR" de antes de este cambio), se fuerza aquí sin
-    // esperar un clic; elegirMetodoAsistencia ya se encarga de guardarlo.
-    if (estado.metodoAsistencia !== "LISTADO") {
-      elegirMetodoAsistencia("LISTADO");
-    } else {
-      mostrarPanelMetodoAsistencia(estado.metodoAsistencia);
-    }
-    iniciarHeartbeat();
-    iniciarPollingFirmantes();
-    cargarRolesForo();
-    llamarServidor("rpcEstadoGrupo", [estado.idGrupo], function (estadoGrupo) {
-      estado.asistenciaCerrada = !!(estadoGrupo && estadoGrupo.informeGenerado);
-      estado.informeGenerado = !!(estadoGrupo && estadoGrupo.informeGenerado);
-      actualizarPanelFirmantesCerrado_();
-
-      // Habilita la barra de progreso hasta donde el grupo REALMENTE haya
-      // avanzado en la nube (spec del usuario: "si ya hay avances locales
-      // y en la nube puedes retomar en cualquier punto ya realizado y
-      // habilitar la barra"), sin depender ÚNICAMENTE de ULTIMA_PANTALLA
-      // (que cambiarPantalla ya usó más arriba, vía destinoResumenPantalla_)
-      // — así, aunque esa columna no reflejara el punto más lejano, el
-      // progreso real (Sesión 1/2 enviada, informe generado) igual
-      // desbloquea los pasos correspondientes de la barra.
-      // Encuentro y ConectaEduca son ramas separadas (item 8) — el
-      // avance en la nube de una no dice nada sobre la otra, así que cada
-      // una calcula su propio punto más lejano alcanzado.
-      var pantallaMasLejanaCloud_ = "pantallaParticipacion";
-      if (estado.seccion === "CONECTAEDUCA") {
-        pantallaMasLejanaCloud_ = "pantallaSesion2";
-        if (estadoGrupo && (estadoGrupo.sesion2Enviada || estadoGrupo.informeGenerado)) pantallaMasLejanaCloud_ = "pantallaRevisionCierre";
-      } else {
-        if (estadoGrupo && estadoGrupo.sesion1Enviada) pantallaMasLejanaCloud_ = "pantallaRevisionCierre";
-      }
-      indiceMaximoOrdenPantallas_ = Math.max(indiceMaximoOrdenPantallas_, ORDEN_PANTALLAS.indexOf(pantallaMasLejanaCloud_));
-      actualizarBarraProgresoNav_(pantallaActual_ || "pantallaAcceso");
-    }, function () {});
-
-    // Retomar donde el grupo se quedó (spec del usuario: "si se cae la
-    // señal o se cambia de dispositivo, solo pedir código de ingreso y
-    // retomar desde la última parte que se dejó") — si el grupo (desde
-    // cualquier dispositivo) ya había avanzado más allá de la
-    // introducción EN ESTA MISMA SECCIÓN (destinoResumenPantalla_ ya
-    // descarta un avance de la sección contraria), se salta el carrusel
-    // de bienvenida y la introducción y se va directo a esa pantalla.
-    var destinoResumen = destinoResumenPantalla_(r.ultimaPantalla);
-    if (destinoResumen) {
-      cambiarPantalla(destinoResumen);
-      return;
-    }
-
-    // ConectaEduca no tiene pantallas de introducción propias (Inicio/
-    // Presentación/Metodología son exclusivas de Encuentro, item 8) — va
-    // directo a Consentimiento o Participación, igual que
-    // irTrasMetodologia_ al terminar la introducción de Encuentro.
-    if (estado.seccion === "CONECTAEDUCA") {
-      cambiarPantalla(estado.consentimientoConectaEduca ? "pantallaParticipacion" : "pantallaConsentimientoConectaEduca");
-      return;
-    }
-
-    // El "recorrido" de logos de las IE del grupo va justo después de
-    // validar el código de acceso (spec), no antes — en ese punto ya se
-    // conoce con certeza a qué grupo pertenece este dispositivo. El
-    // código se pide antes que cualquier otra pantalla, así que Inicio/
-    // Presentación/Metodología (la introducción) se muestran DESPUÉS de
-    // validar, no antes.
-    mostrarCarruselIE(function () {
-      cambiarPantalla("pantallaInicio");
-    });
+    aplicarSesionGrupoValidada_(r);
   }, function (error) {
     ocultarCargaAccion_();
     console.error("rpcValidarAcceso", error);
@@ -1235,7 +1337,16 @@ document.getElementById("btnValidarAcceso").addEventListener("click", function (
 });
 document.getElementById("btnForzarSesion").addEventListener("click", function () {
   cerrarModal("modalTomaSesion");
-  intentarValidarAcceso(true);
+  // Generalizado (spec del usuario, acceso de Conecta Educa como
+  // administrador de la SEM): el modal "sesión ya abierta" ahora lo
+  // dispara más de un flujo de acceso, así que la acción a reintentar
+  // queda guardada en estado.accionForzarSesion_ en vez de ser siempre
+  // intentarValidarAcceso — ver iniciarSesionSuperadminConectaEduca_.
+  if (estado.accionForzarSesion_) {
+    estado.accionForzarSesion_();
+  } else {
+    intentarValidarAcceso(true);
+  }
 });
 
 /* ------------------------------------------------------------------ *

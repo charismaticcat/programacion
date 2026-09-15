@@ -543,6 +543,30 @@ function renderChecklistSocializacionIE(datos) {
   contenedor.innerHTML = html;
 }
 
+/**
+ * Lista de grupos para que el administrador de Conecta Educa elija cuál
+ * va a diligenciar (pedido del usuario: Conecta Educa ya no se abre con
+ * el código propio de cada grupo). Un botón por grupo, con la cantidad
+ * de IE como referencia — clic delegado en JS.html.
+ */
+function renderListaGruposSuperadminConectaEduca(grupos) {
+  var contenedor = document.getElementById("listaGruposSuperadminConectaEduca");
+  if (!contenedor) return;
+  if (!grupos || !grupos.length) {
+    contenedor.innerHTML = "<p class='ayuda'>Todavía no hay grupos registrados en GruposComunal.</p>";
+    return;
+  }
+  var html = "";
+  grupos.forEach(function (g) {
+    html += "<div class='fila-socializacion-ie'>";
+    html += "<span class='nombre-ie-socializacion'>" + escapeHtml(g.grupo) + "</span>";
+    html += "<div class='fila-botones'>";
+    html += "<button type='button' class='btn btn-primario' data-elegir-grupo-superadmin='" + escapeHtml(g.idGrupo) + "'>Diligenciar</button>";
+    html += "</div></div>";
+  });
+  contenedor.innerHTML = html;
+}
+
 function mostrarMensaje(idContenedor, texto, tipo) {
   var contenedor = document.getElementById(idContenedor);
   if (!contenedor) return;
