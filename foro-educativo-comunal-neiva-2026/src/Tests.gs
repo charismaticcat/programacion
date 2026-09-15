@@ -21,10 +21,27 @@ function testInicializarProyecto() {
 }
 
 /**
+ * Correos de las 2 IE de prueba (spec del usuario: "crea un grupo con 2
+ * IE de prueba con los correos..."). Uno por IE — es lo que
+ * enviarInformeGrupo (Correo.gs) usa como copia institucional al enviar
+ * el informe, así que con estos dos correos de prueba se puede recorrer
+ * ese envío también, sin tocar el correo de ninguna IE real.
+ */
+var EMAILS_IE_PRUEBA_ = {
+  "IE-PRUEBA-1": "jhonefrainsanchez@gmail.com",
+  "IE-PRUEBA-2": "hablaconhelprofe@gmail.com"
+};
+
+/**
  * Crea un GRUPO DE PRUEBA con 2 IE ficticias en GruposComunal, claramente
- * marcadas como prueba (nunca usar en producción). Útil para probar el
- * flujo completo sin depender de que la SEM ya haya cargado los grupos
- * reales.
+ * marcadas como prueba (nunca usar en producción), y les asigna un
+ * correo de prueba en CaracterizacionIE (EMAILS_IE_PRUEBA_ arriba) — así
+ * se puede hacer TODO el recorrido del Foro (incluido el envío del
+ * informe por correo) sin comprometer datos ni correos de ninguna IE
+ * real. Idempotente: si GRUPO-PRUEBA ya existe no duplica sus filas en
+ * GruposComunal, pero SIEMPRE revisa/actualiza los correos de
+ * CaracterizacionIE (para que ejecutarla de nuevo sirva también para
+ * corregir el correo si hiciera falta).
  */
 function testCrearGrupoDePrueba() {
   var hoja = obtenerHoja_(HOJA_GRUPOS_COMUNAL_, cabecerasGruposComunal_());
@@ -34,12 +51,21 @@ function testCrearGrupoDePrueba() {
     return String(f.ID_GRUPO).trim() === idGrupo;
   });
   if (yaExiste) {
-    Logger.log("GRUPO-PRUEBA ya existe, no se duplica.");
-    return;
+    Logger.log("GRUPO-PRUEBA ya existe, no se duplican sus filas en GruposComunal.");
+  } else {
+    hoja.appendRow([idGrupo, "Grupo de prueba", "IE-PRUEBA-1", "I.E. Institución de Prueba 1", "Comuna de prueba", "SI"]);
+    hoja.appendRow([idGrupo, "Grupo de prueba", "IE-PRUEBA-2", "I.E. Institución de Prueba 2", "Comuna de prueba", "SI"]);
+    Logger.log("GRUPO-PRUEBA creado con 2 IE de prueba.");
   }
-  hoja.appendRow([idGrupo, "Grupo de prueba", "IE-PRUEBA-1", "I.E. Institución de Prueba 1", "Comuna de prueba", "SI"]);
-  hoja.appendRow([idGrupo, "Grupo de prueba", "IE-PRUEBA-2", "I.E. Institución de Prueba 2", "Comuna de prueba", "SI"]);
-  Logger.log("GRUPO-PRUEBA creado con 2 IE de prueba.");
+
+  Object.keys(EMAILS_IE_PRUEBA_).forEach(function (idIE) {
+    upsertFila_(HOJA_CARACTERIZACION_IE_, cabecerasCaracterizacionIE_(), "ID_IE", idIE, {
+      INSTITUCION: idIE === "IE-PRUEBA-1" ? "I.E. Institución de Prueba 1" : "I.E. Institución de Prueba 2",
+      EMAIL: EMAILS_IE_PRUEBA_[idIE]
+    });
+  });
+  Logger.log("Correos de prueba asignados: IE-PRUEBA-1 -> " + EMAILS_IE_PRUEBA_["IE-PRUEBA-1"] +
+    " | IE-PRUEBA-2 -> " + EMAILS_IE_PRUEBA_["IE-PRUEBA-2"]);
 }
 
 /** Genera accesos (TOKEN+código) para todos los grupos que aún no lo tengan, incluido GRUPO-PRUEBA. */
@@ -61,6 +87,21 @@ function testMostrarAccesoDePrueba() {
   Logger.log("TOKEN: " + acceso.TOKEN);
   Logger.log("CODIGO_ACCESO: " + acceso.CODIGO_ACCESO);
   Logger.log("URL_ACCESO: " + acceso.URL_ACCESO);
+}
+
+/**
+ * Todo en uno (spec del usuario: "crear un perfil de prueba... crea un
+ * grupo con 2 IE de prueba con los correos...") — encadena
+ * testCrearGrupoDePrueba + testGenerarAccesos + testMostrarAccesoDePrueba
+ * en una sola ejecución, para dejar el perfil de GRUPO-PRUEBA listo para
+ * recorrer la app de principio a fin (incluido el envío del informe por
+ * correo a las dos direcciones de prueba) en una sola llamada desde el
+ * editor de Apps Script (o `clasp run`).
+ */
+function testCrearPerfilPruebaCompleto() {
+  testCrearGrupoDePrueba();
+  testGenerarAccesos();
+  testMostrarAccesoDePrueba();
 }
 
 /** Simula el flujo completo end-to-end sobre GRUPO-PRUEBA: acceso, participación, Sesión 1, ConectaEduca, informe. */

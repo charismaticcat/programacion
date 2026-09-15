@@ -1378,6 +1378,21 @@ gateada por valoración + descarga (`enviarInformeSiCorresponde` en `Correo.gs`)
   div/section/header/footer/label/textarea/button en Index.html). No probado en vivo desde un navegador en
   este entorno.
 
+## 4.46 Trigésimo cuarto lote: perfil de prueba con 2 IE y correos reales de prueba
+
+- **"Crear un perfil de prueba... crea un grupo con 2 IE de prueba con los correos..."**: `GRUPO-PRUEBA` (2
+  IE ficticias, `IE-PRUEBA-1`/`IE-PRUEBA-2`, ya existía en `Tests.gs` desde un lote anterior) ahora también
+  les asigna un correo real de prueba en `CaracterizacionIE` — `jhonefrainsanchez@gmail.com` (IE-PRUEBA-1) y
+  `hablaconhelprofe@gmail.com` (IE-PRUEBA-2; se corrigió el dominio, escrito como "gmaill.com" en el pedido) —
+  para poder recorrer TODO el flujo, incluido el envío del informe por correo (que copia a los correos
+  institucionales de las IE del grupo), sin tocar el correo de ninguna IE real. `testCrearGrupoDePrueba()` es
+  idempotente: si `GRUPO-PRUEBA` ya existía, no duplica sus filas, pero siempre revisa/actualiza los correos.
+  Se agregó `testCrearPerfilPruebaCompleto()` que encadena crear el grupo + generar accesos + mostrar el
+  código, en una sola ejecución.
+- **Nota de transparencia**: verificado de forma estática (`node --check`). No probado en vivo desde un
+  navegador en este entorno; se intentó ejecutar `testCrearPerfilPruebaCompleto()` de forma remota
+  (`clasp run`) — ver el resultado exacto en la respuesta de este lote.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:
