@@ -1667,14 +1667,41 @@ la Sesión 1").
   (limpio, mismos dos falsos positivos ya conocidos en Index.html/AsistenciaPublica.html); IDs sin duplicar y
   balance de etiquetas OK en `Index.html`. No probado en vivo desde un navegador.
 
+## 4.53 Cuadragésimo primer lote: consentimiento en dos partes + listado de asistencia obligatorio (items 14+15)
+
+- **Item 15 — consentimiento dividido en dos partes**: la tarjeta de `pantallaConsentimientoGrupo` ahora
+  tiene "Parte 1 — Encuentro de voces que construyen territorio (7:00 a. m. a 12:00 m.)" con el desglose
+  exacto del Documento Orientador (sesión de socialización 7:00–9:30, receso 9:30–10:00, trabajo colectivo
+  10:00–12:00) y "Parte 2 — Conecta Educa (2:00 p. m. a 5:00 p. m.)", aclarando que se ingresa por su propia
+  puerta con el mismo código del grupo. El resto del texto (estructura sugerida no fija, espacio de aporte
+  propio, uso de la información) se mantuvo igual.
+- **Item 14 — listado de asistencia obligatorio antes de continuar**: nueva sección "Listado de asistencia"
+  en la misma pantalla, con el mismo formato PDF ya usado en Participación (item 13,
+  `FORMATO_ASISTENCIA_ENCUENTRO_ID`) y tres formas de gestionarlo: **Descargar** (enlace directo),
+  **Copiar enlace** (portapapeles, mismo patrón que el enlace de asistencia QR) y **Enviar por correo**
+  (nueva función `enviarFormatoAsistenciaPorCorreo` en Correo.gs, mismo patrón que
+  `enviarEnlaceInvitados` — nueva RPC `rpcEnviarFormatoAsistenciaPorCorreo`). El botón "Aceptar y continuar"
+  ahora exige DOS condiciones (`actualizarBotonAceptarConsentimiento_`, JS.html): el checkbox marcado Y
+  `estado.listadoAsistenciaGestionado` en `true` (se pone en `true` al usar cualquiera de las tres
+  opciones) — con un aviso visible ("Antes de continuar, descarguen, copien el enlace o envíen por correo el
+  listado...") cuando el checkbox ya está marcado pero falta gestionar el listado. También se agregó la
+  instrucción pedida: "Quien reciba este listado debe encargarse de imprimirlo y, al finalizar, reportar la
+  cantidad total de asistentes y los cargos de los asistentes por institución educativa."
+- **"Mover el campo 'cantidad de asistentes por estamento e institución' al final del formulario"**: se
+  revisó `pantallaParticipacion` y esa tarjeta (`resumenParticipacionEstamento`/`contenedorParticipacionEstamento`)
+  ya es la última tarjeta de contenido antes del botón "Continuar" (después de Método de asistencia,
+  Participación y asistencia, y Responsable de envío) — no hizo falta moverla, ya estaba al final.
+- Verificado: `node --check` sobre `Correo.gs`/`Code.gs`/`Config.gs` y los bloques `<script>` de
+  `Index.html`/`JS.html` (limpio, mismos dos falsos positivos ya conocidos); IDs sin duplicar y balance de
+  etiquetas OK en `Index.html`. No probado en vivo desde un navegador — en particular, no se probó el envío
+  real de `enviarFormatoAsistenciaPorCorreo` ni el flujo completo de gate en el checkbox.
+
 ### Backlog restante del Documento Orientador FEM2026
 
-Quedan pendientes, en el orden ya confirmado con el usuario: **14-15** (rediseño del consentimiento
-informado: listado descargable/copiable/enviable por correo, mover "cantidad de asistentes" al final,
-dividir en las dos partes del evento); **16** (reemplazar las 11 preguntas actuales de Sesión 1 por las
-preguntas reales del Foro Educativo Institucional, ya transcritas en una respuesta anterior de esta
-conversación) — el más grande y el que más se beneficia de los items 9-10 ya resueltos. Luego Sección E
-(ConectaEduca: consentimiento y asistencia propios, lo que también permitirá terminar el item 13 dándole a
+Queda pendiente, en el orden ya confirmado con el usuario: **16** (reemplazar las 11 preguntas actuales de
+Sesión 1 por las preguntas reales del Foro Educativo Institucional, ya transcritas en una respuesta anterior
+de esta conversación) — el más grande y el que más se beneficia de los items 9-10 ya resueltos. Luego Sección
+E (ConectaEduca: consentimiento y asistencia propios, lo que también permitirá terminar el item 13 dándole a
 ConectaEduca su propio formato de asistencia), F (valoraciones separadas, escala numérica, texto "la sesión
 de hoy") y G (nueva opción de estamento "Funcionario Secretaría de Educación").
 

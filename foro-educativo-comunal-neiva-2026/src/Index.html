@@ -180,18 +180,24 @@
     </div>
   </section>
 
-  <!-- 5. CONSENTIMIENTO INFORMADO DEL GRUPO (sección 3.2 del Documento Orientador FEM2026) -->
+  <!-- 5. CONSENTIMIENTO INFORMADO DEL GRUPO (sección 3.2 del Documento Orientador FEM2026;
+       dividido en Parte 1/Parte 2 — item 15 — e incluye el listado de asistencia
+       descargable/copiable/enviable por correo, obligatorio antes de continuar — item 14) -->
   <section id="pantallaConsentimientoGrupo" class="pantalla">
     <div class="tarjeta">
       <h2 class="titulo-seccion">Consentimiento informado del grupo</h2>
       <p>El <strong>Encuentro de voces que construyen territorio – ConectaEduca</strong> es una actividad
         posterior a los Foros Educativos Institucionales, prevista en el Documento Orientador del Foro
-        Educativo Municipal FEM 2026 de la Secretaría de Educación de Neiva.</p>
-      <p>Este encuentro se desarrolla en dos momentos: primero, las instituciones educativas del grupo
-        comparten las principales reflexiones, conclusiones y propuestas construidas en sus respectivos
-        Foros Educativos Institucionales; luego, el grupo dialoga con representantes del sector
-        productivo y de la educación superior (ConectaEduca), con el propósito de fortalecer los
-        vínculos entre la educación y el desarrollo del territorio.</p>
+        Educativo Municipal FEM 2026 de la Secretaría de Educación de Neiva. Se desarrolla en dos partes:</p>
+      <p><strong>Parte 1 — Encuentro de voces que construyen territorio (7:00 a. m. a 12:00 m.):</strong>
+        primera sesión, de 7:00 a 9:30 a. m., en la que las instituciones educativas del grupo socializan
+        las principales reflexiones, conclusiones y propuestas construidas en sus respectivos Foros
+        Educativos Institucionales (hasta 10 minutos por institución); receso de 9:30 a 10:00 a. m.; y
+        trabajo colectivo por grupos de 10:00 a. m. a 12:00 m., para construir conclusiones colectivas.</p>
+      <p><strong>Parte 2 — Conecta Educa (2:00 p. m. a 5:00 p. m.):</strong> segunda sesión, diálogo e
+        interacción con representantes del sector productivo y de la educación superior del territorio, con
+        el propósito de fortalecer los vínculos entre la educación y el desarrollo local. Se ingresa por su
+        propia puerta de acceso, con el mismo código de este grupo.</p>
       <p><strong>La estructura que propone este aplicativo (sesiones, preguntas orientadoras, secciones)
         es una sugerencia de apoyo, no un molde fijo.</strong> La construcción de cada realidad comunal
         es de carácter autónomo: cada grupo puede adaptar el desarrollo del encuentro a sus propias
@@ -204,10 +210,29 @@
         síntesis colectiva, resultados de ConectaEduca) sea utilizada por la Secretaría de Educación de
         Neiva como insumo para la sistematización del Encuentro de voces que construyen territorio y para la construcción del
         Foro Educativo Municipal FEM 2026.</p>
-      <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
+
+      <h3 class="subtitulo-campo" style="margin-top:20px;">Listado de asistencia</h3>
+      <p class="ayuda">Antes de continuar, descarguen, copien el enlace o envíen por correo el formato
+        oficial de asistencia (Parte 1) para que sea impreso y diligenciado en papel durante el encuentro.
+        <strong>Quien reciba este listado debe encargarse de imprimirlo y, al finalizar, reportar la
+        cantidad total de asistentes y los cargos de los asistentes por institución educativa.</strong></p>
+      <div class="fila-botones">
+        <a class="btn btn-secundario" href="https://drive.google.com/file/d/<?!= FORMATO_ASISTENCIA_ENCUENTRO_ID ?>/view" target="_blank" id="btnDescargarFormatoAsistenciaConsentimiento">📥 Descargar</a>
+        <button type="button" class="btn btn-secundario" id="btnCopiarFormatoAsistenciaConsentimiento">📋 Copiar enlace</button>
+      </div>
+      <label for="campoEmailFormatoAsistencia">Enviar por correo electrónico</label>
+      <input type="email" id="campoEmailFormatoAsistencia" placeholder="correo@ejemplo.com">
+      <div class="fila-botones">
+        <button type="button" class="btn btn-secundario" id="btnEnviarFormatoAsistenciaConsentimiento">✉️ Enviar por correo</button>
+      </div>
+      <div id="mensajeFormatoAsistenciaConsentimiento"></div>
+
+      <label style="display:flex;align-items:center;gap:8px;font-weight:400;margin-top:20px;">
         <input type="checkbox" id="checkConsentimientoGrupo" style="width:auto;">
         Confirmo, en representación del grupo, que hemos leído y entendemos esta información.
       </label>
+      <p class="ayuda oculto" id="avisoListadoAsistenciaPendiente">Antes de continuar, descarguen, copien el
+        enlace o envíen por correo el listado de asistencia (arriba).</p>
       <div id="mensajeConsentimientoGrupo"></div>
       <div class="fila-botones">
         <button class="btn btn-primario" id="btnAceptarConsentimientoGrupo" disabled>Aceptar y continuar</button>

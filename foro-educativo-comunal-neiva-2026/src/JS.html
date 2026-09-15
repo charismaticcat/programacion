@@ -1658,10 +1658,60 @@ document.getElementById("btnCerrarInvitadoFinalizado").addEventListener("click",
 });
 
 /* ------------------------------------------------------------------ *
- * Consentimiento informado del grupo (sección 3.2)
+ * Consentimiento informado del grupo (sección 3.2) — item 14: no se
+ * puede continuar hasta haber leído (checkbox) Y haber descargado,
+ * copiado el enlace o enviado por correo el listado de asistencia.
  * ------------------------------------------------------------------ */
-document.getElementById("checkConsentimientoGrupo").addEventListener("change", function () {
-  document.getElementById("btnAceptarConsentimientoGrupo").disabled = !this.checked;
+estado.listadoAsistenciaGestionado = false;
+
+function actualizarBotonAceptarConsentimiento_() {
+  var checkMarcado = document.getElementById("checkConsentimientoGrupo").checked;
+  document.getElementById("btnAceptarConsentimientoGrupo").disabled = !checkMarcado || !estado.listadoAsistenciaGestionado;
+  document.getElementById("avisoListadoAsistenciaPendiente").classList.toggle("oculto", !checkMarcado || estado.listadoAsistenciaGestionado);
+}
+
+document.getElementById("checkConsentimientoGrupo").addEventListener("change", actualizarBotonAceptarConsentimiento_);
+
+document.getElementById("btnDescargarFormatoAsistenciaConsentimiento").addEventListener("click", function () {
+  estado.listadoAsistenciaGestionado = true;
+  actualizarBotonAceptarConsentimiento_();
+});
+
+document.getElementById("btnCopiarFormatoAsistenciaConsentimiento").addEventListener("click", function () {
+  var url = document.getElementById("btnDescargarFormatoAsistenciaConsentimiento").href;
+  var terminar = function () {
+    estado.listadoAsistenciaGestionado = true;
+    actualizarBotonAceptarConsentimiento_();
+    var aviso = document.getElementById("avisoTextoCopiado");
+    if (aviso) {
+      aviso.classList.add("visible");
+      setTimeout(function () { aviso.classList.remove("visible"); }, 1400);
+    }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(terminar, terminar);
+  } else {
+    terminar();
+  }
+});
+
+document.getElementById("btnEnviarFormatoAsistenciaConsentimiento").addEventListener("click", function () {
+  var correo = document.getElementById("campoEmailFormatoAsistencia").value.trim();
+  if (!correo) {
+    mostrarMensaje("mensajeFormatoAsistenciaConsentimiento", "Escriba un correo electrónico.", "error");
+    return;
+  }
+  llamarServidor("rpcEnviarFormatoAsistenciaPorCorreo", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, [correo]], function (r) {
+    if (!r.ok) {
+      mostrarMensaje("mensajeFormatoAsistenciaConsentimiento", r.mensaje || "No fue posible enviar el correo.", "error");
+      return;
+    }
+    mostrarMensaje("mensajeFormatoAsistenciaConsentimiento", "Formato enviado.", "exito");
+    estado.listadoAsistenciaGestionado = true;
+    actualizarBotonAceptarConsentimiento_();
+  }, function () {
+    mostrarMensaje("mensajeFormatoAsistenciaConsentimiento", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+  });
 });
 
 document.getElementById("btnAceptarConsentimientoGrupo").addEventListener("click", function () {

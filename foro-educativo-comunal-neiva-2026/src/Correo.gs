@@ -104,6 +104,55 @@ function enviarEnlaceInvitados(idGrupo, tokenSesion, dispositivoId, tipoInvitado
   return { ok: true, enviados: destinatarios.length };
 }
 
+/**
+ * Envía por correo el enlace del formato oficial de asistencia del
+ * Encuentro (Documento Orientador FEM2026, item 14: "permitir descargar
+ * el PDF, copiar el link, o enviarlo a un correo electrónico para que
+ * sea impreso") — pantalla de consentimiento informado del grupo.
+ */
+function enviarFormatoAsistenciaPorCorreo(idGrupo, tokenSesion, dispositivoId, correos) {
+  idGrupo = String(idGrupo || "").trim();
+  if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
+    return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión ya no está activa en este dispositivo." };
+  }
+
+  var regexCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  var destinatarios = (Array.isArray(correos) ? correos : String(correos || "").split(/[,;\n]+/))
+    .map(function (c) { return String(c || "").trim(); })
+    .filter(function (c) { return c && regexCorreo.test(c); });
+  if (!destinatarios.length) {
+    return { ok: false, mensaje: "Escriba al menos un correo electrónico válido." };
+  }
+
+  var remitente = remitenteValido_();
+  if (!remitente.ok) return remitente;
+
+  var grupoInfo = obtenerGrupoPorId(idGrupo);
+  var nombreGrupo = (grupoInfo && grupoInfo.grupo) || idGrupo;
+  var config = getConfig();
+  var enlace = "https://drive.google.com/file/d/" + config.FORMATO_ASISTENCIA_ENCUENTRO_ID + "/view";
+
+  var asunto = "Formato de asistencia — " + nombreGrupo + " del " + config.NOMBRE_FORO;
+  var cuerpo =
+    "Hola:\n\n" +
+    "Les compartimos el formato oficial de asistencia del " + config.NOMBRE_FORO + " para el " + nombreGrupo + ".\n\n" +
+    "Enlace: " + enlace + "\n\n" +
+    "Por favor impriman este formato y regístrenlo en papel durante el encuentro. Al finalizar, quien " +
+    "reciba el listado debe reportar la cantidad total de asistentes y los cargos de los asistentes por " +
+    "institución educativa.\n\n" +
+    "Secretaría de Educación de Neiva — " + config.NOMBRE_FORO;
+
+  try {
+    GmailApp.sendEmail(destinatarios.join(","), asunto, cuerpo, {
+      from: remitente.remitente,
+      name: "Secretaría de Educación de Neiva"
+    });
+  } catch (error) {
+    return { ok: false, mensaje: "No fue posible enviar el correo: " + error.message };
+  }
+  return { ok: true, enviados: destinatarios.length };
+}
+
 /** Envía TOKEN + código de acceso al responsable del grupo. */
 function enviarAccesosGrupo(idGrupo) {
   var hoja = obtenerHoja_(HOJA_ACCESOS_GRUPO_, cabecerasAccesosGrupo_());

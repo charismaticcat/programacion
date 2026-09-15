@@ -240,6 +240,13 @@ function rpcEnviarEnlaceInvitados(idGrupo, tokenSesion, dispositivoId, tipoInvit
   });
 }
 
+/** Envía por correo el enlace del formato de asistencia del Encuentro (item 14, consentimiento informado). */
+function rpcEnviarFormatoAsistenciaPorCorreo(idGrupo, tokenSesion, dispositivoId, correos) {
+  return ejecutarRpcSeguro_(function () {
+    return enviarFormatoAsistenciaPorCorreo(idGrupo, tokenSesion, dispositivoId, correos);
+  });
+}
+
 /* ------------------------------------------------------------------ *
  * RPC — Acceso de invitado (estudiante/acudiente, sin código de acceso)
  * ------------------------------------------------------------------ */
