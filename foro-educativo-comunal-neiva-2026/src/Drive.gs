@@ -101,6 +101,26 @@ function asegurarLogosSeccionPublicos_() {
   escribirConfig_("LOGOS_SECCION_PUBLICOS", "SI");
 }
 
+/**
+ * Igual que las anteriores, pero para los formatos de asistencia oficiales
+ * (Encuentro + Conecta Educa, items 13 y 18 del Documento Orientador
+ * FEM2026) — se enlazan directamente desde Index.html y por correo, así
+ * que deben ser visibles para cualquiera con el enlace.
+ */
+function asegurarFormatosAsistenciaPublicos_() {
+  var config = getConfig();
+  if (String(config.FORMATOS_ASISTENCIA_PUBLICOS || "") === "SI") return;
+  [config.FORMATO_ASISTENCIA_ENCUENTRO_ID, config.FORMATO_ASISTENCIA_CONECTAEDUCA_ID].forEach(function (fileId) {
+    if (!fileId) return;
+    try {
+      hacerPublicoSiEsPosible_(DriveApp.getFileById(fileId));
+    } catch (e) {
+      Logger.log("No se pudo asegurar el formato de asistencia público " + fileId + ": " + e.message);
+    }
+  });
+  escribirConfig_("FORMATOS_ASISTENCIA_PUBLICOS", "SI");
+}
+
 /** Carpeta raíz del proyecto: la autoprovisiona si ConfiguracionComunal.CARPETA_DRIVE_ID está vacío. */
 function obtenerCarpetaRaiz_() {
   var config = getConfig();

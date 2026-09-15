@@ -21,6 +21,7 @@ var estado = {
   metodoAsistencia: "",
   logoId: "",
   consentimientoGrupo: false,
+  consentimientoConectaEduca: false,
   rolesForo: [],
   responsables: { principal: null, asistentes: [] },
   recursosSesion1Mostrado: false,
@@ -83,7 +84,7 @@ function urlImagenDrive(idArchivo, ancho) {
 // reemplaza (item 10).
 var ORDEN_PANTALLAS = [
   "pantallaEleccionSeccion", "pantallaAcceso", "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia",
-  "pantallaConsentimientoGrupo", "pantallaParticipacion", "pantallaConfirmacionCaracterizacion",
+  "pantallaConsentimientoGrupo", "pantallaConsentimientoConectaEduca", "pantallaParticipacion", "pantallaConfirmacionCaracterizacion",
   "pantallaInvitadosEspeciales",
   "pantallaPreSocializacion", "pantallaSeleccionIEPreparacion", "pantallaPreparacionIE",
   "pantallaSesionSocializacion",
@@ -108,14 +109,16 @@ var PANTALLAS_NO_RESUMIBLES_ = ["pantallaEleccionSeccion", "pantallaAcceso", "pa
  * pantalla de la sección contraria.
  */
 var PANTALLAS_COMUNES_SECCION_ = [
-  "pantallaEleccionSeccion", "pantallaAcceso", "pantallaConsentimientoGrupo", "pantallaParticipacion",
+  "pantallaEleccionSeccion", "pantallaAcceso", "pantallaParticipacion",
   "pantallaConfirmacionCaracterizacion", "pantallaRevisionCierre", "pantallaInformeGenerado", "pantallaDespedida"
 ];
 var PANTALLAS_SOLO_ENCUENTRO_ = [
-  "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia",
+  "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia", "pantallaConsentimientoGrupo",
   "pantallaSesionSocializacion", "pantallaSesion1"
 ];
-var PANTALLAS_SOLO_CONECTAEDUCA_ = ["pantallaSesion2"];
+// item 17 (Documento Orientador FEM2026): Conecta Educa tiene su propio
+// consentimiento informado, distinto del de pantallaConsentimientoGrupo.
+var PANTALLAS_SOLO_CONECTAEDUCA_ = ["pantallaConsentimientoConectaEduca", "pantallaSesion2"];
 
 /** true si `idPantalla` es alcanzable desde la sección actualmente elegida (estado.seccion). */
 function pantallaPerteneceASeccionActual_(idPantalla) {
@@ -297,6 +300,13 @@ function cambiarPantalla(idPantalla) {
     actualizarFirmantes();
     cargarResponsables();
     cargarParticipacionEstamento();
+    // item 18 (Documento Orientador FEM2026): Conecta Educa usa su propio
+    // formato de asistencia, distinto del Encuentro — Participación es una
+    // pantalla compartida entre ambas secciones, así que el enlace de
+    // descarga se ajusta aquí según estado.seccion.
+    var esCE = estado.seccion === "CONECTAEDUCA";
+    document.getElementById("btnDescargarFormatoAsistenciaParticipacion").href =
+      "https://drive.google.com/file/d/" + (esCE ? FORMATO_ASISTENCIA_CONECTAEDUCA_ID : FORMATO_ASISTENCIA_ENCUENTRO_ID) + "/view";
   }
   if (idPantalla === "pantallaConfirmacionCaracterizacion") cargarConfirmacionCaracterizacion();
   if (idPantalla === "pantallaInvitadosEspeciales") {
@@ -996,6 +1006,7 @@ function intentarValidarAcceso(forzar) {
     estado.metodoAsistencia = r.metodoAsistencia || "";
     estado.logoId = r.logoId || "";
     estado.consentimientoGrupo = !!r.consentimientoGrupo;
+    estado.consentimientoConectaEduca = !!r.consentimientoConectaEduca;
     estado.fotoGrupoId = r.fotoGrupoId || "";
 
     // La barra de progreso navegable debe poder usarse apenas se valida
@@ -1076,7 +1087,7 @@ function intentarValidarAcceso(forzar) {
     // directo a Consentimiento o Participación, igual que
     // irTrasMetodologia_ al terminar la introducción de Encuentro.
     if (estado.seccion === "CONECTAEDUCA") {
-      cambiarPantalla(estado.consentimientoGrupo ? "pantallaParticipacion" : "pantallaConsentimientoGrupo");
+      cambiarPantalla(estado.consentimientoConectaEduca ? "pantallaParticipacion" : "pantallaConsentimientoConectaEduca");
       return;
     }
 
@@ -1724,6 +1735,75 @@ document.getElementById("btnAceptarConsentimientoGrupo").addEventListener("click
       return;
     }
     estado.consentimientoGrupo = true;
+    cambiarPantalla("pantallaParticipacion");
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * Consentimiento informado de Conecta Educa (item 17) — mismo patrón que
+ * el consentimiento del Encuentro, arriba, pero con su propia bandera de
+ * "listado gestionado" y su propio RPC de guardado (columna independiente
+ * en AccesosGrupo, ver guardarConsentimientoConectaEduca en Access.gs).
+ * ------------------------------------------------------------------ */
+estado.listadoAsistenciaGestionadoCE = false;
+
+function actualizarBotonAceptarConsentimientoCE_() {
+  var checkMarcado = document.getElementById("checkConsentimientoConectaEduca").checked;
+  document.getElementById("btnAceptarConsentimientoConectaEduca").disabled = !checkMarcado || !estado.listadoAsistenciaGestionadoCE;
+  document.getElementById("avisoListadoAsistenciaPendienteCE").classList.toggle("oculto", !checkMarcado || estado.listadoAsistenciaGestionadoCE);
+}
+
+document.getElementById("checkConsentimientoConectaEduca").addEventListener("change", actualizarBotonAceptarConsentimientoCE_);
+
+document.getElementById("btnDescargarFormatoAsistenciaConsentimientoCE").addEventListener("click", function () {
+  estado.listadoAsistenciaGestionadoCE = true;
+  actualizarBotonAceptarConsentimientoCE_();
+});
+
+document.getElementById("btnCopiarFormatoAsistenciaConsentimientoCE").addEventListener("click", function () {
+  var url = document.getElementById("btnDescargarFormatoAsistenciaConsentimientoCE").href;
+  var terminar = function () {
+    estado.listadoAsistenciaGestionadoCE = true;
+    actualizarBotonAceptarConsentimientoCE_();
+    var aviso = document.getElementById("avisoTextoCopiado");
+    if (aviso) {
+      aviso.classList.add("visible");
+      setTimeout(function () { aviso.classList.remove("visible"); }, 1400);
+    }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(terminar, terminar);
+  } else {
+    terminar();
+  }
+});
+
+document.getElementById("btnEnviarFormatoAsistenciaConsentimientoCE").addEventListener("click", function () {
+  var correo = document.getElementById("campoEmailFormatoAsistenciaCE").value.trim();
+  if (!correo) {
+    mostrarMensaje("mensajeFormatoAsistenciaConsentimientoCE", "Escriba un correo electrónico.", "error");
+    return;
+  }
+  llamarServidor("rpcEnviarFormatoAsistenciaPorCorreo", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, [correo], "CONECTAEDUCA"], function (r) {
+    if (!r.ok) {
+      mostrarMensaje("mensajeFormatoAsistenciaConsentimientoCE", r.mensaje || "No fue posible enviar el correo.", "error");
+      return;
+    }
+    mostrarMensaje("mensajeFormatoAsistenciaConsentimientoCE", "Formato enviado.", "exito");
+    estado.listadoAsistenciaGestionadoCE = true;
+    actualizarBotonAceptarConsentimientoCE_();
+  }, function () {
+    mostrarMensaje("mensajeFormatoAsistenciaConsentimientoCE", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+  });
+});
+
+document.getElementById("btnAceptarConsentimientoConectaEduca").addEventListener("click", function () {
+  llamarServidor("rpcGuardarConsentimientoConectaEduca", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
+    if (!r.ok) {
+      mostrarMensaje("mensajeConsentimientoConectaEduca", r.mensaje || "No fue posible registrar el consentimiento.", "error");
+      return;
+    }
+    estado.consentimientoConectaEduca = true;
     cambiarPantalla("pantallaParticipacion");
   });
 });

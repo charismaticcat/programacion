@@ -93,6 +93,7 @@ function validarAccesoGrupo(token, codigo, dispositivoId, forzar) {
     logoId: valorColumna("LOGO_ID"),
     metodoAsistencia: valorColumna("METODO_ASISTENCIA"),
     consentimientoGrupo: valorColumna("CONSENTIMIENTO_GRUPO") === "SI",
+    consentimientoConectaEduca: valorColumna("CONSENTIMIENTO_CONECTAEDUCA") === "SI",
     fotoGrupoId: valorColumna("FOTO_GRUPO_ID"),
     // Pantalla en la que se quedó el grupo la última vez (cualquier
     // dispositivo) — permite retomar ahí en vez de reiniciar la
@@ -144,6 +145,27 @@ function guardarConsentimientoGrupo(idGrupo, tokenSesion, dispositivoId) {
   return { ok: true };
 }
 
+/**
+ * Igual que guardarConsentimientoGrupo, pero para el consentimiento propio
+ * de Conecta Educa (Documento Orientador FEM2026, item 17) — columna
+ * independiente porque un grupo puede aceptar el consentimiento del
+ * Encuentro sin haber pasado todavía por la puerta de Conecta Educa, y
+ * viceversa.
+ */
+function guardarConsentimientoConectaEduca(idGrupo, tokenSesion, dispositivoId) {
+  idGrupo = String(idGrupo || "").trim();
+  if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
+    return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión ya no está activa en este dispositivo." };
+  }
+  var hoja = obtenerHoja_(HOJA_ACCESOS_GRUPO_, cabecerasAccesosGrupo_());
+  var mapa = obtenerMapaCabeceras_(hoja);
+  var fila = buscarFilaPorColumna_(hoja, mapa, "ID_GRUPO", idGrupo);
+  if (fila === -1) return { ok: false, mensaje: "No existe acceso para este grupo." };
+  hoja.getRange(fila, mapa["CONSENTIMIENTO_CONECTAEDUCA"]).setValue("SI");
+  hoja.getRange(fila, mapa["FECHA_CONSENTIMIENTO_CONECTAEDUCA"]).setValue(new Date());
+  return { ok: true };
+}
+
 /** Único generador de código de acceso (evita caracteres ambiguos: sin I,O,0,1). */
 function generarCodigoAcceso_(codigosUsados) {
   var caracteres = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
@@ -190,6 +212,10 @@ function cabecerasAccesosGrupo_() {
     // Consentimiento informado del grupo (sección 3.2 del Documento
     // Orientador FEM2026) — se confirma una sola vez por grupo.
     "CONSENTIMIENTO_GRUPO", "FECHA_CONSENTIMIENTO_GRUPO",
+    // Consentimiento informado propio de Conecta Educa (Documento Orientador
+    // FEM2026, item 17) — independiente del anterior, ver
+    // guardarConsentimientoConectaEduca.
+    "CONSENTIMIENTO_CONECTAEDUCA", "FECHA_CONSENTIMIENTO_CONECTAEDUCA",
     // Última pantalla del recorrido a la que llegó el grupo (spec del
     // usuario: "si se cae la señal o se cambia de dispositivo, solo pedir
     // código de ingreso y retomar desde la última parte que se dejó") —

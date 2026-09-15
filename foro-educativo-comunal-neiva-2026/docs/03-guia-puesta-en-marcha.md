@@ -1749,12 +1749,61 @@ punto 3.1 del Documento Orientador FEM2026, agrupadas en sus 3 temas originales,
   vivo desde un navegador — en particular, no se verificó visualmente el guardado/autoguardado real de los
   11 campos nuevos ni la generación del informe con datos reales.
 
+## 4.55 Cuadragésimo tercer lote: consentimiento y asistencia propios de Conecta Educa (Sección E, items 17+18)
+
+Cierra la Sección E completa: Conecta Educa deja de compartir el consentimiento informado y el formato de
+asistencia del Encuentro.
+
+- **Nueva pantalla `pantallaConsentimientoConectaEduca`** (Index.html), paralela a `pantallaConsentimientoGrupo`
+  pero con texto propio: describe solo Conecta Educa (2:00-5:00 p. m., sin las Partes 1/2 del Encuentro),
+  explica la **metodología de la caracterización** (registrar cada actor/entidad del sector productivo o de
+  educación superior —nombre, tipo, área de interés, IE interesadas— a medida que se dialogue con ellos,
+  reutilizando la sección "Registrar actor o entidad" que ya existe en Sesión 2) y trae su propio bloque de
+  listado de asistencia (descargar/copiar enlace/enviar por correo), con el mismo candado del item 14: no se
+  puede aceptar sin haber marcado el checkbox Y gestionado el listado.
+- **`PANTALLAS_SOLO_CONECTAEDUCA_`/`PANTALLAS_SOLO_ENCUENTRO_` (JS.html)**: `pantallaConsentimientoGrupo` pasó
+  de "común a ambas secciones" a exclusiva del Encuentro; `pantallaConsentimientoConectaEduca` se agregó como
+  exclusiva de Conecta Educa. `pantallaParticipacion` sigue siendo común a ambas (ver siguiente punto) — dividir
+  esa pantalla también no lo pedía el item 17/18 y habría significado duplicar foto de grupo, matriz de
+  estamento y responsable de envío sin ninguna diferencia real entre secciones.
+- **Columna de consentimiento independiente**: `CONSENTIMIENTO_CONECTAEDUCA`/`FECHA_CONSENTIMIENTO_CONECTAEDUCA`
+  (`Access.gs`, `cabecerasAccesosGrupo_`) + `guardarConsentimientoConectaEduca()`, paralela a
+  `guardarConsentimientoGrupo()` — un grupo puede aceptar el consentimiento del Encuentro sin haber pasado
+  todavía por la puerta de Conecta Educa (y viceversa), así que no podían compartir una sola columna/bandera.
+- **Formato de asistencia propio (item 18)**: `FORMATO_ASISTENCIA_CONECTAEDUCA_ID` (Drive
+  `1sO3ddWU9PcL3CMnygYgSleTxs17qb_lS`) en `Config.gs`, pasado al template en `doGet` igual que el del Encuentro.
+  `enviarFormatoAsistenciaPorCorreo()` (Correo.gs) y `rpcEnviarFormatoAsistenciaPorCorreo` (Code.gs) ahora
+  reciben un 5º parámetro `seccion` ("ENCUENTRO" por defecto o "CONECTAEDUCA") que decide qué ID de Drive y qué
+  nombre de sesión usar en el enlace/asunto/cuerpo del correo, en vez de duplicar toda la función.
+- **`pantallaParticipacion` (compartida) también usa el formato correcto según sección**: el botón de descarga
+  ganó `id="btnDescargarFormatoAsistenciaParticipacion"` y `cambiarPantalla` le reescribe el `href` según
+  `estado.seccion` cada vez que se entra a esa pantalla — la pantalla en sí no se duplicó, solo el enlace.
+- **Gap preexistente corregido de paso**: `FORMATO_ASISTENCIA_ENCUENTRO_ID` (agregado en el Lote 40) nunca se
+  había puesto público en Drive — se agregó `asegurarFormatosAsistenciaPublicos_()` (Drive.gs, mismo patrón que
+  `asegurarLogosSeccionPublicos_`, bandera propia `FORMATOS_ASISTENCIA_PUBLICOS`) que cubre ambos IDs
+  (Encuentro y Conecta Educa) y se llama desde `doGet`.
+- **JS.html**: `estado.consentimientoConectaEduca` (paralelo a `estado.consentimientoGrupo`), cargado desde
+  `r.consentimientoConectaEduca` en `intentarValidarAcceso`; la rama `estado.seccion === "CONECTAEDUCA"` (que
+  antes, desde el Lote 38, mandaba siempre a `pantallaConsentimientoGrupo` — el consentimiento del Encuentro,
+  por no existir todavía uno propio) ahora manda a `pantallaConsentimientoConectaEduca`. Bloque completo de
+  manejadores (`actualizarBotonAceptarConsentimientoCE_`, descargar/copiar/enviar/aceptar) calcado del
+  consentimiento del Encuentro pero con sus propios IDs de elemento — se optó por duplicar en vez de
+  generalizar con un solo helper parametrizado porque los IDs de Encuentro no siguen un sufijo consistente
+  (`avisoListadoAsistenciaPendiente`, `mensajeConsentimientoGrupo` no tienen el mismo patrón que
+  `btnDescargarFormatoAsistenciaConsentimiento`), así que forzar un mapeo genérico habría sido más riesgoso
+  que el costo de un bloque paralelo, acotado a una sola pantalla.
+- Verificado: `node --check` sobre `Config.gs`/`Drive.gs`/`Code.gs`/`Access.gs`/`Correo.gs`/`Tests.gs` y los
+  bloques `<script>` de `Index.html` (mismo falso positivo ya conocido)/`JS.html` (limpio); IDs sin duplicar y
+  balance de etiquetas OK en `Index.html`. `Tests.gs` ganó una línea que ejercita
+  `guardarConsentimientoConectaEduca` junto a la ya existente de `guardarConsentimientoGrupo`. No probado en
+  vivo desde un navegador.
+
 ### Backlog restante del Documento Orientador FEM2026
 
-Queda pendiente, en el orden ya confirmado con el usuario: Sección E (ConectaEduca: consentimiento y
-asistencia propios, lo que también permitirá terminar el item 13 dándole a ConectaEduca su propio formato de
-asistencia), F (valoraciones separadas, escala numérica, texto "la sesión de hoy") y G (nueva opción de
-estamento "Funcionario Secretaría de Educación").
+Queda pendiente, en el orden ya confirmado con el usuario: Sección F (valoraciones separadas para el Encuentro
+y Conecta Educa, escala numérica EXCELENTE=5..MALO=1 en vez de corazones, preguntas reformuladas para no
+nombrar "el foro"/"Conecta Educa" y usar en su lugar "la sesión de hoy") y Sección G (nueva opción de estamento
+"Funcionario Secretaría de Educación").
 
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 

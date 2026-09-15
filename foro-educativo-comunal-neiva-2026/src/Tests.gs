@@ -124,6 +124,7 @@ function testFlujoCompletoGrupoPrueba() {
   Logger.log(JSON.stringify(registrarParticipante("GRUPO-PRUEBA", "IE-PRUEBA-1", "Persona de Prueba", "Docente", "Participante", "", dispositivoId)));
 
   Logger.log(JSON.stringify(guardarConsentimientoGrupo("GRUPO-PRUEBA", tokenSesion, dispositivoId)));
+  Logger.log(JSON.stringify(guardarConsentimientoConectaEduca("GRUPO-PRUEBA", tokenSesion, dispositivoId)));
 
   Logger.log(JSON.stringify(guardarParticipacionEstamentoIE("GRUPO-PRUEBA", tokenSesion, dispositivoId, "IE-PRUEBA-1", {
     RECTOR: 1, COORDINADOR: 1, DOCENTES: 5, TUTOR_PTA: 0, ORIENTADOR: 1, ESTUDIANTES: 20,
@@ -352,6 +353,8 @@ function limpiarTodosLosDatosIngresadosPorUsuarios() {
         FOTO_GRUPO_ID: "",
         CONSENTIMIENTO_GRUPO: "",
         FECHA_CONSENTIMIENTO_GRUPO: "",
+        CONSENTIMIENTO_CONECTAEDUCA: "",
+        FECHA_CONSENTIMIENTO_CONECTAEDUCA: "",
         ULTIMA_PANTALLA: ""
       };
       Object.keys(reinicios).forEach(function (campo) {

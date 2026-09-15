@@ -110,7 +110,7 @@ function enviarEnlaceInvitados(idGrupo, tokenSesion, dispositivoId, tipoInvitado
  * el PDF, copiar el link, o enviarlo a un correo electrónico para que
  * sea impreso") — pantalla de consentimiento informado del grupo.
  */
-function enviarFormatoAsistenciaPorCorreo(idGrupo, tokenSesion, dispositivoId, correos) {
+function enviarFormatoAsistenciaPorCorreo(idGrupo, tokenSesion, dispositivoId, correos, seccion) {
   idGrupo = String(idGrupo || "").trim();
   if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
     return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión ya no está activa en este dispositivo." };
@@ -130,14 +130,17 @@ function enviarFormatoAsistenciaPorCorreo(idGrupo, tokenSesion, dispositivoId, c
   var grupoInfo = obtenerGrupoPorId(idGrupo);
   var nombreGrupo = (grupoInfo && grupoInfo.grupo) || idGrupo;
   var config = getConfig();
-  var enlace = "https://drive.google.com/file/d/" + config.FORMATO_ASISTENCIA_ENCUENTRO_ID + "/view";
+  var esConectaEduca = String(seccion || "").toUpperCase() === "CONECTAEDUCA";
+  var idFormato = esConectaEduca ? config.FORMATO_ASISTENCIA_CONECTAEDUCA_ID : config.FORMATO_ASISTENCIA_ENCUENTRO_ID;
+  var nombreSesion = esConectaEduca ? "Conecta Educa" : config.NOMBRE_FORO;
+  var enlace = "https://drive.google.com/file/d/" + idFormato + "/view";
 
-  var asunto = "Formato de asistencia — " + nombreGrupo + " del " + config.NOMBRE_FORO;
+  var asunto = "Formato de asistencia — " + nombreGrupo + " de " + nombreSesion;
   var cuerpo =
     "Hola:\n\n" +
-    "Les compartimos el formato oficial de asistencia del " + config.NOMBRE_FORO + " para el " + nombreGrupo + ".\n\n" +
+    "Les compartimos el formato oficial de asistencia de " + nombreSesion + " para el " + nombreGrupo + ".\n\n" +
     "Enlace: " + enlace + "\n\n" +
-    "Por favor impriman este formato y regístrenlo en papel durante el encuentro. Al finalizar, quien " +
+    "Por favor impriman este formato y regístrenlo en papel durante la sesión. Al finalizar, quien " +
     "reciba el listado debe reportar la cantidad total de asistentes y los cargos de los asistentes por " +
     "institución educativa.\n\n" +
     "Secretaría de Educación de Neiva — " + config.NOMBRE_FORO;

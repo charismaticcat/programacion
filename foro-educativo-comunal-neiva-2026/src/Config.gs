@@ -66,6 +66,15 @@ var CONFIG_POR_DEFECTO_ = {
   // sube ya diligenciado en Participación (panelMetodoListado, Index.html).
   // ID real de Drive dado por el usuario.
   FORMATO_ASISTENCIA_ENCUENTRO_ID: "1rB1diE0iMthTDclJSxfazqJzld76nRx8",
+  // Formato de asistencia propio de Conecta Educa (Documento Orientador
+  // FEM2026, item 18) — distinto del formato del Encuentro; se usa en el
+  // consentimiento y la participación de la sección Conecta Educa. ID real
+  // de Drive dado por el usuario.
+  FORMATO_ASISTENCIA_CONECTAEDUCA_ID: "1sO3ddWU9PcL3CMnygYgSleTxs17qb_lS",
+  // Bandera de una sola vez para publicar ambos formatos de asistencia
+  // (Encuentro y Conecta Educa) — ver asegurarFormatosAsistenciaPublicos_
+  // en Drive.gs.
+  FORMATOS_ASISTENCIA_PUBLICOS: "",
   // FEI 3.1 enviaba siempre como "calidadeducacion@alcaldianeiva.gov.co"
   // (REMITENTE_FEM, Código.js). Se deja vacío por defecto (usa la cuenta
   // que ejecuta el script, siempre válida) — antes de configurar ese

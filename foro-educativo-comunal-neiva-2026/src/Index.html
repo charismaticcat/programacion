@@ -240,6 +240,58 @@
     </div>
   </section>
 
+  <!-- 5bis. CONSENTIMIENTO INFORMADO DE CONECTA EDUCA (Documento Orientador
+       FEM2026, item 17) — propio de la sección Conecta Educa, con énfasis
+       en la asistencia y en la metodología para llenar la caracterización
+       de actores. -->
+  <section id="pantallaConsentimientoConectaEduca" class="pantalla">
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">Consentimiento informado — Conecta Educa</h2>
+      <p><strong>Conecta Educa (2:00 p. m. a 5:00 p. m.)</strong> es un espacio de diálogo e interacción con
+        representantes del sector productivo y de la educación superior del territorio, previsto en el
+        Documento Orientador del Foro Educativo Municipal FEM 2026 de la Secretaría de Educación de Neiva,
+        con el propósito de fortalecer los vínculos entre la educación y el desarrollo local.</p>
+      <p class="ayuda">Al participar, el grupo acepta que la información aquí registrada (asistencia,
+        actores/entidades y construcción colectiva con el sector productivo y la educación superior) sea
+        utilizada por la Secretaría de Educación de Neiva como insumo para la sistematización de Conecta
+        Educa y para la construcción del Foro Educativo Municipal FEM 2026.</p>
+
+      <h3 class="subtitulo-campo" style="margin-top:20px;">Metodología para llenar la caracterización</h3>
+      <p class="ayuda">A medida que dialoguen con cada actor o entidad del sector productivo o de la
+        educación superior, regístrenlo en la sección "Registrar actor o entidad" de esta sesión: nombre,
+        tipo de actor, área de interés y qué instituciones educativas del grupo están interesadas en él.
+        Pueden registrar los actores durante la jornada, a medida que se presenten, sin esperar a que
+        termine el diálogo con todos.</p>
+
+      <h3 class="subtitulo-campo" style="margin-top:20px;">Listado de asistencia</h3>
+      <p class="ayuda">Antes de continuar, descarguen, copien el enlace o envíen por correo el formato
+        oficial de asistencia de Conecta Educa para que sea impreso y diligenciado en papel durante la
+        sesión. <strong>Quien reciba este listado debe encargarse de imprimirlo y, al finalizar, reportar la
+        cantidad total de asistentes y los cargos de los asistentes por institución educativa.</strong></p>
+      <div class="fila-botones">
+        <a class="btn btn-secundario" href="https://drive.google.com/file/d/<?!= FORMATO_ASISTENCIA_CONECTAEDUCA_ID ?>/view" target="_blank" id="btnDescargarFormatoAsistenciaConsentimientoCE">📥 Descargar</a>
+        <button type="button" class="btn btn-secundario" id="btnCopiarFormatoAsistenciaConsentimientoCE">📋 Copiar enlace</button>
+      </div>
+      <label for="campoEmailFormatoAsistenciaCE">Enviar por correo electrónico</label>
+      <input type="email" id="campoEmailFormatoAsistenciaCE" placeholder="correo@ejemplo.com">
+      <div class="fila-botones">
+        <button type="button" class="btn btn-secundario" id="btnEnviarFormatoAsistenciaConsentimientoCE">✉️ Enviar por correo</button>
+      </div>
+      <div id="mensajeFormatoAsistenciaConsentimientoCE"></div>
+
+      <label style="display:flex;align-items:center;gap:8px;font-weight:400;margin-top:20px;">
+        <input type="checkbox" id="checkConsentimientoConectaEduca" style="width:auto;">
+        Confirmo, en representación del grupo, que hemos leído y entendemos esta información.
+      </label>
+      <p class="ayuda oculto" id="avisoListadoAsistenciaPendienteCE">Antes de continuar, descarguen, copien
+        el enlace o envíen por correo el listado de asistencia (arriba).</p>
+      <div id="mensajeConsentimientoConectaEduca"></div>
+      <div class="fila-botones">
+        <button class="btn btn-primario" id="btnAceptarConsentimientoConectaEduca" disabled>Aceptar y continuar</button>
+      </div>
+    </div>
+  </section>
+
   <!-- 6. PARTICIPACIÓN -->
   <section id="pantallaParticipacion" class="pantalla">
     <!-- Método de asistencia — desde el item 13 (Documento Orientador
@@ -250,9 +302,9 @@
          reactivar el QR más adelante. -->
     <div class="tarjeta">
       <h2 class="titulo-seccion">Método de asistencia del grupo</h2>
-      <p class="ayuda">Descarguen el formato oficial de asistencia, regístrenla en papel durante el
-        encuentro y suban el listado ya firmado aquí.</p>
-      <a class="btn btn-secundario" href="https://drive.google.com/file/d/<?!= FORMATO_ASISTENCIA_ENCUENTRO_ID ?>/view" target="_blank">📥 Descargar formato de asistencia</a>
+      <p class="ayuda">Descarguen el formato oficial de asistencia, regístrenla en papel durante la
+        sesión y suban el listado ya firmado aquí.</p>
+      <a class="btn btn-secundario" href="https://drive.google.com/file/d/<?!= FORMATO_ASISTENCIA_ENCUENTRO_ID ?>/view" target="_blank" id="btnDescargarFormatoAsistenciaParticipacion">📥 Descargar formato de asistencia</a>
       <div class="fila-botones oculto">
         <button class="btn btn-secundario" id="btnMetodoQR" data-metodo-asistencia="QR">📱 QR / enlace</button>
         <button class="btn btn-secundario" id="btnMetodoListado" data-metodo-asistencia="LISTADO">📄 Listado en PDF</button>
@@ -1342,6 +1394,8 @@
   var LOGO_DESARROLLADOR_ID = <?!= JSON.stringify(LOGO_DESARROLLADOR_ID || "") ?>;
   var LOGO_ENCUENTRO_ID = <?!= JSON.stringify(LOGO_ENCUENTRO_ID || "") ?>;
   var LOGO_CONECTAEDUCA_ID = <?!= JSON.stringify(LOGO_CONECTAEDUCA_ID || "") ?>;
+  var FORMATO_ASISTENCIA_ENCUENTRO_ID = <?!= JSON.stringify(FORMATO_ASISTENCIA_ENCUENTRO_ID || "") ?>;
+  var FORMATO_ASISTENCIA_CONECTAEDUCA_ID = <?!= JSON.stringify(FORMATO_ASISTENCIA_CONECTAEDUCA_ID || "") ?>;
 </script>
 <?!= include('GifsData'); ?>
 <?!= include('Components'); ?>

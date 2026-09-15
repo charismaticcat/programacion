@@ -54,6 +54,7 @@ function doGet(e) {
   template.LOGO_ENCUENTRO_ID = getConfig().LOGO_ENCUENTRO_ID;
   template.LOGO_CONECTAEDUCA_ID = getConfig().LOGO_CONECTAEDUCA_ID;
   template.FORMATO_ASISTENCIA_ENCUENTRO_ID = getConfig().FORMATO_ASISTENCIA_ENCUENTRO_ID;
+  template.FORMATO_ASISTENCIA_CONECTAEDUCA_ID = getConfig().FORMATO_ASISTENCIA_CONECTAEDUCA_ID;
   try {
     asegurarLogosSplashPublicos_();
   } catch (err) {
@@ -68,6 +69,11 @@ function doGet(e) {
     asegurarLogosSeccionPublicos_();
   } catch (err) {
     Logger.log("doGet: no fue posible asegurar los logos de sección públicos: " + err.message);
+  }
+  try {
+    asegurarFormatosAsistenciaPublicos_();
+  } catch (err) {
+    Logger.log("doGet: no fue posible asegurar los formatos de asistencia públicos: " + err.message);
   }
   try {
     asegurarLimiteSesionesGrupoRazonable_();
@@ -240,10 +246,10 @@ function rpcEnviarEnlaceInvitados(idGrupo, tokenSesion, dispositivoId, tipoInvit
   });
 }
 
-/** Envía por correo el enlace del formato de asistencia del Encuentro (item 14, consentimiento informado). */
-function rpcEnviarFormatoAsistenciaPorCorreo(idGrupo, tokenSesion, dispositivoId, correos) {
+/** Envía por correo el enlace del formato de asistencia (items 14 y 17, consentimiento informado) — seccion: "ENCUENTRO" (por defecto) o "CONECTAEDUCA". */
+function rpcEnviarFormatoAsistenciaPorCorreo(idGrupo, tokenSesion, dispositivoId, correos, seccion) {
   return ejecutarRpcSeguro_(function () {
-    return enviarFormatoAsistenciaPorCorreo(idGrupo, tokenSesion, dispositivoId, correos);
+    return enviarFormatoAsistenciaPorCorreo(idGrupo, tokenSesion, dispositivoId, correos, seccion);
   });
 }
 
@@ -316,6 +322,13 @@ function rpcEliminarResponsable(idGrupo, idRegistro, tokenSesion, dispositivoId)
 function rpcGuardarConsentimientoGrupo(idGrupo, tokenSesion, dispositivoId) {
   return ejecutarRpcSeguro_(function () {
     return guardarConsentimientoGrupo(idGrupo, tokenSesion, dispositivoId);
+  });
+}
+
+/** Consentimiento informado propio de Conecta Educa (Documento Orientador FEM2026, item 17). */
+function rpcGuardarConsentimientoConectaEduca(idGrupo, tokenSesion, dispositivoId) {
+  return ejecutarRpcSeguro_(function () {
+    return guardarConsentimientoConectaEduca(idGrupo, tokenSesion, dispositivoId);
   });
 }
 
