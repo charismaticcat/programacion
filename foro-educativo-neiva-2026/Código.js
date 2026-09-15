@@ -288,7 +288,12 @@ function doGet(e) {
    * PANEL DE ACCESOS "SUPERADMIN"
    * =================================================
    *
-   * .../exec?panel=superadmin
+   * .../exec?panel=superadmin — enlace original.
+   * .../exec?p=1 — alias corto (mismo destino, mismo comportamiento);
+   * se agregó a pedido para tener el enlace más corto posible dentro
+   * de lo que permite la URL fija de este despliegue de Apps Script
+   * (el tramo "script.google.com/macros/s/<id>/exec" lo asigna Google
+   * y no se puede acortar desde aquí).
    *
    * Página pública mínima, independiente del resto del formulario
    * (mismo patrón que las dos rutas anteriores), sin ningún código ni
@@ -297,8 +302,10 @@ function doGet(e) {
    */
   const panelSolicitado =
     String(parametros.panel || "").trim().toLowerCase();
+  const panelCorto =
+    String(parametros.p || "").trim();
 
-  if (panelSolicitado === "superadmin") {
+  if (panelSolicitado === "superadmin" || panelCorto === "1") {
     return paginaSuperAdminFEM_();
   }
 
