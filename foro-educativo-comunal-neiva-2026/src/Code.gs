@@ -232,6 +232,19 @@ function rpcGuardarSocializacionIE(idGrupo, tokenSesion, dispositivoId, idIE, so
   });
 }
 
+/** PDF "Aportes relevantes del <Grupo>" (pedido del usuario) — ver Socializacion.gs. */
+function rpcGenerarPdfAportesRelevantesSocializacion(idGrupo, tokenSesion, dispositivoId) {
+  return ejecutarRpcSeguro_(function () {
+    return generarPdfAportesRelevantesSocializacion(idGrupo, tokenSesion, dispositivoId);
+  });
+}
+
+function rpcObtenerAportesRelevantesSocializacion(idGrupo) {
+  return ejecutarRpcSeguro_(function () {
+    return obtenerAportesRelevantesSocializacionGrupo_(idGrupo);
+  });
+}
+
 /** Enlaces (estudiante/egresado y acudiente) de la pantalla de invitados especiales, tras Confirmación de caracterización. */
 function rpcObtenerEnlacesInvitadosGrupo(idGrupo) {
   return ejecutarRpcSeguro_(function () {

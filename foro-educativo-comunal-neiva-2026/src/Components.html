@@ -485,29 +485,28 @@ function renderPreguntasInvitado(preguntas, respuestas, textoInicial, mostrarBot
 }
 
 /**
- * Sección de socialización en Sesión 1: un <details> colapsado por cada
- * IE que ya envió sus aportes de preparación, con un párrafo con título
- * por cada sección diligenciada y un botón de pantalla completa.
+ * Aportes relevantes de la Sesión de socialización, mostrados en Sesión 1
+ * (pedido del usuario): un <details> colapsado por cada IE con datos
+ * relevantes anotados en la pantalla anterior, con botón de pantalla
+ * completa. Antes mostraba los aportes de la vieja "Preparación" (varias
+ * secciones tituladas por IE); ahora es un solo texto libre por IE, la
+ * nota que el grupo escribió mientras esa institución socializaba.
  */
 function renderSocializacionPreparacion(datos) {
   var contenedor = document.getElementById("listaSocializacionPreparacion");
   if (!contenedor) return;
   if (!datos || !datos.length) {
-    contenedor.innerHTML = "<p class='ayuda'>Ninguna institución ha enviado aportes de preparación todavía.</p>";
+    contenedor.innerHTML = "<p class='ayuda'>Todavía no hay aportes relevantes registrados en la Sesión de socialización.</p>";
     return;
   }
   var html = "<div class='fila-botones'><button type='button' class='btn btn-secundario' data-alternar-socializacion>Expandir todas</button></div>";
   datos.forEach(function (ie) {
     html += "<details class='socializacion-ie'>";
-    html += "<summary>" + escapeHtml(ie.institucion) +
-      (ie.responsable ? " <span class='ayuda'>— preparado por " + escapeHtml(ie.responsable) + "</span>" : "") + "</summary>";
-    ie.secciones.forEach(function (seccion) {
-      html += "<div class='socializacion-seccion'>";
-      html += "<h4>" + escapeHtml(seccion.titulo) + "</h4>";
-      html += "<p>" + escapeHtml(seccion.texto) + "</p>";
-      html += "<button type='button' class='btn-recurso' data-ver-completo='" + escapeHtml(ie.idIE) + "|" + escapeHtml(seccion.clave) + "'>🔍 Pantalla completa</button>";
-      html += "</div>";
-    });
+    html += "<summary>" + escapeHtml(ie.institucion) + "</summary>";
+    html += "<div class='socializacion-seccion'>";
+    html += "<p>" + escapeHtml(ie.datosRelevantes) + "</p>";
+    html += "<button type='button' class='btn-recurso' data-ver-completo='" + escapeHtml(ie.idIE) + "'>🔍 Pantalla completa</button>";
+    html += "</div>";
     html += "</details>";
   });
   contenedor.innerHTML = html;

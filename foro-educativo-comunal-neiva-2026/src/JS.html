@@ -332,10 +332,14 @@ function cambiarPantalla(idPantalla) {
   if (idPantalla === "pantallaSesion1") {
     cargarSesion1();
     cargarRecursosSesion1();
-    // cargarSocializacionPreparacion() ya no se llama: dependía de
-    // "Preparación" (oculta desde el item 9), así que su contenedor
-    // (tarjetaSocializacionPreparacion) siempre estaría vacío — queda
-    // oculto en Index.html en vez de mostrarse vacío.
+    // Aportes relevantes de la Sesión de socialización (pantalla
+    // anterior) — reactivado (pedido del usuario): tarjetaSocializacionPreparacion
+    // se había ocultado en un lote anterior porque dependía de la vieja
+    // "Preparación" (item 9), siempre vacía; ahora se recableó a
+    // rpcObtenerSocializacionGrupo (los datos reales que sí se capturan
+    // en Sesión de socialización) — ver cargarSocializacionPreparacion.
+    cargarSocializacionPreparacion();
+    cargarAportesRelevantesSocializacionPdf_();
     // "Continuar a Revisión y cierre" no se habilita hasta que Sesión 1 se
     // envió de forma definitiva (spec del usuario) — se refresca cada vez
     // que se entra a esta pantalla, no solo tras hacer clic en Enviar,
@@ -3568,18 +3572,72 @@ document.getElementById("btnEnviarPreparacionIE").addEventListener("click", func
   });
 });
 
-/* ---- Sección de socialización en Sesión 1: aportes de preparación ya enviados por cada IE ---- */
+/**
+ * Aportes relevantes de la Sesión de socialización, mostrados en Sesión 1
+ * (pedido del usuario): un <details> colapsado por cada IE con datos
+ * relevantes registrados en la pantalla anterior — para que el grupo los
+ * lea/copie mientras responde las preguntas de "Construcción colectiva".
+ * Reutiliza el contenedor y el mecanismo de copiar-al-seleccionar que ya
+ * existía para "Aportes de preparación por institución" (oculto desde el
+ * item 9, cuando esa fuente de datos —la vieja "Preparación"— dejó de
+ * existir); ahora apunta a rpcObtenerSocializacionGrupo, la fuente real.
+ */
 function cargarSocializacionPreparacion() {
   if (!estado.idGrupo) return;
-  llamarServidor("rpcPreparacionesEnviadasGrupo", [estado.idGrupo], function (datos) {
-    estado.socializacionPreparacion = datos || [];
+  llamarServidor("rpcObtenerSocializacionGrupo", [estado.idGrupo], function (datos) {
+    estado.socializacionPreparacion = (datos || []).filter(function (ie) {
+      return String(ie.datosRelevantes || "").trim();
+    });
     renderSocializacionPreparacion(estado.socializacionPreparacion);
   });
 }
 
 /**
- * Al seleccionar cualquier fragmento de texto dentro de los aportes de
- * preparación por institución (Sesión 1), queda copiado automáticamente
+ * PDF "Aportes relevantes del <Grupo>" (pedido del usuario): reúne todo
+ * lo anotado por IE en la Sesión de socialización en un solo documento
+ * descargable, aparte del informe oficial. Si ya se había generado antes,
+ * al entrar a Sesión 1 se muestra directo el enlace "Ver PDF" (sin volver
+ * a generar) — regenerar es una acción explícita del botón.
+ */
+function cargarAportesRelevantesSocializacionPdf_() {
+  if (!estado.idGrupo) return;
+  llamarServidor("rpcObtenerAportesRelevantesSocializacion", [estado.idGrupo], function (info) {
+    var enlace = document.getElementById("enlaceAportesRelevantesSocializacion");
+    if (!enlace) return;
+    if (info && info.URL) {
+      enlace.href = info.URL;
+      enlace.classList.remove("oculto");
+    } else {
+      enlace.classList.add("oculto");
+    }
+  }, function () {});
+}
+
+document.getElementById("btnGenerarAportesRelevantesSocializacion").addEventListener("click", function () {
+  var boton = document.getElementById("btnGenerarAportesRelevantesSocializacion");
+  boton.disabled = true;
+  mostrarCargaAccion_("aportesRelevantesSocializacion", "Generando PDF…");
+  llamarServidor("rpcGenerarPdfAportesRelevantesSocializacion", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
+    ocultarCargaAccion_();
+    boton.disabled = false;
+    if (!r.ok) {
+      mostrarMensaje("mensajeAportesRelevantesSocializacion", r.mensaje || "No fue posible generar el PDF.", "error");
+      return;
+    }
+    mostrarMensaje("mensajeAportesRelevantesSocializacion", "PDF generado.", "exito");
+    var enlace = document.getElementById("enlaceAportesRelevantesSocializacion");
+    enlace.href = r.url;
+    enlace.classList.remove("oculto");
+  }, function () {
+    ocultarCargaAccion_();
+    boton.disabled = false;
+    mostrarMensaje("mensajeAportesRelevantesSocializacion", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+  });
+});
+
+/**
+ * Al seleccionar cualquier fragmento de texto dentro de los aportes
+ * relevantes de la socialización (Sesión 1), queda copiado automáticamente
  * al portapapeles — listo para pegar en cualquiera de las preguntas de
  * "Construcción colectiva del grupo" (spec del usuario) — con un aviso
  * central sutil, sin bloquear la pantalla.
@@ -3623,16 +3681,11 @@ function cargarSocializacionPreparacion() {
   contenedor.addEventListener("touchend", copiarSeleccionActual_);
 })();
 
-function abrirPantallaCompletaTexto(clave) {
-  var partes = String(clave || "").split("|");
-  var idIE = partes[0];
-  var claveSeccion = partes[1];
+function abrirPantallaCompletaTexto(idIE) {
   var ie = (estado.socializacionPreparacion || []).find(function (i) { return i.idIE === idIE; });
   if (!ie) return;
-  var seccion = ie.secciones.find(function (s) { return s.clave === claveSeccion; });
-  if (!seccion) return;
-  document.getElementById("tituloPantallaCompletaTexto").textContent = ie.institucion + " — " + seccion.titulo;
-  document.getElementById("cuerpoPantallaCompletaTexto").innerHTML = "<p>" + escapeHtml(seccion.texto).replace(/\n/g, "<br>") + "</p>";
+  document.getElementById("tituloPantallaCompletaTexto").textContent = ie.institucion;
+  document.getElementById("cuerpoPantallaCompletaTexto").innerHTML = "<p>" + escapeHtml(ie.datosRelevantes).replace(/\n/g, "<br>") + "</p>";
   document.getElementById("pantallaCompletaTexto").classList.remove("oculto");
 }
 document.getElementById("btnCerrarPantallaCompletaTexto").addEventListener("click", function () {

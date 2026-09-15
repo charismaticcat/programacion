@@ -70,3 +70,95 @@ function guardarSocializacionIE(idGrupo, tokenSesion, dispositivoId, idIE, socia
     return { ok: true };
   }, 15000);
 }
+
+/**
+ * PDF "Aportes relevantes del <Grupo>" (pedido del usuario): un
+ * documento aparte del informe oficial del grupo, con los datos
+ * relevantes que cada IE dejó registrados en la Sesión de socialización
+ * — para consultarlo desde Sesión 1 mientras se responde el Consolidado.
+ * Se regenera cada vez que se pide (se guarda un solo DOC_ID/PDF_ID por
+ * grupo — la versión anterior se manda a la papelera antes de crear la
+ * nueva, mismo criterio de "nunca acumular" del resto del proyecto).
+ */
+var HOJA_APORTES_RELEVANTES_SOCIALIZACION_ = "AportesRelevantesSocializacion";
+
+function cabecerasAportesRelevantesSocializacion_() {
+  return ["ID_GRUPO", "DOC_ID", "PDF_ID", "URL", "FECHA"];
+}
+
+/** PDF ya generado para el grupo, o null si todavía no se ha generado. */
+function obtenerAportesRelevantesSocializacionGrupo_(idGrupo) {
+  var hoja = obtenerHoja_(HOJA_APORTES_RELEVANTES_SOCIALIZACION_, cabecerasAportesRelevantesSocializacion_());
+  var mapa = obtenerMapaCabeceras_(hoja);
+  var fila = buscarFilaPorColumna_(hoja, mapa, "ID_GRUPO", String(idGrupo || "").trim());
+  return fila === -1 ? null : leerFilaComoObjeto_(hoja, fila, mapa);
+}
+
+function generarPdfAportesRelevantesSocializacion(idGrupo, tokenSesion, dispositivoId) {
+  idGrupo = String(idGrupo || "").trim();
+  if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
+    return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión ya no está activa en este dispositivo." };
+  }
+  var grupoInfo = obtenerGrupoPorId(idGrupo);
+  if (!grupoInfo) return { ok: false, mensaje: "Grupo no encontrado." };
+
+  return conLock_(function () {
+    var conAportes = obtenerSocializacionGrupo(idGrupo).filter(function (ie) {
+      return String(ie.datosRelevantes || "").trim();
+    });
+    if (!conAportes.length) {
+      return { ok: false, mensaje: "Todavía no hay datos relevantes registrados en la Sesión de socialización de este grupo." };
+    }
+
+    var anterior = obtenerAportesRelevantesSocializacionGrupo_(idGrupo);
+    if (anterior) {
+      try { if (anterior.DOC_ID) DriveApp.getFileById(anterior.DOC_ID).setTrashed(true); } catch (e) { Logger.log("No se pudo eliminar el Doc anterior de aportes relevantes: " + e.message); }
+      try { if (anterior.PDF_ID) DriveApp.getFileById(anterior.PDF_ID).setTrashed(true); } catch (e) { Logger.log("No se pudo eliminar el PDF anterior de aportes relevantes: " + e.message); }
+    }
+
+    var config = getConfig();
+    var carpetaGrupo = asegurarCarpetaGrupo_(grupoInfo.grupo);
+    var nombreBase = "Aportes relevantes del " + grupoInfo.grupo;
+
+    var doc = DocumentApp.create(nombreBase);
+    var docFile = DriveApp.getFileById(doc.getId());
+    carpetaGrupo.addFile(docFile);
+    try {
+      DriveApp.getRootFolder().removeFile(docFile);
+    } catch (e) {
+      Logger.log("No fue posible quitar el Doc de aportes relevantes de la raíz de Drive: " + e.message);
+    }
+
+    var body = doc.getBody();
+    body.clear();
+    body.setPageWidth(612).setPageHeight(792).setMarginTop(30).setMarginBottom(30).setMarginLeft(50).setMarginRight(50);
+
+    var pTitulo = body.appendParagraph(nombreBase);
+    pTitulo.setHeading(DocumentApp.ParagraphHeading.TITLE).setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    pTitulo.editAsText().setForegroundColor(COLOR_VERDE_INFORME_);
+    var pSubtitulo = body.appendParagraph("Sesión de socialización — " + config.NOMBRE_FORO);
+    pSubtitulo.setAlignment(DocumentApp.HorizontalAlignment.CENTER).editAsText().setItalic(true);
+    body.appendParagraph(formatearFechaLargaEs_(new Date(), true)).setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+
+    conAportes.forEach(function (ie) {
+      titulo1_(body, ie.institucion);
+      parrafo_(body, ie.datosRelevantes);
+    });
+
+    doc.saveAndClose();
+    var pdfBlob = DriveApp.getFileById(doc.getId()).getAs(MimeType.PDF);
+    pdfBlob.setName(nombreBase + ".pdf");
+    var pdfFile = carpetaGrupo.createFile(pdfBlob);
+    hacerPublicoSiEsPosible_(pdfFile);
+    var url = pdfFile.getUrl();
+
+    upsertFila_(HOJA_APORTES_RELEVANTES_SOCIALIZACION_, cabecerasAportesRelevantesSocializacion_(), "ID_GRUPO", idGrupo, {
+      DOC_ID: doc.getId(),
+      PDF_ID: pdfFile.getId(),
+      URL: url,
+      FECHA: new Date()
+    });
+
+    return { ok: true, url: url };
+  }, 30000);
+}

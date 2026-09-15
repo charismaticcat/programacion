@@ -1960,6 +1960,49 @@ Pedido suelto del usuario sobre el temporizador de la Sesión de socialización 
   probado en vivo desde un navegador — en particular, no se verificó el sonido real en ningún navegador (la
   política de autoplay varía por navegador y por si hubo interacción previa del usuario en la página).
 
+## 4.60 Cuadragésimo octavo lote: PDF de aportes relevantes + reactivar el consolidado de socialización en Sesión 1
+
+Dos pedidos sueltos del usuario sobre Consolidado de Socialización (Sesión 1), ambos aprovechando los datos
+reales que ya captura la Sesión de socialización (pantalla anterior) desde el Lote 39.
+
+- **"Construir un PDF llamado 'Aportes relevantes del Grupo (número)' con todos los aportes por IE guardados
+  en la sesión anterior"**: nueva función `generarPdfAportesRelevantesSocializacion()` (Socializacion.gs),
+  mismo patrón de generación de documentos que `generarInformeGrupo()` (Informes.gs: crea un
+  `DocumentApp`, un título por IE (`titulo1_`) con su texto (`parrafo_`), lo exporta a PDF y lo guarda en la
+  misma carpeta de Drive del grupo (`03_INFORMES_GRUPALES/GRUPO N`, vía `asegurarCarpetaGrupo_()`) — es un
+  documento aparte del informe oficial, no lo reemplaza ni lo toca. Se registra en una hoja nueva
+  (`AportesRelevantesSocializacion`, `ID_GRUPO`→`DOC_ID`/`PDF_ID`/`URL`/`FECHA`) para que **regenerar no
+  acumule copias**: si ya existía una versión, se manda a la papelera antes de crear la nueva. Si el grupo
+  todavía no anotó ningún dato relevante, el botón avisa en vez de generar un PDF vacío. En Index.html
+  (dentro de la tarjeta reactivada, ver abajo): botón "📄 Generar PDF de aportes relevantes" + enlace "👁 Ver
+  PDF" que aparece solo (sin regenerar) si el grupo entra a Sesión 1 y ya había uno generado antes.
+- **"En las preguntas de Consolidado de Socialización, relacionar los aportes más relevantes de la
+  socialización que se puedan vincular al tipo de pregunta"**: se reactivó `tarjetaSocializacionPreparacion`
+  (la tarjeta "🗣️ Aportes de preparación por institución" que se había ocultado en el Lote 42 porque su fuente
+  de datos original —la vieja "Preparación", item 9— ya no existía) y se recableó a
+  `rpcObtenerSocializacionGrupo`, la fuente real de datos de hoy. Queda como "🗣️ Aportes relevantes de la
+  socialización": un `<details>` colapsable por IE con lo que el grupo anotó durante su temporizador,
+  colocado justo antes de las 3 preguntas temáticas — para que el grupo lea/relacione cada aporte con el tema
+  que corresponda mientras responde. **Decisión de alcance**: clasificar automáticamente cada aporte por tema
+  (FEM2025/Currículo/Gobierno) no es viable de forma confiable sin NLP real — el texto libre que se anota en
+  vivo durante una presentación oral no trae una etiqueta de tema; en cambio, mostrar los aportes completos
+  justo antes de las preguntas, con el mecanismo de "seleccionar texto → copiar automáticamente" que ya
+  existía (reutilizado sin cambios, sigue funcionando porque el contenedor `#listaSocializacionPreparacion` es
+  el mismo), es lo que permite al grupo "vincularlos al tipo de pregunta" — de forma manual y deliberada, no
+  automática.
+  - `cargarSocializacionPreparacion()` (JS.html) y `renderSocializacionPreparacion()` (Components.html)
+    reescritas para el nuevo shape de datos (`{idIE, institucion, datosRelevantes}`, un solo texto libre por
+    IE) en vez del shape viejo (`{idIE, institucion, responsable, secciones:[{titulo,texto,clave}]}` de
+    Preparación, con varias secciones tituladas por IE).
+  - `abrirPantallaCompletaTexto()` simplificada a recibir solo `idIE` (antes `idIE|claveSeccion`, ya no hace
+    falta distinguir secciones).
+  - Vuelve a llamarse `cargarSocializacionPreparacion()` al entrar a `pantallaSesion1` (se había quitado la
+    llamada en el Lote 42 por la misma razón por la que se ocultó la tarjeta).
+- Verificado: `node --check` sobre `Socializacion.gs`/`Code.gs` y los bloques `<script>` de
+  `Index.html`/`JS.html`/`Components.html` (mismo falso positivo ya conocido en Index, limpio en JS y
+  Components); IDs sin duplicar y balance de etiquetas OK en los tres HTML. No probado en vivo desde un
+  navegador — en particular, no se generó un PDF real ni se verificó su contenido/formato en Drive.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

@@ -628,14 +628,19 @@
         <div id="listaRecursosSesion1Botones" class="fila-botones-recursos"></div>
       </div>
 
-      <div class="tarjeta-socializacion oculto" id="tarjetaSocializacionPreparacion">
-        <h3 class="subtitulo-campo">🗣️ Aportes de preparación por institución</h3>
-        <p class="ayuda">Lo que cada institución envió en la Sesión de preparación, para socializar
-          oralmente con el grupo y la comunidad asistente. Si durante la socialización surgen cambios frente
-          a lo aquí escrito, estos podrán discutirse en la siguiente sesión.</p>
+      <div class="tarjeta-socializacion" id="tarjetaSocializacionPreparacion">
+        <h3 class="subtitulo-campo">🗣️ Aportes relevantes de la socialización</h3>
+        <p class="ayuda">Lo que el grupo anotó por institución en la Sesión de socialización (pantalla
+          anterior), para relacionarlo con las preguntas de abajo — cada institución puede tener aportes
+          vinculados a más de un tema.</p>
         <p class="ayuda">💡 Al seleccionar una parte del texto de cualquier institución, queda copiada y
           puede pegarse en cualquiera de las preguntas de "Construcción colectiva del grupo", más abajo.</p>
         <div id="listaSocializacionPreparacion"></div>
+        <div class="fila-botones">
+          <button type="button" class="btn btn-secundario" id="btnGenerarAportesRelevantesSocializacion">📄 Generar PDF de aportes relevantes</button>
+          <a class="btn btn-secundario oculto" id="enlaceAportesRelevantesSocializacion" href="#" target="_blank">👁 Ver PDF</a>
+        </div>
+        <div id="mensajeAportesRelevantesSocializacion"></div>
       </div>
 
     </div>
