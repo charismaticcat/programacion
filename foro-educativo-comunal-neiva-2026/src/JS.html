@@ -34,7 +34,8 @@ var estado = {
   explicacionConectaEducaVista: false,
   fotoGrupoMasTardeConfirmado: false,
   avisoColaboradoresMostrado: false,
-  enlacesInvitados: null
+  enlacesInvitados: null,
+  seccion: ""
 };
 
 /** URL de imagen para un archivo de Drive público (logos) — mismo patrón usado para el QR de asistencia. */
@@ -74,7 +75,7 @@ function urlImagenDrive(idArchivo, ancho) {
 // código (ver intentarValidarAcceso), como introducción antes de
 // Participación.
 var ORDEN_PANTALLAS = [
-  "pantallaAcceso", "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia",
+  "pantallaEleccionSeccion", "pantallaAcceso", "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia",
   "pantallaConsentimientoGrupo", "pantallaParticipacion", "pantallaConfirmacionCaracterizacion",
   "pantallaInvitadosEspeciales",
   "pantallaPreSocializacion", "pantallaSeleccionIEPreparacion", "pantallaPreparacionIE",
@@ -85,7 +86,7 @@ var ORDEN_PANTALLAS = [
 // Pantallas de "introducción" (no representan avance real del grupo, se
 // muestran siempre al validar el código por primera vez) — nunca se
 // retoma directamente en ellas ni se marcan como "última pantalla".
-var PANTALLAS_NO_RESUMIBLES_ = ["pantallaAcceso", "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia"];
+var PANTALLAS_NO_RESUMIBLES_ = ["pantallaEleccionSeccion", "pantallaAcceso", "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia"];
 
 // Algunas pantallas necesitan una selección previa (ej. cuál IE se está
 // preparando) que solo vive en el estado del dispositivo actual, no en el
@@ -292,6 +293,79 @@ function cambiarPantalla(idPantalla) {
     llamarServidor("rpcGuardarUltimaPantalla", [estado.idGrupo, idPantalla], function () {}, function () {});
   }
 }
+
+/* ------------------------------------------------------------------ *
+ * Elección de sección (Documento Orientador FEM2026, sección C): dos
+ * secciones independientes ("Encuentro de voces que construyen
+ * territorio" y "Conecta Educa"), cada una con su propio logo y su
+ * propia entrada — el código de acceso sigue siendo el mismo del grupo
+ * en ambas (un solo GRUPO/sesión, ver nota en la guía de puesta en
+ * marcha). Se recuerda la última sección elegida en este dispositivo
+ * (localStorage) para no pedirla de nuevo en cada visita (spec del
+ * usuario, item 3: "clic en Inicio debe ir directo a Ingresar código").
+ * ------------------------------------------------------------------ */
+var CLAVE_SECCION_LOCAL_ = "fec_seccion_elegida";
+var TEXTOS_SECCION_ = {
+  ENCUENTRO: { titulo: "Encuentro de voces que construyen territorio", logo: LOGO_ENCUENTRO_ID },
+  CONECTAEDUCA: { titulo: "Conecta Educa", logo: LOGO_CONECTAEDUCA_ID }
+};
+
+(function poblarLogosSeccion_() {
+  [
+    { id: "logoTarjetaEncuentro", logo: LOGO_ENCUENTRO_ID },
+    { id: "logoTarjetaConectaEduca", logo: LOGO_CONECTAEDUCA_ID }
+  ].forEach(function (item) {
+    var img = document.getElementById(item.id);
+    if (img && item.logo) {
+      img.src = urlImagenDrive(item.logo, 300);
+      img.classList.remove("oculto");
+    }
+  });
+})();
+
+function aplicarSeccionElegida_(seccion) {
+  var datos = TEXTOS_SECCION_[seccion];
+  if (!datos) return;
+  estado.seccion = seccion;
+  try {
+    localStorage.setItem(CLAVE_SECCION_LOCAL_, seccion);
+  } catch (e) {}
+  document.getElementById("tituloSeccionAcceso").textContent = "Acceso del grupo — " + datos.titulo;
+  var logo = document.getElementById("logoSeccionAcceso");
+  if (logo) {
+    if (datos.logo) {
+      logo.src = urlImagenDrive(datos.logo, 240);
+      logo.classList.remove("oculto");
+    } else {
+      logo.classList.add("oculto");
+    }
+  }
+}
+
+document.querySelectorAll("[data-elegir-seccion]").forEach(function (boton) {
+  boton.addEventListener("click", function () {
+    aplicarSeccionElegida_(boton.getAttribute("data-elegir-seccion"));
+    cambiarPantalla("pantallaAcceso");
+  });
+});
+document.getElementById("btnCambiarSeccionAcceso").addEventListener("click", function () {
+  cambiarPantalla("pantallaEleccionSeccion");
+});
+
+// Si este dispositivo ya había elegido una sección antes, se salta la
+// pantalla de elección y se va directo a Acceso (spec del usuario, item
+// 3) — "← Elegir otra sección" sigue disponible ahí por si se
+// equivocó o quiere entrar a la otra sección desde el mismo dispositivo.
+(function retomarSeccionElegida_() {
+  var guardada = "";
+  try {
+    guardada = localStorage.getItem(CLAVE_SECCION_LOCAL_) || "";
+  } catch (e) {}
+  if (guardada && TEXTOS_SECCION_[guardada]) {
+    aplicarSeccionElegida_(guardada);
+    cambiarPantalla("pantallaAcceso");
+  }
+})();
 
 document.addEventListener("click", function (evento) {
   var boton = evento.target.closest("[data-ir]");

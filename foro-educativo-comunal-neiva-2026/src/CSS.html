@@ -139,6 +139,24 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--verde); bor
   color: var(--verde-oscuro);
   margin: 4px 0 18px;
 }
+
+/* Pantalla de elección de sección (Documento Orientador FEM2026, sección C). */
+.fila-secciones { display: flex; gap: 16px; flex-wrap: wrap; }
+.tarjeta-seccion {
+  flex: 1 1 260px;
+  background: var(--blanco);
+  border: 1px solid var(--gris-borde);
+  border-radius: var(--radio);
+  padding: 22px 20px;
+  box-shadow: var(--sombra);
+  text-align: center;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.tarjeta-seccion:hover, .tarjeta-seccion:focus-visible { border-color: var(--verde); transform: translateY(-2px); }
+.tarjeta-seccion h3 { color: var(--verde-oscuro); margin: 8px 0 6px; }
+.logo-tarjeta-seccion { max-width: 140px; max-height: 100px; margin: 0 auto 8px; display: block; }
 button.btn, a.btn {
   display: inline-block;
   border: none;

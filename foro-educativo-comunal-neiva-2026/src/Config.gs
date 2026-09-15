@@ -50,6 +50,17 @@ var CONFIG_POR_DEFECTO_ = {
   // ya pudo haberse marcado "SI" en instalaciones existentes antes de que
   // este logo existiera) — ver asegurarLogoDesarrolladorPublico_ en Drive.gs.
   LOGO_DESARROLLADOR_PUBLICO: "",
+  // Logos de las dos secciones independientes del aplicativo (Documento
+  // Orientador FEM2026, sección C): pantallaEleccionSeccion (Index.html)
+  // los usa para las dos tarjetas de entrada, y pantallaAcceso muestra el
+  // que corresponda según la sección elegida. IDs reales de Drive dados
+  // por el usuario.
+  LOGO_ENCUENTRO_ID: "1FyoUu8gT0SZHfJq8i3OUalBQY5ALzghb",
+  LOGO_CONECTAEDUCA_ID: "1IKhtm9U_Yuri06VkCsC7W9-ktt_lIltj",
+  // Bandera de una sola vez, independiente de LOGOS_SPLASH_PUBLICOS (esa
+  // ya pudo haberse marcado "SI" antes de que estos dos logos existieran)
+  // — ver asegurarLogosSeccionPublicos_ en Drive.gs.
+  LOGOS_SECCION_PUBLICOS: "",
   // FEI 3.1 enviaba siempre como "calidadeducacion@alcaldianeiva.gov.co"
   // (REMITENTE_FEM, Código.js). Se deja vacío por defecto (usa la cuenta
   // que ejecuta el script, siempre válida) — antes de configurar ese

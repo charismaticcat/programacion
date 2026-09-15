@@ -129,10 +129,37 @@
     </div>
   </section>
 
-  <!-- 4. ACCESO (primera pantalla que se ve — el código se pide antes que cualquier otra) -->
-  <section id="pantallaAcceso" class="pantalla visible">
+  <!-- 3.5. ELECCIÓN DE SECCIÓN (Documento Orientador FEM2026, sección C: dos
+       secciones independientes, cada una con su logo y su propia entrada por
+       código — el código sigue siendo el mismo del grupo en ambas, ver nota
+       en la guía de puesta en marcha). Primera pantalla que se ve. -->
+  <section id="pantallaEleccionSeccion" class="pantalla visible">
+    <div class="tarjeta" style="text-align:center;">
+      <h2 class="titulo-seccion">Bienvenida(o)</h2>
+      <p class="ayuda">Elija a cuál de las dos jornadas del día va a ingresar.</p>
+    </div>
+    <div class="fila-secciones">
+      <button type="button" class="tarjeta-seccion" data-elegir-seccion="ENCUENTRO">
+        <img id="logoTarjetaEncuentro" class="logo-tarjeta-seccion oculto" alt="">
+        <h3>Encuentro de voces que construyen territorio</h3>
+        <p class="ayuda">Socialización de los Foros Educativos Institucionales y construcción colectiva del
+          grupo — 7:00 a. m. a 12:00 m.</p>
+      </button>
+      <button type="button" class="tarjeta-seccion" data-elegir-seccion="CONECTAEDUCA">
+        <img id="logoTarjetaConectaEduca" class="logo-tarjeta-seccion oculto" alt="">
+        <h3>Conecta Educa</h3>
+        <p class="ayuda">Conectar saberes, articular futuro — diálogo con el sector productivo y la educación
+          superior — 2:00 p. m. a 5:00 p. m.</p>
+      </button>
+    </div>
+  </section>
+
+  <!-- 4. ACCESO (segunda pantalla — el código se pide antes de cualquier otra pantalla del recorrido) -->
+  <section id="pantallaAcceso" class="pantalla">
     <div class="tarjeta">
-      <h2 class="titulo-seccion">Acceso del grupo</h2>
+      <button type="button" class="btn btn-secundario" id="btnCambiarSeccionAcceso" style="margin-bottom:14px;">← Elegir otra sección</button>
+      <img id="logoSeccionAcceso" class="logo-tarjeta-seccion oculto" alt="" style="display:block;margin:0 auto 14px;">
+      <h2 class="titulo-seccion" id="tituloSeccionAcceso">Acceso del grupo</h2>
       <p class="ayuda" id="nombreGrupoAcceso"></p>
       <p class="numero-grupo-acceso oculto" id="numeroGrupoAcceso"></p>
       <p class="mensaje info" id="avisoModoVisualizacionAcceso">🔒 Modo de visualización — no podrá ingresar
@@ -1231,6 +1258,8 @@
   var LOGO_ENCABEZADO_ID = <?!= JSON.stringify(LOGO_ENCABEZADO_ID || "") ?>;
   var LOGO_PIE_ID = <?!= JSON.stringify(LOGO_PIE_ID || "") ?>;
   var LOGO_DESARROLLADOR_ID = <?!= JSON.stringify(LOGO_DESARROLLADOR_ID || "") ?>;
+  var LOGO_ENCUENTRO_ID = <?!= JSON.stringify(LOGO_ENCUENTRO_ID || "") ?>;
+  var LOGO_CONECTAEDUCA_ID = <?!= JSON.stringify(LOGO_CONECTAEDUCA_ID || "") ?>;
 </script>
 <?!= include('GifsData'); ?>
 <?!= include('Components'); ?>

@@ -51,6 +51,8 @@ function doGet(e) {
   template.LOGO_ENCABEZADO_ID = getConfig().LOGO_ENCABEZADO_ID;
   template.LOGO_PIE_ID = getConfig().LOGO_PIE_ID;
   template.LOGO_DESARROLLADOR_ID = getConfig().LOGO_DESARROLLADOR_ID;
+  template.LOGO_ENCUENTRO_ID = getConfig().LOGO_ENCUENTRO_ID;
+  template.LOGO_CONECTAEDUCA_ID = getConfig().LOGO_CONECTAEDUCA_ID;
   try {
     asegurarLogosSplashPublicos_();
   } catch (err) {
@@ -60,6 +62,11 @@ function doGet(e) {
     asegurarLogoDesarrolladorPublico_();
   } catch (err) {
     Logger.log("doGet: no fue posible asegurar el logo del desarrollador público: " + err.message);
+  }
+  try {
+    asegurarLogosSeccionPublicos_();
+  } catch (err) {
+    Logger.log("doGet: no fue posible asegurar los logos de sección públicos: " + err.message);
   }
   try {
     asegurarLimiteSesionesGrupoRazonable_();

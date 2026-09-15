@@ -80,6 +80,27 @@ function asegurarLogoDesarrolladorPublico_() {
   escribirConfig_("LOGO_DESARROLLADOR_PUBLICO", "SI");
 }
 
+/**
+ * Igual que asegurarLogosSplashPublicos_, pero para los dos logos de
+ * sección (Encuentro/ConectaEduca, pantallaEleccionSeccion en Index.html)
+ * — bandera propia (LOGOS_SECCION_PUBLICOS) porque LOGOS_SPLASH_PUBLICOS
+ * ya pudo haberse marcado "SI" en instalaciones existentes, antes de que
+ * estos dos logos se agregaran.
+ */
+function asegurarLogosSeccionPublicos_() {
+  var config = getConfig();
+  if (String(config.LOGOS_SECCION_PUBLICOS || "") === "SI") return;
+  [config.LOGO_ENCUENTRO_ID, config.LOGO_CONECTAEDUCA_ID].forEach(function (fileId) {
+    if (!fileId) return;
+    try {
+      hacerPublicoSiEsPosible_(DriveApp.getFileById(fileId));
+    } catch (e) {
+      Logger.log("No se pudo asegurar el logo de sección público " + fileId + ": " + e.message);
+    }
+  });
+  escribirConfig_("LOGOS_SECCION_PUBLICOS", "SI");
+}
+
 /** Carpeta raíz del proyecto: la autoprovisiona si ConfiguracionComunal.CARPETA_DRIVE_ID está vacío. */
 function obtenerCarpetaRaiz_() {
   var config = getConfig();

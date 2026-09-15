@@ -1486,6 +1486,48 @@ usuario: "Do it separately", antes de encarar la división en dos secciones de l
   bug). IDs sin duplicar y balance de etiquetas OK en los dos archivos HTML tocados. No probado en vivo desde
   un navegador.
 
+## 4.49 Trigésimo séptimo lote: pantalla de elección de sección (Documento Orientador FEM2026, sección C, item 7)
+
+Cubre el item 7 (división de la pantalla de inicio en dos secciones independientes, cada una con su logo y su
+propia entrada por código) — el primer paso de la Sección C confirmada con el usuario ("C → D → E → F → G").
+
+- **Nueva pantalla `pantallaEleccionSeccion`** (Index.html), ahora la primera que se ve (antes de
+  `pantallaAcceso`): dos tarjetas clicables, una por sección —
+  "Encuentro de voces que construyen territorio" (logo Drive `1FyoUu8gT0SZHfJq8i3OUalBQY5ALzghb`, horario
+  7:00 a. m.–12:00 m.) y "Conecta Educa" (logo Drive `1IKhtm9U_Yuri06VkCsC7W9-ktt_lIltj`, horario 2:00–5:00
+  p. m.). Elegir una guarda la elección (`estado.seccion`) y pasa a `pantallaAcceso`, que ahora muestra el
+  logo y el título de la sección elegida arriba del campo de código, con un botón "← Elegir otra sección"
+  para volver atrás.
+- **Decisión de arquitectura (comunicada al usuario, sin objeción)**: el código de acceso sigue siendo **el
+  mismo para ambas secciones** — no se crea un segundo código por grupo. Un GRUPO conserva una sola fila en
+  `AccesosGrupo`/una sola sesión; "entrada por código independiente" se interpretó como independencia de
+  **presentación** (logo, marca, punto de entrada propio), no como un segundo sistema de credenciales. Esto
+  evita tocar el modelo de datos y es coherente con que ambas jornadas (mañana y tarde) son del mismo grupo,
+  el mismo día.
+- **Item 3 ("clic en Inicio debe ir directo a Ingresar código") reinterpretado en este nuevo esquema**: la
+  elección de sección se recuerda en `localStorage` del dispositivo (clave `fec_seccion_elegida`) — en la
+  próxima visita desde el mismo dispositivo/navegador, `pantallaEleccionSeccion` se salta automáticamente y
+  se entra directo a `pantallaAcceso` con la sección ya aplicada, sin perder la posibilidad de cambiar de
+  sección ahí mismo.
+- **Alcance deliberadamente acotado a solo el item 7**: por ahora, elegir cualquiera de las dos secciones
+  lleva exactamente al mismo recorrido de siempre (Metodología → Consentimiento → Participación → … →
+  Sesión 1 → Sesión 2/ConectaEduca → Cierre) — todavía no hay una ruta separada para ConectaEduca (eso es el
+  item 8, "trasladar toda la sesión actual de ConectaEduca a su nueva pantalla propia", que depende de tocar
+  el motor de navegación central — `ORDEN_PANTALLAS`, `cambiarPantalla`, la barra de progreso navegable — y
+  se hace mejor como su propio lote, verificado aparte, dado lo sensible que es ese código para un evento en
+  vivo). Queda para el próximo lote.
+- **`Config.gs`**: nuevas claves `LOGO_ENCUENTRO_ID`/`LOGO_CONECTAEDUCA_ID` (con los IDs de Drive reales
+  dados por el usuario) y bandera `LOGOS_SECCION_PUBLICOS`. **`Drive.gs`**: nueva `asegurarLogosSeccionPublicos_()`
+  (mismo patrón que `asegurarLogoDesarrolladorPublico_`) para que ambos logos sean visibles públicamente,
+  llamada desde `doGet` (Code.gs) junto a las demás.
+- Verificado: `node --check` sobre `Config.gs`/`Drive.gs`/`Code.gs` y sobre los bloques `<script>` de
+  `Index.html`/`JS.html`/`AsistenciaPublica.html` (mismos dos falsos positivos ya conocidos, reconfirmados);
+  IDs sin duplicar y balance de etiquetas OK en `Index.html`. Se detectó y corrigió en el propio desarrollo
+  un bug de orden de inicialización (la lógica de "recordar sección elegida" intentaba fijar `pantallaActual_`
+  antes de que esa variable se inicializara más abajo en el archivo, lo que la habría dejado sin efecto) —
+  se resolvió moviendo ese bloque a después de la definición de `cambiarPantalla()`. No probado en vivo desde
+  un navegador (en particular, no se pudo verificar visualmente que los dos logos de Drive carguen).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:
