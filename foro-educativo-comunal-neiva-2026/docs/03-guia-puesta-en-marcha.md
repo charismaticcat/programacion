@@ -1798,12 +1798,61 @@ asistencia del Encuentro.
   `guardarConsentimientoConectaEduca` junto a la ya existente de `guardarConsentimientoGrupo`. No probado en
   vivo desde un navegador.
 
-### Backlog restante del Documento Orientador FEM2026
+## 4.56 Cuadragésimo cuarto lote: valoraciones separadas y escala numérica (Sección F) + estamento nuevo (Sección G)
 
-Queda pendiente, en el orden ya confirmado con el usuario: Sección F (valoraciones separadas para el Encuentro
-y Conecta Educa, escala numérica EXCELENTE=5..MALO=1 en vez de corazones, preguntas reformuladas para no
-nombrar "el foro"/"Conecta Educa" y usar en su lugar "la sesión de hoy") y Sección G (nueva opción de estamento
-"Funcionario Secretaría de Educación").
+Cierra las dos últimas secciones del Documento Orientador FEM2026 — items 19 a 23.
+
+- **Item 19 — Quitar el registro de asistencia de Revisión y cierre**: el bloque "Verifique que todos los
+  participantes hayan firmado la asistencia" (panel QR/listado, cantidad declarada, botón "Asistencia
+  verificada") se ocultó (`class="oculto"` en un contenedor nuevo, sin borrar nada — mismo criterio de "ocultar,
+  no eliminar" del resto del proyecto) porque duplicaba lo que ya se registra y verifica en Participación, y
+  ahora esta pantalla se visita una vez por sección. `actualizarBotonGenerarInforme()` dejó de exigir
+  `estado.asistenciaVerificada`; `cargarVerificacionFirmantesCierre_()`/`btnAsistenciaVerificada` quedaron sin
+  usar (funciones intactas, sin llamar).
+- **Item 20 — Valoraciones separadas para Encuentro y Conecta Educa**: `ValoracionComunal` (Valoracion.gs) pasó
+  de una fila por grupo a una fila por `CLAVE = ID_GRUPO + "|" + SECCION` (mismo patrón que
+  `_claveSocializacion_`/`_claveValoracion_`) — `guardarValoracionGrupo`/`obtenerValoracionGrupo` ganaron un
+  parámetro `seccion`. El informe sigue siendo uno solo por grupo (spec sección 18, sin cambios); lo que se
+  separó es la valoración, no el documento: `generarInformeCompletoGrupo` ahora exige la valoración de la
+  sección que intenta generar (quien llegue primero, Encuentro o Conecta Educa, necesita la suya). El correo de
+  envío del informe (`enviarInformeSiCorresponde`) sigue llamando a `obtenerValoracionGrupo(idGrupo)` sin
+  sección — a esa altura el informe ya existe sin importar cuál sección lo generó, así que basta con que
+  cualquiera de las dos valoraciones exista. `rpcGuardarValoracion`/`rpcObtenerValoracion`/`rpcGenerarInforme`
+  (Code.gs) y sus llamadas en JS.html pasan `estado.seccion`.
+- **Item 21 — Escala numérica en vez de corazones**: los 5 botones de corazón (relleno acumulado 🤍/❤️) se
+  reemplazaron por 5 botones nombrados de selección única — MALO=1, DEFICIENTE=2, REGULAR=3, BUENO=4,
+  EXCELENTE=5 — con la clase `.opcion-valoracion`/`.opcion-valoracion-seleccionada` (antes
+  `.corazon-valoracion`, renombrada en Index.html/JS.html/CSS.html **y también en AsistenciaPublica.html**, la
+  valoración pública/anónima que ya existía desde el Lote 51, para no dejar dos escalas distintas conviviendo
+  en la misma app). El cálculo de nota (promedio de 1 a 5) no cambió, solo cómo se recoge cada respuesta.
+- **Item 22 — No nombrar "el foro"/"Conecta Educa" en las preguntas**: reformuladas con "la sesión de hoy" en
+  las 4 preguntas, los 4 textos de "mejora", la pregunta abierta final y los 3 mensajes de resultado
+  (`actualizarResultadoValoracion`, según la nota promedio) — en Index.html y, por consistencia, también en
+  AsistenciaPublica.html. **Decisión clave**: como el texto ya no distingue qué sección es, no hizo falta
+  ninguna variante de contenido por `estado.seccion` — la misma tarjeta de valoración sirve para ambas
+  secciones sin condicionales, y el ítem 20 (separación) queda resuelto enteramente por la capa de datos
+  (`CLAVE` con `SECCION`), no por la interfaz.
+- **Item 23 — "Funcionario Secretaría de Educación" en el campo de estamento**: se agregó a
+  `ESTAMENTOS_PARTICIPACION_` (ParticipacionEstamento.gs), la matriz de conteo por estamento e IE que alimenta
+  el informe real — mismo criterio ya usado para "Sector productivo" (no afiliado a una IE en particular, mismo
+  código; se registra bajo la columna de la IE que corresponda al contexto). También se agregó al `<select
+  id="campoEstamento">` de AsistenciaPublica.html, por consistencia con el mismo catálogo. **Deliberadamente
+  NO se tocó** `ROLES_FORO_` (Responsables.gs, catálogo de roles operativos del Foro — Líder, Dinamizador,
+  Relator, etc. — tomado textualmente del Documento Orientador, no es un "estamento"), porque el pedido dice
+  "estamento/rol" refiriéndose a la categoría de asistente (Rector, Docente, Sector productivo…), no al rol de
+  organización del evento.
+- Verificado: `node --check` sobre `Valoracion.gs`/`Grupos.gs`/`Code.gs`/`ParticipacionEstamento.gs` y los
+  bloques `<script>` de `Index.html`/`AsistenciaPublica.html` (mismos dos falsos positivos ya conocidos, uno
+  por archivo)/`JS.html` (limpio); IDs sin duplicar y balance de etiquetas OK en ambos HTML. No probado en vivo
+  desde un navegador.
+
+### Documento Orientador FEM2026: las 23 preguntas quedan implementadas
+
+Con este lote se completan los 23 puntos del documento (Secciones A a G). Queda pendiente, como en cualquier
+entrega de este tamaño, una prueba end-to-end real en un navegador (crear un grupo de prueba, recorrer las dos
+puertas —Encuentro y Conecta Educa— de principio a fin, generar el informe) antes de considerar esto listo
+para producción; ningún lote de esta serie se probó fuera de `node --check` y las verificaciones estáticas
+descritas en cada sección.
 
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 

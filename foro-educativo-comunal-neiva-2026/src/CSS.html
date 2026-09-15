@@ -901,17 +901,28 @@ details.socializacion-ie[open] summary { margin-bottom: 8px; }
 .lista-pasos-finales { margin: 12px 0 20px; padding-left: 22px; display: flex; flex-direction: column; gap: 10px; }
 .lista-pasos-finales li { line-height: 1.5; }
 
-/* ---------- Valoración del Foro (corazones, copiada de FEI 3.1) ---------- */
+/* ---------- Valoración de la sesión (copiada de FEI 3.1) ---------- */
 .valoracion-pregunta { margin: 18px 0; }
 .valoracion-pregunta > p { font-weight: 600; margin-bottom: 8px; }
-.valoracion-corazones { display: flex; gap: 6px; }
-button.corazon-valoracion {
-  background: none;
-  border: none;
-  font-size: 1.6rem;
+/* Item 21 (Documento Orientador FEM2026): escala nombrada
+   MALO/DEFICIENTE/REGULAR/BUENO/EXCELENTE (1 a 5) en vez de corazones —
+   selección única por pregunta, no un relleno acumulado. */
+.valoracion-escala { display: flex; flex-wrap: wrap; gap: 6px; }
+button.opcion-valoracion {
+  background: var(--gris-fondo);
+  border: 1px solid var(--gris-borde);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--gris-texto);
   line-height: 1;
   cursor: pointer;
-  padding: 2px;
+  padding: 8px 14px;
+}
+button.opcion-valoracion-seleccionada {
+  background: var(--verde);
+  border-color: var(--verde);
+  color: var(--blanco);
 }
 .valoracion-mejora { margin-top: 10px; background: var(--gris-fondo); border-radius: 8px; padding: 10px 14px; }
 .valoracion-resultado {

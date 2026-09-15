@@ -22,7 +22,13 @@
 
 var HOJA_PARTICIPACION_ESTAMENTO_ = "ParticipacionEstamentoIE";
 
-/** Estamentos — mismo orden y nombres que la hoja Participacion de FEI 3.1. */
+/**
+ * Estamentos — mismo orden y nombres que la hoja Participacion de FEI 3.1,
+ * más FUNCIONARIO_SEM (Documento Orientador FEM2026, item 23): igual que
+ * SECTOR ("Sector productivo"), no está afiliado a una IE en particular,
+ * pero se registra bajo la columna de la IE que corresponda al contexto
+ * de su asistencia, mismo criterio ya usado para SECTOR.
+ */
 var ESTAMENTOS_PARTICIPACION_ = [
   { clave: "RECTOR", etiqueta: "Rector(a)" },
   { clave: "COORDINADOR", etiqueta: "Coordinador(a)" },
@@ -34,6 +40,7 @@ var ESTAMENTOS_PARTICIPACION_ = [
   { clave: "ADMINISTRATIVOS", etiqueta: "Personal administrativo" },
   { clave: "EGRESADOS", etiqueta: "Egresados" },
   { clave: "SECTOR", etiqueta: "Sector productivo" },
+  { clave: "FUNCIONARIO_SEM", etiqueta: "Funcionario Secretaría de Educación" },
   { clave: "OTROS", etiqueta: "Otros" }
 ];
 

@@ -3665,28 +3665,15 @@ function prepararCierre() {
   // habilitado mientras llega la respuesta del servidor.
   actualizarBloqueoCierrePorValoracion_();
   cargarValoracion();
-  cargarVerificacionFirmantesCierre_();
   refrescarVistasFotoGrupo_();
-  // Advertencia antes de generar el informe (spec del usuario): el texto
-  // depende del método de asistencia del grupo, y hay que confirmar con
-  // un clic ("Asistencia verificada") antes de que se habilite "Generar
-  // informe" — se reinicia cada vez que se entra a esta pantalla, para
-  // que la verificación sea siempre fresca.
-  var esQR = estado.metodoAsistencia === "QR";
-  document.getElementById("avisoVerificarAsistenciaQR").classList.toggle("oculto", !esQR);
-  document.getElementById("avisoVerificarAsistenciaPDF").classList.toggle("oculto", esQR);
-  estado.asistenciaVerificada = false;
-  document.getElementById("bannerAsistenciaVerificada").classList.add("oculto");
-  document.getElementById("btnAsistenciaVerificada").classList.remove("oculto");
-  actualizarBotonGenerarInforme();
 }
 
-document.getElementById("btnAsistenciaVerificada").addEventListener("click", function () {
-  estado.asistenciaVerificada = true;
-  document.getElementById("bannerAsistenciaVerificada").classList.remove("oculto");
-  document.getElementById("btnAsistenciaVerificada").classList.add("oculto");
-  actualizarBotonGenerarInforme();
-});
+// cargarVerificacionFirmantesCierre_/btnAsistenciaVerificada (registro de
+// asistencia dentro de Revisión y cierre) quedaron sin usar desde el item
+// 19 (Documento Orientador FEM2026, Sección F) — la asistencia ya se
+// verifica en Participación; ver el bloque oculto correspondiente en
+// Index.html. Las funciones se dejan intactas más abajo por si se
+// necesitan reactivar.
 
 /* ------------------------------------------------------------------ *
  * "Revisar todo antes de enviar" (Revisión y cierre, spec del usuario):
@@ -4001,7 +3988,7 @@ document.getElementById("btnCambiarAQRCierre").addEventListener("click", functio
 });
 
 function cargarValoracion() {
-  llamarServidor("rpcObtenerValoracion", [estado.idGrupo], function (v) {
+  llamarServidor("rpcObtenerValoracion", [estado.idGrupo, estado.seccion], function (v) {
     estado.valoracionCompletada = !!v;
     mostrarEstadoValoracion(v);
     actualizarBotonGenerarInforme();
@@ -4059,13 +4046,7 @@ function actualizarBotonGenerarInforme() {
     aviso.textContent = "El informe definitivo ya fue generado para este grupo.";
     boton.disabled = true;
   } else if (!estado.valoracionCompletada) {
-    aviso.textContent = "Complete la valoración del Foro (arriba) antes de generar el informe.";
-    boton.disabled = true;
-  } else if (!estado.asistenciaVerificada) {
-    // Advertencia antes de generar informe (spec del usuario): hay que
-    // confirmar con el botón "Asistencia verificada" (arriba) antes de
-    // poder generar el informe.
-    aviso.textContent = "Confirme \"Asistencia verificada\" (arriba) antes de generar el informe.";
+    aviso.textContent = "Complete la valoración (arriba) antes de generar el informe.";
     boton.disabled = true;
   } else {
     aviso.textContent = "";
@@ -4073,7 +4054,14 @@ function actualizarBotonGenerarInforme() {
   }
 }
 
-/* ---- Valoración del Foro — 4 preguntas de corazones + 1 abierta (copiado de FEI 3.1) ---- */
+/* ---- Valoración de la sesión — 4 preguntas de satisfacción + 1 abierta
+ * (copiado de FEI 3.1). Item 21 (Documento Orientador FEM2026, Sección F):
+ * la escala de corazones se reemplazó por 5 opciones nombradas
+ * (MALO=1..EXCELENTE=5) — selección única por pregunta, no un "relleno
+ * acumulado" como los corazones. Item 22: el texto ya no nombra "el foro"
+ * ni "Conecta Educa" (ver actualizarResultadoValoracion más abajo y las
+ * preguntas en Index.html) — usa "la sesión de hoy" para servir a ambas
+ * secciones con el mismo texto genérico. ---- */
 (function inicializarValoracion() {
   var contenedor = document.getElementById("tarjetaValoracion");
   if (!contenedor) return;
@@ -4095,13 +4083,13 @@ function actualizarBotonGenerarInforme() {
     var emoji, pregunta;
     if (nota < 3) {
       emoji = "😭";
-      pregunta = "😭 ¡Debemos hacerlo mejor! ¿Qué sugerencias, recomendaciones o propuestas tienen para fortalecer la organización y desarrollo del Encuentro de voces que construyen territorio?";
+      pregunta = "😭 ¡Debemos hacerlo mejor! ¿Qué sugerencias, recomendaciones o propuestas tienen para fortalecer la organización y desarrollo de la sesión de hoy?";
     } else if (nota <= 4) {
       emoji = "😬";
-      pregunta = "😬 ¡Pasamos raspados! ¿Quieren decirnos qué funcionó bien para " + (estado.grupo || "el grupo") + " y qué pudo haber sido mejor para fortalecer la organización y desarrollo del Encuentro de voces que construyen territorio?";
+      pregunta = "😬 ¡Pasamos raspados! ¿Quieren decirnos qué funcionó bien para " + (estado.grupo || "el grupo") + " y qué pudo haber sido mejor para fortalecer la organización y desarrollo de la sesión de hoy?";
     } else {
       emoji = "🎉";
-      pregunta = "🎉 ¡Bravo, gracias por el reconocimiento! ¿Quieren decirnos qué hicimos bien para " + (estado.grupo || "el grupo") + " para merecer el reconocimiento de ustedes? Y de paso también pueden decirnos cómo mejorar para fortalecer la organización y desarrollo del Encuentro de voces que construyen territorio.";
+      pregunta = "🎉 ¡Bravo, gracias por el reconocimiento! ¿Quieren decirnos qué hicimos bien para " + (estado.grupo || "el grupo") + " para merecer el reconocimiento de ustedes? Y de paso también pueden decirnos cómo mejorar para fortalecer la organización y desarrollo de la sesión de hoy.";
     }
 
     notaTexto.textContent = emoji + " Nuestra nota fue de: " + nota.toFixed(1) + " / 5.0 " + emoji;
@@ -4112,16 +4100,15 @@ function actualizarBotonGenerarInforme() {
 
   contenedor.querySelectorAll(".valoracion-pregunta[data-pregunta]").forEach(function (bloque) {
     var pregunta = bloque.dataset.pregunta;
-    var corazones = Array.prototype.slice.call(bloque.querySelectorAll(".corazon-valoracion"));
+    var opciones = Array.prototype.slice.call(bloque.querySelectorAll(".opcion-valoracion"));
     var bloqueMejora = contenedor.querySelector('.valoracion-mejora[data-mejora-de="' + pregunta + '"]');
 
-    corazones.forEach(function (btn) {
+    opciones.forEach(function (btn) {
       btn.addEventListener("click", function () {
         var valor = Number(this.dataset.valor);
         puntajes[pregunta] = valor;
-        corazones.forEach(function (b) {
-          var v = Number(b.dataset.valor);
-          b.textContent = v <= valor ? "❤️" : "🤍";
+        opciones.forEach(function (b) {
+          b.classList.toggle("opcion-valoracion-seleccionada", Number(b.dataset.valor) === valor);
         });
         if (bloqueMejora) bloqueMejora.classList.toggle("oculto", valor > 2);
         actualizarResultadoValoracion();
@@ -4131,7 +4118,7 @@ function actualizarBotonGenerarInforme() {
 
   document.getElementById("btnEnviarValoracion").addEventListener("click", function () {
     if (!puntajes.p1 || !puntajes.p2 || !puntajes.p3 || !puntajes.p4) {
-      mostrarMensaje("mensajeValoracion", "Seleccione de 1 a 5 corazones en las cuatro preguntas antes de enviar.", "error");
+      mostrarMensaje("mensajeValoracion", "Seleccione una opción en las cuatro preguntas antes de enviar.", "error");
       return;
     }
     var boton = document.getElementById("btnEnviarValoracion");
@@ -4145,7 +4132,7 @@ function actualizarBotonGenerarInforme() {
       mejoraP4: document.getElementById("valoracionMejoraP4").value
     };
     mostrarCargaAccion_("valoracionAsistencia", "Enviando valoración…");
-    llamarServidor("rpcGuardarValoracion", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, respuestas], function (r) {
+    llamarServidor("rpcGuardarValoracion", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, respuestas, estado.seccion], function (r) {
       ocultarCargaAccion_();
       boton.disabled = false;
       if (!r.ok) {
@@ -4183,7 +4170,7 @@ document.getElementById("btnGenerarInforme").addEventListener("click", function 
   confirmarAccion("¿Generar el informe definitivo del grupo? Esta acción crea el documento único que verán todas las IE del grupo.", function () {
     document.getElementById("btnGenerarInforme").disabled = true;
     mostrarCargaAccion_("informe");
-    llamarServidor("rpcGenerarInforme", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
+    llamarServidor("rpcGenerarInforme", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, estado.seccion], function (r) {
       ocultarCargaAccion_();
       document.getElementById("btnGenerarInforme").disabled = false;
       if (!r.ok) {

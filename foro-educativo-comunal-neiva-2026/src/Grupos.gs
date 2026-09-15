@@ -74,7 +74,8 @@ function obtenerEstadoGrupo(idGrupo) {
  * (spec sección 18) — esta es la única función que crea el informe; no
  * existe una función equivalente "por IE".
  */
-function generarInformeCompletoGrupo(idGrupo, tokenSesion, dispositivoId) {
+function generarInformeCompletoGrupo(idGrupo, tokenSesion, dispositivoId, seccion) {
+  seccion = String(seccion || "ENCUENTRO").toUpperCase();
   return conLock_(function () {
     if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
       return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión ya no está activa en este dispositivo." };
@@ -97,12 +98,15 @@ function generarInformeCompletoGrupo(idGrupo, tokenSesion, dispositivoId) {
     }
     // Condición explícita de esta entrega (distinta de FEI 3.1, ver
     // Valoracion.gs): no se genera el informe sin haber enviado antes la
-    // valoración del Foro.
-    if (!obtenerValoracionGrupo(idGrupo)) {
+    // valoración de ESTA sección (item 20 del Documento Orientador
+    // FEM2026: valoraciones separadas por Encuentro/Conecta Educa) — la
+    // sección que intente generar primero necesita su propia valoración,
+    // aunque el informe resultante sea uno solo para todo el grupo.
+    if (!obtenerValoracionGrupo(idGrupo, seccion)) {
       return {
         ok: false,
         codigo: "VALORACION_REQUERIDA",
-        mensaje: "Debe completar la valoración del Foro antes de generar el informe."
+        mensaje: "Debe completar la valoración de esta sesión antes de generar el informe."
       };
     }
     // La fotografía ya no se pide en la pantalla de "Informe generado"

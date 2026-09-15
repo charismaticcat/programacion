@@ -461,9 +461,9 @@ function rpcEnviarSesion2(idGrupo, tokenSesion, dispositivoId) {
  * el informe. generarInformeCompletoGrupo ya exige la valoración antes
  * de generar (Grupos.gs).
  */
-function rpcGenerarInforme(idGrupo, tokenSesion, dispositivoId) {
+function rpcGenerarInforme(idGrupo, tokenSesion, dispositivoId, seccion) {
   return ejecutarRpcSeguro_(function () {
-    return generarInformeCompletoGrupo(idGrupo, tokenSesion, dispositivoId);
+    return generarInformeCompletoGrupo(idGrupo, tokenSesion, dispositivoId, seccion);
   });
 }
 
@@ -497,9 +497,9 @@ function rpcEstadoGrupo(idGrupo) {
  * RPC — Valoración del Foro (condición para generar el informe)
  * ------------------------------------------------------------------ */
 
-function rpcGuardarValoracion(idGrupo, tokenSesion, dispositivoId, respuestas) {
+function rpcGuardarValoracion(idGrupo, tokenSesion, dispositivoId, respuestas, seccion) {
   return ejecutarRpcSeguro_(function () {
-    return guardarValoracionGrupo(idGrupo, tokenSesion, dispositivoId, respuestas);
+    return guardarValoracionGrupo(idGrupo, tokenSesion, dispositivoId, respuestas, seccion);
   });
 }
 
@@ -510,9 +510,9 @@ function rpcGuardarValoracionAsistentePublica(idGrupo, respuestas) {
   });
 }
 
-function rpcObtenerValoracion(idGrupo) {
+function rpcObtenerValoracion(idGrupo, seccion) {
   return ejecutarRpcSeguro_(function () {
-    return obtenerValoracionGrupo(idGrupo);
+    return obtenerValoracionGrupo(idGrupo, seccion);
   });
 }
 
