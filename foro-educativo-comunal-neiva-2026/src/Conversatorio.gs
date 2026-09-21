@@ -32,6 +32,14 @@ var HOJA_CONVERSATORIO_GRUPOS_ = "ConversatorioGrupos";
 var HOJA_CONVERSATORIO_MATRIZ_ = "ConversatorioMatrizIETecnica";
 var HOJA_CONVERSATORIO_RESOLUCION_ = "ConversatorioResolucionIE";
 var HOJA_CONVERSATORIO_ACCESOS_ = "AccesosIEConversatorio";
+// Registro de cambios (pedido del usuario: "Esos cambios deben mencionarse
+// explícitamente en el informe... la IE X cambió la respuesta X por Y") —
+// se llena solo cuando se SOBRESCRIBE un valor que ya tenía algo (ver
+// guardarCampoTecnicaConversatorio), nunca en el llenado inicial.
+var HOJA_CONVERSATORIO_CAMBIOS_ = "ConversatorioCambios";
+// Único DOC_ID/PDF_ID del informe consolidado (mismo patrón "nunca
+// acumular" que AportesRelevantesSocializacion/InformesComunal).
+var HOJA_CONVERSATORIO_INFORME_ = "ConversatorioInforme";
 
 function cabecerasConversatorioGrupos_() {
   return ["ID_GRUPO", "NOMBRE_GRUPO", "NUM_IE", "TECNICAS_INCLUIDAS", "CRITERIO_AGRUPACION"];
@@ -42,12 +50,29 @@ function cabecerasConversatorioMatriz_() {
 function cabecerasConversatorioResolucion_() {
   return [
     "ID_FILA", "INSTITUCION_EDUCATIVA", "TECNICA_SENA", "PROGRAMA_APROBADO", "RESOLUCION_DECRETO",
-    "PREGUNTA_APERTURA_GRADO10_2027", "PREGUNTA_NUEVA_ARTICULACION_2027", "ACTUALIZADO"
+    "PREGUNTA_APERTURA_GRADO10_2027", "PREGUNTA_NUEVA_ARTICULACION_2027", "NUEVA_ARTICULACION_DETALLE",
+    "ACTUALIZADO"
   ];
 }
 function cabecerasConversatorioAccesos_() {
   return ["INSTITUCION_EDUCATIVA", "ESTADO", "GRUPO_ELEGIDO", "ULTIMA_ACTIVIDAD"];
 }
+function cabecerasConversatorioCambios_() {
+  return ["INSTITUCION_EDUCATIVA", "TECNICA_SENA", "CAMPO", "VALOR_ANTERIOR", "VALOR_NUEVO", "FECHA"];
+}
+function cabecerasConversatorioInforme_() {
+  return ["DOC_ID", "PDF_ID", "URL", "FECHA"];
+}
+
+/** Etiqueta legible por campo — usada tanto en el registro de cambios como en el informe. */
+var ETIQUETAS_CAMPOS_TECNICA_CONVERSATORIO_ = {
+  TECNICA_SENA: "técnica / programa SENA",
+  PROGRAMA_APROBADO: "programa aprobado por resolución",
+  RESOLUCION_DECRETO: "resolución o decreto",
+  PREGUNTA_APERTURA_GRADO10_2027: "¿Se aperturará esta articulación para grado 10° en el 2027?",
+  PREGUNTA_NUEVA_ARTICULACION_2027: "¿Se planea incluir una nueva articulación para el año 2027?",
+  NUEVA_ARTICULACION_DETALLE: "detalle de la nueva articulación"
+};
 
 /**
  * Nombres de Institución Educativa que aparecen distinto en la hoja
@@ -182,7 +207,7 @@ function importarDatosConversatorio() {
       tecnica,
       String(fr[3] || "").trim(),
       String(fr[4] || "").trim(),
-      "", "", ""
+      "", "", "", ""
     ]);
   }
   if (nuevasFilasResolucion.length) {
@@ -255,6 +280,26 @@ function gruposDeInstitucionConversatorio_(institucion) {
 }
 
 /**
+ * Catálogo de técnicas únicas (los 7 grupos, sin duplicar) — para el
+ * listado que se despliega cuando la IE responde "Sí" a "¿Se planea
+ * incluir una nueva articulación para el año 2027?" (spec del usuario).
+ */
+function obtenerCatalogoTecnicasConversatorio() {
+  var hoja = obtenerHoja_(HOJA_CONVERSATORIO_MATRIZ_, cabecerasConversatorioMatriz_());
+  var filas = leerFilasComoObjetos_(hoja);
+  var vistas = {};
+  var tecnicas = [];
+  filas.forEach(function (fila) {
+    var tecnica = String(fila.TECNICA || "").trim();
+    if (!tecnica || vistas[tecnica.toUpperCase()]) return;
+    vistas[tecnica.toUpperCase()] = true;
+    tecnicas.push(tecnica);
+  });
+  tecnicas.sort(function (a, b) { return a.localeCompare(b, "es"); });
+  return { ok: true, tecnicas: tecnicas };
+}
+
+/**
  * Confirma la institución elegida de la lista y devuelve el catálogo
  * completo de los 7 grupos técnicos, marcando a cuáles pertenece esta
  * institución (spec del usuario: mostrar la información de "Grupos
@@ -324,7 +369,8 @@ function obtenerTecnicasConversatorio(institucion) {
         programaAprobado: f.PROGRAMA_APROBADO || "",
         resolucionDecreto: f.RESOLUCION_DECRETO || "",
         preguntaApertura2027: f.PREGUNTA_APERTURA_GRADO10_2027 || "",
-        preguntaNuevaArticulacion2027: f.PREGUNTA_NUEVA_ARTICULACION_2027 || ""
+        preguntaNuevaArticulacion2027: f.PREGUNTA_NUEVA_ARTICULACION_2027 || "",
+        nuevaArticulacionDetalle: f.NUEVA_ARTICULACION_DETALLE || ""
       };
     })
   };
@@ -335,15 +381,24 @@ var CAMPOS_EDITABLES_TECNICA_CONVERSATORIO_ = {
   programaAprobado: "PROGRAMA_APROBADO",
   resolucionDecreto: "RESOLUCION_DECRETO",
   preguntaApertura2027: "PREGUNTA_APERTURA_GRADO10_2027",
-  preguntaNuevaArticulacion2027: "PREGUNTA_NUEVA_ARTICULACION_2027"
+  preguntaNuevaArticulacion2027: "PREGUNTA_NUEVA_ARTICULACION_2027",
+  nuevaArticulacionDetalle: "NUEVA_ARTICULACION_DETALLE"
 };
 
-/** Autoguardado de un solo campo (técnica editable o una de las 2 preguntas) por fila. */
+/**
+ * Autoguardado de un solo campo (técnica editable o una de las 2
+ * preguntas) por fila. Spec del usuario: "poner todo en solo lectura, y
+ * si hay necesidad de cambiar algo... Esos cambios deben mencionarse
+ * explícitamente en el informe" — si el valor guardado YA tenía contenido
+ * y el nuevo es distinto, se registra en ConversatorioCambios (nunca en
+ * el llenado inicial de un campo vacío).
+ */
 function guardarCampoTecnicaConversatorio(institucion, idFila, campo, valor) {
   var acceso = buscarAccesoConversatorioPorInstitucion_(institucion);
   if (!acceso) return { ok: false, mensaje: "Esa institución no está disponible en el Conversatorio." };
   var columna = CAMPOS_EDITABLES_TECNICA_CONVERSATORIO_[campo];
   if (!columna) return { ok: false, mensaje: "Campo no reconocido." };
+  valor = String(valor == null ? "" : valor);
 
   return conLock_(function () {
     var hoja = obtenerHoja_(HOJA_CONVERSATORIO_RESOLUCION_, cabecerasConversatorioResolucion_());
@@ -353,6 +408,14 @@ function guardarCampoTecnicaConversatorio(institucion, idFila, campo, valor) {
     var filaInstitucion = String(hoja.getRange(fila, mapa["INSTITUCION_EDUCATIVA"]).getValue() || "").trim();
     if (normalizarNombreIEConversatorio_(filaInstitucion) !== normalizarNombreIEConversatorio_(acceso.INSTITUCION_EDUCATIVA)) {
       return { ok: false, mensaje: "Esa técnica no pertenece a esta institución." };
+    }
+    var valorAnterior = String(hoja.getRange(fila, mapa[columna]).getValue() || "").trim();
+    if (valorAnterior && valorAnterior !== valor.trim()) {
+      var tecnicaFila = String(hoja.getRange(fila, mapa["TECNICA_SENA"]).getValue() || "").trim();
+      obtenerHoja_(HOJA_CONVERSATORIO_CAMBIOS_, cabecerasConversatorioCambios_()).appendRow([
+        filaInstitucion, tecnicaFila, ETIQUETAS_CAMPOS_TECNICA_CONVERSATORIO_[columna] || columna,
+        valorAnterior, valor.trim(), new Date()
+      ]);
     }
     hoja.getRange(fila, mapa[columna]).setValue(valor);
     hoja.getRange(fila, mapa["ACTUALIZADO"]).setValue(new Date());
@@ -371,4 +434,162 @@ function finalizarConversatorio(institucion) {
     });
     return { ok: true };
   }, 10000);
+}
+
+/* ------------------------------------------------------------------ *
+ * Panel de superadministración del Conversatorio (pedido del usuario:
+ * "haz un login de superadmin con el codigo que ya me habias dado
+ * antes") — un único administrador de la Secretaría de Educación de
+ * Neiva entra con un código maestro y puede: ver el estado de todas las
+ * instituciones, entrar a cualquiera de ellas (misma pantalla de
+ * técnicas que usa la propia IE, con el mismo modo solo-lectura + lápiz),
+ * y generar el informe consolidado con el registro de cambios.
+ * ------------------------------------------------------------------ */
+
+/** Genera (si hace falta) el código único de administrador — idempotente, nunca regenera uno ya emitido. */
+function generarCodigoSuperadminConversatorio() {
+  var config = getConfig();
+  if (String(config.CODIGO_SUPERADMIN_CONECTAEDUCA || "").trim()) {
+    return { ok: true, codigo: config.CODIGO_SUPERADMIN_CONECTAEDUCA, yaExistia: true };
+  }
+  var caracteres = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  var codigo = "SEM-";
+  for (var i = 0; i < 6; i++) {
+    codigo += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+  }
+  escribirConfig_("CODIGO_SUPERADMIN_CONECTAEDUCA", codigo);
+  return { ok: true, codigo: codigo, yaExistia: false };
+}
+
+/** Valida el código maestro y devuelve el estado de todas las instituciones, para el panel. */
+function validarSuperadminConversatorio(codigo) {
+  codigo = String(codigo || "").trim();
+  if (!codigo) return { ok: false, mensaje: "Ingrese el código de acceso." };
+  var codigoConfigurado = String(getConfig().CODIGO_SUPERADMIN_CONECTAEDUCA || "").trim();
+  if (!codigoConfigurado) {
+    return {
+      ok: false,
+      mensaje: "Todavía no se ha generado un código de administrador para el Conversatorio. Ejecutar generarCodigoSuperadminConversatorio() desde el editor."
+    };
+  }
+  if (codigo !== codigoConfigurado) return { ok: false, mensaje: "El código es incorrecto." };
+
+  var hoja = obtenerHoja_(HOJA_CONVERSATORIO_ACCESOS_, cabecerasConversatorioAccesos_());
+  var filas = leerFilasComoObjetos_(hoja);
+  var instituciones = filas
+    .map(function (fila) {
+      return {
+        institucion: String(fila.INSTITUCION_EDUCATIVA || "").trim(),
+        estado: String(fila.ESTADO || "").trim() || "ACTIVO",
+        grupoElegido: String(fila.GRUPO_ELEGIDO || "").trim()
+      };
+    })
+    .filter(function (i) { return i.institucion; });
+  instituciones.sort(function (a, b) { return a.institucion.localeCompare(b.institucion, "es"); });
+  return { ok: true, instituciones: instituciones };
+}
+
+/**
+ * Genera el informe consolidado del Conversatorio: técnicas y respuestas
+ * de todas las instituciones, y al final un apartado con el registro de
+ * cambios (spec del usuario: "la IE X cambió la respuesta X por Y").
+ * Misma técnica que generarPdfAportesRelevantesSocializacion
+ * (Socializacion.gs, ver docs/03-guia-puesta-en-marcha.md §4.61): la
+ * parte lenta (crear el Doc, exportarlo a PDF) va FUERA de conLock_ — el
+ * lock de Apps Script es de todo el proyecto, no solo de este informe.
+ */
+function generarInformeConversatorio(codigoSuperadmin) {
+  var validacion = validarSuperadminConversatorio(codigoSuperadmin);
+  if (!validacion.ok) return validacion;
+
+  var config = getConfig();
+  var hojaResolucion = obtenerHoja_(HOJA_CONVERSATORIO_RESOLUCION_, cabecerasConversatorioResolucion_());
+  var tecnicas = leerFilasComoObjetos_(hojaResolucion);
+  var porInstitucion = {};
+  tecnicas.forEach(function (t) {
+    var inst = String(t.INSTITUCION_EDUCATIVA || "").trim();
+    if (!inst) return;
+    if (!porInstitucion[inst]) porInstitucion[inst] = [];
+    porInstitucion[inst].push(t);
+  });
+  var institucionesOrdenadas = Object.keys(porInstitucion).sort(function (a, b) { return a.localeCompare(b, "es"); });
+
+  var hojaCambios = obtenerHoja_(HOJA_CONVERSATORIO_CAMBIOS_, cabecerasConversatorioCambios_());
+  var cambios = leerFilasComoObjetos_(hojaCambios);
+
+  var carpeta = obtenerCarpetaConectaEduca_();
+  var nombreBase = "Informe Conversatorio Conecta Educa";
+
+  var doc = DocumentApp.create(nombreBase);
+  var docFile = DriveApp.getFileById(doc.getId());
+  carpeta.addFile(docFile);
+  try {
+    DriveApp.getRootFolder().removeFile(docFile);
+  } catch (e) {
+    Logger.log("No fue posible quitar el Doc del informe del Conversatorio de la raíz de Drive: " + e.message);
+  }
+
+  var body = doc.getBody();
+  body.clear();
+  body.setPageWidth(612).setPageHeight(792).setMarginTop(30).setMarginBottom(30).setMarginLeft(50).setMarginRight(50);
+
+  var pTitulo = body.appendParagraph(nombreBase);
+  pTitulo.setHeading(DocumentApp.ParagraphHeading.TITLE).setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+  pTitulo.editAsText().setForegroundColor(COLOR_VERDE_INFORME_);
+  var pSubtitulo = body.appendParagraph(config.NOMBRE_FORO || "");
+  pSubtitulo.setAlignment(DocumentApp.HorizontalAlignment.CENTER).editAsText().setItalic(true);
+  body.appendParagraph(formatearFechaLargaEs_(new Date(), true)).setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+
+  if (!institucionesOrdenadas.length) {
+    parrafo_(body, "Todavía no hay técnicas registradas.");
+  }
+  institucionesOrdenadas.forEach(function (institucion) {
+    titulo1_(body, institucion);
+    porInstitucion[institucion].forEach(function (t) {
+      subtitulo_(body, t.TECNICA_SENA || "(sin técnica registrada)");
+      parrafo_(body, "Programa aprobado por resolución: " + (t.PROGRAMA_APROBADO || "Sin información registrada."));
+      parrafo_(body, "Resolución o decreto: " + (t.RESOLUCION_DECRETO || "Sin información registrada."));
+      parrafo_(body, ETIQUETAS_CAMPOS_TECNICA_CONVERSATORIO_.PREGUNTA_APERTURA_GRADO10_2027 + " " +
+        (t.PREGUNTA_APERTURA_GRADO10_2027 || "Sin responder."));
+      var respuestaQ2 = ETIQUETAS_CAMPOS_TECNICA_CONVERSATORIO_.PREGUNTA_NUEVA_ARTICULACION_2027 + " " +
+        (t.PREGUNTA_NUEVA_ARTICULACION_2027 || "Sin responder.");
+      if (t.PREGUNTA_NUEVA_ARTICULACION_2027 === "Sí" && t.NUEVA_ARTICULACION_DETALLE) {
+        respuestaQ2 += " (" + t.NUEVA_ARTICULACION_DETALLE + ")";
+      }
+      parrafo_(body, respuestaQ2);
+    });
+  });
+
+  titulo1_(body, "Cambios presentados por las Instituciones Educativas en las respuestas");
+  if (!cambios.length) {
+    parrafo_(body, "No se registraron cambios sobre respuestas ya guardadas.");
+  } else {
+    cambios.forEach(function (c) {
+      var tecnicaTexto = c.TECNICA_SENA ? ' (técnica "' + c.TECNICA_SENA + '")' : "";
+      parrafo_(
+        body,
+        'La IE ' + c.INSTITUCION_EDUCATIVA + " cambió la respuesta de " + c.CAMPO + tecnicaTexto +
+          ' de "' + c.VALOR_ANTERIOR + '" a "' + c.VALOR_NUEVO + '".'
+      );
+    });
+  }
+
+  doc.saveAndClose();
+  var pdfBlob = DriveApp.getFileById(doc.getId()).getAs(MimeType.PDF);
+  pdfBlob.setName(nombreBase + ".pdf");
+  var pdfFile = carpeta.createFile(pdfBlob);
+  hacerPublicoSiEsPosible_(pdfFile);
+  var url = pdfFile.getUrl();
+
+  return conLock_(function () {
+    var hojaInforme = obtenerHoja_(HOJA_CONVERSATORIO_INFORME_, cabecerasConversatorioInforme_());
+    if (hojaInforme.getLastRow() > 1) {
+      var anterior = leerFilaComoObjeto_(hojaInforme, 2, obtenerMapaCabeceras_(hojaInforme));
+      try { if (anterior.DOC_ID) DriveApp.getFileById(anterior.DOC_ID).setTrashed(true); } catch (e) { Logger.log("No se pudo eliminar el Doc anterior del informe del Conversatorio: " + e.message); }
+      try { if (anterior.PDF_ID) DriveApp.getFileById(anterior.PDF_ID).setTrashed(true); } catch (e) { Logger.log("No se pudo eliminar el PDF anterior del informe del Conversatorio: " + e.message); }
+      hojaInforme.getRange(2, 1, hojaInforme.getLastRow() - 1, hojaInforme.getLastColumn()).clearContent();
+    }
+    hojaInforme.appendRow([doc.getId(), pdfFile.getId(), url, new Date()]);
+    return { ok: true, url: url };
+  }, 15000);
 }

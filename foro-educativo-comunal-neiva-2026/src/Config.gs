@@ -75,6 +75,15 @@ var CONFIG_POR_DEFECTO_ = {
   // (Encuentro y Conecta Educa) — ver asegurarFormatosAsistenciaPublicos_
   // en Drive.gs.
   FORMATOS_ASISTENCIA_PUBLICOS: "",
+  // Código único de administrador para el panel de superadministración del
+  // Conversatorio (Conversatorio.gs) — pedido del usuario: "haz un login de
+  // superadmin con el codigo que ya me habias dado antes". Permite a un
+  // administrador de la Secretaría de Educación de Neiva entrar a
+  // cualquier institución del Conversatorio y generar el informe
+  // consolidado (con el registro de cambios). Se genera una sola vez con
+  // generarCodigoSuperadminConversatorio() (Conversatorio.gs) — vacío por
+  // defecto hasta que se genere.
+  CODIGO_SUPERADMIN_CONECTAEDUCA: "",
   // FEI 3.1 enviaba siempre como "calidadeducacion@alcaldianeiva.gov.co"
   // (REMITENTE_FEM, Código.js). Se deja vacío por defecto (usa la cuenta
   // que ejecuta el script, siempre válida) — antes de configurar ese

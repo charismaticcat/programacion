@@ -568,42 +568,50 @@ function renderListaInstitucionesAccesoConversatorio(instituciones) {
 }
 
 /**
- * Catálogo de los 7 grupos técnicos del Conversatorio (Grupos ConectaEduca)
- * — resalta a cuáles pertenece la institución y deja elegir uno (clic
- * delegado en JS.html vía data-elegir-grupo-conversatorio).
+ * Grupos técnicos a los que pertenece la institución (spec del usuario:
+ * "mostrar unicamente las IE que pertenecen a cada grupo" — es decir,
+ * filtrar a solo los grupos de la propia institución, no los 7 completos)
+ * — clic delegado en JS.html vía data-elegir-grupo-conversatorio.
  */
 function renderGruposCaracterizacionConversatorio(grupos, grupoElegido) {
   var contenedor = document.getElementById("listaGruposCaracterizacionConversatorio");
   if (!contenedor) return;
-  if (!grupos || !grupos.length) {
-    contenedor.innerHTML = "<p class='ayuda'>Todavía no se importaron los grupos del Conversatorio (ejecutar importarDatosConversatorio).</p>";
+  var propios = (grupos || []).filter(function (g) { return g.perteneceIE; });
+  if (!propios.length) {
+    contenedor.innerHTML = "<p class='ayuda'>Su institución no aparece en ningún grupo de articulación técnica (ejecutar importarDatosConversatorio si esto no es correcto).</p>";
     return;
   }
   var html = "";
-  grupos.forEach(function (g) {
-    var clases = "tarjeta-seccion" + (g.perteneceIE ? " tarjeta-grupo-ie" : " tarjeta-grupo-ajena") +
-      (g.idGrupo === grupoElegido ? " tarjeta-grupo-elegida" : "");
+  propios.forEach(function (g) {
+    var clases = "tarjeta-seccion tarjeta-grupo-ie" + (g.idGrupo === grupoElegido ? " tarjeta-grupo-elegida" : "");
     html += "<div class='" + clases + "' style='text-align:left;margin-bottom:12px;'>";
     html += "<h3>" + escapeHtml(g.idGrupo) + " — " + escapeHtml(g.nombreGrupo) + "</h3>";
     html += "<p class='ayuda'><strong>" + escapeHtml(String(g.numIE)) + " IE</strong> · " + escapeHtml(g.tecnicasIncluidas) + "</p>";
     html += "<p class='ayuda'>" + escapeHtml(g.criterioAgrupacion) + "</p>";
-    if (g.perteneceIE) {
-      html += "<div class='fila-botones'><button type='button' class='btn btn-primario' data-elegir-grupo-conversatorio='" +
-        escapeHtml(g.idGrupo) + "'>" + (g.idGrupo === grupoElegido ? "✅ Continuar con este grupo" : "Elegir este grupo") + "</button></div>";
-    } else {
-      html += "<p class='ayuda'>Su institución no pertenece a este grupo.</p>";
-    }
+    html += "<div class='fila-botones'><button type='button' class='btn btn-primario' data-elegir-grupo-conversatorio='" +
+      escapeHtml(g.idGrupo) + "'>" + (g.idGrupo === grupoElegido ? "✅ Continuar con este grupo" : "Elegir este grupo") + "</button></div>";
     html += "</div>";
   });
   contenedor.innerHTML = html;
 }
 
+/** Fila de solo-lectura ("Sin responder." si está vacío). */
+function _filaLecturaConversatorio_(etiqueta, valor) {
+  return "<p><strong>" + etiqueta + ":</strong> " + escapeHtml(valor || "Sin responder.") + "</p>";
+}
+
 /**
- * Técnicas SENA de la institución (Resolución Vs IE, editable) con las 2
- * preguntas de proyección 2027 debajo de cada una — autoguardado por campo
- * (data-campo-tecnica-conversatorio, cableado en JS.html vía evento "change").
+ * Técnicas SENA de la institución (Resolución Vs IE) con las 2 preguntas
+ * de proyección 2027 debajo de cada una — spec del usuario: "poner todo
+ * en solo lectura, y si hay necesidad de cambiar algo, dar click en el
+ * lápiz, luego boton guardar". Cada tarjeta empieza en modo lectura
+ * (.modo-lectura-tecnica visible, .modo-edicion-tecnica oculto); el lápiz
+ * (data-editar-tecnica) y el botón Guardar (data-guardar-tecnica) los
+ * alterna JS.html. `catalogoTecnicas` alimenta el checklist que aparece
+ * si la pregunta 2 se responde "Sí" (data-toggle-detalle-nueva-articulacion,
+ * cableado en JS.html vía evento "change" del select).
  */
-function renderTecnicasResolucionConversatorio(tecnicas) {
+function renderTecnicasResolucionConversatorio(tecnicas, catalogoTecnicas) {
   var contenedor = document.getElementById("listaTecnicasResolucionConversatorio");
   if (!contenedor) return;
   if (!tecnicas || !tecnicas.length) {
@@ -612,22 +620,89 @@ function renderTecnicasResolucionConversatorio(tecnicas) {
   }
   var html = "";
   tecnicas.forEach(function (t) {
-    html += "<div class='tarjeta-seccion' style='text-align:left;margin-bottom:16px;'>";
+    var idFila = escapeHtml(t.idFila);
+    html += "<div class='tarjeta-seccion tarjeta-tecnica-conversatorio' style='text-align:left;margin-bottom:16px;' data-tarjeta-tecnica-conversatorio='" + idFila + "'>";
+
+    // --- Modo lectura ---
+    html += "<div class='modo-lectura-tecnica-conversatorio'>";
+    html += _filaLecturaConversatorio_("Técnica / programa SENA", t.tecnicaSena);
+    html += _filaLecturaConversatorio_("Programa aprobado por resolución", t.programaAprobado);
+    html += _filaLecturaConversatorio_("Resolución o decreto", t.resolucionDecreto);
+    html += _filaLecturaConversatorio_("¿Se aperturará esta articulación para grado 10° en el 2027?", t.preguntaApertura2027);
+    html += _filaLecturaConversatorio_("¿Se planea incluir una nueva articulación para el año 2027?", t.preguntaNuevaArticulacion2027);
+    if (t.preguntaNuevaArticulacion2027 === "Sí" && t.nuevaArticulacionDetalle) {
+      html += _filaLecturaConversatorio_("Detalle de la nueva articulación", t.nuevaArticulacionDetalle);
+    }
+    html += "<button type='button' class='btn btn-secundario' data-editar-tecnica-conversatorio='" + idFila + "'>✏️ Editar</button>";
+    html += "</div>";
+
+    // --- Modo edición (oculto hasta hacer clic en el lápiz) ---
+    html += "<div class='modo-edicion-tecnica-conversatorio oculto'>";
     html += "<label>Técnica / programa SENA</label>";
-    html += "<input type='text' data-id-fila-tecnica='" + escapeHtml(t.idFila) + "' data-campo-tecnica-conversatorio='tecnicaSena' value='" + escapeHtml(t.tecnicaSena) + "'>";
+    html += "<input type='text' data-campo-edicion-tecnica='tecnicaSena' value='" + escapeHtml(t.tecnicaSena) + "'>";
     html += "<label>Programa aprobado por resolución</label>";
-    html += "<input type='text' data-id-fila-tecnica='" + escapeHtml(t.idFila) + "' data-campo-tecnica-conversatorio='programaAprobado' value='" + escapeHtml(t.programaAprobado) + "'>";
+    html += "<input type='text' data-campo-edicion-tecnica='programaAprobado' value='" + escapeHtml(t.programaAprobado) + "'>";
     html += "<label>Resolución o decreto</label>";
-    html += "<input type='text' data-id-fila-tecnica='" + escapeHtml(t.idFila) + "' data-campo-tecnica-conversatorio='resolucionDecreto' value='" + escapeHtml(t.resolucionDecreto) + "'>";
+    html += "<input type='text' data-campo-edicion-tecnica='resolucionDecreto' value='" + escapeHtml(t.resolucionDecreto) + "'>";
+
     html += "<label>¿Se aperturará esta articulación para grado 10° en el 2027?</label>";
-    html += "<select data-id-fila-tecnica='" + escapeHtml(t.idFila) + "' data-campo-tecnica-conversatorio='preguntaApertura2027'>";
+    html += "<select data-campo-edicion-tecnica='preguntaApertura2027'>";
     html += "<option value=''" + (t.preguntaApertura2027 ? "" : " selected") + ">— Sin responder —</option>";
     html += "<option value='Sí'" + (t.preguntaApertura2027 === "Sí" ? " selected" : "") + ">Sí</option>";
     html += "<option value='No'" + (t.preguntaApertura2027 === "No" ? " selected" : "") + ">No</option>";
     html += "</select>";
-    html += "<label>¿Se incluirá alguna nueva articulación para el año 2027?</label>";
-    html += "<input type='text' data-id-fila-tecnica='" + escapeHtml(t.idFila) + "' data-campo-tecnica-conversatorio='preguntaNuevaArticulacion2027' placeholder='Sí / No / Aún no se sabe — puede agregar un comentario' value='" + escapeHtml(t.preguntaNuevaArticulacion2027) + "'>";
+
+    html += "<label>¿Se planea incluir una nueva articulación para el año 2027?</label>";
+    html += "<select data-campo-edicion-tecnica='preguntaNuevaArticulacion2027' data-toggle-detalle-nueva-articulacion='" + idFila + "'>";
+    html += "<option value=''" + (t.preguntaNuevaArticulacion2027 ? "" : " selected") + ">— Sin responder —</option>";
+    html += "<option value='Sí'" + (t.preguntaNuevaArticulacion2027 === "Sí" ? " selected" : "") + ">Sí</option>";
+    html += "<option value='No'" + (t.preguntaNuevaArticulacion2027 === "No" ? " selected" : "") + ">No</option>";
+    html += "</select>";
+
+    // Spec del usuario: "Si selecciona si. Deplegar listado de tecnicas
+    // actuales. y poner arriba casilla otro." — oculto por defecto salvo
+    // que la pregunta ya esté en "Sí".
+    html += "<div class='subform-nueva-articulacion-conversatorio" + (t.preguntaNuevaArticulacion2027 === "Sí" ? "" : " oculto") +
+      "' data-subform-nueva-articulacion='" + idFila + "'>";
+    html += "<label>Otro (técnica no listada)</label>";
+    html += "<input type='text' data-otro-nueva-articulacion='" + idFila + "' placeholder='Escriba aquí si no está en la lista'>";
+    html += "<label>Técnicas actuales</label>";
+    html += "<div class='lista-catalogo-tecnicas-conversatorio'>";
+    (catalogoTecnicas || []).forEach(function (tecnicaCatalogo, indice) {
+      var idCheckbox = "catalogoTecnica_" + idFila + "_" + indice;
+      html += "<label class='opcion-catalogo-tecnica'><input type='checkbox' id='" + idCheckbox + "' data-catalogo-tecnica='" + idFila + "' value='" + escapeHtml(tecnicaCatalogo) + "'> " + escapeHtml(tecnicaCatalogo) + "</label>";
+    });
+    html += "</div></div>";
+
+    html += "<div class='fila-botones'><button type='button' class='btn btn-primario' data-guardar-tecnica-conversatorio='" + idFila + "'>💾 Guardar</button></div>";
     html += "</div>";
+
+    html += "</div>";
+  });
+  contenedor.innerHTML = html;
+}
+
+/**
+ * Panel de administrador: estado de todas las instituciones del
+ * Conversatorio, con botón para entrar a diligenciar/editar cada una
+ * (clic delegado en JS.html vía data-entrar-institucion-superadmin).
+ */
+function renderListaInstitucionesPanelSuperadminConversatorio(instituciones) {
+  var contenedor = document.getElementById("listaInstitucionesPanelSuperadminConversatorio");
+  if (!contenedor) return;
+  if (!instituciones || !instituciones.length) {
+    contenedor.innerHTML = "<p class='ayuda'>Todavía no se importaron las instituciones del Conversatorio (ejecutar importarDatosConversatorio).</p>";
+    return;
+  }
+  var html = "";
+  instituciones.forEach(function (i) {
+    var completado = i.estado === "COMPLETADO";
+    html += "<div class='fila-socializacion-ie" + (completado ? " socializo-hecho" : "") + "'>";
+    html += "<span class='nombre-ie-socializacion'>" + (completado ? "✅ " : "⬜ ") + escapeHtml(i.institucion) +
+      (i.grupoElegido ? " <span class='ayuda'>(" + escapeHtml(i.grupoElegido) + ")</span>" : "") + "</span>";
+    html += "<div class='fila-botones'>";
+    html += "<button type='button' class='btn btn-secundario' data-entrar-institucion-superadmin='" + escapeHtml(i.institucion) + "'>Entrar</button>";
+    html += "</div></div>";
   });
   contenedor.innerHTML = html;
 }

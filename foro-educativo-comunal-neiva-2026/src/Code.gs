@@ -392,6 +392,25 @@ function rpcFinalizarConversatorio(institucion) {
   });
 }
 
+function rpcObtenerCatalogoTecnicasConversatorio() {
+  return ejecutarRpcSeguro_(function () {
+    return obtenerCatalogoTecnicasConversatorio();
+  });
+}
+
+/* Panel de superadministración del Conversatorio (ver Conversatorio.gs). */
+function rpcValidarSuperadminConversatorio(codigo) {
+  return ejecutarRpcSeguro_(function () {
+    return validarSuperadminConversatorio(codigo);
+  });
+}
+
+function rpcGenerarInformeConversatorio(codigoSuperadmin) {
+  return ejecutarRpcSeguro_(function () {
+    return generarInformeConversatorio(codigoSuperadmin);
+  });
+}
+
 /* ------------------------------------------------------------------ *
  * RPC — Método de asistencia (QR/enlace o listado físico + foto)
  * ------------------------------------------------------------------ */

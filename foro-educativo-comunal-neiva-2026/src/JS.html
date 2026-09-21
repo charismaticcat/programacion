@@ -42,7 +42,13 @@ var estado = {
   // independiente; cada Institución Educativa se elige de un listado (sin
   // código, sin token de grupo) — ver más abajo.
   institucionConversatorio: "",
-  grupoElegidoConversatorio: ""
+  grupoElegidoConversatorio: "",
+  gruposConversatorio: [],
+  catalogoTecnicasConversatorio: [],
+  // Panel de superadministrador (código único de la SEM) — permite entrar
+  // a cualquier institución, además de generar el informe consolidado.
+  modoSuperadminConversatorio: false,
+  codigoSuperadminConversatorio: ""
 };
 
 /** URL de imagen para un archivo de Drive público (logos) — mismo patrón usado para el QR de asistencia. */
@@ -95,8 +101,8 @@ function urlImagenDrive(idArchivo, ancho) {
 // correcto") antes de valorar y generar el informe.
 var ORDEN_PANTALLAS = [
   "pantallaEleccionSeccion", "pantallaAcceso",
-  "pantallaAccesoConversatorio", "pantallaCaracterizacionConversatorio",
-  "pantallaResolucionConversatorio", "pantallaCierreConversatorio",
+  "pantallaAccesoConversatorio", "pantallaAccesoSuperadminConversatorio", "pantallaPanelSuperadminConversatorio",
+  "pantallaResolucionConversatorio", "pantallaCaracterizacionConversatorio", "pantallaCierreConversatorio",
   "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia",
   "pantallaConsentimientoGrupo", "pantallaConsentimientoConectaEduca", "pantallaParticipacion",
   "pantallaInvitadosEspeciales",
@@ -112,8 +118,8 @@ var ORDEN_PANTALLAS = [
 // retoma directamente en ellas ni se marcan como "última pantalla".
 var PANTALLAS_NO_RESUMIBLES_ = [
   "pantallaEleccionSeccion", "pantallaAcceso",
-  "pantallaAccesoConversatorio", "pantallaCaracterizacionConversatorio",
-  "pantallaResolucionConversatorio", "pantallaCierreConversatorio",
+  "pantallaAccesoConversatorio", "pantallaAccesoSuperadminConversatorio", "pantallaPanelSuperadminConversatorio",
+  "pantallaResolucionConversatorio", "pantallaCaracterizacionConversatorio", "pantallaCierreConversatorio",
   "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia"
 ];
 
@@ -504,26 +510,71 @@ document.getElementById("btnCambiarSeccionAccesoConversatorio").addEventListener
   cambiarPantalla("pantallaEleccionSeccion");
 });
 
-function seleccionarInstitucionConversatorio_(institucion) {
+/** Catálogo de técnicas para el checklist de "nueva articulación" — se pide una sola vez y se cachea. */
+function conCatalogoTecnicasConversatorio_(callback) {
+  if (estado.catalogoTecnicasConversatorio && estado.catalogoTecnicasConversatorio.length) {
+    callback(estado.catalogoTecnicasConversatorio);
+    return;
+  }
+  llamarServidor("rpcObtenerCatalogoTecnicasConversatorio", [], function (r) {
+    estado.catalogoTecnicasConversatorio = (r && r.ok && r.tecnicas) || [];
+    callback(estado.catalogoTecnicasConversatorio);
+  }, function () {
+    callback([]);
+  });
+}
+
+/**
+ * Tras elegir la institución (propia o, en modo administrador, una
+ * cualquiera), va directo a las técnicas — spec del usuario: "la
+ * selección de grupo al que desea tener el conversatorio se dará despues
+ * de repsonder las preguntas de cada [técnica]".
+ */
+function cargarTecnicasYMostrarConversatorio_(idPantallaError) {
+  conCatalogoTecnicasConversatorio_(function (catalogo) {
+    llamarServidor("rpcObtenerTecnicasConversatorio", [estado.institucionConversatorio], function (rt) {
+      ocultarCargaAccion_();
+      if (!rt.ok) {
+        mostrarMensaje(idPantallaError, rt.mensaje || "No fue posible cargar las técnicas.", "error");
+        return;
+      }
+      document.getElementById("institucionResolucionConversatorio").textContent = "Institución: " + rt.institucion;
+      renderTecnicasResolucionConversatorio(rt.tecnicas || [], catalogo);
+      cambiarPantalla("pantallaResolucionConversatorio");
+    }, function () {
+      ocultarCargaAccion_();
+      mostrarMensaje(idPantallaError, "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+    });
+  });
+}
+
+function seleccionarInstitucionConversatorio_(institucion, idMensaje) {
+  idMensaje = idMensaje || "mensajeAccesoConversatorio";
   mostrarCargaAccion_("acceso", "Ingresando…");
   llamarServidor("rpcSeleccionarInstitucionConversatorio", [institucion], function (r) {
-    ocultarCargaAccion_();
     if (!r.ok) {
-      mostrarMensaje("mensajeAccesoConversatorio", r.mensaje || "No fue posible seleccionar esa institución.", "error");
+      ocultarCargaAccion_();
+      mostrarMensaje(idMensaje, r.mensaje || "No fue posible seleccionar esa institución.", "error");
       return;
     }
     estado.institucionConversatorio = r.institucion;
     estado.grupoElegidoConversatorio = r.grupoElegido || "";
-    mostrarMensaje("mensajeAccesoConversatorio", "");
-    document.getElementById("institucionCaracterizacionConversatorio").textContent = "Institución: " + r.institucion;
-    renderGruposCaracterizacionConversatorio(r.grupos || [], estado.grupoElegidoConversatorio);
-    cambiarPantalla("pantallaCaracterizacionConversatorio");
+    estado.gruposConversatorio = r.grupos || [];
+    mostrarMensaje(idMensaje, "");
+    cargarTecnicasYMostrarConversatorio_(idMensaje);
   }, function () {
     ocultarCargaAccion_();
-    mostrarMensaje("mensajeAccesoConversatorio", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+    mostrarMensaje(idMensaje, "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
   });
 }
 
+document.getElementById("btnContinuarAGrupoConversatorio").addEventListener("click", function () {
+  document.getElementById("institucionCaracterizacionConversatorio").textContent = "Institución: " + estado.institucionConversatorio;
+  renderGruposCaracterizacionConversatorio(estado.gruposConversatorio || [], estado.grupoElegidoConversatorio);
+  cambiarPantalla("pantallaCaracterizacionConversatorio");
+});
+
+/** Elegir el grupo es ahora el ÚLTIMO paso — al elegirlo se guarda y se finaliza de una vez (spec del usuario). */
 function elegirGrupoConversatorio_(idGrupo) {
   mostrarCargaAccion_("acceso", "Guardando…");
   llamarServidor("rpcElegirGrupoConversatorio", [estado.institucionConversatorio, idGrupo], function (r) {
@@ -533,15 +584,15 @@ function elegirGrupoConversatorio_(idGrupo) {
       return;
     }
     estado.grupoElegidoConversatorio = idGrupo;
-    llamarServidor("rpcObtenerTecnicasConversatorio", [estado.institucionConversatorio], function (rt) {
+    llamarServidor("rpcFinalizarConversatorio", [estado.institucionConversatorio], function (rf) {
       ocultarCargaAccion_();
-      if (!rt.ok) {
-        mostrarMensaje("mensajeCaracterizacionConversatorio", rt.mensaje || "No fue posible cargar las técnicas.", "error");
+      if (!rf.ok) {
+        mostrarMensaje("mensajeCaracterizacionConversatorio", rf.mensaje || "No fue posible finalizar.", "error");
         return;
       }
-      document.getElementById("institucionResolucionConversatorio").textContent = "Institución: " + rt.institucion;
-      renderTecnicasResolucionConversatorio(rt.tecnicas || []);
-      cambiarPantalla("pantallaResolucionConversatorio");
+      document.getElementById("institucionCierreConversatorio").textContent = "Institución: " + estado.institucionConversatorio;
+      document.getElementById("btnVolverPanelSuperadminDesdeCierre").classList.toggle("oculto", !estado.modoSuperadminConversatorio);
+      cambiarPantalla("pantallaCierreConversatorio");
     }, function () {
       ocultarCargaAccion_();
       mostrarMensaje("mensajeCaracterizacionConversatorio", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
@@ -552,40 +603,148 @@ function elegirGrupoConversatorio_(idGrupo) {
   });
 }
 
-// Autoguardado por campo (técnica editable, la pregunta Sí/No, o la
-// pregunta libre de proyección 2027) al salir del campo — mismo patrón de
-// autoguardado en "change" que el resto de la app (p. ej. el rector en
-// Confirmación de caracterización).
+/* --- Modo lectura/edición por tarjeta de técnica (spec del usuario: "poner
+   todo en solo lectura, y si hay necesidad de cambiar algo, dar click en el
+   lápiz, luego boton guardar"). --- */
+document.addEventListener("click", function (evento) {
+  var editar = evento.target.closest("[data-editar-tecnica-conversatorio]");
+  if (editar) {
+    var tarjeta = editar.closest("[data-tarjeta-tecnica-conversatorio]");
+    if (tarjeta) {
+      tarjeta.querySelector(".modo-lectura-tecnica-conversatorio").classList.add("oculto");
+      tarjeta.querySelector(".modo-edicion-tecnica-conversatorio").classList.remove("oculto");
+    }
+  }
+});
+
+// Spec del usuario: "Si selecciona si. Deplegar listado de tecnicas
+// actuales. y poner arriba casilla otro." — muestra/oculta el subform de
+// "nueva articulación" según la respuesta de la pregunta 2.
 document.addEventListener("change", function (evento) {
-  var campo = evento.target.closest("[data-campo-tecnica-conversatorio]");
-  if (!campo) return;
-  var idFila = campo.getAttribute("data-id-fila-tecnica");
-  var nombreCampo = campo.getAttribute("data-campo-tecnica-conversatorio");
+  var select = evento.target.closest("[data-toggle-detalle-nueva-articulacion]");
+  if (!select) return;
+  var idFila = select.getAttribute("data-toggle-detalle-nueva-articulacion");
+  var subform = document.querySelector("[data-subform-nueva-articulacion='" + idFila + "']");
+  if (subform) subform.classList.toggle("oculto", select.value !== "Sí");
+});
+
+/** Guarda los campos de una fila en secuencia (un RPC por campo, uno tras otro). */
+function guardarCamposTecnicaConversatorioEnSecuencia_(campos, indice, alTerminar) {
+  if (indice >= campos.length) {
+    alTerminar();
+    return;
+  }
   llamarServidor(
     "rpcGuardarCampoTecnicaConversatorio",
-    [estado.institucionConversatorio, idFila, nombreCampo, campo.value],
+    [estado.institucionConversatorio, campos[indice].idFila, campos[indice].campo, campos[indice].valor],
     function (r) {
-      if (!r.ok) mostrarMensaje("mensajeResolucionConversatorio", r.mensaje || "No fue posible guardar ese campo.", "error");
+      if (!r.ok) {
+        mostrarMensaje("mensajeResolucionConversatorio", r.mensaje || "No fue posible guardar un campo.", "error");
+        return;
+      }
+      guardarCamposTecnicaConversatorioEnSecuencia_(campos, indice + 1, alTerminar);
     },
     function () {
       mostrarMensaje("mensajeResolucionConversatorio", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
     }
   );
+}
+
+document.addEventListener("click", function (evento) {
+  var guardar = evento.target.closest("[data-guardar-tecnica-conversatorio]");
+  if (!guardar) return;
+  var idFila = guardar.getAttribute("data-guardar-tecnica-conversatorio");
+  var tarjeta = guardar.closest("[data-tarjeta-tecnica-conversatorio]");
+  if (!tarjeta) return;
+
+  var campos = [];
+  tarjeta.querySelectorAll("[data-campo-edicion-tecnica]").forEach(function (campo) {
+    campos.push({ idFila: idFila, campo: campo.getAttribute("data-campo-edicion-tecnica"), valor: campo.value });
+  });
+
+  // "Otro" + técnicas marcadas del catálogo, unidos en un solo texto — solo
+  // si la pregunta 2 quedó en "Sí"; si no, se limpia (spec del usuario: el
+  // detalle solo aplica cuando la respuesta es afirmativa).
+  var respuestaQ2 = tarjeta.querySelector("[data-campo-edicion-tecnica='preguntaNuevaArticulacion2027']").value;
+  var detalle = "";
+  if (respuestaQ2 === "Sí") {
+    var partes = [];
+    var otro = tarjeta.querySelector("[data-otro-nueva-articulacion='" + idFila + "']");
+    if (otro && otro.value.trim()) partes.push("Otro: " + otro.value.trim());
+    tarjeta.querySelectorAll("[data-catalogo-tecnica='" + idFila + "']:checked").forEach(function (casilla) {
+      partes.push(casilla.value);
+    });
+    detalle = partes.join("; ");
+  }
+  campos.push({ idFila: idFila, campo: "nuevaArticulacionDetalle", valor: detalle });
+
+  mostrarCargaAccion_("acceso", "Guardando…");
+  guardarCamposTecnicaConversatorioEnSecuencia_(campos, 0, function () {
+    ocultarCargaAccion_();
+    cargarTecnicasYMostrarConversatorio_("mensajeResolucionConversatorio");
+  });
 });
 
-document.getElementById("btnFinalizarConversatorio").addEventListener("click", function () {
-  mostrarCargaAccion_("acceso", "Finalizando…");
-  llamarServidor("rpcFinalizarConversatorio", [estado.institucionConversatorio], function (r) {
+/* --- Panel de superadministrador del Conversatorio (spec del usuario:
+   "haz un login de superadmin con el codigo que ya me habias dado
+   antes"). --- */
+document.getElementById("btnIrAccesoSuperadminConversatorio").addEventListener("click", function () {
+  cambiarPantalla("pantallaAccesoSuperadminConversatorio");
+});
+document.getElementById("btnVolverAccesoIEDesdeSuperadmin").addEventListener("click", function () {
+  cambiarPantalla("pantallaAccesoConversatorio");
+});
+document.getElementById("btnCambiarSeccionDesdePanelSuperadmin").addEventListener("click", function () {
+  estado.modoSuperadminConversatorio = false;
+  estado.codigoSuperadminConversatorio = "";
+  cambiarPantalla("pantallaEleccionSeccion");
+});
+
+function cargarPanelSuperadminConversatorio_() {
+  llamarServidor("rpcValidarSuperadminConversatorio", [estado.codigoSuperadminConversatorio], function (r) {
     ocultarCargaAccion_();
     if (!r.ok) {
-      mostrarMensaje("mensajeResolucionConversatorio", r.mensaje || "No fue posible finalizar.", "error");
+      mostrarMensaje("mensajeAccesoSuperadminConversatorio", r.mensaje || "No fue posible validar el código.", "error");
       return;
     }
-    document.getElementById("institucionCierreConversatorio").textContent = "Institución: " + estado.institucionConversatorio;
-    cambiarPantalla("pantallaCierreConversatorio");
+    renderListaInstitucionesPanelSuperadminConversatorio(r.instituciones || []);
+    cambiarPantalla("pantallaPanelSuperadminConversatorio");
   }, function () {
     ocultarCargaAccion_();
-    mostrarMensaje("mensajeResolucionConversatorio", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+    mostrarMensaje("mensajeAccesoSuperadminConversatorio", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+  });
+}
+
+document.getElementById("btnValidarSuperadminConversatorio").addEventListener("click", function () {
+  var codigo = document.getElementById("campoCodigoSuperadminConversatorio").value.trim();
+  if (!codigo) {
+    mostrarMensaje("mensajeAccesoSuperadminConversatorio", "Ingrese el código de administrador.", "error");
+    return;
+  }
+  estado.codigoSuperadminConversatorio = codigo;
+  estado.modoSuperadminConversatorio = true;
+  mostrarCargaAccion_("acceso", "Validando código…");
+  cargarPanelSuperadminConversatorio_();
+});
+
+document.getElementById("btnVolverPanelSuperadminDesdeCierre").addEventListener("click", function () {
+  mostrarCargaAccion_("acceso", "Cargando panel…");
+  cargarPanelSuperadminConversatorio_();
+});
+
+document.getElementById("btnGenerarInformeConversatorio").addEventListener("click", function () {
+  mostrarCargaAccion_("informe", "Generando informe…");
+  llamarServidor("rpcGenerarInformeConversatorio", [estado.codigoSuperadminConversatorio], function (r) {
+    ocultarCargaAccion_();
+    if (!r.ok) {
+      mostrarMensaje("mensajePanelSuperadminConversatorio", r.mensaje || "No fue posible generar el informe.", "error");
+      return;
+    }
+    document.getElementById("enlaceInformeConversatorio").innerHTML =
+      "<p class='mensaje exito'>Informe generado: <a href='" + r.url + "' target='_blank' rel='noopener'>abrir PDF</a></p>";
+  }, function () {
+    ocultarCargaAccion_();
+    mostrarMensaje("mensajePanelSuperadminConversatorio", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
   });
 });
 
@@ -598,6 +757,11 @@ document.addEventListener("click", function (evento) {
 
   var elegirGrupoConversatorio = evento.target.closest("[data-elegir-grupo-conversatorio]");
   if (elegirGrupoConversatorio) elegirGrupoConversatorio_(elegirGrupoConversatorio.getAttribute("data-elegir-grupo-conversatorio"));
+
+  var entrarInstitucionSuperadmin = evento.target.closest("[data-entrar-institucion-superadmin]");
+  if (entrarInstitucionSuperadmin) {
+    seleccionarInstitucionConversatorio_(entrarInstitucionSuperadmin.getAttribute("data-entrar-institucion-superadmin"), "mensajePanelSuperadminConversatorio");
+  }
 
   var cerrar = evento.target.closest("[data-cerrar-modal]");
   if (cerrar) cerrarModal(cerrar.getAttribute("data-cerrar-modal"));

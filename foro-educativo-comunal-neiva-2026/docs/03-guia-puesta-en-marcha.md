@@ -2180,6 +2180,73 @@ Verificado: `node --check` sobre Conversatorio.gs y Code.gs; extracción y `node
 `<script>` (limpios, mismos 2 falsos positivos permanentes); sin IDs duplicados ni etiquetas (incluido
 `<select>`) sin cerrar en Index.html/Components.html.
 
+## 4.65 Quincuagésimo segundo lote: panel de administrador, reordenar el recorrido, solo lectura + lápiz, registro de cambios
+
+Pedido del usuario, varios ajustes en un solo mensaje: "haz un login de superadmin con el codigo que ya me
+habias dado antes. ¿Se planea incluir una ueva articulación para el año 2027? igual con desplegable. Si
+selecciona si. Deplegar listado de tecnicas actuales. y poner arriba casilla otro. la selección de grupo al
+que desea tener el conversatorio se dará despues de repsonder las preguntas de cada [técnica] mostrar
+unicamente las IE que pertenecen a cada grupo, una vez se haya seleccionado la IE. Agregar poner todo en
+solo lectura, y si hay necesidad de cambiar algo, dar click en el lápíz, luego boton guardar. Esos cambios
+deben mencionarse explicitamente en el informe...".
+
+- **Panel de superadministrador** (revive el código `CODIGO_SUPERADMIN_CONECTAEDUCA` de un lote anterior —
+  Config.gs, Conversatorio.gs: `generarCodigoSuperadminConversatorio()`/`validarSuperadminConversatorio()`):
+  desde la tarjeta "Conversatorio" hay un enlace "Entrar con código de administrador"
+  (`pantallaAccesoSuperadminConversatorio`) que lleva a `pantallaPanelSuperadminConversatorio` — lista de
+  todas las instituciones con su estado, botón "Entrar" por cada una (reutiliza exactamente el mismo camino
+  que el autoselección de una IE — `rpcSeleccionarInstitucionConversatorio` — el administrador solo llega
+  ahí por una puerta distinta) y el botón "Generar informe consolidado".
+- **Reordenar el recorrido** (spec: "la selección de grupo... se dará despues de repsonder las preguntas"):
+  ahora es institución → técnicas y las 2 preguntas (`pantallaResolucionConversatorio`) → grupo de
+  articulación técnica (`pantallaCaracterizacionConversatorio`, ahora AL FINAL) → cierre. Elegir un grupo ya
+  finaliza el Conversatorio de una vez (antes eran dos pasos separados).
+- **Filtrar a solo los grupos propios** (spec: "mostrar unicamente las IE que pertenecen a cada grupo, una
+  vez se haya seleccionado la IE"): `renderGruposCaracterizacionConversatorio` ya no muestra los 7 grupos
+  con los ajenos atenuados — solo lista los que `perteneceIE`.
+- **Pregunta 2 con desplegable Sí/No + catálogo de técnicas**: "¿Se planea incluir una nueva articulación
+  para el año 2027?" (antes texto libre) ahora es un `<select>` Sí/No, igual que la primera pregunta. Si
+  responde "Sí", se despliega un subformulario (`subform-nueva-articulacion-conversatorio`) con un campo
+  "Otro" arriba y, debajo, un checklist de las técnicas únicas de los 7 grupos
+  (`obtenerCatalogoTecnicasConversatorio()`, Conversatorio.gs — RPC `rpcObtenerCatalogoTecnicasConversatorio`,
+  se pide una sola vez y se cachea en `estado.catalogoTecnicasConversatorio`). Al guardar, "Otro" + las
+  técnicas marcadas se combinan en un solo texto (`NUEVA_ARTICULACION_DETALLE`, columna nueva en
+  `ConversatorioResolucionIE`) con el formato `Otro: <texto>; <técnica>; <técnica>...`. Limitación conocida:
+  al reabrir el modo edición no se reconstruyen las casillas marcadas a partir de ese texto guardado (el
+  checklist vuelve a empezar sin marcar) — el valor de solo-lectura sí se sigue mostrando correctamente;
+  solo el estado de las casillas en el propio formulario de edición no persiste entre visitas.
+- **Solo lectura + lápiz** (spec: "poner todo en solo lectura, y si hay necesidad de cambiar algo, dar
+  click en el lápiz, luego boton guardar"): cada tarjeta de técnica en `renderTecnicasResolucionConversatorio`
+  arranca en `.modo-lectura-tecnica-conversatorio` (texto plano) con un botón "✏️ Editar"; al hacer clic se
+  oculta la lectura y aparece `.modo-edicion-tecnica-conversatorio` (los campos editables de siempre) con un
+  botón "💾 Guardar" que manda los 6 campos de la tarjeta en secuencia
+  (`guardarCamposTecnicaConversatorioEnSecuencia_`, JS.html) y vuelve a cargar la tarjeta en modo lectura.
+- **Registro de cambios para el informe** (spec: "la IE X cambió la respuesta X por Y"): nueva hoja
+  `ConversatorioCambios` (Conversatorio.gs) — `guardarCampoTecnicaConversatorio` ahora compara el valor
+  anterior contra el nuevo antes de sobrescribir; si el anterior tenía contenido y es distinto del nuevo,
+  agrega una fila (institución, técnica, campo, valor anterior, valor nuevo, fecha). Nunca se registra el
+  llenado inicial de un campo vacío, solo ediciones reales sobre algo ya guardado.
+- **Informe consolidado**: `generarInformeConversatorio(codigoSuperadmin)` (Conversatorio.gs) — mismo patrón
+  que `generarPdfAportesRelevantesSocializacion` (§4.61: la parte lenta de Docs/Drive va fuera de
+  `conLock_`, solo la escritura final de seguimiento en `ConversatorioInforme` queda adentro). Un Doc/PDF
+  con, por institución, cada técnica y sus 2 respuestas, seguido de un apartado final "Cambios presentados
+  por las Instituciones Educativas en las respuestas" con una línea por cada fila de `ConversatorioCambios`,
+  con exactamente la redacción pedida: `La IE <institución> cambió la respuesta de <campo> (técnica
+  "<técnica>") de "<anterior>" a "<nueva>".` Se guarda en la carpeta `04_CONECTAEDUCA` de Drive (spec del
+  proyecto) y se regenera cada vez (nunca acumula copias, mismo criterio que el resto del proyecto).
+- **Code.gs**: `rpcObtenerCatalogoTecnicasConversatorio`, `rpcValidarSuperadminConversatorio`,
+  `rpcGenerarInformeConversatorio`.
+
+**Importante para la Secretaría**: si `CODIGO_SUPERADMIN_CONECTAEDUCA` ya tenía un valor guardado de un
+lote anterior, ese mismo código sigue sirviendo para el panel del Conversatorio — no hace falta generar uno
+nuevo. Si está vacío, ejecutar `generarCodigoSuperadminConversatorio()` desde el editor de Apps Script.
+
+Verificado: `node --check` sobre Conversatorio.gs, Code.gs y Config.gs; extracción y `node --check` de los
+bloques `<script>` de Index.html, JS.html y Components.html (limpios, aparte de los dos falsos positivos
+permanentes ya conocidos); sin IDs duplicados ni etiquetas (incluidos `<select>`) sin cerrar en
+Index.html/Components.html. No fue posible probar en vivo la generación del informe ni el flujo completo
+del panel de administrador (sin `clasp run`/`clasp logs` en este entorno).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

@@ -184,7 +184,9 @@
        independiente y autocontenida — cada Institución Educativa se elige a sí
        misma de un listado (sin código, spec del usuario) — NO se conecta con el
        resto de Conecta Educa (pantallaConsentimientoConectaEduca, pantallaSesion2,
-       etc., que siguen intactas para cuando se usen aparte). -->
+       etc., que siguen intactas para cuando se usen aparte). Orden del recorrido
+       (spec del usuario): institución → técnicas y preguntas → grupo al que
+       pertenece (al final) → cierre. -->
   <section id="pantallaAccesoConversatorio" class="pantalla">
     <div class="tarjeta">
       <button type="button" class="btn btn-secundario" id="btnCambiarSeccionAccesoConversatorio" style="margin-bottom:14px;">← Elegir otra sección</button>
@@ -194,36 +196,77 @@
         sector productivo. Elija su institución de la lista para continuar.</p>
       <div id="listaInstitucionesAccesoConversatorio"></div>
       <div id="mensajeAccesoConversatorio"></div>
+      <p class="ayuda" style="margin-top:18px;">¿Es administrador(a) de la Secretaría de Educación de Neiva?
+        <button type="button" class="btn-enlace" id="btnIrAccesoSuperadminConversatorio">Entrar con código de administrador</button>.</p>
     </div>
   </section>
 
-  <!-- 4ter. CARACTERIZACIÓN DEL CONVERSATORIO: catálogo de los 7 grupos técnicos
-       (Grupos ConectaEduca) y selección del grupo al que pertenece la IE. -->
-  <section id="pantallaCaracterizacionConversatorio" class="pantalla">
+  <!-- 4bis-a. ACCESO DE SUPERADMINISTRADOR AL CONVERSATORIO (pedido del
+       usuario: "haz un login de superadmin con el codigo que ya me habias
+       dado antes"). -->
+  <section id="pantallaAccesoSuperadminConversatorio" class="pantalla">
     <div class="tarjeta">
-      <h2 class="titulo-seccion">Grupos de articulación técnica</h2>
-      <p class="ayuda" id="institucionCaracterizacionConversatorio"></p>
-      <p class="ayuda">Estos son los 7 grupos en los que se agruparon las Instituciones Educativas de Neiva
-        según su técnica/articulación SENA. Los resaltados en verde son los grupos a los que pertenece su
-        institución — elija con cuál va a continuar.</p>
-      <div id="listaGruposCaracterizacionConversatorio"></div>
-      <div id="mensajeCaracterizacionConversatorio"></div>
+      <button type="button" class="btn btn-secundario" id="btnVolverAccesoIEDesdeSuperadmin" style="margin-bottom:14px;">← Volver</button>
+      <h2 class="titulo-seccion">Conversatorio — Administrador de la SEM</h2>
+      <p class="ayuda">Ingrese el código de administrador de la Secretaría de Educación de Neiva.</p>
+      <label for="campoCodigoSuperadminConversatorio">Código de administrador</label>
+      <input type="text" id="campoCodigoSuperadminConversatorio" placeholder="SEM-XXXXXX" autocomplete="off">
+      <div id="mensajeAccesoSuperadminConversatorio"></div>
+      <div class="fila-botones">
+        <button class="btn btn-primario" id="btnValidarSuperadminConversatorio">Continuar</button>
+      </div>
     </div>
   </section>
 
-  <!-- 4quater. RESOLUCIÓN VS IE (editable) + preguntas por técnica. -->
+  <!-- 4bis-b. PANEL DE SUPERADMINISTRADOR: estado de todas las instituciones
+       + botón para generar el informe consolidado (con el registro de
+       cambios). -->
+  <section id="pantallaPanelSuperadminConversatorio" class="pantalla">
+    <div class="tarjeta">
+      <button type="button" class="btn btn-secundario" id="btnCambiarSeccionDesdePanelSuperadmin" style="margin-bottom:14px;">← Elegir otra sección</button>
+      <h2 class="titulo-seccion">Panel de administrador — Conversatorio</h2>
+      <p class="ayuda">Estado de todas las instituciones y, al final, el informe consolidado con el registro
+        de cambios sobre respuestas ya guardadas.</p>
+      <div id="listaInstitucionesPanelSuperadminConversatorio"></div>
+      <div id="mensajePanelSuperadminConversatorio"></div>
+      <div class="fila-botones">
+        <button class="btn btn-primario" id="btnGenerarInformeConversatorio">📄 Generar informe consolidado</button>
+      </div>
+      <div id="enlaceInformeConversatorio"></div>
+    </div>
+  </section>
+
+  <!-- 4ter. RESOLUCIÓN VS IE (editable) + preguntas por técnica — ahora es el
+       PRIMER paso tras elegir institución (spec del usuario: la elección del
+       grupo se da después de responder las preguntas). Todo se muestra en
+       solo lectura; el lápiz (✏️) por tarjeta de técnica habilita la edición
+       (spec del usuario). -->
   <section id="pantallaResolucionConversatorio" class="pantalla">
     <div class="tarjeta">
-      <button type="button" class="btn btn-secundario" data-ir="pantallaCaracterizacionConversatorio" style="margin-bottom:14px;">← Cambiar de grupo</button>
       <h2 class="titulo-seccion">Programas técnicos articulados y su resolución</h2>
       <p class="ayuda" id="institucionResolucionConversatorio"></p>
-      <p class="ayuda">Revise y corrija si hace falta los datos de cada técnica articulada con el SENA en su
-        institución, y responda las dos preguntas de proyección para 2027.</p>
+      <p class="ayuda">Estos son los datos registrados de cada técnica articulada con el SENA en su
+        institución. Si hace falta corregir algo, use el lápiz ✏️ de la tarjeta correspondiente.</p>
       <div id="listaTecnicasResolucionConversatorio"></div>
       <div id="mensajeResolucionConversatorio"></div>
       <div class="fila-botones">
-        <button class="btn btn-primario" id="btnFinalizarConversatorio">Finalizar Conversatorio</button>
+        <button class="btn btn-primario" id="btnContinuarAGrupoConversatorio">Continuar</button>
       </div>
+    </div>
+  </section>
+
+  <!-- 4quater. CARACTERIZACIÓN DEL CONVERSATORIO: catálogo de los grupos
+       técnicos a los que pertenece la IE (solo esos, spec del usuario) —
+       ahora es el ÚLTIMO paso; elegir un grupo finaliza el Conversatorio. -->
+  <section id="pantallaCaracterizacionConversatorio" class="pantalla">
+    <div class="tarjeta">
+      <button type="button" class="btn btn-secundario" data-ir="pantallaResolucionConversatorio" style="margin-bottom:14px;">← Volver a las técnicas</button>
+      <h2 class="titulo-seccion">Grupo de articulación técnica</h2>
+      <p class="ayuda" id="institucionCaracterizacionConversatorio"></p>
+      <p class="ayuda">Su institución pertenece a él o a los siguientes grupos de articulación técnica —
+        elija con cuál va a finalizar el Conversatorio.</p>
+      <div id="listaGruposCaracterizacionConversatorio"></div>
+      <div id="mensajeCaracterizacionConversatorio"></div>
     </div>
   </section>
 
@@ -234,6 +277,7 @@
       <p class="ayuda" id="institucionCierreConversatorio"></p>
       <p>Las respuestas del Conversatorio de Conecta Educa quedaron guardadas. Puede cerrar esta ventana.</p>
       <div class="fila-botones" style="justify-content:center;">
+        <button class="btn btn-secundario oculto" id="btnVolverPanelSuperadminDesdeCierre">← Volver al panel de administrador</button>
         <button class="btn btn-secundario" data-ir="pantallaEleccionSeccion">Volver al inicio</button>
       </div>
     </div>

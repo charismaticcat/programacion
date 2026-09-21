@@ -166,6 +166,16 @@ div.tarjeta-seccion:hover, div.tarjeta-seccion:focus-visible { transform: none; 
 .tarjeta-grupo-ajena { opacity: 0.6; }
 .tarjeta-grupo-elegida { border-width: 2px; box-shadow: 0 0 0 2px var(--verde); }
 
+/* Conversatorio — tarjetas de técnica en solo lectura + lápiz de edición
+   (spec del usuario). */
+.modo-lectura-tecnica-conversatorio p { margin: 4px 0; }
+.lista-catalogo-tecnicas-conversatorio {
+  max-height: 220px; overflow-y: auto; border: 1px solid var(--gris-borde);
+  border-radius: 8px; padding: 8px 12px; margin-bottom: 8px; background: var(--blanco);
+}
+.opcion-catalogo-tecnica { display: block; font-weight: 400; margin: 6px 0; cursor: pointer; }
+.opcion-catalogo-tecnica input { width: auto; margin-right: 8px; }
+
 /* Sesión de socialización (Documento Orientador FEM2026, item 10). */
 .fila-socializacion-ie {
   display: flex;
@@ -239,6 +249,11 @@ button.btn-primario:hover, a.btn-primario:hover { background: var(--verde-oscuro
 button.btn-secundario { background: var(--blanco); color: var(--verde); border: 1px solid var(--verde); }
 button.btn-peligro { background: var(--rojo); color: var(--blanco); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-enlace {
+  background: none; border: none; padding: 0; margin: 0; color: var(--verde-oscuro);
+  text-decoration: underline; cursor: pointer; font: inherit; font-weight: 600;
+}
+.btn-enlace:hover { color: var(--verde); }
 
 @keyframes aparecerMensaje { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 .mensaje {
