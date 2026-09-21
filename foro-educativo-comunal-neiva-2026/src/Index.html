@@ -148,12 +148,11 @@
         <p class="ayuda">Socialización de los Foros Educativos Institucionales y construcción colectiva del
           grupo — 7:00 a. m. a 12:00 m.</p>
       </button>
-      <button type="button" class="tarjeta-seccion" data-elegir-seccion="CONECTAEDUCA">
+      <button type="button" class="tarjeta-seccion" id="btnIrConversatorio">
         <img id="logoTarjetaConectaEduca" class="logo-tarjeta-seccion oculto" alt="">
-        <h3>Conecta Educa</h3>
-        <p class="ayuda">Conectar saberes, articular futuro — diálogo con el sector productivo y la educación
-          superior — 2:00 p. m. a 5:00 p. m. (acceso solo para administradores de la Secretaría de
-          Educación).</p>
+        <h3>Conecta Educa — Conversatorio</h3>
+        <p class="ayuda">Conectar saberes, articular futuro — articulaciones técnicas SENA por Institución
+          Educativa (acceso propio por institución, con su propio código).</p>
       </button>
     </div>
   </section>
@@ -181,39 +180,67 @@
     </div>
   </section>
 
-  <!-- 4bis. ACCESO A CONECTA EDUCA COMO ADMINISTRADOR DE LA SEM (pedido del
-       usuario): Conecta Educa ya no se abre con el código propio de cada
-       grupo — un único administrador de la Secretaría de Educación tiene su
-       propio código y, tras validarlo, elige de una lista a qué grupo le va
-       a diligenciar Conecta Educa (pantallaSeleccionGrupoConectaEducaSuperadmin,
-       justo abajo). -->
-  <section id="pantallaAccesoSuperadminConectaEduca" class="pantalla">
+  <!-- 4bis. CONVERSATORIO (Conecta Educa, pedido del usuario): mini-herramienta
+       independiente y autocontenida, con acceso propio por Institución
+       Educativa (código, sin token de grupo) — NO se conecta con el resto de
+       Conecta Educa (pantallaConsentimientoConectaEduca, pantallaSesion2, etc.,
+       que siguen intactas para cuando se usen aparte). -->
+  <section id="pantallaAccesoConversatorio" class="pantalla">
     <div class="tarjeta">
-      <button type="button" class="btn btn-secundario" id="btnCambiarSeccionAccesoSuperadmin" style="margin-bottom:14px;">← Elegir otra sección</button>
-      <img id="logoAccesoSuperadminConectaEduca" class="logo-tarjeta-seccion oculto" alt="" style="display:block;margin:0 auto 14px;">
-      <h2 class="titulo-seccion">Acceso — Conecta Educa</h2>
-      <p class="ayuda">Conecta Educa lo diligencia un administrador de la Secretaría de Educación de Neiva,
-        en representación de cada grupo — no se ingresa con el código del grupo. Ingrese el código de
-        administrador.</p>
-      <label for="campoCodigoSuperadminConectaEduca">Código de administrador</label>
-      <input type="text" id="campoCodigoSuperadminConectaEduca" placeholder="SEM-XXXXXX" autocomplete="off">
-      <div id="mensajeAccesoSuperadminConectaEduca"></div>
+      <button type="button" class="btn btn-secundario" id="btnCambiarSeccionAccesoConversatorio" style="margin-bottom:14px;">← Elegir otra sección</button>
+      <img id="logoAccesoConversatorio" class="logo-tarjeta-seccion oculto" alt="" style="display:block;margin:0 auto 14px;">
+      <h2 class="titulo-seccion">Conversatorio — Conecta Educa</h2>
+      <p class="ayuda">Diálogo sobre las articulaciones técnicas SENA entre cada Institución Educativa y el
+        sector productivo. Cada institución ingresa con su propio código — no con el código de un grupo del
+        Encuentro.</p>
+      <label for="campoCodigoConversatorio">Código de la institución</label>
+      <input type="text" id="campoCodigoConversatorio" placeholder="CE-XXXXX" autocomplete="off">
+      <div id="mensajeAccesoConversatorio"></div>
       <div class="fila-botones">
-        <button class="btn btn-primario" id="btnValidarSuperadminConectaEduca">Continuar</button>
+        <button class="btn btn-primario" id="btnValidarAccesoConversatorio">Continuar</button>
       </div>
     </div>
   </section>
 
-  <!-- 4ter. SELECCIÓN DE GRUPO (administrador de Conecta Educa) -->
-  <section id="pantallaSeleccionGrupoConectaEducaSuperadmin" class="pantalla">
+  <!-- 4ter. CARACTERIZACIÓN DEL CONVERSATORIO: catálogo de los 7 grupos técnicos
+       (Grupos ConectaEduca) y selección del grupo al que pertenece la IE. -->
+  <section id="pantallaCaracterizacionConversatorio" class="pantalla">
     <div class="tarjeta">
-      <button type="button" class="btn btn-secundario" id="btnCambiarSeccionDesdeSeleccionGrupo" style="margin-bottom:14px;">← Elegir otra sección</button>
-      <h2 class="titulo-seccion">¿Qué grupo va a diligenciar?</h2>
-      <p class="ayuda">Elija el grupo para registrar sus datos de Conecta Educa. Puede volver a esta pantalla
-        en cualquier momento (botón "← Elegir otra sección" en cualquier pantalla de Conecta Educa, o
-        reingresando con el código de administrador) para cambiar de grupo.</p>
-      <div id="listaGruposSuperadminConectaEduca"></div>
-      <div id="mensajeSeleccionGrupoSuperadmin"></div>
+      <h2 class="titulo-seccion">Grupos de articulación técnica</h2>
+      <p class="ayuda" id="institucionCaracterizacionConversatorio"></p>
+      <p class="ayuda">Estos son los 7 grupos en los que se agruparon las Instituciones Educativas de Neiva
+        según su técnica/articulación SENA. Los resaltados en verde son los grupos a los que pertenece su
+        institución — elija con cuál va a continuar.</p>
+      <div id="listaGruposCaracterizacionConversatorio"></div>
+      <div id="mensajeCaracterizacionConversatorio"></div>
+    </div>
+  </section>
+
+  <!-- 4quater. RESOLUCIÓN VS IE (editable) + preguntas por técnica. -->
+  <section id="pantallaResolucionConversatorio" class="pantalla">
+    <div class="tarjeta">
+      <button type="button" class="btn btn-secundario" data-ir="pantallaCaracterizacionConversatorio" style="margin-bottom:14px;">← Cambiar de grupo</button>
+      <h2 class="titulo-seccion">Programas técnicos articulados y su resolución</h2>
+      <p class="ayuda" id="institucionResolucionConversatorio"></p>
+      <p class="ayuda">Revise y corrija si hace falta los datos de cada técnica articulada con el SENA en su
+        institución, y responda las dos preguntas de proyección para 2027.</p>
+      <div id="listaTecnicasResolucionConversatorio"></div>
+      <div id="mensajeResolucionConversatorio"></div>
+      <div class="fila-botones">
+        <button class="btn btn-primario" id="btnFinalizarConversatorio">Finalizar Conversatorio</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4quinquies. CIERRE DEL CONVERSATORIO. -->
+  <section id="pantallaCierreConversatorio" class="pantalla">
+    <div class="tarjeta" style="text-align:center;">
+      <h2 class="titulo-seccion">¡Gracias!</h2>
+      <p class="ayuda" id="institucionCierreConversatorio"></p>
+      <p>Las respuestas del Conversatorio de Conecta Educa quedaron guardadas. Puede cerrar esta ventana.</p>
+      <div class="fila-botones" style="justify-content:center;">
+        <button class="btn btn-secundario" data-ir="pantallaEleccionSeccion">Volver al inicio</button>
+      </div>
     </div>
   </section>
 
@@ -233,8 +260,9 @@
         trabajo colectivo por grupos de 10:00 a. m. a 12:00 m., para construir conclusiones colectivas.</p>
       <p><strong>Parte 2 — Conecta Educa (2:00 p. m. a 5:00 p. m.):</strong> segunda sesión, diálogo e
         interacción con representantes del sector productivo y de la educación superior del territorio, con
-        el propósito de fortalecer los vínculos entre la educación y el desarrollo local. La diligencia un
-        administrador de la Secretaría de Educación de Neiva, en representación del grupo.</p>
+        el propósito de fortalecer los vínculos entre la educación y el desarrollo local. El Conversatorio de
+        Conecta Educa lo diligencia cada Institución Educativa por su cuenta, con su propio código de acceso —
+        no con el código de este grupo.</p>
       <p><strong>La estructura que propone este aplicativo (sesiones, preguntas orientadoras, secciones)
         es una sugerencia de apoyo, no un molde fijo.</strong> La construcción de cada realidad comunal
         es de carácter autónomo: cada grupo puede adaptar el desarrollo del encuentro a sus propias

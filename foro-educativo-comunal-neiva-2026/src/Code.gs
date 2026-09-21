@@ -345,24 +345,44 @@ function rpcGuardarConsentimientoConectaEduca(idGrupo, tokenSesion, dispositivoI
   });
 }
 
-/* ------------------------------------------------------------------ *
- * RPC — Acceso a Conecta Educa como administrador de la SEM (ver Access.gs)
- * ------------------------------------------------------------------ */
-function rpcValidarSuperadminConectaEduca(codigo) {
-  return ejecutarRpcSeguro_(function () {
-    return validarSuperadminConectaEduca(codigo);
-  });
-}
-
-function rpcIniciarSesionConectaEducaComoSuperadmin(codigoSuperadmin, idGrupo, dispositivoId, forzar) {
-  return ejecutarRpcSeguro_(function () {
-    return iniciarSesionConectaEducaComoSuperadmin(codigoSuperadmin, idGrupo, dispositivoId, forzar);
-  });
-}
-
 function rpcGuardarUltimaPantalla(idGrupo, idPantalla) {
   return ejecutarRpcSeguro_(function () {
     return guardarUltimaPantallaGrupo(idGrupo, idPantalla);
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * RPC — Conversatorio (ver Conversatorio.gs): mini-herramienta
+ * independiente de Conecta Educa, con acceso propio por Institución
+ * Educativa (código, sin token de grupo).
+ * ------------------------------------------------------------------ */
+function rpcValidarAccesoIEConversatorio(codigo) {
+  return ejecutarRpcSeguro_(function () {
+    return validarAccesoIEConversatorio(codigo);
+  });
+}
+
+function rpcElegirGrupoConversatorio(codigo, idGrupo) {
+  return ejecutarRpcSeguro_(function () {
+    return elegirGrupoConversatorio(codigo, idGrupo);
+  });
+}
+
+function rpcObtenerTecnicasConversatorio(codigo) {
+  return ejecutarRpcSeguro_(function () {
+    return obtenerTecnicasConversatorio(codigo);
+  });
+}
+
+function rpcGuardarCampoTecnicaConversatorio(codigo, idFila, campo, valor) {
+  return ejecutarRpcSeguro_(function () {
+    return guardarCampoTecnicaConversatorio(codigo, idFila, campo, valor);
+  });
+}
+
+function rpcFinalizarConversatorio(codigo) {
+  return ejecutarRpcSeguro_(function () {
+    return finalizarConversatorio(codigo);
   });
 }
 

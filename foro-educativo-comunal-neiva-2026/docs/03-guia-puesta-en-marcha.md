@@ -2030,70 +2030,114 @@ producción (`generarInformeGrupo`, Informes.gs) para encontrar qué era distint
   para este proyecto (`clasp logs` requiere un proyecto de GCP vinculado, no configurado aquí); si sigue
   pasando, hace falta vincular uno para poder ver la traza real del error.
 
-## 4.62 Cuadragésimo noveno lote: Conecta Educa pasa a operarlo un único administrador de la SEM
+## 4.62 Cuadragésimo noveno lote (revertido en el lote 50, ver 4.63): Conecta Educa pasa a operarlo un único administrador de la SEM
 
-Pedido del usuario: "para conecta Educa no pidas el mismo codigo, Genera 1 codigo de superadmin que solo
-manejen un admin dela SEM". Aclarado con una pregunta al usuario porque cambiaba quién puede entrar a
-Conecta Educa (los 6 grupos, o solo la Secretaría) — eligió **"Solo el admin de la SEM opera Conecta
-Educa"**: los grupos ya no entran directo a Conecta Educa con su propio código; un único administrador de
-la Secretaría de Educación de Neiva entra con un código maestro, elige el grupo de una lista y diligencia
-los datos de Conecta Educa en su nombre, uno a la vez, para los 6 grupos.
+**Este lote fue completamente revertido en el lote 50 (4.63)** — se deja este apartado solo como registro
+histórico de por qué existió, no como referencia de código vigente. Nada de lo descrito aquí abajo sigue en
+el proyecto: `CODIGO_SUPERADMIN_CONECTAEDUCA`, `generarCodigoSuperadminConectaEduca`,
+`validarSuperadminConectaEduca`, `iniciarSesionConectaEducaComoSuperadmin`, `rpcValidarSuperadminConectaEduca`,
+`rpcIniciarSesionConectaEducaComoSuperadmin`, `pantallaAccesoSuperadminConectaEduca`,
+`pantallaSeleccionGrupoConectaEducaSuperadmin` y `renderListaGruposSuperadminConectaEduca` ya no existen.
 
-Diseño: como todas las pantallas de Conecta Educa (`pantallaConsentimientoConectaEduca`,
-`pantallaParticipacion`, `pantallaSesion2`, `pantallaConfirmacionCaracterizacion`, `pantallaRevisionCierre`)
-ya solo dependían de tener una sesión de grupo válida (`idGrupo` + `dispositivoId` + `tokenSesion`,
-verificado con `sesionActivaPorIdGrupo_`) y no de CÓMO se consiguió esa sesión, bastó con darle a Conecta
-Educa una puerta de entrada distinta que termine reclamando esa misma sesión — sin tocar ninguna de esas
-pantallas ni sus RPC.
+Pedido del usuario en ese momento: "para conecta Educa no pidas el mismo codigo, Genera 1 codigo de
+superadmin que solo manejen un admin dela SEM" — un único administrador de la Secretaría de Educación de
+Neiva entraba con un código maestro, elegía uno de los 6 grupos comunales de una lista y diligenciaba
+Conecta Educa en su nombre. Un pedido posterior del usuario ("Elimina el sistema de desarrollo de conecta
+Educa por grupo... Genera 1 codigo de superadmin...") reemplazó esta idea por completo: ver 4.63.
 
-- **Config.gs**: nuevo campo `CODIGO_SUPERADMIN_CONECTAEDUCA` (vacío por defecto) en `ConfiguracionComunal`.
-- **Access.gs**:
-  - `generarCodigoSuperadminConectaEduca()` — genera un código tipo `SEM-XXXXXX` una sola vez (si ya existe,
-    lo devuelve sin regenerar); solo se ejecuta a mano desde el editor de Apps Script, o editando la hoja
-    `ConfiguracionComunal` directamente. **Hace falta ejecutar esta función una vez (o poner el código a
-    mano en la hoja) antes de que la Secretaría pueda usar Conecta Educa** — ver nota abajo.
-  - `validarSuperadminConectaEduca(codigo)` — compara contra el código guardado; si aún no se generó
-    ninguno, devuelve un mensaje explicando que hay que contactar a la Secretaría. Si es válido, devuelve
-    la lista de grupos (`obtenerGrupos()`) para elegir.
-  - `iniciarSesionConectaEducaComoSuperadmin(codigoSuperadmin, idGrupo, dispositivoId, forzar)` — valida el
-    código, busca el grupo elegido en `AccesosGrupo`, y llama a `reclamarSesionGrupo_` (el mismo mecanismo
-    de sesión de siempre, Session.gs) para ese grupo — desde ahí en adelante es indistinguible de un acceso
-    normal por código de grupo.
-- **Code.gs**: `rpcValidarSuperadminConectaEduca` y `rpcIniciarSesionConectaEducaComoSuperadmin`.
-- **Index.html**: dos pantallas nuevas, insertadas antes de `pantallaConsentimientoGrupo`:
-  - `pantallaAccesoSuperadminConectaEduca` — pide el código de administrador.
-  - `pantallaSeleccionGrupoConectaEducaSuperadmin` — lista de grupos con botón "Diligenciar" por cada uno
-    (se puede volver aquí para cambiar de grupo, reingresando con el código o con "← Elegir otra sección").
-  - Texto de consentimiento de grupo y de la tarjeta "Conecta Educa" en la elección de sección actualizados
-    para explicar que ya no se entra con el código propio, sino que lo diligencia un administrador de la SEM
-    en representación del grupo.
-- **Components.html**: `renderListaGruposSuperadminConectaEduca(grupos)`.
-- **JS.html**:
-  - Se extrajo `aplicarSesionGrupoValidada_(r)` de `intentarValidarAcceso` — toda la lógica posterior a
-    validar una sesión de grupo (estado, barra de progreso, instituciones, foto, heartbeat, polling,
-    retomar dónde se quedó, redirección por sección) queda en una sola función, compartida ahora por el
-    acceso normal y por el acceso de superadmin — evita duplicar ~90 líneas y el riesgo de que diverjan.
-  - `estado.accionForzarSesion_` — el modal "sesión ya abierta en otro dispositivo" (`modalTomaSesion`/
-    `btnForzarSesion`) ahora es genérico: guarda qué reintentar (acceso normal o el de superadmin para el
-    grupo elegido) en vez de siempre reintentar `intentarValidarAcceso`.
-  - `pantallaAccesoParaSeccion_(seccion)` — Encuentro sigue yendo a `pantallaAcceso`; Conecta Educa ahora va
-    a `pantallaAccesoSuperadminConectaEduca`. Se usa tanto al elegir sección por primera vez como al
-    retomar la sección guardada en `localStorage` (`retomarSeccionElegida_`).
-  - `btnValidarSuperadminConectaEduca`, `btnCambiarSeccionAccesoSuperadmin`,
-    `btnCambiarSeccionDesdeSeleccionGrupo`, y el delegado `[data-elegir-grupo-superadmin]` (mismo patrón que
-    `[data-iniciar-socializacion-ie]`).
-  - `ORDEN_PANTALLAS`, `PANTALLAS_NO_RESUMIBLES_` y `PANTALLAS_SOLO_CONECTAEDUCA_` incluyen las dos
-    pantallas nuevas (son pantallas de entrada/selección, no de avance real — igual que `pantallaAcceso`).
+## 4.63 Quincuagésimo lote: Conversatorio — Conecta Educa deja de depender de los 6 grupos comunales
 
-**Importante para la Secretaría**: mientras `CODIGO_SUPERADMIN_CONECTAEDUCA` esté vacío en
-`ConfiguracionComunal`, nadie puede entrar a Conecta Educa — hay que ejecutar
-`generarCodigoSuperadminConectaEduca()` una vez desde el editor de Apps Script (o pegar un código a mano en
-esa columna) y entregar ese código únicamente a la persona de la SEM que va a operar Conecta Educa.
+Pedido del usuario, en dos mensajes: primero compartió un documento de Google Sheets con la agrupación de
+las Instituciones Educativas de Neiva en 7 grupos por técnica/articulación SENA (no 6 grupos comunales), y
+pidió "Elimina el sistema de desarrollo de coencta educa por grupo... llames a la primera parte
+'conversatorio'... Caracteriza la sesión con pantalla donde se vea la información extraída desde Hoja
+grupos conecta educa... selección de grupo y direccionar a grupo que pertenezca... Segunda pantalla
+muestra datos desde Resolución Vs IE editable... preguntas debajo de cada técnica... agrupa a las IE en
+[los grupos] desde hoja Matriz IE-Técnica". Se aclaró con 3 rondas de preguntas al usuario (número real de
+grupos, alcance del reemplazo, y quién entra) — decisiones finales: **usar los 7 grupos reales del
+documento** (no 6); **Conversatorio es la nueva primera parte, independiente**, sin conectarse con el resto
+de Conecta Educa (consentimiento, Sesión 2, cierre, que quedan intactos y sin uso por ahora); y **cada
+Institución Educativa entra por su cuenta**, con su propio código — no un administrador único ni el código
+de un grupo comunal.
 
-Verificado: `node --check` sobre Config.gs, Access.gs y Code.gs; extracción y `node --check` de los bloques
+**Paso 1 — revertir el lote 49 (4.62) por completo.** `git checkout <commit-previo-al-49> -- Access.gs
+Code.gs Components.html Config.gs Index.html` (esos 4 archivos eran puramente aditivos, sin mezclar con
+otros cambios — se pudo revertir de forma limpia); `JS.html` se revirtió también al estado previo al 49
+completo (el refactor de `aplicarSesionGrupoValidada_`/`estado.accionForzarSesion_` de ese lote solo tenía
+sentido para compartir lógica con el superadmin que ya no existe, así que no valía la pena conservarlo
+aparte).
+
+**Paso 2 — Conversatorio, mini-herramienta nueva e independiente.** Fuente de datos: hoja de cálculo de
+Google externa (`ID_HOJA_FUENTE_CONVERSATORIO_` en Conversatorio.gs) con 3 pestañas relevantes: "Grupos
+ConectaEduca" (7 grupos: nombre, N.º de IE, técnicas incluidas, criterio de agrupación), "Matriz
+IE-Técnica" (qué IE pertenece a qué grupo(s) — varias IE pertenecen a más de uno) y "Resolución Vs IE"
+(técnica SENA, programa aprobado, resolución/decreto, por IE — incluye instituciones que NO son parte de
+los 7 grupos de Conecta Educa, que se descartan al importar).
+
+- **Conversatorio.gs** (archivo nuevo):
+  - `importarDatosConversatorio()` — se ejecuta a mano desde el editor cada vez que la Secretaría actualice
+    el documento fuente (mismo patrón que `generarAccesosGrupo`). Abre el documento fuente directamente con
+    `SpreadsheetApp.openById` (misma cuenta de Google que el proyecto — evita transcribir a mano ~150 filas
+    y el riesgo de errores de transcripción) y puebla 3 hojas propias del proyecto:
+    `ConversatorioGrupos`, `ConversatorioMatrizIETecnica` (se reescriben por completo en cada import, sin
+    datos de usuario) y `ConversatorioResolucionIE` (solo AGREGA filas institución+técnica que no existan
+    todavía — nunca pisa ediciones o respuestas ya guardadas por una IE). También genera (idempotente,
+    nunca regenera) un código de acceso `CE-XXXXX` por cada institución que aparece en la Matriz
+    IE-Técnica, en la hoja `AccesosIEConversatorio`.
+  - Nombres de institución inconsistentes entre pestañas del documento fuente (p. ej. "NACIONAL SANTA
+    LIBRADA" en Resolución Vs IE vs. "IE SANTA LIBRADA" en Matriz IE-Técnica) se resuelven con
+    `normalizarNombreIEConversatorio_` (mayúsculas, sin tildes, sin prefijo "IE") + un pequeño mapa de
+    alias (`ALIAS_IE_CONVERSATORIO_`) para los 2-3 casos que ni así calzan.
+  - `validarAccesoIEConversatorio(codigo)` — valida el código y devuelve el catálogo completo de los 7
+    grupos, marcando (`perteneceIE`) a cuáles pertenece esa institución.
+  - `elegirGrupoConversatorio(codigo, idGrupo)` — guarda qué grupo eligió trabajar la IE
+    (`GRUPO_ELEGIDO` en `AccesosIEConversatorio`); valida que la IE de verdad pertenezca a ese grupo.
+  - `obtenerTecnicasConversatorio(codigo)` / `guardarCampoTecnicaConversatorio(codigo, idFila, campo,
+    valor)` — lectura y autoguardado por campo (técnica/programa/resolución o una de las 2 preguntas de
+    proyección 2027) de las filas de `ConversatorioResolucionIE` de esa institución.
+  - `finalizarConversatorio(codigo)` — marca `ESTADO = COMPLETADO`.
+  - Deliberadamente **sin** el mecanismo de cupos-por-dispositivo/heartbeat/"sesión ya abierta" que sí
+    tiene el resto de la app (Session.gs) — el Conversatorio lo suele llenar una sola persona de contacto
+    por institución, así que se mantuvo simple a propósito.
+- **Code.gs**: `rpcValidarAccesoIEConversatorio`, `rpcElegirGrupoConversatorio`,
+  `rpcObtenerTecnicasConversatorio`, `rpcGuardarCampoTecnicaConversatorio`, `rpcFinalizarConversatorio`.
+- **Index.html**: 4 pantallas nuevas insertadas después de `pantallaAcceso`: `pantallaAccesoConversatorio`
+  (código de la institución), `pantallaCaracterizacionConversatorio` (catálogo de los 7 grupos, resalta a
+  cuáles pertenece la IE, botón "Elegir este grupo" solo en los propios), `pantallaResolucionConversatorio`
+  (técnicas editables + las 2 preguntas debajo de cada una) y `pantallaCierreConversatorio`. La tarjeta
+  "Conecta Educa" de `pantallaEleccionSeccion` ya no usa `data-elegir-seccion` (ese mecanismo sigue
+  existiendo solo para "ENCUENTRO"): tiene `id="btnIrConversatorio"` y lleva directo a
+  `pantallaAccesoConversatorio`. Texto de consentimiento de grupo actualizado para explicar que Conecta
+  Educa ahora lo diligencia cada IE por su cuenta.
+- **Components.html**: `renderGruposCaracterizacionConversatorio(grupos, grupoElegido)` y
+  `renderTecnicasResolucionConversatorio(tecnicas)`.
+- **CSS.html**: `.tarjeta-grupo-ie`/`.tarjeta-grupo-ajena`/`.tarjeta-grupo-elegida` (variantes de
+  `.tarjeta-seccion` reutilizada como tarjeta no-interactiva, `div` en vez de `button`).
+- **JS.html**: `estado.codigoConversatorio`/`institucionConversatorio`/`grupoElegidoConversatorio`;
+  `pantallaAccesoConversatorio`/`pantallaCaracterizacionConversatorio`/`pantallaResolucionConversatorio`/
+  `pantallaCierreConversatorio` agregadas a `ORDEN_PANTALLAS` (justo después de `pantallaAcceso`, antes de
+  `pantallaParticipacion` — así el guard de "método de asistencia obligatorio" en `cambiarPantalla` nunca
+  las alcanza) y a `PANTALLAS_NO_RESUMIBLES_`; autoguardado por campo con el mismo patrón "change" que el
+  resto de la app (p. ej. el rector en Confirmación de caracterización).
+
+**Decisión deliberada de alcance**: el resto de Conecta Educa (`pantallaConsentimientoConectaEduca`,
+`pantallaSesion2`, `pantallaConfirmacionCaracterizacion`/`pantallaRevisionCierre` cuando
+`estado.seccion === "CONECTAEDUCA"`) **no se tocó ni se conectó con el Conversatorio** — sigue en el código
+tal cual estaba, pero ahora inalcanzable desde la interfaz (nada pone `estado.seccion = "CONECTAEDUCA"` ya
+que la tarjeta de la sección ya no usa `data-elegir-seccion`). Se deja así a propósito (decisión explícita
+del usuario) en vez de borrarlo, por si se vuelve a necesitar.
+
+**Importante para la Secretaría**: antes de compartir códigos, ejecutar `importarDatosConversatorio()` una
+vez desde el editor de Apps Script (con el documento fuente ya accesible a la misma cuenta de Google del
+proyecto) — después de eso, cada institución tiene su código en la hoja `AccesosIEConversatorio`. Si el
+documento fuente cambia más adelante, se puede volver a ejecutar sin perder respuestas ya guardadas.
+
+Verificado: `node --check` sobre Conversatorio.gs y Code.gs; extracción y `node --check` de los bloques
 `<script>` de Index.html, JS.html y Components.html (limpios, aparte de los dos falsos positivos
-permanentes ya conocidos: `TOKEN_ACCESO`/`ID_GRUPO` vacíos al striparse fuera de una petición real);
-sin IDs duplicados ni etiquetas sin cerrar en Index.html/Components.html.
+permanentes ya conocidos); sin IDs duplicados ni etiquetas sin cerrar en Index.html/Components.html. No fue
+posible probar en vivo el `SpreadsheetApp.openById` contra el documento fuente real (sin acceso a
+`clasp run` ni `clasp logs` en este entorno) — si al ejecutar `importarDatosConversatorio()` la cuenta del
+proyecto no tuviera acceso a ese documento, fallaría con un error de permisos de Google, no silenciosamente.
 
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 

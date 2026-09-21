@@ -75,15 +75,6 @@ var CONFIG_POR_DEFECTO_ = {
   // (Encuentro y Conecta Educa) — ver asegurarFormatosAsistenciaPublicos_
   // en Drive.gs.
   FORMATOS_ASISTENCIA_PUBLICOS: "",
-  // Código único ("superadmin") para que un administrador de la
-  // Secretaría de Educación de Neiva opere Conecta Educa en nombre de
-  // CUALQUIER grupo (pedido del usuario) — Conecta Educa ya no se abre
-  // con el código propio del grupo: se genera una sola vez (ver
-  // generarCodigoSuperadminConectaEduca en Access.gs, o se edita directo
-  // aquí) y se comparte solo con esa persona. Es una credencial sensible
-  // (abre Conecta Educa de todos los grupos, no de uno solo) — vacío por
-  // defecto hasta que se genere.
-  CODIGO_SUPERADMIN_CONECTAEDUCA: "",
   // FEI 3.1 enviaba siempre como "calidadeducacion@alcaldianeiva.gov.co"
   // (REMITENTE_FEM, Código.js). Se deja vacío por defecto (usa la cuenta
   // que ejecuta el script, siempre válida) — antes de configurar ese

@@ -158,6 +158,14 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--verde); bor
 .tarjeta-seccion h3 { color: var(--verde-oscuro); margin: 8px 0 6px; }
 .logo-tarjeta-seccion { max-width: 140px; max-height: 100px; margin: 0 auto 8px; display: block; }
 
+/* Conversatorio (Conecta Educa) — catálogo de grupos técnicos, usa tarjetas
+   no-interactivas (div, no button) reutilizando .tarjeta-seccion. */
+div.tarjeta-seccion { cursor: default; }
+div.tarjeta-seccion:hover, div.tarjeta-seccion:focus-visible { transform: none; }
+.tarjeta-grupo-ie { border-color: var(--verde); background: var(--verde-clarisimo, #f2f8f0); }
+.tarjeta-grupo-ajena { opacity: 0.6; }
+.tarjeta-grupo-elegida { border-width: 2px; box-shadow: 0 0 0 2px var(--verde); }
+
 /* Sesión de socialización (Documento Orientador FEM2026, item 10). */
 .fila-socializacion-ie {
   display: flex;
