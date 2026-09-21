@@ -2127,10 +2127,12 @@ tal cual estaba, pero ahora inalcanzable desde la interfaz (nada pone `estado.se
 que la tarjeta de la sección ya no usa `data-elegir-seccion`). Se deja así a propósito (decisión explícita
 del usuario) en vez de borrarlo, por si se vuelve a necesitar.
 
-**Importante para la Secretaría**: antes de compartir códigos, ejecutar `importarDatosConversatorio()` una
-vez desde el editor de Apps Script (con el documento fuente ya accesible a la misma cuenta de Google del
-proyecto) — después de eso, cada institución tiene su código en la hoja `AccesosIEConversatorio`. Si el
-documento fuente cambia más adelante, se puede volver a ejecutar sin perder respuestas ya guardadas.
+**Importante para la Secretaría**: ejecutar `importarDatosConversatorio()` una vez desde el editor de Apps
+Script (con el documento fuente ya accesible a la misma cuenta de Google del proyecto) antes de que
+cualquier institución pueda usar el Conversatorio — después de eso, cada institución aparece en el listado
+de acceso. Si el documento fuente cambia más adelante, se puede volver a ejecutar sin perder respuestas ya
+guardadas. **Nota (ver 4.64): el acceso por código de este apartado fue reemplazado por un listado — cada
+institución se elige a sí misma, sin código.**
 
 Verificado: `node --check` sobre Conversatorio.gs y Code.gs; extracción y `node --check` de los bloques
 `<script>` de Index.html, JS.html y Components.html (limpios, aparte de los dos falsos positivos
@@ -2138,6 +2140,45 @@ permanentes ya conocidos); sin IDs duplicados ni etiquetas sin cerrar en Index.h
 posible probar en vivo el `SpreadsheetApp.openById` contra el documento fuente real (sin acceso a
 `clasp run` ni `clasp logs` en este entorno) — si al ejecutar `importarDatosConversatorio()` la cuenta del
 proyecto no tuviera acceso a ese documento, fallaría con un error de permisos de Google, no silenciosamente.
+
+## 4.64 Quincuagésimo primer lote: Conversatorio sin códigos por IE + pregunta de apertura 2027 con Sí/No
+
+Pedido del usuario, dos ajustes puntuales al lote anterior (4.63): "omite que se generen codigos por IE y
+mas bien que ellos mismos escojan la IE de un listado" y "opciones si o no desplegable en ¿Se aperturará
+esta articulación para grado 10° en el 2027?".
+
+- **Conversatorio.gs**: se quitó `CODIGO` de `cabecerasConversatorioAccesos_()` — `AccesosIEConversatorio`
+  ya no genera ni guarda un código por institución, solo una fila (`INSTITUCION_EDUCATIVA`, `ESTADO`,
+  `GRUPO_ELEGIDO`, `ULTIMA_ACTIVIDAD`) por cada una, creada en `importarDatosConversatorio()`. Nueva función
+  `obtenerInstitucionesConversatorio()` — devuelve los nombres (ordenados alfabéticamente, sin las
+  bloqueadas) para el listado de elección. `buscarAccesoConversatorioPorCodigo_` se reemplazó por
+  `buscarAccesoConversatorioPorInstitucion_` (mismo `normalizarNombreIEConversatorio_` para la
+  comparación); `validarAccesoIEConversatorio(codigo)` se renombró a
+  `seleccionarInstitucionConversatorio(institucion)`; `elegirGrupoConversatorio`,
+  `obtenerTecnicasConversatorio`, `guardarCampoTecnicaConversatorio` y `finalizarConversatorio` reciben
+  ahora `institucion` en vez de `codigo` como primer parámetro.
+- **Code.gs**: `rpcObtenerInstitucionesConversatorio` (nuevo) y `rpcSeleccionarInstitucionConversatorio`
+  (reemplaza a `rpcValidarAccesoIEConversatorio`); el resto de RPCs de Conversatorio actualizados al nuevo
+  nombre de parámetro.
+- **Index.html**: `pantallaAccesoConversatorio` ya no tiene el campo de código ni el botón "Continuar" —
+  ahora es directamente el contenedor `listaInstitucionesAccesoConversatorio`, poblado al entrar a la
+  pantalla. Textos de la tarjeta "Conecta Educa" (elección de sección) y del consentimiento de grupo
+  actualizados para decir "se elige de una lista" en vez de "con su propio código".
+- **Components.html**: `renderListaInstitucionesAccesoConversatorio(instituciones)` (mismo patrón de fila +
+  botón que `renderGruposCaracterizacionConversatorio`). En `renderTecnicasResolucionConversatorio`, el
+  campo `preguntaApertura2027` pasó de `<input type="text">` a `<select>` con 3 opciones ("— Sin
+  responder —", "Sí", "No") — el autoguardado en "change" (JS.html) no necesitó cambios, ya funciona igual
+  para `<select>` que para `<input>`. La segunda pregunta (`preguntaNuevaArticulacion2027`) sigue como
+  texto libre — el pedido del usuario solo mencionó la primera.
+- **JS.html**: `estado.codigoConversatorio` eliminado — `estado.institucionConversatorio` (el nombre, no un
+  código) es ahora la única clave que se manda a los RPC. `btnIrConversatorio` ahora carga el listado
+  (`rpcObtenerInstitucionesConversatorio`) antes de mostrar `pantallaAccesoConversatorio`, en vez de solo
+  cambiar de pantalla. Nuevo delegado `[data-elegir-institucion-conversatorio]` junto al de
+  `[data-elegir-grupo-conversatorio]` ya existente.
+
+Verificado: `node --check` sobre Conversatorio.gs y Code.gs; extracción y `node --check` de los bloques
+`<script>` (limpios, mismos 2 falsos positivos permanentes); sin IDs duplicados ni etiquetas (incluido
+`<select>`) sin cerrar en Index.html/Components.html.
 
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 

@@ -152,7 +152,7 @@
         <img id="logoTarjetaConectaEduca" class="logo-tarjeta-seccion oculto" alt="">
         <h3>Conecta Educa — Conversatorio</h3>
         <p class="ayuda">Conectar saberes, articular futuro — articulaciones técnicas SENA por Institución
-          Educativa (acceso propio por institución, con su propio código).</p>
+          Educativa (cada institución se elige de una lista, sin código).</p>
       </button>
     </div>
   </section>
@@ -181,24 +181,19 @@
   </section>
 
   <!-- 4bis. CONVERSATORIO (Conecta Educa, pedido del usuario): mini-herramienta
-       independiente y autocontenida, con acceso propio por Institución
-       Educativa (código, sin token de grupo) — NO se conecta con el resto de
-       Conecta Educa (pantallaConsentimientoConectaEduca, pantallaSesion2, etc.,
-       que siguen intactas para cuando se usen aparte). -->
+       independiente y autocontenida — cada Institución Educativa se elige a sí
+       misma de un listado (sin código, spec del usuario) — NO se conecta con el
+       resto de Conecta Educa (pantallaConsentimientoConectaEduca, pantallaSesion2,
+       etc., que siguen intactas para cuando se usen aparte). -->
   <section id="pantallaAccesoConversatorio" class="pantalla">
     <div class="tarjeta">
       <button type="button" class="btn btn-secundario" id="btnCambiarSeccionAccesoConversatorio" style="margin-bottom:14px;">← Elegir otra sección</button>
       <img id="logoAccesoConversatorio" class="logo-tarjeta-seccion oculto" alt="" style="display:block;margin:0 auto 14px;">
       <h2 class="titulo-seccion">Conversatorio — Conecta Educa</h2>
       <p class="ayuda">Diálogo sobre las articulaciones técnicas SENA entre cada Institución Educativa y el
-        sector productivo. Cada institución ingresa con su propio código — no con el código de un grupo del
-        Encuentro.</p>
-      <label for="campoCodigoConversatorio">Código de la institución</label>
-      <input type="text" id="campoCodigoConversatorio" placeholder="CE-XXXXX" autocomplete="off">
+        sector productivo. Elija su institución de la lista para continuar.</p>
+      <div id="listaInstitucionesAccesoConversatorio"></div>
       <div id="mensajeAccesoConversatorio"></div>
-      <div class="fila-botones">
-        <button class="btn btn-primario" id="btnValidarAccesoConversatorio">Continuar</button>
-      </div>
     </div>
   </section>
 
@@ -261,7 +256,7 @@
       <p><strong>Parte 2 — Conecta Educa (2:00 p. m. a 5:00 p. m.):</strong> segunda sesión, diálogo e
         interacción con representantes del sector productivo y de la educación superior del territorio, con
         el propósito de fortalecer los vínculos entre la educación y el desarrollo local. El Conversatorio de
-        Conecta Educa lo diligencia cada Institución Educativa por su cuenta, con su propio código de acceso —
+        Conecta Educa lo diligencia cada Institución Educativa por su cuenta, eligiéndose de una lista —
         no con el código de este grupo.</p>
       <p><strong>La estructura que propone este aplicativo (sesiones, preguntas orientadoras, secciones)
         es una sugerencia de apoyo, no un molde fijo.</strong> La construcción de cada realidad comunal

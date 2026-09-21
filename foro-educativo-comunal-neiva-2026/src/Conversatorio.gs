@@ -5,9 +5,10 @@
  * e independiente, de Conecta Educa — reemplaza el sistema anterior de
  * acceso "por grupo comunal" (código propio de cada uno de los 6 grupos de
  * GruposComunal, y luego el administrador único de la SEM del lote
- * anterior). Ahora cada Institución Educativa entra por su cuenta, con un
- * código propio, sin pasar por un administrador ni por los 6 grupos
- * comunales del Encuentro.
+ * anterior). Ahora cada Institución Educativa se elige a sí misma de un
+ * listado — sin código (pedido del usuario: "omite que se generen codigos
+ * por IE y mas bien que ellos mismos escojan la IE de un listado") — sin
+ * pasar por un administrador ni por los 6 grupos comunales del Encuentro.
  *
  * El resto de Conecta Educa (pantallaConsentimientoConectaEduca,
  * pantallaSesion2, etc., construidas alrededor de GruposComunal) NO se
@@ -22,7 +23,7 @@
  * que el proyecto) y puebla las hojas propias del proyecto — se ejecuta a
  * mano desde el editor cada vez que la Secretaría actualice ese documento
  * fuente; nunca se llama automáticamente (mismo patrón que
- * generarAccesosGrupo/generarCodigoSuperadminConectaEduca).
+ * generarAccesosGrupo).
  */
 
 var ID_HOJA_FUENTE_CONVERSATORIO_ = "1_ewh04NaoSCfbndj8oaZtzZdrD-sJpeH";
@@ -45,14 +46,14 @@ function cabecerasConversatorioResolucion_() {
   ];
 }
 function cabecerasConversatorioAccesos_() {
-  return ["INSTITUCION_EDUCATIVA", "CODIGO", "ESTADO", "GRUPO_ELEGIDO", "ULTIMA_ACTIVIDAD"];
+  return ["INSTITUCION_EDUCATIVA", "ESTADO", "GRUPO_ELEGIDO", "ULTIMA_ACTIVIDAD"];
 }
 
 /**
  * Nombres de Institución Educativa que aparecen distinto en la hoja
  * "Resolución Vs IE" del documento fuente que en "Matriz IE-Técnica" (para
  * la misma institución) — sin este mapa, la comparación por nombre
- * normalizado (quitarPrefijoIE_, mayúsculas, sin tildes) no los uniría.
+ * normalizado (sin prefijo "IE", mayúsculas, sin tildes) no los uniría.
  */
 var ALIAS_IE_CONVERSATORIO_ = {
   "NACIONAL SANTA LIBRADA": "SANTA LIBRADA",
@@ -78,8 +79,9 @@ function normalizarNombreIEConversatorio_(nombre) {
  * reescriben por completo (no hay datos de usuario ahí); en
  * ConversatorioResolucionIE solo se agregan filas nuevas (institución +
  * técnica que todavía no exista) — las respuestas y ediciones ya guardadas
- * por una IE nunca se pisan. Los códigos de acceso tampoco se regeneran
- * para instituciones que ya tienen uno.
+ * por una IE nunca se pisan. Las filas de AccesosIEConversatorio (una por
+ * institución, sin código) tampoco se duplican para instituciones que ya
+ * la tienen.
  */
 function importarDatosConversatorio() {
   var ssFuente = SpreadsheetApp.openById(ID_HOJA_FUENTE_CONVERSATORIO_);
@@ -155,7 +157,6 @@ function importarDatosConversatorio() {
   var filasResolucion = hojaResolucionFuente.getDataRange().getValues();
   var institucionActual = "";
   var hojaResolucion = obtenerHoja_(HOJA_CONVERSATORIO_RESOLUCION_, cabecerasConversatorioResolucion_());
-  var mapaResolucion = obtenerMapaCabeceras_(hojaResolucion);
   var existentesResolucion = leerFilasComoObjetos_(hojaResolucion);
   var clavesExistentes = {};
   existentesResolucion.forEach(function (fila) {
@@ -170,7 +171,7 @@ function importarDatosConversatorio() {
     if (nombreFila) institucionActual = nombreFila;
     if (!institucionActual) continue;
     var canonico = institucionesCanonicas[normalizarNombreIEConversatorio_(institucionActual)];
-    if (!canonico) continue; // fuera de las 7 grupos de ConectaEduca — no aplica al Conversatorio
+    if (!canonico) continue; // fuera de los 7 grupos de ConectaEduca — no aplica al Conversatorio
     var tecnica = String(fr[2] || "").trim();
     var clave = normalizarNombreIEConversatorio_(canonico) + "||" + tecnica.toUpperCase();
     if (clavesExistentes[clave]) continue;
@@ -189,26 +190,17 @@ function importarDatosConversatorio() {
       .setValues(nuevasFilasResolucion);
   }
 
-  // --- Códigos de acceso por institución (idempotente) ---
+  // --- Una fila de acceso por institución (idempotente, sin código) ---
   var hojaAccesos = obtenerHoja_(HOJA_CONVERSATORIO_ACCESOS_, cabecerasConversatorioAccesos_());
   var existentesAccesos = leerFilasComoObjetos_(hojaAccesos);
   var conAcceso = {};
-  var codigosUsados = {};
   existentesAccesos.forEach(function (fila) {
     conAcceso[normalizarNombreIEConversatorio_(fila.INSTITUCION_EDUCATIVA)] = true;
-    if (fila.CODIGO) codigosUsados[fila.CODIGO] = true;
   });
   var nuevosAccesos = [];
   Object.keys(institucionesCanonicas).forEach(function (clave) {
     if (conAcceso[clave]) return;
-    var codigo = "CE-";
-    do {
-      codigo = "CE-";
-      var caracteres = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-      for (var c = 0; c < 5; c++) codigo += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
-    } while (codigosUsados[codigo]);
-    codigosUsados[codigo] = true;
-    nuevosAccesos.push([institucionesCanonicas[clave], codigo, "ACTIVO", "", ""]);
+    nuevosAccesos.push([institucionesCanonicas[clave], "ACTIVO", "", ""]);
   });
   if (nuevosAccesos.length) {
     hojaAccesos.getRange(hojaAccesos.getLastRow() + 1, 1, nuevosAccesos.length, cabecerasConversatorioAccesos_().length)
@@ -220,18 +212,31 @@ function importarDatosConversatorio() {
     grupos: grupos.length,
     institucionesEnMatriz: Object.keys(institucionesCanonicas).length,
     filasResolucionAgregadas: nuevasFilasResolucion.length,
-    codigosNuevos: nuevosAccesos.length
+    institucionesNuevas: nuevosAccesos.length
   };
 }
 
-/** Fila (objeto) de AccesosIEConversatorio para un código, o null si no existe/está inactivo. */
-function buscarAccesoConversatorioPorCodigo_(codigo) {
-  codigo = String(codigo || "").trim().toUpperCase();
-  if (!codigo) return null;
+/** Nombres de las Instituciones Educativas disponibles en el Conversatorio, para el listado de elección. */
+function obtenerInstitucionesConversatorio() {
   var hoja = obtenerHoja_(HOJA_CONVERSATORIO_ACCESOS_, cabecerasConversatorioAccesos_());
   var filas = leerFilasComoObjetos_(hoja);
+  var nombres = filas
+    .filter(function (fila) { return String(fila.ESTADO || "").toUpperCase() !== "BLOQUEADO"; })
+    .map(function (fila) { return String(fila.INSTITUCION_EDUCATIVA || "").trim(); })
+    .filter(function (n) { return n; });
+  nombres.sort(function (a, b) { return a.localeCompare(b, "es"); });
+  return { ok: true, instituciones: nombres };
+}
+
+/** Fila (objeto) de AccesosIEConversatorio para una institución, o null si no existe/está bloqueada. */
+function buscarAccesoConversatorioPorInstitucion_(institucion) {
+  institucion = String(institucion || "").trim();
+  if (!institucion) return null;
+  var hoja = obtenerHoja_(HOJA_CONVERSATORIO_ACCESOS_, cabecerasConversatorioAccesos_());
+  var filas = leerFilasComoObjetos_(hoja);
+  var buscado = normalizarNombreIEConversatorio_(institucion);
   for (var i = 0; i < filas.length; i++) {
-    if (String(filas[i].CODIGO || "").trim().toUpperCase() === codigo) return filas[i];
+    if (normalizarNombreIEConversatorio_(filas[i].INSTITUCION_EDUCATIVA) === buscado) return filas[i];
   }
   return null;
 }
@@ -250,17 +255,14 @@ function gruposDeInstitucionConversatorio_(institucion) {
 }
 
 /**
- * Valida el código de una IE y devuelve el catálogo completo de los 7
- * grupos técnicos, marcando a cuáles pertenece esta institución (spec del
- * usuario: mostrar la información de "Grupos ConectaEduca" y, ahí mismo,
- * dejar elegir el grupo al que pertenece).
+ * Confirma la institución elegida de la lista y devuelve el catálogo
+ * completo de los 7 grupos técnicos, marcando a cuáles pertenece esta
+ * institución (spec del usuario: mostrar la información de "Grupos
+ * ConectaEduca" y, ahí mismo, dejar elegir el grupo al que pertenece).
  */
-function validarAccesoIEConversatorio(codigo) {
-  var acceso = buscarAccesoConversatorioPorCodigo_(codigo);
-  if (!acceso) return { ok: false, mensaje: "El código es incorrecto." };
-  if (String(acceso.ESTADO).toUpperCase() === "BLOQUEADO") {
-    return { ok: false, mensaje: "El acceso de esta institución fue bloqueado. Contacte a la Secretaría de Educación de Neiva." };
-  }
+function seleccionarInstitucionConversatorio(institucion) {
+  var acceso = buscarAccesoConversatorioPorInstitucion_(institucion);
+  if (!acceso) return { ok: false, mensaje: "Esa institución no está disponible en el Conversatorio." };
 
   var hojaGrupos = obtenerHoja_(HOJA_CONVERSATORIO_GRUPOS_, cabecerasConversatorioGrupos_());
   var grupos = leerFilasComoObjetos_(hojaGrupos);
@@ -284,16 +286,16 @@ function validarAccesoIEConversatorio(codigo) {
 }
 
 /** Registra qué grupo técnico eligió trabajar la IE ("direccionar a grupo que pertenezca"). */
-function elegirGrupoConversatorio(codigo, idGrupo) {
-  var acceso = buscarAccesoConversatorioPorCodigo_(codigo);
-  if (!acceso) return { ok: false, mensaje: "El código es incorrecto." };
+function elegirGrupoConversatorio(institucion, idGrupo) {
+  var acceso = buscarAccesoConversatorioPorInstitucion_(institucion);
+  if (!acceso) return { ok: false, mensaje: "Esa institución no está disponible en el Conversatorio." };
   var idsDeLaIE = gruposDeInstitucionConversatorio_(acceso.INSTITUCION_EDUCATIVA);
   idGrupo = String(idGrupo || "").trim();
   if (!idsDeLaIE[idGrupo]) {
     return { ok: false, mensaje: "Esta institución no pertenece a ese grupo." };
   }
   return conLock_(function () {
-    upsertFila_(HOJA_CONVERSATORIO_ACCESOS_, cabecerasConversatorioAccesos_(), "CODIGO", acceso.CODIGO, {
+    upsertFila_(HOJA_CONVERSATORIO_ACCESOS_, cabecerasConversatorioAccesos_(), "INSTITUCION_EDUCATIVA", acceso.INSTITUCION_EDUCATIVA, {
       GRUPO_ELEGIDO: idGrupo,
       ULTIMA_ACTIVIDAD: new Date()
     });
@@ -302,9 +304,9 @@ function elegirGrupoConversatorio(codigo, idGrupo) {
 }
 
 /** Filas de ConversatorioResolucionIE (técnicas SENA de la IE, con las 2 preguntas). */
-function obtenerTecnicasConversatorio(codigo) {
-  var acceso = buscarAccesoConversatorioPorCodigo_(codigo);
-  if (!acceso) return { ok: false, mensaje: "El código es incorrecto." };
+function obtenerTecnicasConversatorio(institucion) {
+  var acceso = buscarAccesoConversatorioPorInstitucion_(institucion);
+  if (!acceso) return { ok: false, mensaje: "Esa institución no está disponible en el Conversatorio." };
 
   var hoja = obtenerHoja_(HOJA_CONVERSATORIO_RESOLUCION_, cabecerasConversatorioResolucion_());
   var filas = leerFilasComoObjetos_(hoja);
@@ -337,9 +339,9 @@ var CAMPOS_EDITABLES_TECNICA_CONVERSATORIO_ = {
 };
 
 /** Autoguardado de un solo campo (técnica editable o una de las 2 preguntas) por fila. */
-function guardarCampoTecnicaConversatorio(codigo, idFila, campo, valor) {
-  var acceso = buscarAccesoConversatorioPorCodigo_(codigo);
-  if (!acceso) return { ok: false, mensaje: "El código es incorrecto." };
+function guardarCampoTecnicaConversatorio(institucion, idFila, campo, valor) {
+  var acceso = buscarAccesoConversatorioPorInstitucion_(institucion);
+  if (!acceso) return { ok: false, mensaje: "Esa institución no está disponible en el Conversatorio." };
   var columna = CAMPOS_EDITABLES_TECNICA_CONVERSATORIO_[campo];
   if (!columna) return { ok: false, mensaje: "Campo no reconocido." };
 
@@ -359,11 +361,11 @@ function guardarCampoTecnicaConversatorio(codigo, idFila, campo, valor) {
 }
 
 /** Marca el Conversatorio de esta IE como completado. */
-function finalizarConversatorio(codigo) {
-  var acceso = buscarAccesoConversatorioPorCodigo_(codigo);
-  if (!acceso) return { ok: false, mensaje: "El código es incorrecto." };
+function finalizarConversatorio(institucion) {
+  var acceso = buscarAccesoConversatorioPorInstitucion_(institucion);
+  if (!acceso) return { ok: false, mensaje: "Esa institución no está disponible en el Conversatorio." };
   return conLock_(function () {
-    upsertFila_(HOJA_CONVERSATORIO_ACCESOS_, cabecerasConversatorioAccesos_(), "CODIGO", acceso.CODIGO, {
+    upsertFila_(HOJA_CONVERSATORIO_ACCESOS_, cabecerasConversatorioAccesos_(), "INSTITUCION_EDUCATIVA", acceso.INSTITUCION_EDUCATIVA, {
       ESTADO: "COMPLETADO",
       ULTIMA_ACTIVIDAD: new Date()
     });

@@ -544,6 +544,30 @@ function renderChecklistSocializacionIE(datos) {
 }
 
 /**
+ * Listado de Instituciones Educativas para que cada una se elija a sí misma
+ * en el Conversatorio (spec del usuario: "omite que se generen codigos por
+ * IE y mas bien que ellos mismos escojan la IE de un listado") — clic
+ * delegado en JS.html vía data-elegir-institucion-conversatorio.
+ */
+function renderListaInstitucionesAccesoConversatorio(instituciones) {
+  var contenedor = document.getElementById("listaInstitucionesAccesoConversatorio");
+  if (!contenedor) return;
+  if (!instituciones || !instituciones.length) {
+    contenedor.innerHTML = "<p class='ayuda'>Todavía no se importaron las instituciones del Conversatorio (ejecutar importarDatosConversatorio).</p>";
+    return;
+  }
+  var html = "";
+  instituciones.forEach(function (institucion) {
+    html += "<div class='fila-socializacion-ie'>";
+    html += "<span class='nombre-ie-socializacion'>" + escapeHtml(institucion) + "</span>";
+    html += "<div class='fila-botones'>";
+    html += "<button type='button' class='btn btn-primario' data-elegir-institucion-conversatorio='" + escapeHtml(institucion) + "'>Elegir</button>";
+    html += "</div></div>";
+  });
+  contenedor.innerHTML = html;
+}
+
+/**
  * Catálogo de los 7 grupos técnicos del Conversatorio (Grupos ConectaEduca)
  * — resalta a cuáles pertenece la institución y deja elegir uno (clic
  * delegado en JS.html vía data-elegir-grupo-conversatorio).
@@ -596,7 +620,11 @@ function renderTecnicasResolucionConversatorio(tecnicas) {
     html += "<label>Resolución o decreto</label>";
     html += "<input type='text' data-id-fila-tecnica='" + escapeHtml(t.idFila) + "' data-campo-tecnica-conversatorio='resolucionDecreto' value='" + escapeHtml(t.resolucionDecreto) + "'>";
     html += "<label>¿Se aperturará esta articulación para grado 10° en el 2027?</label>";
-    html += "<input type='text' data-id-fila-tecnica='" + escapeHtml(t.idFila) + "' data-campo-tecnica-conversatorio='preguntaApertura2027' placeholder='Sí / No / Aún no se sabe — puede agregar un comentario' value='" + escapeHtml(t.preguntaApertura2027) + "'>";
+    html += "<select data-id-fila-tecnica='" + escapeHtml(t.idFila) + "' data-campo-tecnica-conversatorio='preguntaApertura2027'>";
+    html += "<option value=''" + (t.preguntaApertura2027 ? "" : " selected") + ">— Sin responder —</option>";
+    html += "<option value='Sí'" + (t.preguntaApertura2027 === "Sí" ? " selected" : "") + ">Sí</option>";
+    html += "<option value='No'" + (t.preguntaApertura2027 === "No" ? " selected" : "") + ">No</option>";
+    html += "</select>";
     html += "<label>¿Se incluirá alguna nueva articulación para el año 2027?</label>";
     html += "<input type='text' data-id-fila-tecnica='" + escapeHtml(t.idFila) + "' data-campo-tecnica-conversatorio='preguntaNuevaArticulacion2027' placeholder='Sí / No / Aún no se sabe — puede agregar un comentario' value='" + escapeHtml(t.preguntaNuevaArticulacion2027) + "'>";
     html += "</div>";

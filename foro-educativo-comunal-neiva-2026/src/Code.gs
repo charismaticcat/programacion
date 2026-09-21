@@ -353,36 +353,42 @@ function rpcGuardarUltimaPantalla(idGrupo, idPantalla) {
 
 /* ------------------------------------------------------------------ *
  * RPC — Conversatorio (ver Conversatorio.gs): mini-herramienta
- * independiente de Conecta Educa, con acceso propio por Institución
- * Educativa (código, sin token de grupo).
+ * independiente de Conecta Educa — cada Institución Educativa se elige a
+ * sí misma de un listado (sin código, sin token de grupo).
  * ------------------------------------------------------------------ */
-function rpcValidarAccesoIEConversatorio(codigo) {
+function rpcObtenerInstitucionesConversatorio() {
   return ejecutarRpcSeguro_(function () {
-    return validarAccesoIEConversatorio(codigo);
+    return obtenerInstitucionesConversatorio();
   });
 }
 
-function rpcElegirGrupoConversatorio(codigo, idGrupo) {
+function rpcSeleccionarInstitucionConversatorio(institucion) {
   return ejecutarRpcSeguro_(function () {
-    return elegirGrupoConversatorio(codigo, idGrupo);
+    return seleccionarInstitucionConversatorio(institucion);
   });
 }
 
-function rpcObtenerTecnicasConversatorio(codigo) {
+function rpcElegirGrupoConversatorio(institucion, idGrupo) {
   return ejecutarRpcSeguro_(function () {
-    return obtenerTecnicasConversatorio(codigo);
+    return elegirGrupoConversatorio(institucion, idGrupo);
   });
 }
 
-function rpcGuardarCampoTecnicaConversatorio(codigo, idFila, campo, valor) {
+function rpcObtenerTecnicasConversatorio(institucion) {
   return ejecutarRpcSeguro_(function () {
-    return guardarCampoTecnicaConversatorio(codigo, idFila, campo, valor);
+    return obtenerTecnicasConversatorio(institucion);
   });
 }
 
-function rpcFinalizarConversatorio(codigo) {
+function rpcGuardarCampoTecnicaConversatorio(institucion, idFila, campo, valor) {
   return ejecutarRpcSeguro_(function () {
-    return finalizarConversatorio(codigo);
+    return guardarCampoTecnicaConversatorio(institucion, idFila, campo, valor);
+  });
+}
+
+function rpcFinalizarConversatorio(institucion) {
+  return ejecutarRpcSeguro_(function () {
+    return finalizarConversatorio(institucion);
   });
 }
 

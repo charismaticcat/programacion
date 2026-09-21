@@ -39,9 +39,8 @@ var estado = {
   enlacesInvitados: null,
   seccion: "",
   // Conversatorio (Conecta Educa, pedido del usuario) — mini-herramienta
-  // independiente, acceso propio por Institución Educativa (código, sin
-  // token de grupo) — ver más abajo.
-  codigoConversatorio: "",
+  // independiente; cada Institución Educativa se elige de un listado (sin
+  // código, sin token de grupo) — ver más abajo.
   institucionConversatorio: "",
   grupoElegidoConversatorio: ""
 };
@@ -476,33 +475,43 @@ document.getElementById("btnCambiarSeccionAcceso").addEventListener("click", fun
 
 /* ------------------------------------------------------------------ *
  * Conversatorio (Conecta Educa, pedido del usuario): mini-herramienta
- * independiente y autocontenida — acceso propio por Institución Educativa
- * (código, sin token de grupo, sin cupos por dispositivo). NO reutiliza
+ * independiente y autocontenida — cada Institución Educativa se elige a sí
+ * misma de un listado (sin código, sin token de grupo, sin cupos por
+ * dispositivo — spec del usuario: "omite que se generen codigos por IE y
+ * mas bien que ellos mismos escojan la IE de un listado"). NO reutiliza
  * estado.idGrupo/tokenSesion ni el resto del recorrido de Encuentro/
  * Conecta Educa — ver Conversatorio.gs para la lógica del servidor.
  * ------------------------------------------------------------------ */
 document.getElementById("btnIrConversatorio").addEventListener("click", function () {
-  cambiarPantalla("pantallaAccesoConversatorio");
+  mostrarCargaAccion_("acceso", "Cargando instituciones…");
+  llamarServidor("rpcObtenerInstitucionesConversatorio", [], function (r) {
+    ocultarCargaAccion_();
+    if (!r.ok) {
+      mostrarMensaje("mensajeAccesoConversatorio", r.mensaje || "No fue posible cargar las instituciones.", "error");
+      cambiarPantalla("pantallaAccesoConversatorio");
+      return;
+    }
+    renderListaInstitucionesAccesoConversatorio(r.instituciones || []);
+    cambiarPantalla("pantallaAccesoConversatorio");
+  }, function () {
+    ocultarCargaAccion_();
+    mostrarMensaje("mensajeAccesoConversatorio", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+    cambiarPantalla("pantallaAccesoConversatorio");
+  });
 });
 document.getElementById("btnCambiarSeccionAccesoConversatorio").addEventListener("click", function () {
-  estado.codigoConversatorio = "";
+  estado.institucionConversatorio = "";
   cambiarPantalla("pantallaEleccionSeccion");
 });
 
-document.getElementById("btnValidarAccesoConversatorio").addEventListener("click", function () {
-  var codigo = document.getElementById("campoCodigoConversatorio").value.trim();
-  if (!codigo) {
-    mostrarMensaje("mensajeAccesoConversatorio", "Ingrese el código de la institución.", "error");
-    return;
-  }
-  mostrarCargaAccion_("acceso", "Validando código…");
-  llamarServidor("rpcValidarAccesoIEConversatorio", [codigo], function (r) {
+function seleccionarInstitucionConversatorio_(institucion) {
+  mostrarCargaAccion_("acceso", "Ingresando…");
+  llamarServidor("rpcSeleccionarInstitucionConversatorio", [institucion], function (r) {
     ocultarCargaAccion_();
     if (!r.ok) {
-      mostrarMensaje("mensajeAccesoConversatorio", r.mensaje || "No fue posible validar el código.", "error");
+      mostrarMensaje("mensajeAccesoConversatorio", r.mensaje || "No fue posible seleccionar esa institución.", "error");
       return;
     }
-    estado.codigoConversatorio = codigo;
     estado.institucionConversatorio = r.institucion;
     estado.grupoElegidoConversatorio = r.grupoElegido || "";
     mostrarMensaje("mensajeAccesoConversatorio", "");
@@ -513,18 +522,18 @@ document.getElementById("btnValidarAccesoConversatorio").addEventListener("click
     ocultarCargaAccion_();
     mostrarMensaje("mensajeAccesoConversatorio", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
   });
-});
+}
 
 function elegirGrupoConversatorio_(idGrupo) {
   mostrarCargaAccion_("acceso", "Guardando…");
-  llamarServidor("rpcElegirGrupoConversatorio", [estado.codigoConversatorio, idGrupo], function (r) {
+  llamarServidor("rpcElegirGrupoConversatorio", [estado.institucionConversatorio, idGrupo], function (r) {
     if (!r.ok) {
       ocultarCargaAccion_();
       mostrarMensaje("mensajeCaracterizacionConversatorio", r.mensaje || "No fue posible elegir ese grupo.", "error");
       return;
     }
     estado.grupoElegidoConversatorio = idGrupo;
-    llamarServidor("rpcObtenerTecnicasConversatorio", [estado.codigoConversatorio], function (rt) {
+    llamarServidor("rpcObtenerTecnicasConversatorio", [estado.institucionConversatorio], function (rt) {
       ocultarCargaAccion_();
       if (!rt.ok) {
         mostrarMensaje("mensajeCaracterizacionConversatorio", rt.mensaje || "No fue posible cargar las técnicas.", "error");
@@ -543,10 +552,10 @@ function elegirGrupoConversatorio_(idGrupo) {
   });
 }
 
-// Autoguardado por campo (técnica editable o una de las 2 preguntas de
-// proyección 2027) al salir del campo — mismo patrón de autoguardado en
-// "change" que el resto de la app (p. ej. el rector en Confirmación de
-// caracterización).
+// Autoguardado por campo (técnica editable, la pregunta Sí/No, o la
+// pregunta libre de proyección 2027) al salir del campo — mismo patrón de
+// autoguardado en "change" que el resto de la app (p. ej. el rector en
+// Confirmación de caracterización).
 document.addEventListener("change", function (evento) {
   var campo = evento.target.closest("[data-campo-tecnica-conversatorio]");
   if (!campo) return;
@@ -554,7 +563,7 @@ document.addEventListener("change", function (evento) {
   var nombreCampo = campo.getAttribute("data-campo-tecnica-conversatorio");
   llamarServidor(
     "rpcGuardarCampoTecnicaConversatorio",
-    [estado.codigoConversatorio, idFila, nombreCampo, campo.value],
+    [estado.institucionConversatorio, idFila, nombreCampo, campo.value],
     function (r) {
       if (!r.ok) mostrarMensaje("mensajeResolucionConversatorio", r.mensaje || "No fue posible guardar ese campo.", "error");
     },
@@ -566,7 +575,7 @@ document.addEventListener("change", function (evento) {
 
 document.getElementById("btnFinalizarConversatorio").addEventListener("click", function () {
   mostrarCargaAccion_("acceso", "Finalizando…");
-  llamarServidor("rpcFinalizarConversatorio", [estado.codigoConversatorio], function (r) {
+  llamarServidor("rpcFinalizarConversatorio", [estado.institucionConversatorio], function (r) {
     ocultarCargaAccion_();
     if (!r.ok) {
       mostrarMensaje("mensajeResolucionConversatorio", r.mensaje || "No fue posible finalizar.", "error");
@@ -583,6 +592,9 @@ document.getElementById("btnFinalizarConversatorio").addEventListener("click", f
 document.addEventListener("click", function (evento) {
   var boton = evento.target.closest("[data-ir]");
   if (boton) cambiarPantalla(boton.getAttribute("data-ir"));
+
+  var elegirInstitucionConversatorio = evento.target.closest("[data-elegir-institucion-conversatorio]");
+  if (elegirInstitucionConversatorio) seleccionarInstitucionConversatorio_(elegirInstitucionConversatorio.getAttribute("data-elegir-institucion-conversatorio"));
 
   var elegirGrupoConversatorio = evento.target.closest("[data-elegir-grupo-conversatorio]");
   if (elegirGrupoConversatorio) elegirGrupoConversatorio_(elegirGrupoConversatorio.getAttribute("data-elegir-grupo-conversatorio"));
