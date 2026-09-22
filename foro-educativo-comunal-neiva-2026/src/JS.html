@@ -358,14 +358,10 @@ function cambiarPantalla(idPantalla) {
   if (idPantalla === "pantallaSesion1") {
     cargarSesion1();
     cargarRecursosSesion1();
-    // Aportes relevantes de la Sesión de socialización (pantalla
-    // anterior) — reactivado (pedido del usuario): tarjetaSocializacionPreparacion
-    // se había ocultado en un lote anterior porque dependía de la vieja
-    // "Preparación" (item 9), siempre vacía; ahora se recableó a
-    // rpcObtenerSocializacionGrupo (los datos reales que sí se capturan
-    // en Sesión de socialización) — ver cargarSocializacionPreparacion.
+    // Respuestas de referencia del grupo (Informe de Síntesis, spec del
+    // usuario) para "Construcción colectiva del grupo" — ver
+    // cargarSocializacionPreparacion / SintesisGrupos.gs.
     cargarSocializacionPreparacion();
-    cargarAportesRelevantesSocializacionPdf_();
     // "Continuar a Revisión y cierre" no se habilita hasta que Sesión 1 se
     // envió de forma definitiva (spec del usuario) — se refresca cada vez
     // que se entra a esta pantalla, no solo tras hacer clic en Enviar,
@@ -1319,17 +1315,11 @@ function cargarRecursosSesion1() {
  * Sesión de socialización (Documento Orientador FEM2026, sección D,
  * item 10) — reemplaza a "Preparación" (item 9): checklist de qué IE ya
  * socializó, con un temporizador de apoyo (10 min + botón "+2 minutos")
- * por institución. Mientras el temporizador corre, la pantalla se parte
- * a la mitad (spec del usuario): una mitad el reloj, la otra las
- * respuestas REALES que esa IE ya dejó registradas en sus sesiones
- * (SocializacionDatos.gs), de solo lectura — ya no hay toma manual de
- * notas en vivo. "Finalizar" simplemente marca la IE como socializada
- * (el servidor guarda esas mismas respuestas reales como
- * DATOS_RELEVANTES, ver Socializacion.gs, para que el PDF de aportes
- * relevantes y el Consolidado de Sesión 1 sigan funcionando sin cambios).
- * El cuadro emergente (modalDatosRelevantesIE) se conserva para consultar
- * las respuestas de cualquier IE fuera del temporizador
- * (data-ver-socializacion-ie).
+ * por institución. Solo el temporizador (spec del usuario: "eliminar las
+ * respuestas de la sesion de socialización, solo dejar el temporizador")
+ * — las respuestas reales del grupo, extraídas de su Informe de Síntesis,
+ * se muestran en Sesión 1, junto a cada pregunta de "Construcción
+ * colectiva del grupo" (ver Sesion1.gs / SintesisGrupos.gs).
  * ------------------------------------------------------------------ */
 var estadoSocializacion = {
   datos: [],
@@ -1422,12 +1412,6 @@ function iniciarTemporizadorSocializacionIE_(idIE, nombreIE) {
   estadoSocializacion.segundosRestantes = SEGUNDOS_INICIALES_SOCIALIZACION_;
   document.getElementById("nombreIESocializando").textContent = nombreIE;
   _actualizarRelojSocializacion_();
-  var registro = estadoSocializacion.datos.find(function (ie) { return ie.idIE === idIE; });
-  var panelRespuestas = document.getElementById("panelRespuestasRealesSocializacion");
-  if (panelRespuestas) {
-    panelRespuestas.textContent = (registro && registro.respuestasReales) ||
-      "No hay respuestas registradas en Drive para esta institución.";
-  }
   document.getElementById("panelTemporizadorSocializacion").classList.remove("oculto");
   document.getElementById("panelTemporizadorSocializacion").scrollIntoView({ behavior: "smooth", block: "center" });
   mostrarAvisoMomentoSocializacion_("🟢 Socialización de " + nombreIE + " iniciada.");
@@ -1475,27 +1459,12 @@ document.getElementById("btnFinalizarSocializacionIE").addEventListener("click",
   finalizarSocializacionIE_();
 });
 
-/** Cuadro emergente de solo lectura con las respuestas reales de una IE (fuera del temporizador). */
-function abrirDatosRelevantesSocializacionIE_(idIE, nombreIE) {
-  var registro = estadoSocializacion.datos.find(function (ie) { return ie.idIE === idIE; });
-  document.getElementById("tituloDatosRelevantesIE").textContent = "Respuestas registradas de " + (nombreIE || (registro && registro.institucion) || "");
-  document.getElementById("campoDatosRelevantesIE").textContent = (registro && registro.respuestasReales) ||
-    "No hay respuestas registradas en Drive para esta institución.";
-  abrirModal("modalDatosRelevantesIE");
-}
-
 document.addEventListener("click", function (evento) {
   var iniciar = evento.target.closest("[data-iniciar-socializacion-ie]");
   if (iniciar) {
     var idIE = iniciar.getAttribute("data-iniciar-socializacion-ie");
     var registro = estadoSocializacion.datos.find(function (ie) { return ie.idIE === idIE; });
     iniciarTemporizadorSocializacionIE_(idIE, registro ? registro.institucion : "");
-  }
-  var ver = evento.target.closest("[data-ver-socializacion-ie]");
-  if (ver) {
-    var idIEVer = ver.getAttribute("data-ver-socializacion-ie");
-    var registroVer = estadoSocializacion.datos.find(function (ie) { return ie.idIE === idIEVer; });
-    abrirDatosRelevantesSocializacionIE_(idIEVer, registroVer ? registroVer.institucion : "");
   }
 });
 
@@ -1708,11 +1677,13 @@ document.getElementById("btnMostrarCodigoAcceso").addEventListener("click", func
 
 /** A dónde ir al terminar la introducción (Inicio → Presentación → Metodología), ya con el acceso validado. */
 function irTrasMetodologia_() {
-  // Participación ya no va justo después de la agenda (se movió al final,
-  // justo antes de Revisión y cierre) — si el grupo ya "aceptó" la agenda
-  // antes (estado.consentimientoGrupo, resumiendo en otro día/dispositivo),
-  // el siguiente paso real es la Sesión de socialización, no Participación.
-  cambiarPantalla(estado.consentimientoGrupo ? "pantallaSesionSocializacion" : "pantallaConsentimientoGrupo");
+  // pantallaConsentimientoGrupo ("Jornada Tarde — ConectaEduca") ya no es
+  // parte del recorrido (spec del usuario: "eliminar pantalla Jornada
+  // Tarde — ConectaEduca") — de la Ruta del Encuentro se pasa directo a la
+  // Sesión de socialización. La pantalla se deja en el HTML sin borrar
+  // (mismo patrón que el resto de pantallas ya inalcanzables del proyecto),
+  // simplemente ya nada navega hacia ella.
+  cambiarPantalla("pantallaSesionSocializacion");
 }
 document.getElementById("btnContinuarDesdeMetodologia").addEventListener("click", irTrasMetodologia_);
 
@@ -4043,72 +4014,26 @@ document.getElementById("btnEnviarPreparacionIE").addEventListener("click", func
 });
 
 /**
- * Aportes relevantes de la Sesión de socialización, mostrados en Sesión 1
- * (pedido del usuario): un <details> colapsado por cada IE con datos
- * relevantes registrados en la pantalla anterior — para que el grupo los
- * lea/copie mientras responde las preguntas de "Construcción colectiva".
- * Reutiliza el contenedor y el mecanismo de copiar-al-seleccionar que ya
- * existía para "Aportes de preparación por institución" (oculto desde el
- * item 9, cuando esa fuente de datos —la vieja "Preparación"— dejó de
- * existir); ahora apunta a rpcObtenerSocializacionGrupo, la fuente real.
+ * Respuestas de referencia del grupo (Informe de Síntesis), mostradas en
+ * Sesión 1 (spec del usuario: "las respuestas arrastradas desde los
+ * informes grupales deben aparecer en la sesión Construcción colectiva
+ * del grupo, las respuestas deben ser las del informe del grupo, no las
+ * de cada IE"): un <details> colapsado por cada pregunta, con lo que el
+ * grupo ya respondió según su Informe de Síntesis — para leer/copiar
+ * mientras se responden las preguntas de "Construcción colectiva".
  */
 function cargarSocializacionPreparacion() {
   if (!estado.idGrupo) return;
-  llamarServidor("rpcObtenerSocializacionGrupo", [estado.idGrupo], function (datos) {
-    estado.socializacionPreparacion = (datos || []).filter(function (ie) {
-      return String(ie.datosRelevantes || "").trim();
-    });
+  llamarServidor("rpcObtenerRespuestasSintesisGrupo", [estado.idGrupo], function (datos) {
+    estado.socializacionPreparacion = datos || [];
     renderSocializacionPreparacion(estado.socializacionPreparacion);
   });
 }
 
 /**
- * PDF "Aportes relevantes del <Grupo>" (pedido del usuario): reúne todo
- * lo anotado por IE en la Sesión de socialización en un solo documento
- * descargable, aparte del informe oficial. Si ya se había generado antes,
- * al entrar a Sesión 1 se muestra directo el enlace "Ver PDF" (sin volver
- * a generar) — regenerar es una acción explícita del botón.
- */
-function cargarAportesRelevantesSocializacionPdf_() {
-  if (!estado.idGrupo) return;
-  llamarServidor("rpcObtenerAportesRelevantesSocializacion", [estado.idGrupo], function (info) {
-    var enlace = document.getElementById("enlaceAportesRelevantesSocializacion");
-    if (!enlace) return;
-    if (info && info.URL) {
-      enlace.href = info.URL;
-      enlace.classList.remove("oculto");
-    } else {
-      enlace.classList.add("oculto");
-    }
-  }, function () {});
-}
-
-document.getElementById("btnGenerarAportesRelevantesSocializacion").addEventListener("click", function () {
-  var boton = document.getElementById("btnGenerarAportesRelevantesSocializacion");
-  boton.disabled = true;
-  mostrarCargaAccion_("aportesRelevantesSocializacion", "Generando PDF…");
-  llamarServidor("rpcGenerarPdfAportesRelevantesSocializacion", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
-    ocultarCargaAccion_();
-    boton.disabled = false;
-    if (!r.ok) {
-      mostrarMensaje("mensajeAportesRelevantesSocializacion", r.mensaje || "No fue posible generar el PDF.", "error");
-      return;
-    }
-    mostrarMensaje("mensajeAportesRelevantesSocializacion", "PDF generado.", "exito");
-    var enlace = document.getElementById("enlaceAportesRelevantesSocializacion");
-    enlace.href = r.url;
-    enlace.classList.remove("oculto");
-  }, function () {
-    ocultarCargaAccion_();
-    boton.disabled = false;
-    mostrarMensaje("mensajeAportesRelevantesSocializacion", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
-  });
-});
-
-/**
- * Al seleccionar cualquier fragmento de texto dentro de los aportes
- * relevantes de la socialización (Sesión 1), queda copiado automáticamente
- * al portapapeles — listo para pegar en cualquiera de las preguntas de
+ * Al seleccionar cualquier fragmento de texto dentro de las respuestas de
+ * referencia del grupo (Sesión 1), queda copiado automáticamente al
+ * portapapeles — listo para pegar en la pregunta correspondiente de
  * "Construcción colectiva del grupo" (spec del usuario) — con un aviso
  * central sutil, sin bloquear la pantalla.
  */
@@ -4151,11 +4076,11 @@ document.getElementById("btnGenerarAportesRelevantesSocializacion").addEventList
   contenedor.addEventListener("touchend", copiarSeleccionActual_);
 })();
 
-function abrirPantallaCompletaTexto(idIE) {
-  var ie = (estado.socializacionPreparacion || []).find(function (i) { return i.idIE === idIE; });
-  if (!ie) return;
-  document.getElementById("tituloPantallaCompletaTexto").textContent = ie.institucion;
-  document.getElementById("cuerpoPantallaCompletaTexto").innerHTML = "<p>" + escapeHtml(ie.datosRelevantes).replace(/\n/g, "<br>") + "</p>";
+function abrirPantallaCompletaTexto(codigo) {
+  var p = (estado.socializacionPreparacion || []).find(function (i) { return i.codigo === codigo; });
+  if (!p) return;
+  document.getElementById("tituloPantallaCompletaTexto").textContent = p.etiqueta;
+  document.getElementById("cuerpoPantallaCompletaTexto").innerHTML = "<p>" + escapeHtml(p.texto).replace(/\n/g, "<br>") + "</p>";
   document.getElementById("pantallaCompletaTexto").classList.remove("oculto");
 }
 document.getElementById("btnCerrarPantallaCompletaTexto").addEventListener("click", function () {

@@ -96,7 +96,8 @@
   <!-- 2. PRESENTACIÓN -->
   <section id="pantallaPresentacion" class="pantalla">
     <div class="tarjeta">
-      <h2 class="titulo-seccion">Presentación del Encuentro</h2>
+      <h2 class="titulo-seccion">Primera sesión: Socialización Reflexiones, conclusiones y Propuestas Foros
+        Educativos Institucionales</h2>
       <p>"Encuentro de voces que construyen territorio": un espacio de encuentro entre instituciones
         educativas agrupadas por territorio, para construir de manera colectiva insumos que
         alimentarán el Foro Educativo Municipal FEM 2026.</p>
@@ -111,18 +112,24 @@
   <section id="pantallaMetodologia" class="pantalla">
     <div class="tarjeta">
       <h2 class="titulo-seccion">Ruta del Encuentro de voces que construyen territorio</h2>
-      <p class="mensaje info">🕖 Este Encuentro se realiza de <strong>7:00 a. m. a 12:00 m.</strong></p>
-      <ol>
-        <li>Consentimiento informado y método de asistencia del grupo.</li>
-        <li>Participación y asistencia: matriz de estamentos por IE y responsable de envío.</li>
-        <li>Confirmación de la caracterización del grupo.</li>
-        <li>Sesión de socialización: registro en vivo de qué institución ya socializó sus reflexiones,
-          conclusiones y propuestas de VOCES QUE CONSTRUYEN TERRITORIO.</li>
-        <li>Sesión 1: Consolidado de Socialización y Construcción colectiva del grupo (incluye el
-          aporte propio opcional).</li>
-        <li>Revisión y cierre: verificación de firmantes y valoración del Encuentro.</li>
-        <li>Generación del informe único del grupo, descarga y envío por correo.</li>
-      </ol>
+      <table class="tabla-simple">
+        <thead>
+          <tr><th>Hora</th><th>Actividad</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>7:00 – 7:30 a. m.</td><td>Apertura, instalación del encuentro. Secretaria de Educación, Líder
+            Calidad Educativa. Se procede a dirigir a los asistentes a los subgrupos.</td></tr>
+          <tr><td>7:30 – 9:30 a. m.</td><td>Cada subgrupo tendrá 2 horas para poder socializar las conclusiones
+            que se construyeron en el marco del Foro Educativo Institucional. Cada institución educativa
+            tendrá 10 minutos para socializar sus conclusiones.</td></tr>
+          <tr><td>9:30 – 10:00 a. m.</td><td>Receso.</td></tr>
+          <tr><td>10:00 a. m. – 12:00 m.</td><td>Recopilación de conclusiones por grupo. En este espacio se
+            espera llegar a acuerdos y consensos sobre las conclusiones generales por grupo, recogiendo las
+            ideas y construcciones colectivas trabajadas durante los foros educativos institucionales y este
+            compartir de saberes. Cada grupo responde de manera colectiva las mismas preguntas del Foro
+            Educativo Institucional, sistematizadas en el formulario dispuesto para tal fin.</td></tr>
+        </tbody>
+      </table>
       <div class="fila-botones">
         <button class="btn btn-secundario" data-ir="pantallaPresentacion">Atrás</button>
         <button class="btn btn-primario" id="btnContinuarDesdeMetodologia">Continuar</button>
@@ -337,11 +344,13 @@
     </div>
   </section>
 
-  <!-- 5. AGENDA DE LA JORNADA TARDE — ConectaEduca (reemplaza la antigua pantalla de
-       Consentimiento informado del grupo, spec del usuario: "Remove Consentimiento full
-       page and put this instead: Screen 1, Jornada Tarde"). Sin checkbox de consentimiento
-       ni listado de asistencia aquí — el listado de asistencia ahora solo se gestiona al
-       final del recorrido, en Revisión y cierre. -->
+  <!-- PANTALLA INALCANZABLE (spec del usuario: "eliminar pantalla Jornada Tarde —
+       ConectaEduca") — queda en el HTML sin borrar, por si se necesita reactivar, pero ya
+       no es alcanzable desde la navegación (ver irTrasMetodologia_ en JS.html, que ahora
+       va directo de la Ruta del Encuentro a la Sesión de socialización). Histórico: esta
+       pantalla reemplazó antes a la de Consentimiento informado del grupo (spec del
+       usuario: "Remove Consentimiento full page and put this instead: Screen 1, Jornada
+       Tarde"). -->
   <section id="pantallaConsentimientoGrupo" class="pantalla">
     <div class="tarjeta">
       <h2 class="titulo-seccion">Jornada Tarde — ConectaEduca</h2>
@@ -599,35 +608,22 @@
       <div id="listaSocializacionIE"></div>
     </div>
 
-    <!-- Pantalla partida: una mitad el temporizador, la otra las respuestas
-         REALES que esa IE ya dejó registradas en sus sesiones (spec del
-         usuario: quitar la toma manual de "datos relevantes", dejar solo
-         "iniciar temporizador" + respuestas reales de Drive, ver
-         SocializacionDatos.gs). El mismo cuadro de solo lectura se
-         reutiliza para consultar cualquier IE fuera del temporizador
-         — ver data-ver-socializacion-ie. -->
+    <!-- Solo el temporizador (spec del usuario: "eliminar las respuestas de la sesion de
+         socialización, solo dejar el temporizador" — las respuestas reales del grupo,
+         extraídas de su Informe de Síntesis, ahora se muestran en Sesión 1, junto a cada
+         pregunta de "Construcción colectiva del grupo"). -->
     <div class="tarjeta oculto" id="panelTemporizadorSocializacion">
       <h3 class="subtitulo-campo" id="nombreIESocializando"></h3>
       <p class="aviso-socializacion oculto" id="avisoMomentoSocializacion"></p>
-      <div class="panel-partido-socializacion">
-        <div class="mitad-socializacion mitad-temporizador-socializacion">
-          <p class="temporizador-socializacion" id="relojSocializacion">10:00</p>
-          <div class="fila-botones" style="justify-content:center;">
-            <button type="button" class="btn btn-secundario" id="btnMas2MinSocializacion">+2 minutos</button>
-            <button type="button" class="btn btn-primario" id="btnFinalizarSocializacionIE">Finalizar</button>
-          </div>
-        </div>
-        <div class="mitad-socializacion mitad-notas-socializacion">
-          <label>Respuestas registradas de esta IE</label>
-          <p class="ayuda">Reflexiones, conclusiones y propuestas que esta institución ya dejó registradas
-            en sus sesiones — como apoyo mientras socializa en vivo.</p>
-          <div id="panelRespuestasRealesSocializacion" class="caja-respuestas-reales-socializacion"></div>
-        </div>
+      <p class="temporizador-socializacion" id="relojSocializacion">10:00</p>
+      <div class="fila-botones" style="justify-content:center;">
+        <button type="button" class="btn btn-secundario" id="btnMas2MinSocializacion">+2 minutos</button>
+        <button type="button" class="btn btn-primario" id="btnFinalizarSocializacionIE">Finalizar</button>
       </div>
     </div>
 
     <div class="fila-botones">
-      <button class="btn btn-secundario" data-ir="pantallaConsentimientoGrupo">Atrás</button>
+      <button class="btn btn-secundario" data-ir="pantallaMetodologia">Atrás</button>
       <button class="btn btn-primario" data-ir="pantallaSesion1">Continuar a Sesión 1</button>
     </div>
   </section>
@@ -726,18 +722,13 @@
       </div>
 
       <div class="tarjeta-socializacion" id="tarjetaSocializacionPreparacion">
-        <h3 class="subtitulo-campo">🗣️ Aportes relevantes de la socialización</h3>
-        <p class="ayuda">Lo que el grupo anotó por institución en la Sesión de socialización (pantalla
-          anterior), para relacionarlo con las preguntas de abajo — cada institución puede tener aportes
-          vinculados a más de un tema.</p>
-        <p class="ayuda">💡 Al seleccionar una parte del texto de cualquier institución, queda copiada y
-          puede pegarse en cualquiera de las preguntas de "Construcción colectiva del grupo", más abajo.</p>
+        <h3 class="subtitulo-campo">🗣️ Respuestas del grupo (Informe de Síntesis)</h3>
+        <p class="ayuda">Lo que este grupo ya respondió a cada una de estas preguntas durante el Foro
+          Educativo Institucional, según el Informe de Síntesis del grupo — como referencia para construir
+          la respuesta colectiva de hoy.</p>
+        <p class="ayuda">💡 Al seleccionar una parte del texto de cualquier pregunta, queda copiada y
+          puede pegarse en la pregunta correspondiente de "Construcción colectiva del grupo", más abajo.</p>
         <div id="listaSocializacionPreparacion"></div>
-        <div class="fila-botones">
-          <button type="button" class="btn btn-secundario" id="btnGenerarAportesRelevantesSocializacion">📄 Generar PDF de aportes relevantes</button>
-          <a class="btn btn-secundario oculto" id="enlaceAportesRelevantesSocializacion" href="#" target="_blank">👁 Ver PDF</a>
-        </div>
-        <div id="mensajeAportesRelevantesSocializacion"></div>
       </div>
 
     </div>

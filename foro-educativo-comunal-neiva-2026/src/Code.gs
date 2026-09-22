@@ -250,16 +250,10 @@ function rpcGuardarSocializacionIE(idGrupo, tokenSesion, dispositivoId, idIE, so
   });
 }
 
-/** PDF "Aportes relevantes del <Grupo>" (pedido del usuario) — ver Socializacion.gs. */
-function rpcGenerarPdfAportesRelevantesSocializacion(idGrupo, tokenSesion, dispositivoId) {
+/** Respuestas de referencia del grupo (Informe de Síntesis) para "Construcción colectiva del grupo" — ver SintesisGrupos.gs. */
+function rpcObtenerRespuestasSintesisGrupo(idGrupo) {
   return ejecutarRpcSeguro_(function () {
-    return generarPdfAportesRelevantesSocializacion(idGrupo, tokenSesion, dispositivoId);
-  });
-}
-
-function rpcObtenerAportesRelevantesSocializacion(idGrupo) {
-  return ejecutarRpcSeguro_(function () {
-    return obtenerAportesRelevantesSocializacionGrupo_(idGrupo);
+    return obtenerRespuestasSintesisGrupo(idGrupo);
   });
 }
 

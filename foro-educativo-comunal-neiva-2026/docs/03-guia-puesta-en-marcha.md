@@ -2614,6 +2614,74 @@ Con esto queda completo el pedido grande de 8 partes (rename, agenda Jornada Tar
 final, Socialización con respuestas reales, asistencia solo al final, acceso sin código por dueño de
 grupo, casilla de IE presentes, fix del error de valoración).
 
+## 4.74 Quincuagésimo octavo lote: nueva agenda real del Encuentro, eliminar pantalla Jornada Tarde, y respuestas de GRUPO (no por IE) en Construcción colectiva
+
+Segundo pedido grande del usuario tras el lote anterior, con la agenda real y definitiva del Encuentro
+(sustituye tanto el título de Presentación como el contenido de Ruta del Encuentro, ambos con texto
+genérico/de navegación hasta ahora) y una corrección de rumbo sobre el lote 4.73: las respuestas reales
+extraídas de Drive no debían mostrarse en la Sesión de socialización ni ser por institución — debían
+mostrarse en Sesión 1 ("Construcción colectiva del grupo") y ser el análisis a nivel de GRUPO (Informe
+de Síntesis), no el compilado por IE.
+
+- **`Index.html` (`pantallaPresentacion`)**: nuevo título "Primera sesión: Socialización Reflexiones,
+  conclusiones y Propuestas Foros Educativos Institucionales" (antes "Presentación del Encuentro").
+- **`Index.html` (`pantallaMetodologia`)**: el `<ol>` de 7 pasos de navegación de la app (consentimiento,
+  participación, confirmación...) se reemplazó por la agenda horaria real del Encuentro en una tabla:
+  7:00–7:30 apertura e instalación (dirige a subgrupos); 7:30–9:30 socialización por subgrupo (10 min por
+  IE); 9:30–10:00 receso; 10:00–12:00 recopilación de conclusiones por grupo (responder de manera
+  colectiva las mismas preguntas del Foro Educativo Institucional, sistematizadas en el formulario).
+- **Pantalla "Jornada Tarde — ConectaEduca" (`pantallaConsentimientoGrupo`) eliminada de la navegación**
+  (spec del usuario: "eliminar pantalla Jornada Tarde — ConectaEduca") — mismo patrón "ocultar, no
+  borrar" ya usado en el proyecto para pantallas que dejan de ser alcanzables: la sección sigue en el
+  HTML (con un comentario explícito marcándola como inalcanzable), pero `irTrasMetodologia_()` en
+  JS.html ahora va directo de la Ruta del Encuentro a la Sesión de socialización, sin pasar por ella. El
+  botón "Atrás" de la Sesión de socialización, que apuntaba a esta pantalla, se corrigió para apuntar a
+  `pantallaMetodologia`.
+- **Sesión de socialización — reversión del lote 4.73**: se quitó por completo el panel de respuestas
+  reales que se había agregado junto al temporizador (`panelRespuestasRealesSocializacion`), el botón
+  "📄 Ver respuestas registradas" del checklist y el modal `modalDatosRelevantesIE` — spec del usuario:
+  "eliminar las respuestas de la sesion de socialización, solo dejar el temporizador". El panel partido
+  (`panel-partido-socializacion`) volvió a ser una sola columna con el reloj y los botones.
+- **`SintesisGrupos.gs`** (nuevo, reemplaza a `SocializacionDatos.gs` del lote 4.73, que se eliminó por
+  completo): `RESPUESTAS_SINTESIS_GRUPO_`, un objeto con las 11 respuestas de cada uno de los 6 grupos
+  comunales (no de cada institución) a las preguntas de "Construcción colectiva del grupo"
+  (`FEM2025_P1/P2`, `CURRICULO_P1..P5`, `GOBIERNO_P1..P4`), extraídas de los 6 documentos "Informe de
+  Síntesis - Grupo GX FEM 2026" en Drive — los mismos `informeSintesisId` que ya estaban registrados en
+  `Recursos.gs` → `RECURSOS_POR_GRUPO_` desde antes de este lote (documentos ya verificados uno a uno el
+  2026-09-09, sin necesidad de invocar de nuevo la regla de no invención de IDs). Cada documento organiza
+  su análisis por Sesión → Pregunta, con un párrafo de síntesis cualitativa o mixta del grupo completo,
+  seguido de una sección "Particularidades coyunturales de las I.E" (por institución) y, en las preguntas
+  de selección múltiple, una tabla de N.°/% de instituciones por opción. Solo se extrajo el párrafo de
+  síntesis del grupo — spec del usuario: "las respuestas deben ser las del informe del grupo, no las de
+  cada IE" (se excluyó la sección de particularidades) y "omite los gráficos" (se excluyeron las tablas
+  de N.°/%; las imágenes de gráficas/estadísticas ya quedan fuera porque la extracción de Drive Docs solo
+  trae texto). Extracción hecha con un script de Python (parseo de los encabezados Markdown del
+  documento), no a mano, para evitar errores de transcripción en un volumen de texto grande.
+- **`Code.gs`**: nuevo `rpcObtenerRespuestasSintesisGrupo` (reemplaza a
+  `rpcGenerarPdfAportesRelevantesSocializacion`/`rpcObtenerAportesRelevantesSocializacion`, eliminados).
+- **`Socializacion.gs`**: revertido a su forma mínima — `obtenerSocializacionGrupo` y
+  `guardarSocializacionIE` ya no tienen ningún concepto de `DATOS_RELEVANTES` (columna quitada de
+  `cabecerasSocializacionIE_`); se eliminó por completo `generarPdfAportesRelevantesSocializacion` y el
+  mecanismo del PDF "Aportes relevantes del &lt;Grupo&gt;" — dejó de tener sentido: su fuente (notas
+  manuscritas en vivo) ya no existe, y el Informe de Síntesis del grupo ya se puede descargar directo
+  desde la tarjeta de recursos de Sesión 1 (`Recursos.gs`, "Consolidado de GX").
+- **`Index.html`/`Components.html`/`JS.html` (Sesión 1)**: la tarjeta "🗣️ Aportes relevantes de la
+  socialización" pasó a ser "🗣️ Respuestas del grupo (Informe de Síntesis)" — mismo contenedor
+  (`listaSocializacionPreparacion`), mismo mecanismo de copiar-al-seleccionar y de pantalla completa
+  (reutilizados sin cambios), pero ahora un `<details>` por PREGUNTA (no por IE), alimentado por
+  `rpcObtenerRespuestasSintesisGrupo` en vez de `rpcObtenerSocializacionGrupo`.
+
+Verificado: `node --check` de todos los .gs (incluyendo las 73 KB de `SintesisGrupos.gs` generadas);
+extracción y `node --check` de los bloques `<script>` de todos los .html (limpio, mismos 2 falsos
+positivos permanentes de siempre — Index.html y AsistenciaPublica.html); sin IDs duplicados; comparación
+`getElementById` vs. IDs reales (mismas 8 referencias colgantes ya confirmadas con guarda nula, ninguna
+nueva); búsqueda exhaustiva de referencias colgantes a todo lo eliminado en este lote
+(`data-editar-socializacion-ie`, `data-ver-socializacion-ie`, `modalDatosRelevantesIE`,
+`campoDatosRelevantesIE`, `tituloDatosRelevantesIE`, `respuestasReales`, `tieneRespuestasReales`,
+`RESPUESTAS_REALES_SOCIALIZACION_`, `AportesRelevantesSocializacion`, `generarPdfAportesRelevantes`,
+`datosRelevantes`) — ninguna, salvo dos comentarios en Conversatorio.gs que solo citaban el patrón por
+analogía, corregidos para apuntar a un ejemplo que sigue existiendo (`generarInformeGrupo`).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

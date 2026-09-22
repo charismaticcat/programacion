@@ -513,27 +513,29 @@ function renderPreguntasInvitado(preguntas, respuestas, textoInicial, mostrarBot
 }
 
 /**
- * Aportes relevantes de la Sesión de socialización, mostrados en Sesión 1
- * (pedido del usuario): un <details> colapsado por cada IE con datos
- * relevantes anotados en la pantalla anterior, con botón de pantalla
- * completa. Antes mostraba los aportes de la vieja "Preparación" (varias
- * secciones tituladas por IE); ahora es un solo texto libre por IE, la
- * nota que el grupo escribió mientras esa institución socializaba.
+ * Respuestas de referencia del grupo (Informe de Síntesis), mostradas en
+ * Sesión 1 (spec del usuario: "las respuestas arrastradas desde los
+ * informes grupales deben aparecer en la sesión Construcción colectiva
+ * del grupo, las respuestas deben ser las del informe del grupo, no las
+ * de cada IE"): un <details> colapsado por cada pregunta, con lo que el
+ * grupo ya respondió según su Informe de Síntesis (SintesisGrupos.gs),
+ * con botón de pantalla completa.
  */
 function renderSocializacionPreparacion(datos) {
   var contenedor = document.getElementById("listaSocializacionPreparacion");
   if (!contenedor) return;
   if (!datos || !datos.length) {
-    contenedor.innerHTML = "<p class='ayuda'>Todavía no hay aportes relevantes registrados en la Sesión de socialización.</p>";
+    contenedor.innerHTML = "<p class='ayuda'>Este grupo todavía no tiene un Informe de Síntesis con respuestas de referencia.</p>";
     return;
   }
   var html = "<div class='fila-botones'><button type='button' class='btn btn-secundario' data-alternar-socializacion>Expandir todas</button></div>";
-  datos.forEach(function (ie) {
+  datos.forEach(function (p) {
+    if (!p.texto) return;
     html += "<details class='socializacion-ie'>";
-    html += "<summary>" + escapeHtml(ie.institucion) + "</summary>";
+    html += "<summary>" + escapeHtml(p.etiqueta) + "</summary>";
     html += "<div class='socializacion-seccion'>";
-    html += "<p>" + escapeHtml(ie.datosRelevantes) + "</p>";
-    html += "<button type='button' class='btn-recurso' data-ver-completo='" + escapeHtml(ie.idIE) + "'>🔍 Pantalla completa</button>";
+    html += "<p>" + escapeHtml(p.texto) + "</p>";
+    html += "<button type='button' class='btn-recurso' data-ver-completo='" + escapeHtml(p.codigo) + "'>🔍 Pantalla completa</button>";
     html += "</div>";
     html += "</details>";
   });
@@ -543,12 +545,11 @@ function renderSocializacionPreparacion(datos) {
 /**
  * Checklist de la Sesión de socialización (Documento Orientador FEM2026,
  * item 10) — una fila por IE del grupo, con su estado ("✅ Socializó" o
- * pendiente), un botón para iniciar el temporizador de 10 minutos y otro
- * para consultar de solo lectura sus respuestas reales (extraídas de
- * Drive, ver SocializacionDatos.gs) en cualquier momento, sin depender
- * de haber usado el temporizador. Los clics se manejan con un único
- * listener delegado en JS.html (mismo patrón que el resto de la app
- * para listas que se repintan).
+ * pendiente) y un botón para iniciar el temporizador de 10 minutos (spec
+ * del usuario: solo el temporizador, sin respuestas en esta pantalla —
+ * ver Sesion1.gs para las respuestas reales del grupo). Los clics se
+ * manejan con un único listener delegado en JS.html (mismo patrón que el
+ * resto de la app para listas que se repintan).
  */
 function renderChecklistSocializacionIE(datos) {
   var contenedor = document.getElementById("listaSocializacionIE");
@@ -564,9 +565,6 @@ function renderChecklistSocializacionIE(datos) {
     html += "<div class='fila-botones'>";
     if (!ie.socializo) {
       html += "<button type='button' class='btn btn-secundario' data-iniciar-socializacion-ie='" + escapeHtml(ie.idIE) + "'>▶ Iniciar temporizador</button>";
-    }
-    if (ie.tieneRespuestasReales) {
-      html += "<button type='button' class='btn btn-secundario' data-ver-socializacion-ie='" + escapeHtml(ie.idIE) + "'>📄 Ver respuestas registradas</button>";
     }
     html += "</div></div>";
   });

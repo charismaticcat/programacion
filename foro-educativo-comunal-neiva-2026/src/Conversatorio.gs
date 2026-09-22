@@ -38,7 +38,7 @@ var HOJA_CONVERSATORIO_ACCESOS_ = "AccesosIEConversatorio";
 // guardarCampoTecnicaConversatorio), nunca en el llenado inicial.
 var HOJA_CONVERSATORIO_CAMBIOS_ = "ConversatorioCambios";
 // Único DOC_ID/PDF_ID del informe consolidado (mismo patrón "nunca
-// acumular" que AportesRelevantesSocializacion/InformesComunal).
+// acumular" que InformesComunal).
 var HOJA_CONVERSATORIO_INFORME_ = "ConversatorioInforme";
 
 function cabecerasConversatorioGrupos_() {
@@ -550,10 +550,9 @@ function validarSuperadminConversatorio(codigo) {
  * Genera el informe consolidado del Conversatorio: técnicas y respuestas
  * de todas las instituciones, y al final un apartado con el registro de
  * cambios (spec del usuario: "la IE X cambió la respuesta X por Y").
- * Misma técnica que generarPdfAportesRelevantesSocializacion
- * (Socializacion.gs, ver docs/03-guia-puesta-en-marcha.md §4.61): la
- * parte lenta (crear el Doc, exportarlo a PDF) va FUERA de conLock_ — el
- * lock de Apps Script es de todo el proyecto, no solo de este informe.
+ * Misma técnica que generarInformeGrupo (Informes.gs): la parte lenta
+ * (crear el Doc, exportarlo a PDF) va FUERA de conLock_ — el lock de
+ * Apps Script es de todo el proyecto, no solo de este informe.
  */
 function generarInformeConversatorio(codigoSuperadmin) {
   var validacion = validarSuperadminConversatorio(codigoSuperadmin);
