@@ -2247,6 +2247,56 @@ permanentes ya conocidos); sin IDs duplicados ni etiquetas (incluidos `<select>`
 Index.html/Components.html. No fue posible probar en vivo la generación del informe ni el flujo completo
 del panel de administrador (sin `clasp run`/`clasp logs` en este entorno).
 
+## 4.66 Quincuagésimo tercer lote: fix pantalla inicial, pantalla de responsable + banner, preguntas obligatorias, botón "es correcta"
+
+Pedido del usuario: "la pantalla inicial debe ser la de escoger entre las dos sesiones, actualmente esta
+iniciando en conecta educa. despues de seleccionar IE, hacer pantalla de responsable de llenar sesion de
+conecta educa. en pantalla donde se edita las tecnicas debe editarse obligatoriamente las preguntas de si y
+de no y guardar Boton de es correcto pra informacion de tecnica o deseamos editar esta información. En la
+pantalla final de selección inidicar que puede participar del conversatorio con el grupo seleccionado. haz
+un banner que diga, respetado (a), (rol seleccionado) de la IE (nombre) y (acompañante si registró)".
+
+- **Fix: la app abría directo en la pantalla vieja de acceso de Conecta Educa en vez de
+  `pantallaEleccionSeccion`.** Causa: `retomarSeccionElegida_` (JS.html) recuerda en `localStorage` la
+  última sección elegida y salta directo a su pantalla de acceso — cualquier dispositivo que hubiera
+  elegido "Conecta Educa" ANTES del rediseño a Conversatorio (lotes 4.63-4.65) seguía teniendo
+  `"CONECTAEDUCA"` guardado, y `TEXTOS_SECCION_` (que decide qué valores son válidos para retomar) todavía
+  la reconocía, aunque la tarjeta ya no usara ese mecanismo (usa `btnIrConversatorio` directo). Se quitó
+  `CONECTAEDUCA` de `TEXTOS_SECCION_` — ahora solo `ENCUENTRO` es "recordable"; un valor viejo de
+  `"CONECTAEDUCA"` en `localStorage` ya no coincide con nada y la app cae de vuelta a
+  `pantallaEleccionSeccion`, como debe ser.
+- **Nueva pantalla `pantallaResponsableConversatorio`** (spec: "despues de seleccionar IE, hacer pantalla
+  de responsable de llenar sesion de conecta educa"): aparece justo después de elegir la institución (tanto
+  autoselección como entrada de administrador) y antes de las técnicas — pide nombre completo, rol (select:
+  Rector(a), Coordinador(a) académico(a), Docente, Enlace/articulador(a) SENA, Orientador(a), Otro) y un
+  acompañante opcional. Se guarda en 3 columnas nuevas de `AccesosIEConversatorio`
+  (`RESPONSABLE_NOMBRE`/`RESPONSABLE_ROL`/`ACOMPANANTE`) vía `guardarResponsableConversatorio` (Conversatorio.gs) /
+  `rpcGuardarResponsableConversatorio` (Code.gs) — se pre-llena si ya había datos guardados (reingreso o
+  administrador revisando).
+- **Banner de bienvenida** (spec, literal: "respetado (a), (rol seleccionado) de la IE (nombre) y
+  (acompañante si registró)"): `textoBannerResponsableConversatorio_()` (JS.html) arma el texto exacto
+  "Respetado(a) `<rol>` de la IE `<institución>` y `<acompañante>`." (el "y `<acompañante>`" solo aparece si
+  se registró uno) y se pinta en `#bannerResponsableConversatorio` (pantalla de técnicas) y
+  `#bannerCaracterizacionConversatorio` (pantalla de grupo).
+- **Preguntas Sí/No obligatorias antes de guardar** (spec: "debe editarse obligatoriamente las preguntas de
+  si y de no y guardar"): el clic en "💾 Guardar" de una tarjeta de técnica ahora valida primero que ambos
+  `<select>` (apertura 2027 / nueva articulación 2027) tengan una respuesta — si falta alguna, muestra un
+  error y no guarda nada.
+- **Botón "✅ Es correcta esta información"** (spec: "Boton de es correcto pra informacion de tecnica o
+  deseamos editar esta información"): junto al lápiz ✏️, en modo lectura, un botón para confirmar los datos
+  tal como están sin necesidad de abrir edición — nuevas columnas `CONFIRMADO_POR_IE`/`FECHA_CONFIRMACION`
+  en `ConversatorioResolucionIE` (`confirmarTecnicaConversatorio`/`rpcConfirmarTecnicaConversatorio`); una
+  vez confirmada, el botón se reemplaza por la insignia "✅ Información confirmada".
+- **Aviso de participación con el grupo elegido** (spec: "indicar que puede participar del conversatorio
+  con el grupo seleccionado"): el texto de introducción de `pantallaCaracterizacionConversatorio` ahora dice
+  explícitamente que la institución podrá participar del Conversatorio con el grupo que elija, y la
+  pantalla de cierre repite el nombre concreto del grupo elegido ("Su institución puede participar del
+  Conversatorio con el grupo seleccionado: G0X — Nombre del grupo.").
+
+Verificado: `node --check` sobre Conversatorio.gs y Code.gs; extracción y `node --check` de los bloques
+`<script>` de Index.html, JS.html y Components.html (limpios, mismos 2 falsos positivos permanentes); sin
+IDs duplicados ni etiquetas sin cerrar en Index.html/Components.html.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

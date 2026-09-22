@@ -51,11 +51,14 @@ function cabecerasConversatorioResolucion_() {
   return [
     "ID_FILA", "INSTITUCION_EDUCATIVA", "TECNICA_SENA", "PROGRAMA_APROBADO", "RESOLUCION_DECRETO",
     "PREGUNTA_APERTURA_GRADO10_2027", "PREGUNTA_NUEVA_ARTICULACION_2027", "NUEVA_ARTICULACION_DETALLE",
-    "ACTUALIZADO"
+    "CONFIRMADO_POR_IE", "FECHA_CONFIRMACION", "ACTUALIZADO"
   ];
 }
 function cabecerasConversatorioAccesos_() {
-  return ["INSTITUCION_EDUCATIVA", "ESTADO", "GRUPO_ELEGIDO", "ULTIMA_ACTIVIDAD"];
+  return [
+    "INSTITUCION_EDUCATIVA", "ESTADO", "GRUPO_ELEGIDO", "ULTIMA_ACTIVIDAD",
+    "RESPONSABLE_NOMBRE", "RESPONSABLE_ROL", "ACOMPANANTE"
+  ];
 }
 function cabecerasConversatorioCambios_() {
   return ["INSTITUCION_EDUCATIVA", "TECNICA_SENA", "CAMPO", "VALOR_ANTERIOR", "VALOR_NUEVO", "FECHA"];
@@ -207,7 +210,7 @@ function importarDatosConversatorio() {
       tecnica,
       String(fr[3] || "").trim(),
       String(fr[4] || "").trim(),
-      "", "", "", ""
+      "", "", "", "", "", ""
     ]);
   }
   if (nuevasFilasResolucion.length) {
@@ -225,7 +228,7 @@ function importarDatosConversatorio() {
   var nuevosAccesos = [];
   Object.keys(institucionesCanonicas).forEach(function (clave) {
     if (conAcceso[clave]) return;
-    nuevosAccesos.push([institucionesCanonicas[clave], "ACTIVO", "", ""]);
+    nuevosAccesos.push([institucionesCanonicas[clave], "ACTIVO", "", "", "", "", ""]);
   });
   if (nuevosAccesos.length) {
     hojaAccesos.getRange(hojaAccesos.getLastRow() + 1, 1, nuevosAccesos.length, cabecerasConversatorioAccesos_().length)
@@ -317,6 +320,9 @@ function seleccionarInstitucionConversatorio(institucion) {
     ok: true,
     institucion: acceso.INSTITUCION_EDUCATIVA,
     grupoElegido: acceso.GRUPO_ELEGIDO || "",
+    responsableNombre: acceso.RESPONSABLE_NOMBRE || "",
+    responsableRol: acceso.RESPONSABLE_ROL || "",
+    acompanante: acceso.ACOMPANANTE || "",
     grupos: grupos.map(function (g) {
       return {
         idGrupo: g.ID_GRUPO,
@@ -328,6 +334,31 @@ function seleccionarInstitucionConversatorio(institucion) {
       };
     })
   };
+}
+
+/**
+ * Guarda quién está diligenciando el Conversatorio en nombre de la IE
+ * (spec del usuario: "hacer pantalla de responsable de llenar sesion de
+ * conecta educa") — nombre, rol y, si aplica, acompañante. Alimenta el
+ * banner "Respetado(a), <rol> de la IE <institución> y <acompañante>".
+ */
+function guardarResponsableConversatorio(institucion, nombreResponsable, rolResponsable, acompanante) {
+  var acceso = buscarAccesoConversatorioPorInstitucion_(institucion);
+  if (!acceso) return { ok: false, mensaje: "Esa institución no está disponible en el Conversatorio." };
+  nombreResponsable = String(nombreResponsable || "").trim();
+  rolResponsable = String(rolResponsable || "").trim();
+  if (!nombreResponsable) return { ok: false, mensaje: "Ingrese el nombre del responsable." };
+  if (!rolResponsable) return { ok: false, mensaje: "Seleccione el rol del responsable." };
+
+  return conLock_(function () {
+    upsertFila_(HOJA_CONVERSATORIO_ACCESOS_, cabecerasConversatorioAccesos_(), "INSTITUCION_EDUCATIVA", acceso.INSTITUCION_EDUCATIVA, {
+      RESPONSABLE_NOMBRE: nombreResponsable,
+      RESPONSABLE_ROL: rolResponsable,
+      ACOMPANANTE: String(acompanante || "").trim(),
+      ULTIMA_ACTIVIDAD: new Date()
+    });
+    return { ok: true };
+  }, 10000);
 }
 
 /** Registra qué grupo técnico eligió trabajar la IE ("direccionar a grupo que pertenezca"). */
@@ -370,10 +401,36 @@ function obtenerTecnicasConversatorio(institucion) {
         resolucionDecreto: f.RESOLUCION_DECRETO || "",
         preguntaApertura2027: f.PREGUNTA_APERTURA_GRADO10_2027 || "",
         preguntaNuevaArticulacion2027: f.PREGUNTA_NUEVA_ARTICULACION_2027 || "",
-        nuevaArticulacionDetalle: f.NUEVA_ARTICULACION_DETALLE || ""
+        nuevaArticulacionDetalle: f.NUEVA_ARTICULACION_DETALLE || "",
+        confirmado: String(f.CONFIRMADO_POR_IE || "") === "SI"
       };
     })
   };
+}
+
+/**
+ * Marca una técnica como revisada y confirmada por la IE, sin cambiar
+ * ningún dato (spec del usuario: "Boton de es correcto para informacion
+ * de tecnica o deseamos editar esta información") — alternativa a abrir
+ * el modo edición cuando los datos ya están correctos.
+ */
+function confirmarTecnicaConversatorio(institucion, idFila) {
+  var acceso = buscarAccesoConversatorioPorInstitucion_(institucion);
+  if (!acceso) return { ok: false, mensaje: "Esa institución no está disponible en el Conversatorio." };
+
+  return conLock_(function () {
+    var hoja = obtenerHoja_(HOJA_CONVERSATORIO_RESOLUCION_, cabecerasConversatorioResolucion_());
+    var mapa = obtenerMapaCabeceras_(hoja);
+    var fila = buscarFilaPorColumna_(hoja, mapa, "ID_FILA", idFila);
+    if (fila === -1) return { ok: false, mensaje: "Esa técnica ya no existe." };
+    var filaInstitucion = String(hoja.getRange(fila, mapa["INSTITUCION_EDUCATIVA"]).getValue() || "").trim();
+    if (normalizarNombreIEConversatorio_(filaInstitucion) !== normalizarNombreIEConversatorio_(acceso.INSTITUCION_EDUCATIVA)) {
+      return { ok: false, mensaje: "Esa técnica no pertenece a esta institución." };
+    }
+    hoja.getRange(fila, mapa["CONFIRMADO_POR_IE"]).setValue("SI");
+    hoja.getRange(fila, mapa["FECHA_CONFIRMACION"]).setValue(new Date());
+    return { ok: true };
+  }, 10000);
 }
 
 var CAMPOS_EDITABLES_TECNICA_CONVERSATORIO_ = {

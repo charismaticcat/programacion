@@ -633,7 +633,17 @@ function renderTecnicasResolucionConversatorio(tecnicas, catalogoTecnicas) {
     if (t.preguntaNuevaArticulacion2027 === "Sí" && t.nuevaArticulacionDetalle) {
       html += _filaLecturaConversatorio_("Detalle de la nueva articulación", t.nuevaArticulacionDetalle);
     }
+    // Spec del usuario: "Boton de es correcto pra informacion de tecnica o
+    // deseamos editar esta información" — confirmar sin cambiar nada, o
+    // abrir el modo edición.
+    html += "<div class='fila-botones'>";
+    if (t.confirmado) {
+      html += "<span class='badge-tecnica-confirmada'>✅ Información confirmada</span>";
+    } else {
+      html += "<button type='button' class='btn btn-primario' data-confirmar-tecnica-conversatorio='" + idFila + "'>✅ Es correcta esta información</button>";
+    }
     html += "<button type='button' class='btn btn-secundario' data-editar-tecnica-conversatorio='" + idFila + "'>✏️ Editar</button>";
+    html += "</div>";
     html += "</div>";
 
     // --- Modo edición (oculto hasta hacer clic en el lápiz) ---

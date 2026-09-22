@@ -45,6 +45,10 @@ var estado = {
   grupoElegidoConversatorio: "",
   gruposConversatorio: [],
   catalogoTecnicasConversatorio: [],
+  // Responsable de diligenciar el Conversatorio (nombre/rol/acompañante) —
+  // alimenta el banner "Respetado(a), <rol> de la IE <institución> y
+  // <acompañante>" (spec del usuario).
+  responsableConversatorio: { nombre: "", rol: "", acompanante: "" },
   // Panel de superadministrador (código único de la SEM) — permite entrar
   // a cualquier institución, además de generar el informe consolidado.
   modoSuperadminConversatorio: false,
@@ -102,6 +106,7 @@ function urlImagenDrive(idArchivo, ancho) {
 var ORDEN_PANTALLAS = [
   "pantallaEleccionSeccion", "pantallaAcceso",
   "pantallaAccesoConversatorio", "pantallaAccesoSuperadminConversatorio", "pantallaPanelSuperadminConversatorio",
+  "pantallaResponsableConversatorio",
   "pantallaResolucionConversatorio", "pantallaCaracterizacionConversatorio", "pantallaCierreConversatorio",
   "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia",
   "pantallaConsentimientoGrupo", "pantallaConsentimientoConectaEduca", "pantallaParticipacion",
@@ -119,6 +124,7 @@ var ORDEN_PANTALLAS = [
 var PANTALLAS_NO_RESUMIBLES_ = [
   "pantallaEleccionSeccion", "pantallaAcceso",
   "pantallaAccesoConversatorio", "pantallaAccesoSuperadminConversatorio", "pantallaPanelSuperadminConversatorio",
+  "pantallaResponsableConversatorio",
   "pantallaResolucionConversatorio", "pantallaCaracterizacionConversatorio", "pantallaCierreConversatorio",
   "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia"
 ];
@@ -413,9 +419,16 @@ function cambiarPantalla(idPantalla) {
  * usuario, item 3: "clic en Inicio debe ir directo a Ingresar código").
  * ------------------------------------------------------------------ */
 var CLAVE_SECCION_LOCAL_ = "fec_seccion_elegida";
+// Conecta Educa ya no usa este mecanismo de "sección recordada" — va
+// directo a Conversatorio (btnIrConversatorio) sin pasar por
+// aplicarSeccionElegida_/pantallaAcceso. Solo queda ENCUENTRO aquí: si
+// un dispositivo tenía guardado "CONECTAEDUCA" de antes de este cambio,
+// retomarSeccionElegida_ (más abajo) ya no lo reconoce como válido y cae
+// de vuelta a pantallaEleccionSeccion en vez de saltar a la pantalla
+// vieja de acceso (bug reportado por el usuario: "actualmente esta
+// iniciando en conecta educa").
 var TEXTOS_SECCION_ = {
-  ENCUENTRO: { titulo: "Encuentro de voces que construyen territorio", logo: LOGO_ENCUENTRO_ID },
-  CONECTAEDUCA: { titulo: "Conecta Educa", logo: LOGO_CONECTAEDUCA_ID }
+  ENCUENTRO: { titulo: "Encuentro de voces que construyen territorio", logo: LOGO_ENCUENTRO_ID }
 };
 
 (function poblarLogosSeccion_() {
@@ -524,11 +537,27 @@ function conCatalogoTecnicasConversatorio_(callback) {
   });
 }
 
+/** Texto del banner de bienvenida (spec del usuario, literal): "respetado (a), (rol seleccionado) de la IE (nombre) y (acompañante si registró)". */
+function textoBannerResponsableConversatorio_() {
+  var r = estado.responsableConversatorio || {};
+  if (!r.rol) return "";
+  var texto = "Respetado(a) " + r.rol + " de la IE " + estado.institucionConversatorio;
+  if (r.acompanante) texto += " y " + r.acompanante;
+  return texto + ".";
+}
+
+function pintarBannerResponsableConversatorio_(idBanner) {
+  var banner = document.getElementById(idBanner);
+  if (!banner) return;
+  var texto = textoBannerResponsableConversatorio_();
+  banner.textContent = texto;
+  banner.classList.toggle("oculto", !texto);
+}
+
 /**
- * Tras elegir la institución (propia o, en modo administrador, una
- * cualquiera), va directo a las técnicas — spec del usuario: "la
- * selección de grupo al que desea tener el conversatorio se dará despues
- * de repsonder las preguntas de cada [técnica]".
+ * Tras confirmar el responsable, va directo a las técnicas — spec del
+ * usuario: "la selección de grupo al que desea tener el conversatorio se
+ * dará despues de repsonder las preguntas de cada [técnica]".
  */
 function cargarTecnicasYMostrarConversatorio_(idPantallaError) {
   conCatalogoTecnicasConversatorio_(function (catalogo) {
@@ -539,6 +568,7 @@ function cargarTecnicasYMostrarConversatorio_(idPantallaError) {
         return;
       }
       document.getElementById("institucionResolucionConversatorio").textContent = "Institución: " + rt.institucion;
+      pintarBannerResponsableConversatorio_("bannerResponsableConversatorio");
       renderTecnicasResolucionConversatorio(rt.tecnicas || [], catalogo);
       cambiarPantalla("pantallaResolucionConversatorio");
     }, function () {
@@ -548,28 +578,67 @@ function cargarTecnicasYMostrarConversatorio_(idPantallaError) {
   });
 }
 
+/** Pantalla del responsable (spec del usuario: "hacer pantalla de responsable de llenar sesion de conecta educa"). */
+function mostrarPantallaResponsableConversatorio_(r) {
+  document.getElementById("institucionResponsableConversatorio").textContent = "Institución: " + r.institucion;
+  document.getElementById("campoNombreResponsableConversatorio").value = r.responsableNombre || "";
+  document.getElementById("campoRolResponsableConversatorio").value = r.responsableRol || "";
+  document.getElementById("campoAcompananteResponsableConversatorio").value = r.acompanante || "";
+  mostrarMensaje("mensajeResponsableConversatorio", "");
+  cambiarPantalla("pantallaResponsableConversatorio");
+}
+
 function seleccionarInstitucionConversatorio_(institucion, idMensaje) {
   idMensaje = idMensaje || "mensajeAccesoConversatorio";
   mostrarCargaAccion_("acceso", "Ingresando…");
   llamarServidor("rpcSeleccionarInstitucionConversatorio", [institucion], function (r) {
+    ocultarCargaAccion_();
     if (!r.ok) {
-      ocultarCargaAccion_();
       mostrarMensaje(idMensaje, r.mensaje || "No fue posible seleccionar esa institución.", "error");
       return;
     }
     estado.institucionConversatorio = r.institucion;
     estado.grupoElegidoConversatorio = r.grupoElegido || "";
     estado.gruposConversatorio = r.grupos || [];
+    estado.responsableConversatorio = { nombre: r.responsableNombre || "", rol: r.responsableRol || "", acompanante: r.acompanante || "" };
     mostrarMensaje(idMensaje, "");
-    cargarTecnicasYMostrarConversatorio_(idMensaje);
+    mostrarPantallaResponsableConversatorio_(r);
   }, function () {
     ocultarCargaAccion_();
     mostrarMensaje(idMensaje, "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
   });
 }
 
+document.getElementById("btnContinuarResponsableConversatorio").addEventListener("click", function () {
+  var nombre = document.getElementById("campoNombreResponsableConversatorio").value.trim();
+  var rol = document.getElementById("campoRolResponsableConversatorio").value;
+  var acompanante = document.getElementById("campoAcompananteResponsableConversatorio").value.trim();
+  if (!nombre) {
+    mostrarMensaje("mensajeResponsableConversatorio", "Ingrese el nombre del responsable.", "error");
+    return;
+  }
+  if (!rol) {
+    mostrarMensaje("mensajeResponsableConversatorio", "Seleccione el rol del responsable.", "error");
+    return;
+  }
+  mostrarCargaAccion_("acceso", "Guardando…");
+  llamarServidor("rpcGuardarResponsableConversatorio", [estado.institucionConversatorio, nombre, rol, acompanante], function (r) {
+    if (!r.ok) {
+      ocultarCargaAccion_();
+      mostrarMensaje("mensajeResponsableConversatorio", r.mensaje || "No fue posible guardar.", "error");
+      return;
+    }
+    estado.responsableConversatorio = { nombre: nombre, rol: rol, acompanante: acompanante };
+    cargarTecnicasYMostrarConversatorio_("mensajeResponsableConversatorio");
+  }, function () {
+    ocultarCargaAccion_();
+    mostrarMensaje("mensajeResponsableConversatorio", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+  });
+});
+
 document.getElementById("btnContinuarAGrupoConversatorio").addEventListener("click", function () {
   document.getElementById("institucionCaracterizacionConversatorio").textContent = "Institución: " + estado.institucionConversatorio;
+  pintarBannerResponsableConversatorio_("bannerCaracterizacionConversatorio");
   renderGruposCaracterizacionConversatorio(estado.gruposConversatorio || [], estado.grupoElegidoConversatorio);
   cambiarPantalla("pantallaCaracterizacionConversatorio");
 });
@@ -591,6 +660,11 @@ function elegirGrupoConversatorio_(idGrupo) {
         return;
       }
       document.getElementById("institucionCierreConversatorio").textContent = "Institución: " + estado.institucionConversatorio;
+      // Spec del usuario: "indicar que puede participar del conversatorio
+      // con el grupo seleccionado".
+      var grupoElegidoInfo = (estado.gruposConversatorio || []).filter(function (g) { return g.idGrupo === idGrupo; })[0];
+      document.getElementById("grupoCierreConversatorio").textContent = grupoElegidoInfo ?
+        "Su institución puede participar del Conversatorio con el grupo seleccionado: " + grupoElegidoInfo.idGrupo + " — " + grupoElegidoInfo.nombreGrupo + "." : "";
       document.getElementById("btnVolverPanelSuperadminDesdeCierre").classList.toggle("oculto", !estado.modoSuperadminConversatorio);
       cambiarPantalla("pantallaCierreConversatorio");
     }, function () {
@@ -614,6 +688,29 @@ document.addEventListener("click", function (evento) {
       tarjeta.querySelector(".modo-lectura-tecnica-conversatorio").classList.add("oculto");
       tarjeta.querySelector(".modo-edicion-tecnica-conversatorio").classList.remove("oculto");
     }
+  }
+
+  // Spec del usuario: "Boton de es correcto pra informacion de tecnica o
+  // deseamos editar esta información" — confirma sin abrir edición.
+  var confirmar = evento.target.closest("[data-confirmar-tecnica-conversatorio]");
+  if (confirmar) {
+    mostrarCargaAccion_("acceso", "Confirmando…");
+    llamarServidor(
+      "rpcConfirmarTecnicaConversatorio",
+      [estado.institucionConversatorio, confirmar.getAttribute("data-confirmar-tecnica-conversatorio")],
+      function (r) {
+        ocultarCargaAccion_();
+        if (!r.ok) {
+          mostrarMensaje("mensajeResolucionConversatorio", r.mensaje || "No fue posible confirmar.", "error");
+          return;
+        }
+        cargarTecnicasYMostrarConversatorio_("mensajeResolucionConversatorio");
+      },
+      function () {
+        ocultarCargaAccion_();
+        mostrarMensaje("mensajeResolucionConversatorio", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+      }
+    );
   }
 });
 
@@ -656,6 +753,16 @@ document.addEventListener("click", function (evento) {
   var idFila = guardar.getAttribute("data-guardar-tecnica-conversatorio");
   var tarjeta = guardar.closest("[data-tarjeta-tecnica-conversatorio]");
   if (!tarjeta) return;
+
+  // Spec del usuario: "debe editarse obligatoriamente las preguntas de si
+  // y de no y guardar" — ambas preguntas Sí/No son obligatorias antes de
+  // poder guardar la tarjeta.
+  var respuestaQ1 = tarjeta.querySelector("[data-campo-edicion-tecnica='preguntaApertura2027']").value;
+  var respuestaQ2Validar = tarjeta.querySelector("[data-campo-edicion-tecnica='preguntaNuevaArticulacion2027']").value;
+  if (!respuestaQ1 || !respuestaQ2Validar) {
+    mostrarMensaje("mensajeResolucionConversatorio", "Responda las dos preguntas de Sí/No antes de guardar.", "error");
+    return;
+  }
 
   var campos = [];
   tarjeta.querySelectorAll("[data-campo-edicion-tecnica]").forEach(function (campo) {

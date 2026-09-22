@@ -368,6 +368,12 @@ function rpcSeleccionarInstitucionConversatorio(institucion) {
   });
 }
 
+function rpcGuardarResponsableConversatorio(institucion, nombreResponsable, rolResponsable, acompanante) {
+  return ejecutarRpcSeguro_(function () {
+    return guardarResponsableConversatorio(institucion, nombreResponsable, rolResponsable, acompanante);
+  });
+}
+
 function rpcElegirGrupoConversatorio(institucion, idGrupo) {
   return ejecutarRpcSeguro_(function () {
     return elegirGrupoConversatorio(institucion, idGrupo);
@@ -383,6 +389,12 @@ function rpcObtenerTecnicasConversatorio(institucion) {
 function rpcGuardarCampoTecnicaConversatorio(institucion, idFila, campo, valor) {
   return ejecutarRpcSeguro_(function () {
     return guardarCampoTecnicaConversatorio(institucion, idFila, campo, valor);
+  });
+}
+
+function rpcConfirmarTecnicaConversatorio(institucion, idFila) {
+  return ejecutarRpcSeguro_(function () {
+    return confirmarTecnicaConversatorio(institucion, idFila);
   });
 }
 

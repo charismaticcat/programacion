@@ -236,17 +236,48 @@
     </div>
   </section>
 
-  <!-- 4ter. RESOLUCIÓN VS IE (editable) + preguntas por técnica — ahora es el
+  <!-- 4ter. RESPONSABLE DE DILIGENCIAR EL CONVERSATORIO (spec del usuario:
+       "hacer pantalla de responsable de llenar sesion de conecta educa") —
+       alimenta el banner de bienvenida que se muestra en las pantallas
+       siguientes. -->
+  <section id="pantallaResponsableConversatorio" class="pantalla">
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">¿Quién va a diligenciar el Conversatorio?</h2>
+      <p class="ayuda" id="institucionResponsableConversatorio"></p>
+      <label for="campoNombreResponsableConversatorio">Nombre completo</label>
+      <input type="text" id="campoNombreResponsableConversatorio" autocomplete="off">
+      <label for="campoRolResponsableConversatorio">Rol en la institución</label>
+      <select id="campoRolResponsableConversatorio">
+        <option value="">— Seleccione —</option>
+        <option value="Rector(a)">Rector(a)</option>
+        <option value="Coordinador(a) académico(a)">Coordinador(a) académico(a)</option>
+        <option value="Docente">Docente</option>
+        <option value="Enlace/articulador(a) SENA">Enlace/articulador(a) SENA</option>
+        <option value="Orientador(a)">Orientador(a)</option>
+        <option value="Otro">Otro</option>
+      </select>
+      <label for="campoAcompananteResponsableConversatorio">Acompañante (opcional)</label>
+      <input type="text" id="campoAcompananteResponsableConversatorio" placeholder="Nombre y rol del acompañante, si asiste otra persona" autocomplete="off">
+      <div id="mensajeResponsableConversatorio"></div>
+      <div class="fila-botones">
+        <button class="btn btn-primario" id="btnContinuarResponsableConversatorio">Continuar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4quater. RESOLUCIÓN VS IE (editable) + preguntas por técnica — ahora es el
        PRIMER paso tras elegir institución (spec del usuario: la elección del
        grupo se da después de responder las preguntas). Todo se muestra en
        solo lectura; el lápiz (✏️) por tarjeta de técnica habilita la edición
        (spec del usuario). -->
   <section id="pantallaResolucionConversatorio" class="pantalla">
     <div class="tarjeta">
+      <div id="bannerResponsableConversatorio" class="banner-responsable-conversatorio oculto"></div>
       <h2 class="titulo-seccion">Programas técnicos articulados y su resolución</h2>
       <p class="ayuda" id="institucionResolucionConversatorio"></p>
       <p class="ayuda">Estos son los datos registrados de cada técnica articulada con el SENA en su
-        institución. Si hace falta corregir algo, use el lápiz ✏️ de la tarjeta correspondiente.</p>
+        institución. Si hace falta corregir algo, use el lápiz ✏️ de la tarjeta correspondiente. Las
+        preguntas de Sí/No son obligatorias antes de guardar.</p>
       <div id="listaTecnicasResolucionConversatorio"></div>
       <div id="mensajeResolucionConversatorio"></div>
       <div class="fila-botones">
@@ -255,16 +286,17 @@
     </div>
   </section>
 
-  <!-- 4quater. CARACTERIZACIÓN DEL CONVERSATORIO: catálogo de los grupos
+  <!-- 4quinquies. CARACTERIZACIÓN DEL CONVERSATORIO: catálogo de los grupos
        técnicos a los que pertenece la IE (solo esos, spec del usuario) —
        ahora es el ÚLTIMO paso; elegir un grupo finaliza el Conversatorio. -->
   <section id="pantallaCaracterizacionConversatorio" class="pantalla">
     <div class="tarjeta">
       <button type="button" class="btn btn-secundario" data-ir="pantallaResolucionConversatorio" style="margin-bottom:14px;">← Volver a las técnicas</button>
+      <div id="bannerCaracterizacionConversatorio" class="banner-responsable-conversatorio oculto"></div>
       <h2 class="titulo-seccion">Grupo de articulación técnica</h2>
       <p class="ayuda" id="institucionCaracterizacionConversatorio"></p>
-      <p class="ayuda">Su institución pertenece a él o a los siguientes grupos de articulación técnica —
-        elija con cuál va a finalizar el Conversatorio.</p>
+      <p class="ayuda">Su institución podrá participar del Conversatorio con el grupo de articulación
+        técnica que seleccione a continuación — elegirlo finaliza el Conversatorio.</p>
       <div id="listaGruposCaracterizacionConversatorio"></div>
       <div id="mensajeCaracterizacionConversatorio"></div>
     </div>
@@ -275,6 +307,7 @@
     <div class="tarjeta" style="text-align:center;">
       <h2 class="titulo-seccion">¡Gracias!</h2>
       <p class="ayuda" id="institucionCierreConversatorio"></p>
+      <p id="grupoCierreConversatorio"></p>
       <p>Las respuestas del Conversatorio de Conecta Educa quedaron guardadas. Puede cerrar esta ventana.</p>
       <div class="fila-botones" style="justify-content:center;">
         <button class="btn btn-secundario oculto" id="btnVolverPanelSuperadminDesdeCierre">← Volver al panel de administrador</button>
