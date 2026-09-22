@@ -185,6 +185,28 @@ div.tarjeta-seccion:hover, div.tarjeta-seccion:focus-visible { transform: none; 
 }
 .badge-tecnica-confirmada { color: var(--verde-oscuro); font-weight: 600; margin-left: 8px; }
 
+/* Conversatorio — separar la casilla de datos de la técnica de la
+   casilla de preguntas Sí/No (spec del usuario: "debe aparecer aparte
+   para seleccionar si o no, no debe aparecer dentro de la casilla"). */
+.caja-datos-tecnica-conversatorio {
+  border: 1px solid var(--gris-borde); border-radius: 8px; padding: 12px 14px; margin-bottom: 14px;
+}
+.caja-preguntas-tecnica-conversatorio {
+  border: 1px solid var(--verde); border-radius: 8px; padding: 12px 14px; margin-bottom: 14px;
+  background: var(--verde-clarisimo, #f2f8f0);
+}
+.fila-pregunta-si-no {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  flex-wrap: wrap; margin: 8px 0;
+}
+.fila-pregunta-si-no span:first-child { font-weight: 600; }
+.badge-si, .badge-no, .badge-sin-responder {
+  display: inline-block; padding: 3px 12px; border-radius: 999px; font-weight: 700; font-size: 0.9rem;
+}
+.badge-si { background: var(--verde); color: var(--blanco); }
+.badge-no { background: var(--rojo); color: var(--blanco); }
+.badge-sin-responder { background: var(--amarillo); color: #4a3800; }
+
 /* Sesión de socialización (Documento Orientador FEM2026, item 10). */
 .fila-socializacion-ie {
   display: flex;

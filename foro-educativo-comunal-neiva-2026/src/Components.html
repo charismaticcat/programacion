@@ -601,6 +601,19 @@ function _filaLecturaConversatorio_(etiqueta, valor) {
 }
 
 /**
+ * Fila de solo-lectura para una pregunta Sí/No — spec del usuario: "debe
+ * aparecer aparte para seleccionar si o no, no debe aparecer dentro de la
+ * casilla" — la respuesta se muestra como una insignia (Sí/No/Sin
+ * responder), separada visualmente del texto de la pregunta, en vez de
+ * texto plano pegado a continuación.
+ */
+function _filaPreguntaSiNoLecturaConversatorio_(etiqueta, valor) {
+  var clase = valor === "Sí" ? "badge-si" : valor === "No" ? "badge-no" : "badge-sin-responder";
+  return "<p class='fila-pregunta-si-no'><span>" + etiqueta + "</span> " +
+    "<span class='" + clase + "'>" + escapeHtml(valor || "Sin responder") + "</span></p>";
+}
+
+/**
  * Técnicas SENA de la institución (Resolución Vs IE) con las 2 preguntas
  * de proyección 2027 debajo de cada una — spec del usuario: "poner todo
  * en solo lectura, y si hay necesidad de cambiar algo, dar click en el
@@ -625,14 +638,20 @@ function renderTecnicasResolucionConversatorio(tecnicas, catalogoTecnicas) {
 
     // --- Modo lectura ---
     html += "<div class='modo-lectura-tecnica-conversatorio'>";
+    html += "<div class='caja-datos-tecnica-conversatorio'>";
     html += _filaLecturaConversatorio_("Técnica / programa SENA", t.tecnicaSena);
     html += _filaLecturaConversatorio_("Programa aprobado por resolución", t.programaAprobado);
     html += _filaLecturaConversatorio_("Resolución o decreto", t.resolucionDecreto);
-    html += _filaLecturaConversatorio_("¿Se aperturará esta articulación para grado 10° en el 2027?", t.preguntaApertura2027);
-    html += _filaLecturaConversatorio_("¿Se planea incluir una nueva articulación para el año 2027?", t.preguntaNuevaArticulacion2027);
+    html += "</div>";
+    // Spec del usuario: las preguntas Sí/No van aparte, no dentro de la
+    // misma casilla de los datos de la técnica.
+    html += "<div class='caja-preguntas-tecnica-conversatorio'>";
+    html += _filaPreguntaSiNoLecturaConversatorio_("¿Se aperturará esta articulación para grado 10° en el 2027?", t.preguntaApertura2027);
+    html += _filaPreguntaSiNoLecturaConversatorio_("¿Se planea incluir una nueva articulación para el año 2027?", t.preguntaNuevaArticulacion2027);
     if (t.preguntaNuevaArticulacion2027 === "Sí" && t.nuevaArticulacionDetalle) {
       html += _filaLecturaConversatorio_("Detalle de la nueva articulación", t.nuevaArticulacionDetalle);
     }
+    html += "</div>";
     // Spec del usuario: "Boton de es correcto pra informacion de tecnica o
     // deseamos editar esta información" — confirmar sin cambiar nada, o
     // abrir el modo edición.
@@ -648,13 +667,18 @@ function renderTecnicasResolucionConversatorio(tecnicas, catalogoTecnicas) {
 
     // --- Modo edición (oculto hasta hacer clic en el lápiz) ---
     html += "<div class='modo-edicion-tecnica-conversatorio oculto'>";
+    html += "<div class='caja-datos-tecnica-conversatorio'>";
     html += "<label>Técnica / programa SENA</label>";
     html += "<input type='text' data-campo-edicion-tecnica='tecnicaSena' value='" + escapeHtml(t.tecnicaSena) + "'>";
     html += "<label>Programa aprobado por resolución</label>";
     html += "<input type='text' data-campo-edicion-tecnica='programaAprobado' value='" + escapeHtml(t.programaAprobado) + "'>";
     html += "<label>Resolución o decreto</label>";
     html += "<input type='text' data-campo-edicion-tecnica='resolucionDecreto' value='" + escapeHtml(t.resolucionDecreto) + "'>";
+    html += "</div>";
 
+    // Spec del usuario: las preguntas Sí/No van aparte, no dentro de la
+    // misma casilla de los datos de la técnica.
+    html += "<div class='caja-preguntas-tecnica-conversatorio'>";
     html += "<label>¿Se aperturará esta articulación para grado 10° en el 2027?</label>";
     html += "<select data-campo-edicion-tecnica='preguntaApertura2027'>";
     html += "<option value=''" + (t.preguntaApertura2027 ? "" : " selected") + ">— Sin responder —</option>";
@@ -683,6 +707,7 @@ function renderTecnicasResolucionConversatorio(tecnicas, catalogoTecnicas) {
       html += "<label class='opcion-catalogo-tecnica'><input type='checkbox' id='" + idCheckbox + "' data-catalogo-tecnica='" + idFila + "' value='" + escapeHtml(tecnicaCatalogo) + "'> " + escapeHtml(tecnicaCatalogo) + "</label>";
     });
     html += "</div></div>";
+    html += "</div>"; // cierra .caja-preguntas-tecnica-conversatorio
 
     html += "<div class='fila-botones'><button type='button' class='btn btn-primario' data-guardar-tecnica-conversatorio='" + idFila + "'>💾 Guardar</button></div>";
     html += "</div>";

@@ -2328,6 +2328,31 @@ Verificado: `node --check` sobre Responsables.gs; extracción y `node --check` d
 Index.html (limpio, mismo falso positivo permanente ya conocido); sin IDs duplicados ni etiquetas sin
 cerrar.
 
+## 4.68 Quincuagésimo quinto lote: separar las preguntas Sí/No en su propia casilla, botón Atrás en Grupo de articulación técnica
+
+Pedido del usuario, sobre la tarjeta de técnica del Conversatorio: "¿Se aperturará esta articulación para
+grado 10° en el 2027?: Sin responder. ¿Se planea incluir una nueva articulación para el año 2027?: Sin
+responder. debe aoarecer aparte para seleccionar si o no no debe aparecer dentro de la casilla" — y, sobre
+la pantalla de elección de grupo: "en pantalla de Grupo de articulación técnica debe haber botón atrás".
+
+- **Components.html, `renderTecnicasResolucionConversatorio`**: la tarjeta de cada técnica ahora tiene DOS
+  casillas separadas visualmente (antes todo estaba mezclado en una sola): `.caja-datos-tecnica-conversatorio`
+  (técnica/programa/resolución) y, aparte, `.caja-preguntas-tecnica-conversatorio` (las 2 preguntas Sí/No +
+  el detalle de nueva articulación) — con borde y fondo propios (verde claro) para que se note que es una
+  sección distinta. Esto aplica tanto en modo lectura como en modo edición.
+- **Modo lectura de las preguntas Sí/No**: nueva función `_filaPreguntaSiNoLecturaConversatorio_` — en vez
+  de texto plano "pregunta: Sin responder." pegado en un párrafo, la respuesta se muestra como una insignia
+  de color (`.badge-si` verde, `.badge-no` rojo, `.badge-sin-responder` amarillo), separada visualmente de
+  la pregunta.
+- **Index.html, `pantallaCaracterizacionConversatorio`**: el botón que ya llevaba de vuelta a las técnicas
+  ("← Volver a las técnicas") se renombró a "← Atrás (volver a las técnicas)" para que se reconozca
+  claramente como el botón Atrás de la pantalla.
+- **CSS.html**: estilos nuevos `.caja-datos-tecnica-conversatorio`, `.caja-preguntas-tecnica-conversatorio`,
+  `.fila-pregunta-si-no`, `.badge-si`/`.badge-no`/`.badge-sin-responder`.
+
+Verificado: extracción y `node --check` de los bloques `<script>` de Index.html (limpio, mismo falso
+positivo permanente) y Components.html (limpio); sin IDs duplicados ni etiquetas sin cerrar.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:
