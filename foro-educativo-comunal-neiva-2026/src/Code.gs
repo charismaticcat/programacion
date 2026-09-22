@@ -168,6 +168,12 @@ function rpcGuardarParticipacionEstamentoIE(idGrupo, tokenSesion, dispositivoId,
   });
 }
 
+function rpcGuardarPresenciaIE(idGrupo, tokenSesion, dispositivoId, idIE, presente) {
+  return ejecutarRpcSeguro_(function () {
+    return guardarPresenciaIE(idGrupo, tokenSesion, dispositivoId, idIE, presente);
+  });
+}
+
 function rpcRolesForo() {
   return ejecutarRpcSeguro_(function () {
     return ROLES_FORO_;

@@ -489,10 +489,23 @@
       </div>
     </div>
 
+    <!-- Instituciones educativas presentes — spec del usuario: "Responsable
+         de envio debe seleccionar qué instituciones educativas están
+         presentes", justo después de Responsable de envío. Solo las IE
+         marcadas aquí aparecen en la matriz de estamento y en el informe
+         final. -->
+    <div class="tarjeta">
+      <h3 class="subtitulo-campo">Instituciones educativas presentes</h3>
+      <p class="ayuda">Marque las instituciones educativas del grupo que están presentes en esta sesión —
+        solo ellas aparecerán en la matriz de participación y en el informe final.</p>
+      <div id="listaIEPresentes"></div>
+      <div id="mensajeIEPresentes"></div>
+    </div>
+
     <div class="tarjeta">
       <h3 class="subtitulo-campo">Cantidad de asistentes por estamento e institución</h3>
       <p class="ayuda">Registre cuántas personas de cada estamento participaron, por cada institución
-        educativa del grupo (mismo formato de la caracterización de FEI 3.1). La suma se calcula
+        educativa presente (mismo formato de la caracterización de FEI 3.1). La suma se calcula
         automáticamente.</p>
       <div id="resumenParticipacionEstamento" class="resumen-participacion-estamento"></div>
       <div id="contenedorParticipacionEstamento" class="tabla-horizontal-desplazable"></div>

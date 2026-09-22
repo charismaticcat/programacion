@@ -47,7 +47,7 @@ var ESTAMENTOS_PARTICIPACION_ = [
 function cabecerasParticipacionEstamentoIE_() {
   return ["CLAVE", "ID_GRUPO", "ID_IE"]
     .concat(ESTAMENTOS_PARTICIPACION_.map(function (e) { return e.clave; }))
-    .concat(["ULTIMA_ACTUALIZACION"]);
+    .concat(["ULTIMA_ACTUALIZACION", "PRESENTE"]);
 }
 
 function _claveParticipacionEstamento_(idGrupo, idIE) {
@@ -57,7 +57,12 @@ function _claveParticipacionEstamento_(idGrupo, idIE) {
 /**
  * Conteo por estamento de todas las IE del grupo, listas para la
  * pantalla de Participación (una IE que todavía no diligenció nada
- * aparece con todos los estamentos en 0, nunca se omite).
+ * aparece con todos los estamentos en 0, nunca se omite). Cada IE trae
+ * además `presente` (spec del usuario: "Responsable de envio debe
+ * seleccionar qué instituciones educativas están presentes") — el
+ * cliente usa esa marca para filtrar la matriz y el informe a solo las
+ * IE presentes; `totalesPorEstamento`/`totalGeneral` YA vienen calculados
+ * solo sobre las IE presentes.
  */
 function obtenerParticipacionEstamentoGrupo(idGrupo) {
   var idGrupoStr = String(idGrupo || "").trim();
@@ -77,16 +82,17 @@ function obtenerParticipacionEstamentoGrupo(idGrupo) {
   var totalGeneral = 0;
   var instituciones = obtenerInstitucionesDelGrupo(idGrupoStr).map(function (ie) {
     var fila = porIE[ie.idIE];
+    var presente = !!fila && String(fila.PRESENTE || "") === "SI";
     var valores = {};
     var totalIE = 0;
     ESTAMENTOS_PARTICIPACION_.forEach(function (e) {
       var valor = fila ? Number(fila[e.clave] || 0) : 0;
       valores[e.clave] = valor;
       totalIE += valor;
-      totalesPorEstamento[e.clave] += valor;
+      if (presente) totalesPorEstamento[e.clave] += valor;
     });
-    totalGeneral += totalIE;
-    return { idIE: ie.idIE, institucion: ie.institucion, valores: valores, total: totalIE };
+    if (presente) totalGeneral += totalIE;
+    return { idIE: ie.idIE, institucion: ie.institucion, valores: valores, total: totalIE, presente: presente };
   });
 
   return {
@@ -95,6 +101,36 @@ function obtenerParticipacionEstamentoGrupo(idGrupo) {
     totalesPorEstamento: totalesPorEstamento,
     totalGeneral: totalGeneral
   };
+}
+
+/**
+ * Marca (UPSERT) si una IE del grupo está presente en esta sesión — spec
+ * del usuario: casilla de "instituciones educativas presentes" justo
+ * después de Responsable de envío. No pisa los conteos por estamento ya
+ * guardados de esa IE si la fila ya existía.
+ */
+function guardarPresenciaIE(idGrupo, tokenSesion, dispositivoId, idIE, presente) {
+  idGrupo = String(idGrupo || "").trim();
+  if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
+    return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión ya no está activa en este dispositivo." };
+  }
+  idIE = String(idIE || "").trim();
+  if (!idIE) return { ok: false, mensaje: "Falta la institución." };
+  var perteneceAlGrupo = obtenerInstitucionesDelGrupo(idGrupo).some(function (ie) {
+    return ie.idIE === idIE;
+  });
+  if (!perteneceAlGrupo) return { ok: false, mensaje: "Esa institución no pertenece a este grupo." };
+
+  return conLock_(function () {
+    upsertFila_(
+      HOJA_PARTICIPACION_ESTAMENTO_,
+      cabecerasParticipacionEstamentoIE_(),
+      "CLAVE",
+      _claveParticipacionEstamento_(idGrupo, idIE),
+      { ID_GRUPO: idGrupo, ID_IE: idIE, PRESENTE: presente ? "SI" : "NO" }
+    );
+    return { ok: true };
+  }, 10000);
 }
 
 /** Guarda (UPSERT) el conteo por estamento de UNA IE del grupo — igual patrón de autoguardado que el resto de la app. */

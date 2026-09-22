@@ -2451,6 +2451,58 @@ Modal.html y CSS.html (limpio, mismo falso positivo permanente); sin IDs duplica
 automatizada de cada referencia `getElementById` contra los IDs reales del HTML (0 referencias colgantes
 sin guarda nula).
 
+## 4.71 Quincuagésimo séptimo lote (parte 2): fix del error de valoración + casilla de IE presentes
+
+### Fix: "Debe completar la valoración de esta sesión antes de generar el informe" apareciendo sin razón
+
+Diagnóstico (sin logs de ejecución disponibles — `clasp logs` no funciona en este entorno, se investigó
+solo por lectura de código): `guardarValoracionGrupo` (Valoracion.gs) guarda la fila con `upsertFila_`
+dentro de `conLock_` pero **nunca llamaba a `SpreadsheetApp.flush()`** antes de devolver éxito al cliente.
+Apps Script no garantiza que un `appendRow`/`setValue` sea visible de inmediato para OTRA ejecución del
+script — y "Generar informe" es casi siempre una ejecución completamente separada de `google.script.run`,
+disparada por el cliente apenas `estado.valoracionCompletada` pasa a `true`. Si el clic en "Generar
+informe" llega antes de que el guardado de la valoración se haya "asentado" en la hoja, `Grupos.gs` lee
+`obtenerValoracionGrupo` y no encuentra la fila todavía, aunque sí se guardó. **Este es el mismo patrón de
+bug ya encontrado y corregido una vez antes** en este proyecto: `registrarParticipante` (Data.gs:261) tiene
+el comentario "Sin flush(), una lectura casi inmediata... puede no ver todavía esta fila" — exactamente el
+mismo mecanismo, aplicado ahora a la valoración.
+- **Fix**: se agregó `SpreadsheetApp.flush()` al final de `guardarValoracionGrupo`, antes de `return { ok:
+  true, ... }`.
+- **Endurecimiento adicional** (no confirmado como la causa, pero cerraba una asimetría real):
+  `guardarValoracionGrupo` normaliza `seccion` a mayúsculas antes de construir la CLAVE, pero
+  `obtenerValoracionGrupo` no lo hacía — se agregó la misma normalización en la lectura, por si acaso
+  `estado.seccion` llegara alguna vez en minúscula desde el cliente.
+
+### Casilla "Instituciones educativas presentes"
+
+Pedido del usuario: "Responsable de envio debe seleccionar qué instituciones educativas están presentes"
+(confirmado por AskUserQuestion: casilla nueva junto a Responsable de envío, que filtra la matriz de
+estamento — no existía ningún otro mecanismo previo de "selección de escuelas" que remover).
+
+- **`ParticipacionEstamento.gs`**: nueva columna `PRESENTE` (SI/NO) en la hoja `ParticipacionEstamentoIE`
+  (se agrega sola al final vía la auto-migración de `obtenerHoja_`, sin tocar filas existentes).
+  `obtenerParticipacionEstamentoGrupo` ahora incluye `presente` por cada IE, y `totalesPorEstamento`/
+  `totalGeneral` se calculan **solo sobre las IE presentes**. Nueva función `guardarPresenciaIE` (UPSERT,
+  no pisa los conteos por estamento ya guardados de esa IE).
+- **`Code.gs`**: nuevo RPC `rpcGuardarPresenciaIE`.
+- **`Index.html`**: nueva tarjeta "Instituciones educativas presentes" en Participación, justo después de
+  Responsable de envío (antes de "Cantidad de asistentes por estamento e institución").
+- **`Components.html`**: nueva `renderListaIEPresentes(instituciones)` (checklist); `renderParticipacionEstamento`
+  ahora filtra `datos.instituciones` a solo `.presente` antes de construir la tabla horizontal — si ninguna
+  IE está marcada, muestra un aviso en vez de una tabla vacía.
+- **`JS.html`**: `cargarParticipacionEstamento` pinta el checklist; nuevo listener delegado en `change` para
+  `[data-ie-presente]` que llama a `rpcGuardarPresenciaIE` y refresca la matriz. `institucionesSinParticipacionMarcada_`
+  (la advertencia de "verificar participación" en Confirmación de caracterización) ahora solo considera IE
+  presentes.
+- **Nota**: el informe generado (Informes.gs) no incluye hoy una tabla de la matriz de estamento — no había
+  nada que filtrar ahí; si se agrega esa tabla al informe en el futuro, debe construirse ya filtrada por
+  `presente`, igual que la pantalla.
+
+Verificado: `node --check` de ParticipacionEstamento.gs, Code.gs y Valoracion.gs; extracción y `node
+--check` de los bloques `<script>` de Index.html/JS.html/Components.html/Modal.html/CSS.html (limpio,
+mismo falso positivo permanente); sin IDs duplicados; comparación automatizada `getElementById` vs. IDs
+reales (mismas 8 referencias colgantes ya confirmadas con guarda nula del lote anterior, ninguna nueva).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

@@ -2440,12 +2440,12 @@ document.getElementById("btnContinuarAParticipacion").addEventListener("click", 
   irTrasParticipacion_();
 });
 
-/** Instituciones del grupo cuya columna en la matriz de participación por estamento quedó en cero. */
+/** Instituciones PRESENTES cuya columna en la matriz de participación por estamento quedó en cero. */
 function institucionesSinParticipacionMarcada_() {
   var datos = estado.participacionEstamento;
   if (!datos || !datos.instituciones) return [];
   return datos.instituciones
-    .filter(function (ie) { return !ie.total; })
+    .filter(function (ie) { return ie.presente && !ie.total; })
     .map(function (ie) { return ie.institucion; });
 }
 
@@ -3119,6 +3119,7 @@ function cargarParticipacionEstamento(alTerminar) {
   }
   llamarServidor("rpcObtenerParticipacionEstamento", [estado.idGrupo], function (datos) {
     estado.participacionEstamento = datos;
+    renderListaIEPresentes(datos.instituciones);
     CONTENEDORES_PARTICIPACION_ESTAMENTO_.forEach(function (idContenedor) {
       if (document.getElementById(idContenedor)) renderParticipacionEstamento(datos, idContenedor);
     });
@@ -3130,6 +3131,29 @@ function cargarParticipacionEstamento(alTerminar) {
     if (alTerminar) alTerminar();
   });
 }
+
+/** Marcar/desmarcar una IE como presente (checklist junto a Responsable de envío) — refresca la matriz al guardar. */
+document.addEventListener("change", function (evento) {
+  var casilla = evento.target.closest("[data-ie-presente]");
+  if (!casilla) return;
+  var idIE = casilla.getAttribute("data-ie-presente");
+  var presente = casilla.checked;
+  casilla.disabled = true;
+  llamarServidor("rpcGuardarPresenciaIE", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, idIE, presente], function (r) {
+    casilla.disabled = false;
+    if (!r.ok) {
+      casilla.checked = !presente;
+      mostrarMensaje("mensajeIEPresentes", r.mensaje || "No fue posible guardar.", "error");
+      return;
+    }
+    mostrarMensaje("mensajeIEPresentes", "", "");
+    cargarParticipacionEstamento();
+  }, function () {
+    casilla.disabled = false;
+    casilla.checked = !presente;
+    mostrarMensaje("mensajeIEPresentes", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+  });
+});
 
 function renderResumenParticipacionEstamentoTodo() {
   RESUMENES_PARTICIPACION_ESTAMENTO_.forEach(function (idResumen) {

@@ -51,7 +51,10 @@ function obtenerValoracionGrupo(idGrupo, seccion) {
   var hoja = obtenerHoja_(HOJA_VALORACION_COMUNAL_, cabecerasValoracionComunal_());
   var mapa = obtenerMapaCabeceras_(hoja);
   if (seccion) {
-    var fila = buscarFilaPorColumna_(hoja, mapa, "CLAVE", _claveValoracion_(idGrupo, seccion));
+    // Misma normalización que guardarValoracionGrupo_ (mayúsculas) — para
+    // que un "encuentro" en minúscula desde el cliente no falle en
+    // encontrar la fila guardada como "ENCUENTRO".
+    var fila = buscarFilaPorColumna_(hoja, mapa, "CLAVE", _claveValoracion_(idGrupo, String(seccion).toUpperCase()));
     return fila === -1 ? null : leerFilaComoObjeto_(hoja, fila, mapa);
   }
   var filas = leerFilasComoObjetos_(hoja);
@@ -94,6 +97,13 @@ function guardarValoracionGrupo(idGrupo, tokenSesion, dispositivoId, respuestas,
       P5_SUGERENCIAS: String(respuestas.p5 || "").trim(),
       FECHA: new Date()
     });
+    // Sin flush(), un clic casi inmediato en "Generar informe" (otra
+    // ejecución de Apps Script, disparada apenas el cliente marca
+    // estado.valoracionCompletada = true) puede leer obtenerValoracionGrupo
+    // antes de que esta fila sea visible, y rechazar con "Debe completar la
+    // valoración..." aunque sí se guardó — mismo caso que el fix de
+    // firmantes en vivo en Data.gs (registrarParticipante).
+    SpreadsheetApp.flush();
     return { ok: true, notaPromedio: nota };
   }, 15000);
 }

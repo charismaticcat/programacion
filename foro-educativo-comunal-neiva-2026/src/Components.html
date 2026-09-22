@@ -113,6 +113,30 @@ function renderResponsables(responsables, idFichaPrincipal, idListaAsistentes) {
 }
 
 /**
+ * Checklist de instituciones educativas presentes en la sesión — spec del
+ * usuario: "Responsable de envio debe seleccionar qué instituciones
+ * educativas están presentes", justo después de Responsable de envío.
+ * Solo las marcadas aquí entran a la matriz de estamento
+ * (renderParticipacionEstamento) y al informe final.
+ */
+function renderListaIEPresentes(instituciones) {
+  var contenedor = document.getElementById("listaIEPresentes");
+  if (!contenedor) return;
+  if (!instituciones || !instituciones.length) {
+    contenedor.innerHTML = "<p class='ayuda'>No hay instituciones para mostrar.</p>";
+    return;
+  }
+  var html = "";
+  instituciones.forEach(function (ie) {
+    html += "<label class='opcion-ie-presente'>" +
+      "<input type='checkbox' data-ie-presente='" + escapeHtml(ie.idIE) + "'" + (ie.presente ? " checked" : "") + "> " +
+      escapeHtml(ie.institucion) +
+      "</label>";
+  });
+  contenedor.innerHTML = html;
+}
+
+/**
  * Tabla ÚNICA y horizontal de participación por estamento (mismo formato
  * que 3.1, y mismo formato del cuadro dentro del informe generado):
  * filas = estamento, columnas = IE (encabezado corto "Comuna (N)", con
@@ -124,14 +148,18 @@ function renderResponsables(responsables, idFichaPrincipal, idListaAsistentes) {
 function renderParticipacionEstamento(datos, idContenedor) {
   var contenedor = document.getElementById(idContenedor);
   if (!contenedor) return;
-  if (!datos || !datos.instituciones.length) {
-    contenedor.innerHTML = "<p class='ayuda'>No hay instituciones para mostrar.</p>";
+  // Solo las IE marcadas como presentes entran a la matriz (spec del
+  // usuario: "Responsable de envio debe seleccionar qué instituciones
+  // educativas están presentes"; ver listaIEPresentes/renderListaIEPresentes).
+  var instituciones = (datos ? datos.instituciones : []).filter(function (ie) { return ie.presente; });
+  if (!instituciones.length) {
+    contenedor.innerHTML = "<p class='ayuda'>Marque arriba qué instituciones educativas están presentes para que aparezcan aquí.</p>";
     return;
   }
 
   var html = "<table id='tabla_" + idContenedor + "' class='tabla-participacion-horizontal'>";
   html += "<thead><tr><th class='th-estamento'>Estamento</th>";
-  datos.instituciones.forEach(function (ie) {
+  instituciones.forEach(function (ie) {
     html += "<th class='th-ie' title='" + escapeHtml(ie.institucion) + "'>" +
       "<span class='nombre-ie-columna'>" + escapeHtml(ie.institucion) + "</span>" +
       "<span class='comuna-ie-columna'>" + escapeHtml(formatearComuna(ie.comuna)) + "</span>" +
@@ -143,7 +171,7 @@ function renderParticipacionEstamento(datos, idContenedor) {
   datos.estamentos.forEach(function (e) {
     html += "<tr data-estamento='" + escapeHtml(e.clave) + "'>";
     html += "<td class='td-estamento'>" + escapeHtml(e.etiqueta) + "</td>";
-    datos.instituciones.forEach(function (ie) {
+    instituciones.forEach(function (ie) {
       html +=
         "<td><input type='number' min='0' step='1' inputmode='numeric' class='input-participantes-h' " +
         "data-ie='" + escapeHtml(ie.idIE) + "' data-estamento='" + escapeHtml(e.clave) + "' " +
@@ -155,7 +183,7 @@ function renderParticipacionEstamento(datos, idContenedor) {
   html += "</tbody>";
 
   html += "<tfoot><tr class='fila-total-ie'><td class='td-estamento'>Total</td>";
-  datos.instituciones.forEach(function (ie) {
+  instituciones.forEach(function (ie) {
     html += "<td data-total-ie='" + escapeHtml(ie.idIE) + "'>" + ie.total + "</td>";
   });
   html += "<td class='gran-total'>" + (datos.totalGeneral || 0) + "</td></tr></tfoot>";
