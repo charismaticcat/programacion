@@ -596,6 +596,31 @@ function renderListaInstitucionesAccesoConversatorio(instituciones) {
 }
 
 /**
+ * Lista de grupos del Encuentro para el acceso SIN código (spec del
+ * usuario: "Avoid code setting instead group schools to the following
+ * group owner") — cada grupo se identifica por el/los funcionario(s)
+ * responsable(s), mismo patrón que renderListaInstitucionesAccesoConversatorio.
+ */
+function renderListaGruposAcceso(grupos) {
+  var contenedor = document.getElementById("listaGruposAcceso");
+  if (!contenedor) return;
+  if (!grupos || !grupos.length) {
+    contenedor.innerHTML = "<p class='ayuda'>No hay grupos disponibles todavía.</p>";
+    return;
+  }
+  var html = "";
+  grupos.forEach(function (g) {
+    html += "<div class='fila-socializacion-ie'>";
+    html += "<span class='nombre-ie-socializacion'>" + escapeHtml(g.grupo) +
+      (g.duenos && g.duenos.length ? " — " + escapeHtml(g.duenos.join(", ")) : "") + "</span>";
+    html += "<div class='fila-botones'>";
+    html += "<button type='button' class='btn btn-primario' data-elegir-grupo-acceso='" + escapeHtml(g.idGrupo) + "'>Ingresar</button>";
+    html += "</div></div>";
+  });
+  contenedor.innerHTML = html;
+}
+
+/**
  * Grupos técnicos a los que pertenece la institución (spec del usuario:
  * "mostrar unicamente las IE que pertenecen a cada grupo" — es decir,
  * filtrar a solo los grupos de la propia institución, no los 7 completos)

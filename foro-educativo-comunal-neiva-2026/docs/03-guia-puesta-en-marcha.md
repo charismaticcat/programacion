@@ -2503,6 +2503,53 @@ Verificado: `node --check` de ParticipacionEstamento.gs, Code.gs y Valoracion.gs
 mismo falso positivo permanente); sin IDs duplicados; comparación automatizada `getElementById` vs. IDs
 reales (mismas 8 referencias colgantes ya confirmadas con guarda nula del lote anterior, ninguna nueva).
 
+## 4.72 Quincuagésimo séptimo lote (parte 3, final): acceso del grupo sin código — selección de lista por dueño
+
+Cambio grande, confirmado explícitamente por el usuario (AskUserQuestion): "Avoid code setting instead
+group schools to the following group owner (all of them are Funcionario Secretaría de...)" — cada uno de
+los 6 grupos comunales pasa a tener uno o dos funcionarios "dueños" que lo identifican en la pantalla de
+acceso, y ya no se pide un código para entrar.
+
+- **`Grupos.gs`**: catálogo hardcodeado `DUENOS_GRUPO_COMUNAL_` (G1: Angélica Rojas; G2: Adriana Cedeño +
+  Rosa M. González; G3: Nelson Herrera + Juan José Valenzuela; G4: Carlos Francisco Cortés + Edna Rivera;
+  G5: Rosario Valenzuela + John E. Sánchez; G6: Carolina Soto + Carlos Quijano) — son solo etiquetas para
+  identificar el grupo en la lista, **no credenciales** (nunca se usan para autenticar). Nueva
+  `obtenerGruposAccesoEncuentro()` = `obtenerGrupos()` + `duenos` por grupo.
+- **`Access.gs`**: nueva `elegirGrupoAccesoEncuentro(idGrupo, dispositivoId, forzar)` — mismo patrón de
+  `validarAccesoGrupo` (mismos chequeos de ESTADO/HABILITAR_DESDE, mismo `reclamarSesionGrupo_`, misma
+  forma de respuesta) pero busca la fila de `AccesosGrupo` por `ID_GRUPO` en vez de por `TOKEN`, y no pide
+  ni valida `CODIGO_ACCESO`. **`validarAccesoGrupo` (por token+código) no se tocó ni se eliminó** — sigue
+  ahí por si algún enlace `?t=TOKEN` ya distribuido antes de este cambio lo necesita; la nueva función es
+  simplemente la puerta de entrada nueva y principal.
+- **`Code.gs`**: nuevos RPC `rpcObtenerGruposAccesoEncuentro` y `rpcElegirGrupoAccesoEncuentro`.
+- **`Index.html` (`pantallaAcceso`)**: el campo de código ya no es lo primero que se ve — ahora hay una
+  lista de grupos (`listaGruposAcceso`, cada uno con el nombre del funcionario dueño) con un botón
+  "Ingresar" por grupo. El código de acceso sigue disponible, pero colapsado detrás de un enlace
+  "Ingresar con código de acceso" (`bloqueCodigoAcceso`, oculto por defecto).
+- **`Components.html`**: nueva `renderListaGruposAcceso(grupos)` (mismo patrón visual que
+  `renderListaInstitucionesAccesoConversatorio`).
+- **`JS.html`** — refactor importante: la lógica de "acceso exitoso" (poblar `estado.*`, barra de progreso,
+  retomar donde se quedó, carrusel de IE) estaba dentro del callback de `rpcValidarAcceso` — se extrajo a
+  `_procesarRespuestaAccesoGrupo_(r, idMensaje, reintentarForzado)`, compartida ahora por
+  `intentarValidarAcceso` (código) y la nueva `elegirGrupoAcceso_(idGrupo, forzar)` (lista). El modal de
+  "sesión ya abierta" (`btnForzarSesion`) también se generalizó: antes llamaba directo a
+  `intentarValidarAcceso(true)`, ahora invoca `_reintentarAccesoForzado_` (la función que corresponda según
+  por cuál de las dos puertas se entró). La lista de grupos se precarga en segundo plano apenas carga la
+  página (sin el overlay de carga global, para no mostrar un parpadeo de pantalla completa antes de que el
+  visitante vea siquiera la pantalla de bienvenida).
+  - **Dos bugs reales encontrados de paso** (residuos del lote anterior, "Participación al final del
+    recorrido") y corregidos aquí: `irTrasMetodologia_` y el `pantallaMasLejanaCloud_` por defecto dentro de
+    `_procesarRespuestaAccesoGrupo_` todavía mandaban a `pantallaParticipacion` como si fuera el primer paso
+    real tras la agenda — ahora ambos apuntan a `pantallaSesionSocializacion`, la posición correcta desde
+    que Participación se movió al final.
+- Se **no** usa ningún correo (ni de institución ni de funcionario) como credencial de acceso en este
+  flujo — coherente con el pedido del usuario "use the school email only to send the final report".
+
+Verificado: `node --check` de Access.gs, Grupos.gs y Code.gs; extracción y `node --check` de los bloques
+`<script>` de Index.html/JS.html/Components.html (limpio, mismo falso positivo permanente); sin IDs
+duplicados; comparación automatizada `getElementById` vs. IDs reales (mismas 8 referencias colgantes ya
+confirmadas con guarda nula, ninguna nueva).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

@@ -103,6 +103,76 @@ function validarAccesoGrupo(token, codigo, dispositivoId, forzar) {
 }
 
 /**
+ * Acceso SIN código — spec del usuario: "Avoid code setting instead group
+ * schools to the following group owner" (cambio grande, confirmado). El
+ * grupo se elige de una lista (ver obtenerGruposAccesoEncuentro en
+ * Grupos.gs), no por TOKEN+CODIGO_ACCESO. `validarAccesoGrupo` (arriba)
+ * sigue intacta por si algún enlace ?t=TOKEN ya distribuido la necesita —
+ * esta función es la nueva puerta de entrada, misma forma de respuesta
+ * para que el cliente pueda reusar el mismo código de after-éxito.
+ */
+function elegirGrupoAccesoEncuentro(idGrupo, dispositivoId, forzar) {
+  idGrupo = String(idGrupo || "").trim();
+  dispositivoId = String(dispositivoId || "").trim();
+
+  if (idGrupo === "") return { ok: false, codigo: "GRUPO_REQUERIDO", mensaje: "Debe elegir un grupo." };
+  if (dispositivoId === "") return { ok: false, codigo: "DISPOSITIVO_REQUERIDO", mensaje: "No fue posible identificar este dispositivo." };
+
+  var hoja = obtenerHoja_(HOJA_ACCESOS_GRUPO_, cabecerasAccesosGrupo_());
+  var mapa = obtenerMapaCabeceras_(hoja);
+  var numeroFila = buscarFilaPorColumna_(hoja, mapa, "ID_GRUPO", idGrupo);
+  if (numeroFila === -1) {
+    return { ok: false, codigo: "GRUPO_INVALIDO", mensaje: "Ese grupo no tiene un acceso configurado todavía." };
+  }
+
+  var registro = hoja.getRange(numeroFila, 1, 1, hoja.getLastColumn()).getDisplayValues()[0];
+  var valorColumna = function (nombre) {
+    return mapa[nombre] ? String(registro[mapa[nombre] - 1] || "").trim() : "";
+  };
+
+  var grupo = valorColumna("GRUPO");
+  var estado = valorColumna("ESTADO").toUpperCase();
+
+  if (estado === "BLOQUEADO" || estado === "INACTIVO") {
+    return { ok: false, codigo: "ACCESO_BLOQUEADO", mensaje: "Este acceso ya no está disponible." };
+  }
+
+  if (mapa["HABILITAR_DESDE"]) {
+    var valorHabilitar = hoja.getRange(numeroFila, mapa["HABILITAR_DESDE"]).getValue();
+    if (valorHabilitar instanceof Date && !isNaN(valorHabilitar.getTime()) && new Date() < valorHabilitar) {
+      var zona = Session.getScriptTimeZone();
+      var hora = Utilities.formatDate(valorHabilitar, zona, "h:mm a").replace("AM", "a. m.").replace("PM", "p. m.");
+      return {
+        ok: false,
+        codigo: "BLOQUEADO_POR_HORARIO",
+        mensaje: "El Encuentro de voces que construyen territorio se habilitará a las " + hora + ". Por favor ingrese nuevamente a partir de esa hora."
+      };
+    }
+  }
+
+  var sesion = reclamarSesionGrupo_(idGrupo, dispositivoId, !!forzar);
+  if (!sesion.ok) return sesion;
+
+  hoja.getRange(numeroFila, mapa["ULTIMA_ACTIVIDAD"]).setValue(new Date());
+
+  return {
+    ok: true,
+    idGrupo: idGrupo,
+    grupo: grupo,
+    idForoComunal: valorColumna("ID_FORO_COMUNAL"),
+    tokenSesion: sesion.tokenSesion,
+    esPrincipal: sesion.esPrincipal,
+    instituciones: obtenerInstitucionesDelGrupo(idGrupo),
+    logoId: valorColumna("LOGO_ID"),
+    metodoAsistencia: valorColumna("METODO_ASISTENCIA"),
+    consentimientoGrupo: valorColumna("CONSENTIMIENTO_GRUPO") === "SI",
+    consentimientoConectaEduca: valorColumna("CONSENTIMIENTO_CONECTAEDUCA") === "SI",
+    fotoGrupoId: valorColumna("FOTO_GRUPO_ID"),
+    ultimaPantalla: valorColumna("ULTIMA_PANTALLA")
+  };
+}
+
+/**
  * Recuerda la última pantalla "de recorrido" a la que llegó el grupo
  * (compartida entre todos los dispositivos, igual que el resto del
  * estado del grupo) — spec del usuario: si se cae la señal o alguien

@@ -115,6 +115,18 @@ function rpcValidarAcceso(token, codigo, dispositivoId, forzar) {
   });
 }
 
+function rpcObtenerGruposAccesoEncuentro() {
+  return ejecutarRpcSeguro_(function () {
+    return obtenerGruposAccesoEncuentro();
+  });
+}
+
+function rpcElegirGrupoAccesoEncuentro(idGrupo, dispositivoId, forzar) {
+  return ejecutarRpcSeguro_(function () {
+    return elegirGrupoAccesoEncuentro(idGrupo, dispositivoId, forzar);
+  });
+}
+
 function rpcMantenerSesion(idGrupo, dispositivoId, tokenSesion) {
   return ejecutarRpcSeguro_(function () {
     return mantenerSesionGrupo(idGrupo, dispositivoId, tokenSesion);

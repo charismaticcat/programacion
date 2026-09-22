@@ -156,21 +156,39 @@
   </section>
 
   <!-- 4. ACCESO (segunda pantalla — el código se pide antes de cualquier otra pantalla del recorrido) -->
+  <!-- Acceso del grupo — spec del usuario: "Avoid code setting instead
+       group schools to the following group owner" (cambio grande,
+       confirmado). Ya no se pide un código: se elige el grupo de una
+       lista identificada por el/los funcionario(s) responsable(s), mismo
+       patrón ya probado en pantallaAccesoConversatorio. El código de
+       acceso NO se eliminó del sistema (Access.gs/validarAccesoGrupo
+       sigue intacto, por si algún enlace antiguo con ?t=TOKEN ya
+       distribuido lo necesita) — queda como alternativa secundaria,
+       colapsada, detrás de "Ingresar con código de acceso". -->
   <section id="pantallaAcceso" class="pantalla">
     <div class="tarjeta">
       <button type="button" class="btn btn-secundario" id="btnCambiarSeccionAcceso" style="margin-bottom:14px;">← Elegir otra sección</button>
       <img id="logoSeccionAcceso" class="logo-tarjeta-seccion oculto" alt="" style="display:block;margin:0 auto 14px;">
       <h2 class="titulo-seccion" id="tituloSeccionAcceso">Acceso del grupo</h2>
-      <p class="ayuda" id="nombreGrupoAcceso"></p>
-      <p class="numero-grupo-acceso oculto" id="numeroGrupoAcceso"></p>
-      <p class="mensaje info" id="avisoModoVisualizacionAcceso">🔒 Modo de visualización — no podrá ingresar
-        información hasta que ingrese el código del grupo.</p>
-      <label for="campoCodigoAcceso">Código de acceso</label>
-      <input type="text" id="campoCodigoAcceso" placeholder="FEC-XXXXX" autocomplete="off">
-      <div id="mensajeAcceso"></div>
-      <div class="fila-botones">
-        <button class="btn btn-primario" id="btnValidarAcceso">Ingresar</button>
+      <p class="ayuda">Elija su grupo de la lista — identificado por el nombre del funcionario responsable.</p>
+      <div id="listaGruposAcceso"></div>
+      <div id="mensajeGruposAcceso"></div>
+
+      <p class="separador-o" style="margin-top:18px;">o</p>
+      <p class="ayuda" style="text-align:center;">
+        <button type="button" class="btn-enlace" id="btnMostrarCodigoAcceso">Ingresar con código de acceso</button>
+      </p>
+      <div id="bloqueCodigoAcceso" class="oculto" style="margin-top:14px;">
+        <p class="ayuda" id="nombreGrupoAcceso"></p>
+        <p class="numero-grupo-acceso oculto" id="numeroGrupoAcceso"></p>
+        <label for="campoCodigoAcceso">Código de acceso</label>
+        <input type="text" id="campoCodigoAcceso" placeholder="FEC-XXXXX" autocomplete="off">
+        <div id="mensajeAcceso"></div>
+        <div class="fila-botones">
+          <button class="btn btn-primario" id="btnValidarAcceso">Ingresar</button>
+        </div>
       </div>
+
       <p class="separador-o oculto" id="separadorInvitadoAcceso">o</p>
       <div class="fila-botones oculto" id="filaBotonInvitadoAcceso">
         <button class="btn btn-secundario" id="btnSoyInvitado">🎓 Somos invitados (estudiantes, egresados y adultos responsables)</button>

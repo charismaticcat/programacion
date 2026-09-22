@@ -37,6 +37,35 @@ function obtenerGrupoPorId(idGrupo) {
 }
 
 /**
+ * Funcionario(s) de la SEM dueño(s) de cada grupo — spec del usuario:
+ * "Avoid code setting instead group schools to the following group
+ * owner (all of them are Funcionario Secretaría de Educación...)". Solo
+ * son etiquetas para identificar el grupo en la pantalla de acceso (ver
+ * elegirGrupoAccesoEncuentro en Access.gs) — no son credenciales ni se
+ * usan para autenticar, el acceso sigue siendo por ID_GRUPO.
+ */
+var DUENOS_GRUPO_COMUNAL_ = {
+  G1: ["Angélica Rojas"],
+  G2: ["Adriana Cedeño", "Rosa M. González"],
+  G3: ["Nelson Herrera", "Juan José Valenzuela"],
+  G4: ["Carlos Francisco Cortés", "Edna Rivera"],
+  G5: ["Rosario Valenzuela", "John E. Sánchez"],
+  G6: ["Carolina Soto", "Carlos Quijano"]
+};
+
+/** Grupos del Encuentro para la pantalla de acceso sin código, con el/los dueño(s) de cada uno. */
+function obtenerGruposAccesoEncuentro() {
+  return obtenerGrupos().map(function (g) {
+    return {
+      idGrupo: g.idGrupo,
+      grupo: g.grupo,
+      totalIE: g.totalIE,
+      duenos: DUENOS_GRUPO_COMUNAL_[g.idGrupo] || []
+    };
+  });
+}
+
+/**
  * Estado agregado de un grupo (para el dashboard administrativo, Fase 25
  * de la spec): participación registrada, si Sesión 1/2 están guardadas o
  * enviadas, si ya tiene informe.
