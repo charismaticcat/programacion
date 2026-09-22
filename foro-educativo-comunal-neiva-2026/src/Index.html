@@ -111,9 +111,7 @@
   <section id="pantallaMetodologia" class="pantalla">
     <div class="tarjeta">
       <h2 class="titulo-seccion">Ruta del Encuentro de voces que construyen territorio</h2>
-      <p class="mensaje info">🕖 Este Encuentro se realiza de <strong>7:00 a. m. a 12:00 m.</strong> Conecta
-        Educa es una jornada aparte, de <strong>2:00 p. m. a 5:00 p. m.</strong>, con su propia puerta de
-        acceso (mismo código del grupo) — no hace falta terminar aquí para poder entrar a Conecta Educa.</p>
+      <p class="mensaje info">🕖 Este Encuentro se realiza de <strong>7:00 a. m. a 12:00 m.</strong></p>
       <ol>
         <li>Consentimiento informado y método de asistencia del grupo.</li>
         <li>Participación y asistencia: matriz de estamentos por IE y responsable de envío.</li>
@@ -254,6 +252,7 @@
         <option value="Docente">Docente</option>
         <option value="Enlace/articulador(a) SENA">Enlace/articulador(a) SENA</option>
         <option value="Orientador(a)">Orientador(a)</option>
+        <option value="Funcionario Secretaría de Educación Municipal">Funcionario Secretaría de Educación Municipal</option>
         <option value="Otro">Otro</option>
       </select>
       <label for="campoAcompananteResponsableConversatorio">Acompañante (opcional)</label>
@@ -999,13 +998,6 @@
         valoración y el cierre.</p>
       <div id="fichaCaracterizacionGrupo"></div>
 
-      <h3 class="subtitulo-campo" style="margin-top:20px;">Participación por estamento e institución</h3>
-      <p class="ayuda">Los participantes del <span id="nombreGrupoAvisoPlazoFirmas">grupo</span> podrán firmar
-        hasta el momento en que se genere el informe. Se recomienda ir revisando que el número de firmantes
-        sea igual a los reportados en el cuadro de participación.</p>
-      <div id="resumenParticipacionEstamentoCaracterizacion" class="resumen-participacion-estamento"></div>
-      <div id="contenedorParticipacionEstamentoCaracterizacion" class="tabla-horizontal-desplazable"></div>
-
       <div id="pieFotoCaracterizacion" class="pie-foto-grupo oculto"></div>
       <div class="fila-botones" style="justify-content:center;" id="filaBotonFotoCaracterizacion">
         <button type="button" class="btn btn-secundario" id="btnCambiarFotoCaracterizacion">✏️ Cambiar fotografía</button>
@@ -1017,6 +1009,15 @@
         </div>
         <div id="mensajeFotoGrupoCaracterizacion"></div>
       </div>
+
+      <!-- Cantidad de asistentes por estamento e institución — al final,
+           no al principio (spec del usuario). -->
+      <h3 class="subtitulo-campo" style="margin-top:20px;">Participación por estamento e institución</h3>
+      <p class="ayuda">Los participantes del <span id="nombreGrupoAvisoPlazoFirmas">grupo</span> podrán firmar
+        hasta el momento en que se genere el informe. Se recomienda ir revisando que el número de firmantes
+        sea igual a los reportados en el cuadro de participación.</p>
+      <div id="resumenParticipacionEstamentoCaracterizacion" class="resumen-participacion-estamento"></div>
+      <div id="contenedorParticipacionEstamentoCaracterizacion" class="tabla-horizontal-desplazable"></div>
 
       <p class="ayuda texto-cargando" id="avisoCargandoCaracterizacion"><span class="spinner-cargando"></span> Cargando información…</p>
       <div class="fila-botones">

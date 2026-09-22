@@ -2297,6 +2297,37 @@ Verificado: `node --check` sobre Conversatorio.gs y Code.gs; extracción y `node
 `<script>` de Index.html, JS.html y Components.html (limpios, mismos 2 falsos positivos permanentes); sin
 IDs duplicados ni etiquetas sin cerrar en Index.html/Components.html.
 
+## 4.67 Quincuagésimo cuarto lote: limpiar mención cruzada a Conecta Educa, rol de la SEM en los catálogos, matriz de estamento al final en Confirmación de caracterización
+
+Pedido del usuario: "elimina esto de pantalla de bienvenida de pantalla de foro no hace falta terminar aquí
+para poder entrar a Conecta Educa. agregar funcionario Secretaría de Educación Municipal en el listado de
+roles de responsables de foro y conecta educa. en responsable de envio, pon también Secretaría de educación
+en foro y en conecta educa. Cantidad de asistentes por estamento e institución debe aparecer al final y no
+al principio".
+
+- **Index.html, `pantallaMetodologia` ("Ruta del Encuentro")**: se quitó la mención a Conecta Educa
+  ("...con su propia puerta de acceso (mismo código del grupo) — no hace falta terminar aquí para poder
+  entrar a Conecta Educa"), que además de ser lo pedido por el usuario ya estaba desactualizada — Conecta
+  Educa (Conversatorio) ya no se entra "con el mismo código del grupo" desde los lotes 4.63-4.66.
+- **Responsables.gs, `ROLES_FORO_`**: se agregó `"Funcionario Secretaría de Educación Municipal"` al
+  catálogo — este mismo arreglo alimenta tanto el "Rol en el foro" de Responsable de envío/asistentes de
+  envío (Participación, pantalla común a Encuentro y a la vieja Conecta Educa por grupo) como el rol en
+  Preparación IE, así que un solo cambio cubre "responsables de foro y conecta educa" y "responsable de
+  envío... en foro y en conecta educa" a la vez.
+- **Index.html, `pantallaResponsableConversatorio`** (el "Conecta Educa" vigente hoy, el Conversatorio):
+  se agregó la misma opción `"Funcionario Secretaría de Educación Municipal"` al select "Rol en la
+  institución" — con el panel de superadministrador (4.65), quien diligencia en nombre de una IE puede ser
+  justamente un funcionario de la Secretaría.
+- **Index.html, `pantallaConfirmacionCaracterizacion`**: el bloque "Participación por estamento e
+  institución" (matriz + resumen) estaba justo después de la ficha de caracterización, casi al principio de
+  la pantalla — se movió después de la fotografía del grupo, justo antes del aviso de carga y los botones
+  finales (spec del usuario: "debe aparecer al final y no al principio"). En `pantallaParticipacion` esa
+  misma matriz ya estaba cerca del final (justo antes de "Continuar"), así que no hizo falta tocarla ahí.
+
+Verificado: `node --check` sobre Responsables.gs; extracción y `node --check` del bloque `<script>` de
+Index.html (limpio, mismo falso positivo permanente ya conocido); sin IDs duplicados ni etiquetas sin
+cerrar.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

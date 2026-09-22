@@ -17,6 +17,9 @@
 var HOJA_RESPONSABLES_COMUNAL_ = "ResponsablesComunal";
 var MAX_ASISTENTES_ENVIO_ = 3;
 
+// "Funcionario Secretaría de Educación Municipal" agregado a pedido del
+// usuario (se usa también en "Responsable de envío", que comparte este
+// mismo catálogo entre el Encuentro y Conecta Educa).
 var ROLES_FORO_ = [
   "Líder (Rector/Rectora)",
   "Dinamizador Pedagógico",
@@ -25,6 +28,7 @@ var ROLES_FORO_ = [
   "Dinamizador del Tiempo",
   "Dinamizador de la Sistematización",
   "Participante",
+  "Funcionario Secretaría de Educación Municipal",
   "Otro"
 ];
 
