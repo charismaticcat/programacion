@@ -102,19 +102,23 @@ function urlImagenDrive(idArchivo, ancho) {
 // antes de Revisión y cierre (spec del usuario) — antes iba justo después
 // de Participación, como paso intermedio obligatorio hacia las sesiones
 // de trabajo; ahora es el último chequeo ("verificar que todo esté
-// correcto") antes de valorar y generar el informe.
+// correcto") antes de valorar y generar el informe. Participación, a su
+// vez, se movió también al final (spec del usuario: "Screen 2: Remove
+// participacion and set it to the end of the form") — ahora va justo
+// después de Confirmación de caracterización, como último paso antes de
+// Revisión y cierre.
 var ORDEN_PANTALLAS = [
   "pantallaEleccionSeccion", "pantallaAcceso",
   "pantallaAccesoConversatorio", "pantallaAccesoSuperadminConversatorio", "pantallaPanelSuperadminConversatorio",
   "pantallaResponsableConversatorio",
   "pantallaResolucionConversatorio", "pantallaCaracterizacionConversatorio", "pantallaCierreConversatorio",
   "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia",
-  "pantallaConsentimientoGrupo", "pantallaConsentimientoConectaEduca", "pantallaParticipacion",
+  "pantallaConsentimientoGrupo", "pantallaConsentimientoConectaEduca",
   "pantallaInvitadosEspeciales",
   "pantallaPreSocializacion", "pantallaSeleccionIEPreparacion", "pantallaPreparacionIE",
   "pantallaSesionSocializacion",
   "pantallaSesion1", "pantallaSesion2",
-  "pantallaConfirmacionCaracterizacion", "pantallaRevisionCierre",
+  "pantallaConfirmacionCaracterizacion", "pantallaParticipacion", "pantallaRevisionCierre",
   "pantallaInformeGenerado", "pantallaDespedida"
 ];
 
@@ -226,16 +230,16 @@ function llamarServidor(nombreFuncion, args, onExito, onError) {
  * ya son las mismas que "✏️ Editar en…" de Revisar todo permite abrir.
  */
 var PASOS_PROGRESO_ENCUENTRO_ = [
-  { id: "pantallaParticipacion", etiqueta: "Participación" },
   { id: "pantallaSesionSocializacion", etiqueta: "Socialización" },
   { id: "pantallaSesion1", etiqueta: "Sesión 1" },
   { id: "pantallaConfirmacionCaracterizacion", etiqueta: "Caracterización" },
+  { id: "pantallaParticipacion", etiqueta: "Participación" },
   { id: "pantallaRevisionCierre", etiqueta: "Cierre" }
 ];
 var PASOS_PROGRESO_CONECTAEDUCA_ = [
-  { id: "pantallaParticipacion", etiqueta: "Participación" },
   { id: "pantallaSesion2", etiqueta: "Conecta Educa" },
   { id: "pantallaConfirmacionCaracterizacion", etiqueta: "Caracterización" },
+  { id: "pantallaParticipacion", etiqueta: "Participación" },
   { id: "pantallaRevisionCierre", etiqueta: "Cierre" }
 ];
 function pasosProgresoSeccionActual_() {
@@ -298,17 +302,21 @@ document.getElementById("btnIrInicio").addEventListener("click", function () {
 
 // Índice de Participación en ORDEN_PANTALLAS — más allá de este punto,
 // elegir método de asistencia es obligatorio (ver guarda en cambiarPantalla).
+// Participación ahora es el último paso antes de Revisión y cierre (spec
+// del usuario), así que en la práctica este candado solo protege esa
+// última pantalla — método de asistencia se auto-selecciona en LISTADO
+// apenas se valida el código, así que rara vez llega a activarse.
 var INDICE_PARTICIPACION_ = ORDEN_PANTALLAS.indexOf("pantallaParticipacion");
 
 function cambiarPantalla(idPantalla) {
-  // Seleccionar un método de asistencia (QR o PDF) es obligatorio para
-  // continuar a Confirmación de caracterización y a cualquier pantalla
-  // posterior (spec del usuario) — btnContinuarAParticipacion ya lo
-  // exigía, pero solo por ese único botón; esta misma validación aquí,
-  // dentro de cambiarPantalla, cierra también otras formas de llegar más
-  // allá de Participación sin haber elegido método (la barra de progreso
-  // navegable, "Editar en…" desde Revisar todo, o cualquier llamada
-  // directa a cambiarPantalla) — nunca deja avanzar, redirige de vuelta.
+  // Seleccionar un método de asistencia (PDF) es obligatorio para
+  // continuar más allá de Participación, hacia Revisión y cierre (spec
+  // del usuario) — btnContinuarAParticipacion ya lo exigía, pero solo por
+  // ese único botón; esta misma validación aquí, dentro de cambiarPantalla,
+  // cierra también otras formas de llegar más allá de Participación sin
+  // haber elegido método (la barra de progreso navegable, "Editar en…"
+  // desde Revisar todo, o cualquier llamada directa a cambiarPantalla) —
+  // nunca deja avanzar, redirige de vuelta.
   if (
     estado.idGrupo &&
     ORDEN_PANTALLAS.indexOf(idPantalla) > INDICE_PARTICIPACION_ &&
@@ -332,13 +340,6 @@ function cambiarPantalla(idPantalla) {
     actualizarFirmantes();
     cargarResponsables();
     cargarParticipacionEstamento();
-    // item 18 (Documento Orientador FEM2026): Conecta Educa usa su propio
-    // formato de asistencia, distinto del Encuentro — Participación es una
-    // pantalla compartida entre ambas secciones, así que el enlace de
-    // descarga se ajusta aquí según estado.seccion.
-    var esCE = estado.seccion === "CONECTAEDUCA";
-    document.getElementById("btnDescargarFormatoAsistenciaParticipacion").href =
-      "https://drive.google.com/file/d/" + (esCE ? FORMATO_ASISTENCIA_CONECTAEDUCA_ID : FORMATO_ASISTENCIA_ENCUENTRO_ID) + "/view";
   }
   if (idPantalla === "pantallaConfirmacionCaracterizacion") cargarConfirmacionCaracterizacion();
   if (idPantalla === "pantallaInvitadosEspeciales") {
@@ -1569,10 +1570,12 @@ function intentarValidarAcceso(forzar) {
     // La barra de progreso navegable debe poder usarse apenas se valida
     // el código (spec del usuario), sin tener que pasar primero por
     // Inicio/Presentación/Metodología — esas son solo introducción, no
-    // un candado real. Se habilita hasta Participación de una vez (o más
-    // allá, si el grupo ya venía más adelante — cambiarPantalla, más
-    // abajo, la sigue subiendo si corresponde).
-    indiceMaximoOrdenPantallas_ = Math.max(indiceMaximoOrdenPantallas_, ORDEN_PANTALLAS.indexOf("pantallaParticipacion"));
+    // un candado real. Se habilita hasta la Sesión de socialización de una
+    // vez (o más allá, si el grupo ya venía más adelante — cambiarPantalla,
+    // más abajo, la sigue subiendo si corresponde). Participación ya no es
+    // el primer paso real (se movió al final, justo antes de Revisión y
+    // cierre), así que ya no sirve como referencia aquí.
+    indiceMaximoOrdenPantallas_ = Math.max(indiceMaximoOrdenPantallas_, ORDEN_PANTALLAS.indexOf("pantallaSesionSocializacion"));
     actualizarBarraProgresoNav_("pantallaAcceso");
 
     document.getElementById("nombreGrupoParticipacion").textContent = r.grupo;
@@ -2229,62 +2232,11 @@ document.getElementById("btnCerrarInvitadoFinalizado").addEventListener("click",
 });
 
 /* ------------------------------------------------------------------ *
- * Consentimiento informado del grupo (sección 3.2) — item 14: no se
- * puede continuar hasta haber leído (checkbox) Y haber descargado,
- * copiado el enlace o enviado por correo el listado de asistencia.
+ * Agenda de la Jornada Tarde (reemplaza el antiguo Consentimiento
+ * informado del grupo, spec del usuario) — ya no hay checkbox ni
+ * listado de asistencia aquí, solo "Continuar". El listado de
+ * asistencia se gestiona ahora al final, en Revisión y cierre.
  * ------------------------------------------------------------------ */
-estado.listadoAsistenciaGestionado = false;
-
-function actualizarBotonAceptarConsentimiento_() {
-  var checkMarcado = document.getElementById("checkConsentimientoGrupo").checked;
-  document.getElementById("btnAceptarConsentimientoGrupo").disabled = !checkMarcado || !estado.listadoAsistenciaGestionado;
-  document.getElementById("avisoListadoAsistenciaPendiente").classList.toggle("oculto", !checkMarcado || estado.listadoAsistenciaGestionado);
-}
-
-document.getElementById("checkConsentimientoGrupo").addEventListener("change", actualizarBotonAceptarConsentimiento_);
-
-document.getElementById("btnDescargarFormatoAsistenciaConsentimiento").addEventListener("click", function () {
-  estado.listadoAsistenciaGestionado = true;
-  actualizarBotonAceptarConsentimiento_();
-});
-
-document.getElementById("btnCopiarFormatoAsistenciaConsentimiento").addEventListener("click", function () {
-  var url = document.getElementById("btnDescargarFormatoAsistenciaConsentimiento").href;
-  var terminar = function () {
-    estado.listadoAsistenciaGestionado = true;
-    actualizarBotonAceptarConsentimiento_();
-    var aviso = document.getElementById("avisoTextoCopiado");
-    if (aviso) {
-      aviso.classList.add("visible");
-      setTimeout(function () { aviso.classList.remove("visible"); }, 1400);
-    }
-  };
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(url).then(terminar, terminar);
-  } else {
-    terminar();
-  }
-});
-
-document.getElementById("btnEnviarFormatoAsistenciaConsentimiento").addEventListener("click", function () {
-  var correo = document.getElementById("campoEmailFormatoAsistencia").value.trim();
-  if (!correo) {
-    mostrarMensaje("mensajeFormatoAsistenciaConsentimiento", "Escriba un correo electrónico.", "error");
-    return;
-  }
-  llamarServidor("rpcEnviarFormatoAsistenciaPorCorreo", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, [correo]], function (r) {
-    if (!r.ok) {
-      mostrarMensaje("mensajeFormatoAsistenciaConsentimiento", r.mensaje || "No fue posible enviar el correo.", "error");
-      return;
-    }
-    mostrarMensaje("mensajeFormatoAsistenciaConsentimiento", "Formato enviado.", "exito");
-    estado.listadoAsistenciaGestionado = true;
-    actualizarBotonAceptarConsentimiento_();
-  }, function () {
-    mostrarMensaje("mensajeFormatoAsistenciaConsentimiento", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
-  });
-});
-
 document.getElementById("btnAceptarConsentimientoGrupo").addEventListener("click", function () {
   llamarServidor("rpcGuardarConsentimientoGrupo", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
     if (!r.ok) {
@@ -2292,7 +2244,10 @@ document.getElementById("btnAceptarConsentimientoGrupo").addEventListener("click
       return;
     }
     estado.consentimientoGrupo = true;
-    cambiarPantalla("pantallaParticipacion");
+    // Participación ya no es el siguiente paso (spec del usuario: se movió
+    // al final del recorrido, justo antes de Revisión y cierre) — de la
+    // agenda se pasa directo a la Sesión de socialización.
+    cambiarPantalla("pantallaSesionSocializacion");
   });
 });
 
@@ -2391,15 +2346,25 @@ function iniciarHeartbeat() {
 }
 
 /* ------------------------------------------------------------------ *
- * Método de asistencia (QR/enlace o listado físico + fotografía)
+ * Método de asistencia (listado en PDF — único método activo; el
+ * panel/selector de QR ya no vive en Participación, spec del usuario:
+ * "Remove asistencia PDF at the beginning, just keep it at the end" —
+ * ahora todo el manejo del PDF (descarga, subida, cantidad) está en
+ * panelListadoCierre, dentro de Revisión y cierre. Estas funciones
+ * quedan con guardas nulas porque "Cambiar método a QR" en Revisión y
+ * cierre sigue pudiendo invocarlas — ya no hay panel QR en Participación
+ * que mostrar, así que ese caso simplemente no hace nada visualmente ahí.
  * ------------------------------------------------------------------ */
 function mostrarPanelMetodoAsistencia(metodo) {
-  document.getElementById("panelMetodoQR").classList.toggle("oculto", metodo !== "QR");
-  document.getElementById("panelMetodoListado").classList.toggle("oculto", metodo !== "LISTADO");
+  var panelQR = document.getElementById("panelMetodoQR");
+  if (panelQR) panelQR.classList.toggle("oculto", metodo !== "QR");
+  var panelListado = document.getElementById("panelMetodoListado");
+  if (panelListado) panelListado.classList.toggle("oculto", metodo !== "LISTADO");
   // Métodos EXCLUSIVOS: con PDF (LISTADO) desaparece el conteo de firmas en
   // vivo (no aplica, nadie firma por celular); con QR sigue visible.
   var ocultarConteoFirmas = metodo === "LISTADO";
-  document.getElementById("panelFirmantes").classList.toggle("oculto", ocultarConteoFirmas || !metodo);
+  var panelFirmantes = document.getElementById("panelFirmantes");
+  if (panelFirmantes) panelFirmantes.classList.toggle("oculto", ocultarConteoFirmas || !metodo);
   var filaContador = document.getElementById("filaContadorParticipantesTarjeta");
   if (filaContador) filaContador.classList.toggle("oculto", ocultarConteoFirmas);
   if (metodo === "QR") cargarEnlaceAsistencia();
@@ -2407,12 +2372,13 @@ function mostrarPanelMetodoAsistencia(metodo) {
 }
 
 function cargarEnlaceAsistencia() {
+  var enlace = document.getElementById("enlaceAsistenciaQR");
+  var imagen = document.getElementById("imagenQRAsistencia");
+  if (!enlace || !imagen) return;
   llamarServidor("rpcUrlAsistencia", [estado.idGrupo], function (url) {
-    var enlace = document.getElementById("enlaceAsistenciaQR");
     enlace.href = url;
     enlace.textContent = url;
-    document.getElementById("imagenQRAsistencia").src =
-      "https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=" + encodeURIComponent(url);
+    imagen.src = "https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=" + encodeURIComponent(url);
   });
 }
 
@@ -2420,20 +2386,11 @@ function elegirMetodoAsistencia(metodo) {
   mostrarPanelMetodoAsistencia(metodo);
   estado.metodoAsistencia = metodo;
   mostrarMensaje("mensajeSeleccionMetodo", "");
-  document.getElementById("btnMetodoQR").classList.toggle("btn-metodo-activo", metodo === "QR");
-  document.getElementById("btnMetodoListado").classList.toggle("btn-metodo-activo", metodo === "LISTADO");
   renderResumenParticipacionEstamentoTodo();
   llamarServidor("rpcGuardarMetodoAsistencia", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, metodo], function (r) {
     if (!r.ok) mostrarMensaje("mensajeMetodoAsistencia", r.mensaje || "No fue posible guardar el método.", "error");
   });
 }
-
-document.getElementById("btnMetodoQR").addEventListener("click", function () {
-  elegirMetodoAsistencia("QR");
-});
-document.getElementById("btnMetodoListado").addEventListener("click", function () {
-  elegirMetodoAsistencia("LISTADO");
-});
 
 // Es obligatorio elegir exactamente un método (QR o PDF) antes de continuar.
 document.getElementById("btnContinuarAParticipacion").addEventListener("click", function () {
@@ -2493,31 +2450,24 @@ function institucionesSinParticipacionMarcada_() {
 }
 
 /**
- * Tras "Continuar" en Participación: Encuentro va directo a la Sesión de
- * socialización (item 10 — reemplaza a "invitados especiales"/"Sesión de
- * preparación", ambas ocultas desde el item 9); ConectaEduca (item 8) va
- * directo a su propia pantalla. Confirmación de caracterización ya NO es
- * el siguiente paso aquí (spec del usuario: se movió al final del
- * recorrido, justo antes de Revisión y cierre — ver
- * irTrasConfirmarCaracterizacion_ más abajo).
+ * Tras "Continuar" en Participación: directo a Revisión y cierre —
+ * Participación es ahora el último paso de captura de datos, justo
+ * después de Confirmación de caracterización (spec del usuario: "Screen
+ * 2: Remove participacion and set it to the end of the form").
  */
 function irTrasParticipacion_() {
-  if (estado.seccion === "CONECTAEDUCA") {
-    cambiarPantalla("pantallaSesion2");
-    return;
-  }
-  cambiarPantalla("pantallaSesionSocializacion");
+  cambiarPantalla("pantallaRevisionCierre");
 }
 
 /**
- * Tras confirmar la caracterización: a Revisión y cierre — igual para
- * ambas secciones, ya no hace falta ramificar por estado.seccion (spec
- * del usuario: Caracterización pasó a ser el último chequeo antes de
- * cerrar, en vez del paso intermedio entre Participación y las sesiones
- * de trabajo que era antes).
+ * Tras confirmar la caracterización: a Participación — que ahora es el
+ * último paso de captura de datos antes de Revisión y cierre (spec del
+ * usuario: "Screen 2: Remove participacion and set it to the end of the
+ * form"). Igual para ambas secciones, no hace falta ramificar por
+ * estado.seccion.
  */
 function irTrasConfirmarCaracterizacion_() {
-  cambiarPantalla("pantallaRevisionCierre");
+  cambiarPantalla("pantallaParticipacion");
 }
 
 /** "Atrás, corregir" de Confirmación de caracterización: vuelve a la sesión de trabajo de la sección actual. */
@@ -2668,10 +2618,17 @@ document.getElementById("btnEnviarEmailPadres").addEventListener("click", functi
   enviarEnlaceInvitadosDesdeUI_("ACUDIENTE", "campoEmailsPadres", "mensajeEnvioPadres");
 });
 
-document.getElementById("btnCopiarEnlaceAsistencia").addEventListener("click", function () {
-  var url = document.getElementById("enlaceAsistenciaQR").href;
-  if (navigator.clipboard) navigator.clipboard.writeText(url);
-});
+// btnCopiarEnlaceAsistencia/btnPantallaCompletaQR (panel QR de Participación)
+// ya no existen en el HTML — el método QR quedó sin UI en Participación
+// (spec del usuario, "solo asistencia en PDF"); estos botones solo se
+// cablean si el elemento existe, para no romper nada si se reactivan.
+var btnCopiarEnlaceAsistencia_ = document.getElementById("btnCopiarEnlaceAsistencia");
+if (btnCopiarEnlaceAsistencia_) {
+  btnCopiarEnlaceAsistencia_.addEventListener("click", function () {
+    var url = document.getElementById("enlaceAsistenciaQR").href;
+    if (navigator.clipboard) navigator.clipboard.writeText(url);
+  });
+}
 
 /**
  * Vista de pantalla completa del QR (para proyectar en el evento) —
@@ -2697,9 +2654,12 @@ function abrirPantallaCompletaQR_(url) {
   intervaloPantallaCompletaQR = setInterval(actualizarContadorGrande, 5000);
 }
 
-document.getElementById("btnPantallaCompletaQR").addEventListener("click", function () {
-  abrirPantallaCompletaQR_(document.getElementById("enlaceAsistenciaQR").href);
-});
+var btnPantallaCompletaQR_ = document.getElementById("btnPantallaCompletaQR");
+if (btnPantallaCompletaQR_) {
+  btnPantallaCompletaQR_.addEventListener("click", function () {
+    abrirPantallaCompletaQR_(document.getElementById("enlaceAsistenciaQR").href);
+  });
+}
 document.getElementById("btnPantallaCompletaQRCierre").addEventListener("click", function () {
   abrirPantallaCompletaQR_(document.getElementById("enlaceAsistenciaQRCierre").href);
 });
@@ -4305,6 +4265,17 @@ function prepararCierre() {
   actualizarBloqueoCierrePorValoracion_();
   cargarValoracion();
   refrescarVistasFotoGrupo_();
+
+  // Listado de asistencia (PDF) — spec del usuario: "Remove asistencia PDF
+  // at the beginning, just keep it at the end" — se mudó aquí completo
+  // desde Participación (mismos IDs, ver Index.html).
+  var esCE = estado.seccion === "CONECTAEDUCA";
+  var btnDescargar = document.getElementById("btnDescargarFormatoAsistenciaParticipacion");
+  if (btnDescargar) {
+    btnDescargar.href =
+      "https://drive.google.com/file/d/" + (esCE ? FORMATO_ASISTENCIA_CONECTAEDUCA_ID : FORMATO_ASISTENCIA_ENCUENTRO_ID) + "/view";
+  }
+  cargarCantidadListado_();
 }
 
 // cargarVerificacionFirmantesCierre_/btnAsistenciaVerificada (registro de

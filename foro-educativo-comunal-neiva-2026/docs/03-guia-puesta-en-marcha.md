@@ -2389,6 +2389,68 @@ Verificado: `node --check` de los 4 `.gs` tocados (ninguno en este lote) y extra
 los bloques `<script>` de Index.html, Components.html, JS.html y CSS.html (limpio, mismo falso positivo
 permanente de `TOKEN_ACCESO`/`ID_GRUPO`); sin IDs duplicados nuevos ni etiquetas sin cerrar en Index.html.
 
+## 4.70 Quincuagésimo séptimo lote (parte 1 de un pedido grande): rename FEI, agenda Jornada Tarde, asistencia solo al final, Participación al final del recorrido
+
+Primeros 4 de 8 cambios pedidos por el usuario en un solo mensaje grande (el resto — respuestas reales en
+Socialización, acceso de grupo sin código, IE presentes, fix de valoración — sigue en lotes siguientes,
+ver `## 4.71` en adelante). Antes de tocar nada se investigó el código actual con un subagente de solo
+lectura y se confirmaron con el usuario los puntos ambiguos/riesgosos (ver resumen de la conversación).
+
+- **Rename "Foro Educativo Institucional" → "VOCES QUE CONSTRUYEN TERRITORIO"** (Index.html, 7
+  ocurrencias): confirmado con el doc real de Drive "Informe de Síntesis Grupal" que el lema oficial de
+  FEM2026 es "Escuela Viva: Voces que construyen territorio" — se aplicó el reemplazo literal en
+  mayúsculas en todo el texto orientado al usuario (no se tocaron comentarios de código ni títulos de
+  recursos de Drive en `Recursos.gs`, que describen documentos externos reales con ese nombre).
+- **Consentimiento de grupo → Agenda de la Jornada Tarde** (Index.html, JS.html): se reemplazó por
+  completo `pantallaConsentimientoGrupo` — el checkbox de consentimiento obligatorio y la
+  descarga/copia/envío del listado de asistencia se eliminaron de esa pantalla (decisión explícita del
+  usuario) — por una tabla `table.tabla-simple` con la agenda 2:00–5:00 p. m. de ConectaEduca (Apertura,
+  Cámara de Comercio, Educación Superior, un rector, SEM, intensificación media académica, diálogo libre)
+  que el usuario dio literal. El botón pasó de "Aceptar y continuar" a "Continuar" (ya no hay nada que
+  aceptar). `rpcGuardarConsentimientoGrupo` se sigue llamando al continuar (sin condición), solo para que
+  "retomar donde se quedó" siga funcionando igual.
+- **Asistencia en PDF: solo al final** (Index.html, JS.html): se quitó de Participación el bloque completo
+  de "Método de asistencia del grupo" (descarga del formato, subir PDF, declarar cantidad) — spec del
+  usuario: "Remove asistencia PDF at the beginning, just keep it at the end". Ese mismo bloque, con los
+  MISMOS IDs (`campoArchivoListado`, `btnSubirListado`, `btnListadoMasTarde`, `panelCantidadListado`,
+  `campoCantidadListado`, `btnDescargarFormatoAsistenciaParticipacion`), se reinsertó dentro de
+  `pantallaRevisionCierre`, justo antes del bloque de verificación de firmantes que ya estaba oculto desde
+  antes (ese bloque de verificación NO se reactivó — es una funcionalidad distinta y más grande, no pedida
+  esta vez). Mantener los mismos IDs evitó tener que reescribir la lógica de subida/guardado, que ya
+  estaba probada. `prepararCierre()` ahora también fija el `href` de descarga y llama a
+  `cargarCantidadListado_()` (antes eso pasaba al entrar a Participación).
+  - **Limpieza de referencias colgantes**: al borrar el panel del método QR de Participación (ya estaba
+    oculto/deshabilitado desde el lote de "solo PDF", pero el HTML seguía ahí) varias funciones de JS.html
+    tocaban esos elementos sin verificar que existieran — `mostrarPanelMetodoAsistencia`,
+    `elegirMetodoAsistencia`, `cargarEnlaceAsistencia`, y dos `addEventListener` de nivel superior
+    (`btnCopiarEnlaceAsistencia`, `btnPantallaCompletaQR`) — se les agregaron guardas nulas
+    (`var x = document.getElementById(...); if (x) ...`) para que no lancen error al cargar la página. Se
+    verificó con un script que compara cada `document.getElementById("X")` de JS.html/Components.html
+    contra los `id=` reales de Index.html/Modal.html — 8 IDs ya no existen (todos del panel QR muerto),
+    los 8 confirmados con guarda nula.
+- **Participación se mueve al final del recorrido** (JS.html, Index.html): spec del usuario, "Screen 2:
+  Remove participacion and set it to the end of the form". Antes iba justo después de la
+  agenda/Consentimiento; ahora va justo después de Confirmación de caracterización y antes de Revisión y
+  cierre (mismo lugar donde ya estaba Confirmación de caracterización desde un lote anterior). Cambios:
+  - `ORDEN_PANTALLAS`, `PASOS_PROGRESO_ENCUENTRO_`, `PASOS_PROGRESO_CONECTAEDUCA_`: se movió la entrada de
+    Participación a su nueva posición.
+  - `irTrasConfirmarCaracterizacion_()` ahora va a `pantallaParticipacion` (antes iba directo a
+    `pantallaRevisionCierre`); `irTrasParticipacion_()` ahora va a `pantallaRevisionCierre` (antes iba a
+    `pantallaSesionSocializacion`, simplificada porque la rama de ConectaEduca ya era código muerto).
+  - El botón "Continuar" de la nueva Agenda ahora va directo a `pantallaSesionSocializacion` (ya no pasa
+    por Participación).
+  - `pantallaSesionSocializacion` ahora tiene "Atrás" → `pantallaConsentimientoGrupo` (antes → Participación).
+  - Se agregó un botón "Atrás" → `pantallaConfirmacionCaracterizacion` en Participación (antes no tenía
+    ninguno, porque estaba casi al principio del recorrido).
+  - `indiceMaximoOrdenPantallas_` (se fija apenas se valida el código, para habilitar la barra de progreso
+    de una vez) ahora apunta a `pantallaSesionSocializacion` en vez de `pantallaParticipacion`, que ya no
+    es el primer paso real.
+
+Verificado: extracción y `node --check` de los bloques `<script>` de Index.html, JS.html, Components.html,
+Modal.html y CSS.html (limpio, mismo falso positivo permanente); sin IDs duplicados; comparación
+automatizada de cada referencia `getElementById` contra los IDs reales del HTML (0 referencias colgantes
+sin guarda nula).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

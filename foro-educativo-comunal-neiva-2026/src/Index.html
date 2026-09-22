@@ -85,7 +85,7 @@
     <div class="tarjeta">
       <h2 class="titulo-seccion">Querida Comunidad Educativa del <span id="nombreGrupoBienvenida">grupo</span></h2>
       <p>El Encuentro de voces que construyen territorio, Neiva 2026, reúne a las instituciones educativas organizadas por
-        grupos territoriales para socializar los resultados de sus Foros Educativos Institucionales,
+        grupos territoriales para socializar los resultados de sus VOCES QUE CONSTRUYEN TERRITORIO,
         construir conclusiones colectivas y dialogar con ConectaEduca.</p>
       <div class="fila-botones">
         <button class="btn btn-primario" id="btnComenzarForo">Comenzar</button>
@@ -117,7 +117,7 @@
         <li>Participación y asistencia: matriz de estamentos por IE y responsable de envío.</li>
         <li>Confirmación de la caracterización del grupo.</li>
         <li>Sesión de socialización: registro en vivo de qué institución ya socializó sus reflexiones,
-          conclusiones y propuestas del Foro Educativo Institucional.</li>
+          conclusiones y propuestas de VOCES QUE CONSTRUYEN TERRITORIO.</li>
         <li>Sesión 1: Consolidado de Socialización y Construcción colectiva del grupo (incluye el
           aporte propio opcional).</li>
         <li>Revisión y cierre: verificación de firmantes y valoración del Encuentro.</li>
@@ -143,7 +143,7 @@
       <button type="button" class="tarjeta-seccion" data-elegir-seccion="ENCUENTRO">
         <img id="logoTarjetaEncuentro" class="logo-tarjeta-seccion oculto" alt="">
         <h3>Encuentro de voces que construyen territorio</h3>
-        <p class="ayuda">Socialización de los Foros Educativos Institucionales y construcción colectiva del
+        <p class="ayuda">Socialización de VOCES QUE CONSTRUYEN TERRITORIO y construcción colectiva del
           grupo — 7:00 a. m. a 12:00 m.</p>
       </button>
       <button type="button" class="tarjeta-seccion" id="btnIrConversatorio">
@@ -319,66 +319,33 @@
     </div>
   </section>
 
-  <!-- 5. CONSENTIMIENTO INFORMADO DEL GRUPO (sección 3.2 del Documento Orientador FEM2026;
-       dividido en Parte 1/Parte 2 — item 15 — e incluye el listado de asistencia
-       descargable/copiable/enviable por correo, obligatorio antes de continuar — item 14) -->
+  <!-- 5. AGENDA DE LA JORNADA TARDE — ConectaEduca (reemplaza la antigua pantalla de
+       Consentimiento informado del grupo, spec del usuario: "Remove Consentimiento full
+       page and put this instead: Screen 1, Jornada Tarde"). Sin checkbox de consentimiento
+       ni listado de asistencia aquí — el listado de asistencia ahora solo se gestiona al
+       final del recorrido, en Revisión y cierre. -->
   <section id="pantallaConsentimientoGrupo" class="pantalla">
     <div class="tarjeta">
-      <h2 class="titulo-seccion">Consentimiento informado del grupo</h2>
-      <p>El <strong>Encuentro de voces que construyen territorio – ConectaEduca</strong> es una actividad
-        posterior a los Foros Educativos Institucionales, prevista en el Documento Orientador del Foro
-        Educativo Municipal FEM 2026 de la Secretaría de Educación de Neiva. Se desarrolla en dos partes:</p>
-      <p><strong>Parte 1 — Encuentro de voces que construyen territorio (7:00 a. m. a 12:00 m.):</strong>
-        primera sesión, de 7:00 a 9:30 a. m., en la que las instituciones educativas del grupo socializan
-        las principales reflexiones, conclusiones y propuestas construidas en sus respectivos Foros
-        Educativos Institucionales (hasta 10 minutos por institución); receso de 9:30 a 10:00 a. m.; y
-        trabajo colectivo por grupos de 10:00 a. m. a 12:00 m., para construir conclusiones colectivas.</p>
-      <p><strong>Parte 2 — Conecta Educa (2:00 p. m. a 5:00 p. m.):</strong> segunda sesión, diálogo e
-        interacción con representantes del sector productivo y de la educación superior del territorio, con
-        el propósito de fortalecer los vínculos entre la educación y el desarrollo local. El Conversatorio de
-        Conecta Educa lo diligencia cada Institución Educativa por su cuenta, eligiéndose de una lista —
-        no con el código de este grupo.</p>
-      <p><strong>La estructura que propone este aplicativo (sesiones, preguntas orientadoras, secciones)
-        es una sugerencia de apoyo, no un molde fijo.</strong> La construcción de cada realidad comunal
-        es de carácter autónomo: cada grupo puede adaptar el desarrollo del encuentro a sus propias
-        dinámicas y necesidades.</p>
-      <p><strong>Cada sección del aplicativo incluye además un espacio opcional para que el grupo agregue
-        los hallazgos, reflexiones o propuestas propias</strong> que surjan durante el encuentro y que no
-        estén contempladas en las preguntas orientadoras, para que la discusión pueda ampliarse más allá
-        de la estructura sugerida.</p>
-      <p class="ayuda">Al participar, el grupo acepta que la información aquí registrada (participación,
-        síntesis colectiva, resultados de ConectaEduca) sea utilizada por la Secretaría de Educación de
-        Neiva como insumo para la sistematización del Encuentro de voces que construyen territorio y para la construcción del
-        Foro Educativo Municipal FEM 2026.</p>
-
-      <h3 class="subtitulo-campo" style="margin-top:20px;">Listado de asistencia</h3>
-      <p class="ayuda">Antes de continuar, descarguen, copien el enlace o envíen por correo el formato
-        oficial de asistencia (Parte 1) para que sea impreso y diligenciado en papel durante el encuentro.
-        <strong>Quien reciba este listado debe encargarse de imprimirlo y, al finalizar, reportar la
-        cantidad total de asistentes y los cargos de los asistentes por institución educativa.</strong></p>
-      <p class="mensaje info"><strong>⚠️ Solo se acepta este formato oficial</strong> — descargado, impreso y
-        diligenciado tal cual. Al subir el listado firmado en Participación, no se aceptarán formatos ni
-        plantillas distintas a la provista aquí.</p>
-      <div class="fila-botones">
-        <a class="btn btn-secundario" href="https://drive.google.com/file/d/<?!= FORMATO_ASISTENCIA_ENCUENTRO_ID ?>/view" target="_blank" id="btnDescargarFormatoAsistenciaConsentimiento">📥 Descargar</a>
-        <button type="button" class="btn btn-secundario" id="btnCopiarFormatoAsistenciaConsentimiento">📋 Copiar enlace</button>
-      </div>
-      <label for="campoEmailFormatoAsistencia">Enviar por correo electrónico</label>
-      <input type="email" id="campoEmailFormatoAsistencia" placeholder="correo@ejemplo.com">
-      <div class="fila-botones">
-        <button type="button" class="btn btn-secundario" id="btnEnviarFormatoAsistenciaConsentimiento">✉️ Enviar por correo</button>
-      </div>
-      <div id="mensajeFormatoAsistenciaConsentimiento"></div>
-
-      <label style="display:flex;align-items:center;gap:8px;font-weight:400;margin-top:20px;">
-        <input type="checkbox" id="checkConsentimientoGrupo" style="width:auto;">
-        Confirmo, en representación del grupo, que hemos leído y entendemos esta información.
-      </label>
-      <p class="ayuda oculto" id="avisoListadoAsistenciaPendiente">Antes de continuar, descarguen, copien el
-        enlace o envíen por correo el listado de asistencia (arriba).</p>
+      <h2 class="titulo-seccion">Jornada Tarde — ConectaEduca</h2>
+      <p class="ayuda">Agenda de la sesión de la tarde (2:00 p. m. a 5:00 p. m.), diálogo e interacción con
+        representantes del sector productivo y de la educación superior del territorio.</p>
+      <table class="tabla-simple">
+        <thead>
+          <tr><th>Hora</th><th>Actividad</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>2:00 – 2:10 p. m.</td><td>Apertura e Instalación ConectaEduca</td></tr>
+          <tr><td>2:10 – 2:30 p. m.</td><td>Exposición Cámara de Comercio Neiva. Agendas Productivas — Dra. Lina Marcela Carrera, presidente ejecutiva de la Cámara de Comercio.</td></tr>
+          <tr><td>2:30 – 2:50 p. m.</td><td>Exposición Educación Superior — Presidente de la Red de Universidades, Dr. Holme Harrinson Gutiérrez.</td></tr>
+          <tr><td>2:50 – 3:10 p. m.</td><td>Exposición de un(a) rector(a): La Formación Media Técnica en IE Oficiales — Luis Alfredo Cerquera, INEM.</td></tr>
+          <tr><td>3:10 – 3:30 p. m.</td><td>Exposición SEM – Calidad Educativa: La Media Técnica en la SEM — Edna Mireya Rivera Ledesma.</td></tr>
+          <tr><td>3:30 – 3:40 p. m.</td><td>Intensificación en la Educación Media Académica — Rosario Valenzuela.</td></tr>
+          <tr><td>3:40 – 5:00 p. m.</td><td>Participación libre de diálogos con los representantes del sector productivo y las instituciones educativas.</td></tr>
+        </tbody>
+      </table>
       <div id="mensajeConsentimientoGrupo"></div>
       <div class="fila-botones">
-        <button class="btn btn-primario" id="btnAceptarConsentimientoGrupo" disabled>Aceptar y continuar</button>
+        <button class="btn btn-primario" id="btnAceptarConsentimientoGrupo">Continuar</button>
       </div>
     </div>
   </section>
@@ -438,62 +405,22 @@
     </div>
   </section>
 
-  <!-- 6. PARTICIPACIÓN -->
+  <!-- 6. PARTICIPACIÓN — spec del usuario: "Screen 2: Remove participacion
+       and set it to the end of the form" — ya no va justo después de la
+       agenda/Consentimiento; ahora es el último paso de captura de datos,
+       entre Confirmación de caracterización y Revisión y cierre. -->
   <section id="pantallaParticipacion" class="pantalla">
-    <!-- Método de asistencia — desde el item 13 (Documento Orientador
-         FEM2026) el QR se ocultó y solo queda el listado en PDF (spec:
-         "ocultar la asistencia por QR y dejar solo asistencia en PDF,
-         usando el formato de asistencia del foro"). btnMetodoQR/
-         panelMetodoQR quedan en el HTML sin borrar, por si se necesita
-         reactivar el QR más adelante. -->
+    <!-- El listado de asistencia (PDF) ya no se descarga/sube aquí al
+         inicio del recorrido — spec del usuario: "Remove asistencia PDF
+         at the beginning, just keep it at the end" — ahora se gestiona
+         por completo en Revisión y cierre (panelListadoCierre), al
+         final. btnMetodoQR/panelMetodoQR (método QR, ya oculto desde
+         antes) y los IDs de Participación asociados al listado se
+         retiraron de aquí; la lógica del RPC compartido
+         (rpcSubirListadoAsistencia/rpcGuardarCantidadListadoAsistencia)
+         sigue intacta y ahora solo se usa desde el panel del final. -->
     <div class="tarjeta">
-      <h2 class="titulo-seccion">Método de asistencia del grupo</h2>
-      <p class="ayuda">Descarguen el formato oficial de asistencia, regístrenla en papel durante la
-        sesión y suban el listado ya firmado aquí.</p>
-      <a class="btn btn-secundario" href="https://drive.google.com/file/d/<?!= FORMATO_ASISTENCIA_ENCUENTRO_ID ?>/view" target="_blank" id="btnDescargarFormatoAsistenciaParticipacion">📥 Descargar formato de asistencia</a>
-      <div class="fila-botones oculto">
-        <button class="btn btn-secundario" id="btnMetodoQR" data-metodo-asistencia="QR">📱 QR / enlace</button>
-        <button class="btn btn-secundario" id="btnMetodoListado" data-metodo-asistencia="LISTADO">📄 Listado en PDF</button>
-      </div>
-      <div id="mensajeSeleccionMetodo"></div>
-
-      <div id="panelMetodoQR" class="oculto" style="margin-top:14px;">
-        <p class="comparativo-firmantes-qr">✍️ <strong><span id="firmantesComparativoQR">0</span></strong> firmantes
-          / <strong><span id="declaradosComparativoQR">0</span></strong> participantes declarados</p>
-        <p class="ayuda">Comparte este enlace o el código QR para que cada persona firme desde su
-          celular:</p>
-        <img id="imagenQRAsistencia" alt="Código QR de asistencia" style="max-width:220px;display:block;margin:14px auto;">
-        <div class="fila-botones" style="justify-content:center;">
-          <button class="btn btn-primario" id="btnPantallaCompletaQR">👁 Ver QR en pantalla completa</button>
-        </div>
-        <p style="word-break:break-all;margin-top:14px;"><a id="enlaceAsistenciaQR" href="#" target="_blank"></a></p>
-        <div class="fila-botones">
-          <button class="btn btn-secundario" id="btnCopiarEnlaceAsistencia">📋 Copiar enlace</button>
-        </div>
-      </div>
-
-      <div id="panelMetodoListado" style="margin-top:14px;">
-        <label for="campoArchivoListado">PDF del listado firmado en papel</label>
-        <p class="mensaje info"><strong>⚠️ Solo se acepta el formato oficial de asistencia</strong> —
-          descargado con el botón "Descargar formato de asistencia" (arriba), impreso y diligenciado tal
-          cual. No se aceptarán listados en un formato o diseño distinto al provisto.</p>
-        <p class="ayuda">Si todavía no lo tienes a mano, puedes subirlo más adelante, desde esta misma
-          pantalla.</p>
-        <input type="file" id="campoArchivoListado" accept="application/pdf">
-        <div class="fila-botones">
-          <button class="btn btn-secundario" id="btnSubirListado">Subir listado</button>
-          <button class="btn btn-secundario" id="btnListadoMasTarde">Subir más tarde</button>
-        </div>
-        <div id="mensajeMetodoAsistencia"></div>
-
-        <div id="panelCantidadListado" class="oculto" style="margin-top:14px;">
-          <label for="campoCantidadListado">Cantidad de personas registradas en el listado de asistencia</label>
-          <input type="number" min="0" step="1" inputmode="numeric" id="campoCantidadListado">
-          <div id="mensajeCantidadListado"></div>
-        </div>
-      </div>
-
-      <h3 class="subtitulo-campo" style="margin-top:20px;">Fotografía general del grupo</h3>
+      <h3 class="subtitulo-campo">Fotografía general del grupo</h3>
       <p class="ayuda">Una foto representativa del encuentro de este grupo, independiente del método de
         asistencia elegido. <strong>Es obligatoria para poder finalizar el Foro</strong> — si no la tienes
         a mano ahora, puedes subirla más tarde, al final, cuando se descargue el informe.</p>
@@ -572,6 +499,7 @@
     </div>
 
     <div class="fila-botones">
+      <button class="btn btn-secundario" data-ir="pantallaConfirmacionCaracterizacion">Atrás</button>
       <button class="btn btn-primario" id="btnContinuarAParticipacion">Continuar</button>
     </div>
   </section>
@@ -635,7 +563,7 @@
     <div class="tarjeta">
       <h2 class="titulo-seccion">Sesión de socialización</h2>
       <p class="ayuda">Marquen cada institución educativa a medida que socialice oralmente sus reflexiones,
-        conclusiones y propuestas del Foro Educativo Institucional (hasta 10 minutos por institución). Una
+        conclusiones y propuestas de VOCES QUE CONSTRUYEN TERRITORIO (hasta 10 minutos por institución). Una
         sola persona puede llevar este registro por el grupo.</p>
       <div id="listaSocializacionIE"></div>
     </div>
@@ -670,7 +598,7 @@
     </div>
 
     <div class="fila-botones">
-      <button class="btn btn-secundario" data-ir="pantallaParticipacion">Atrás</button>
+      <button class="btn btn-secundario" data-ir="pantallaConsentimientoGrupo">Atrás</button>
       <button class="btn btn-primario" data-ir="pantallaSesion1">Continuar a Sesión 1</button>
     </div>
   </section>
@@ -757,13 +685,13 @@
       <h2 class="titulo-seccion">Consolidado de Socialización</h2>
       <p class="ayuda">Con base en lo socializado por cada institución educativa (Sesión de socialización,
         pantalla anterior), registre las respuestas colectivas del grupo a las preguntas orientadoras del
-        Foro Educativo Institucional (un consolidado por grupo, no por IE). Opcionalmente, en caso de
+        VOCES QUE CONSTRUYEN TERRITORIO (un consolidado por grupo, no por IE). Opcionalmente, en caso de
         existir hallazgos, reflexiones o propuestas propias de la comunidad que no encajen en las preguntas
         anteriores pueden escribirlos al final. Todos los campos son obligatorios.</p>
 
       <div class="tarjeta-recursos">
         <h3 class="subtitulo-campo">📎 Archivos de apoyo para esta sesión</h3>
-        <p class="ayuda">Descargue estos documentos del Foro Educativo Institucional para tenerlos a mano
+        <p class="ayuda">Descargue estos documentos de VOCES QUE CONSTRUYEN TERRITORIO para tenerlos a mano
           mientras socializan los resultados de su grupo.</p>
         <div id="listaRecursosSesion1Botones" class="fila-botones-recursos"></div>
       </div>
@@ -1136,6 +1064,35 @@
         instituciones educativas.</p>
       <div class="fila-botones">
         <button type="button" class="btn btn-secundario" id="btnRevisarTodo">🔍 Revisar todo antes de enviar</button>
+      </div>
+
+      <!-- Listado de asistencia (PDF) — spec del usuario: "Remove asistencia
+           PDF at the beginning, just keep it at the end". Antes vivía en
+           Participación (pantallaParticipacion); se movió aquí completo,
+           con los mismos IDs, así que toda la lógica de JS.html
+           (btnSubirListado/btnListadoMasTarde/campoCantidadListado, etc.)
+           sigue igual. -->
+      <h3 class="subtitulo-campo">Listado de asistencia</h3>
+      <p class="ayuda">Descarguen el formato oficial de asistencia, regístrenla en papel durante la
+        sesión y suban el listado ya firmado aquí.</p>
+      <a class="btn btn-secundario" href="https://drive.google.com/file/d/<?!= FORMATO_ASISTENCIA_ENCUENTRO_ID ?>/view" target="_blank" id="btnDescargarFormatoAsistenciaParticipacion">📥 Descargar formato de asistencia</a>
+      <div id="panelMetodoListado" style="margin-top:14px;">
+        <label for="campoArchivoListado">PDF del listado firmado en papel</label>
+        <p class="mensaje info"><strong>⚠️ Solo se acepta el formato oficial de asistencia</strong> —
+          descargado con el botón "Descargar formato de asistencia" (arriba), impreso y diligenciado tal
+          cual. No se aceptarán listados en un formato o diseño distinto al provisto.</p>
+        <input type="file" id="campoArchivoListado" accept="application/pdf">
+        <div class="fila-botones">
+          <button class="btn btn-secundario" id="btnSubirListado">Subir listado</button>
+          <button class="btn btn-secundario" id="btnListadoMasTarde">Subir más tarde</button>
+        </div>
+        <div id="mensajeMetodoAsistencia"></div>
+
+        <div id="panelCantidadListado" class="oculto" style="margin-top:14px;">
+          <label for="campoCantidadListado">Cantidad de personas registradas en el listado de asistencia</label>
+          <input type="number" min="0" step="1" inputmode="numeric" id="campoCantidadListado">
+          <div id="mensajeCantidadListado"></div>
+        </div>
       </div>
 
       <!-- Verificación/registro de asistencia en Revisión y cierre — oculta
