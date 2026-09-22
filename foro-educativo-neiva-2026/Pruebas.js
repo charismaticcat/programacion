@@ -7679,3 +7679,116 @@ function extraerFotosEvidenciaFEM(){
 
   return destino.getUrl();
 }
+
+/*
+ * CORREO DE ACCESO AL PANEL "SUPERADMIN" — FEM 2026.
+ *
+ * Envía, a cada persona de DESTINATARIOS_PANEL_SUPERADMIN_FEM_, un
+ * correo individual y personalizado ("Estimado/a <primer nombre>")
+ * con el enlace de acceso al Panel de Accesos superadmin
+ * (paginaSuperAdminFEM_ / ?panel=superadmin). Mismo lenguaje visual
+ * que el resto de correos institucionales del Foro (encabezado verde
+ * #0B6A44, acento dorado #F4B400, tarjeta blanca redondeada) pero SIN
+ * ningún emoji en el cuerpo, a pedido expreso — solo viñetas y
+ * tipografía, para evitar que aparezcan como "???" en clientes de
+ * correo que no los interpretan bien.
+ *
+ * Uso: desde el editor de Apps Script, ejecutar
+ * enviarCorreoAccesoSuperAdminFEM(). El detalle de envíos exitosos o
+ * fallidos queda en "Ver registros de ejecución".
+ */
+const DESTINATARIOS_PANEL_SUPERADMIN_FEM_ = [
+  {email:"adriana.cedeno@alcaldianeiva.gov.co", nombre:"Adriana", genero:"f"},
+  {email:"ana.torres@alcaldianeiva.gov.co", nombre:"Ana", genero:"f"},
+  {email:"carolina.soto@alcaldianeiva.gov.co", nombre:"Carolina", genero:"f"},
+  {email:"edna.rivera@alcaldianeiva.gov.co", nombre:"Edna", genero:"f"},
+  {email:"francisco.cortes@alcaldianeiva.gov.co", nombre:"Francisco", genero:"m"},
+  {email:"nelson.herrera@alcaldianeiva.gov.co", nombre:"Nelson", genero:"m"},
+  {email:"ronald.polania@alcaldianeiva.gov.co", nombre:"Ronald", genero:"m"},
+  {email:"rosa.gonzalez@alcaldianeiva.gov.co", nombre:"Rosa", genero:"f"},
+  {email:"rosario.valenzuela@alcaldianeiva.gov.co", nombre:"Rosario", genero:"f"}
+];
+
+function enviarCorreoAccesoSuperAdminFEM(){
+  const aliases=GmailApp.getAliases().map(function(x){ return x.toLowerCase(); });
+  const cuenta=Session.getEffectiveUser().getEmail().toLowerCase();
+  if(cuenta!==REMITENTE_FEM && aliases.indexOf(REMITENTE_FEM)===-1){
+    throw new Error("La cuenta de Apps Script no puede enviar como "+REMITENTE_FEM+". Configure esa cuenta o un alias.");
+  }
+
+  const urlPanel="https://script.google.com/macros/s/AKfycbzeXpV-I2kR-jOetOH_DqaXz0K9QoUfA49ouc5gUNE3rWXhy4fI77EXM4-Y8e08APQy/exec?p=1";
+  const asunto="Acceso al Panel de Administración — Foro Educativo Institucional Neiva 2026";
+
+  const enviados=[], fallidos=[];
+
+  DESTINATARIOS_PANEL_SUPERADMIN_FEM_.forEach(function(dest){
+    const tratamiento=dest.genero==="m" ? "Estimado" : "Estimada";
+
+    const cuerpoTexto=
+      "Secretaría de Educación de Neiva\n\n"+
+      tratamiento+" "+dest.nombre+":\n\n"+
+      "Le compartimos el enlace de acceso al Panel de Administración del Foro Educativo Institucional — Neiva 2026, una sola pantalla con accesos directos a todas las carpetas y documentos del Foro: carpetas de Drive, informes sintéticos (municipal y por grupo), la hoja de cálculo con las respuestas de cada institución, y los recursos multimedia (FAQs, video resumen, mapa mental resumen, informe interno e infografía).\n\n"+
+      "Enlace de acceso:\n"+urlPanel+"\n\n"+
+      "Este panel no requiere código ni clave de acceso: cualquier persona que reciba el enlace puede abrirlo. Por eso le pedimos compartirlo únicamente con el equipo autorizado de la Secretaría de Educación.\n\n"+
+      "Contenido disponible desde el panel:\n"+
+      "- Carpeta general del Foro, fotos de evidencia, informes por grupo e informes enviados por cada institución educativa.\n"+
+      "- Informe Sintético Municipal y los seis informes sintéticos por grupo (G1 a G6).\n"+
+      "- Hoja de cálculo con las respuestas de cada institución educativa y los totales generales.\n"+
+      "- FAQs, video resumen, mapa mental resumen, informe interno e infografía del FEM 2026.\n\n"+
+      "Quedamos atentos a cualquier inquietud sobre su uso.\n\n"+
+      "Secretaría de Educación de Neiva\n"+
+      "Foro Educativo Institucional – Neiva 2026\n"+
+      "“Escuela Viva: Voces que construyen territorio”";
+
+    const cuerpoHTML=
+      "<div style=\"background:#F7F8FA;padding:28px 12px;font-family:Arial,Helvetica,sans-serif;\">"+
+      "<div style=\"max-width:560px;margin:0 auto;background:#FFFFFF;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.10);\">"+
+      "<div style=\"background:#0B6A44;padding:26px 28px;text-align:center;\">"+
+      "<div style=\"color:#FFFFFF;font-size:19px;font-weight:700;\">Panel de Administración</div>"+
+      "<div style=\"color:#CFE8DC;font-size:13px;margin-top:4px;\">Foro Educativo Institucional — Neiva 2026</div>"+
+      "</div>"+
+      "<div style=\"padding:28px;\">"+
+      "<p style=\"font-size:16px;color:#333333;margin:0 0 14px;\">"+tratamiento+" <strong>"+dest.nombre+"</strong>:</p>"+
+      "<p style=\"font-size:15px;color:#4A4A4A;line-height:1.6;margin:0 0 20px;\">"+
+      "Le compartimos el enlace de acceso al Panel de Administración del Foro Educativo Institucional, una sola pantalla con accesos directos a todas las carpetas y documentos del Foro."+
+      "</p>"+
+      "<div style=\"text-align:center;margin:0 0 22px;\">"+
+      "<a href=\""+urlPanel+"\" style=\"display:inline-block;background:#0B6A44;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:15px;padding:14px 28px;border-radius:10px;\">Abrir Panel de Administración</a>"+
+      "</div>"+
+      "<div style=\"background:#F7F8FA;border-left:6px solid #F4B400;border-radius:10px;padding:16px 20px;margin:0 0 22px;\">"+
+      "<p style=\"font-size:13.5px;color:#333333;margin:0;line-height:1.55;\">Este panel <strong>no requiere código ni clave de acceso</strong>: cualquier persona que reciba el enlace puede abrirlo. Por eso le pedimos compartirlo únicamente con el equipo autorizado de la Secretaría de Educación.</p>"+
+      "</div>"+
+      "<p style=\"font-size:14px;color:#333333;font-weight:700;margin:0 0 10px;\">Contenido disponible desde el panel</p>"+
+      "<ul style=\"font-size:13.5px;color:#4A4A4A;line-height:1.7;margin:0 0 22px;padding-left:20px;\">"+
+      "<li>Carpeta general del Foro, fotos de evidencia, informes por grupo e informes enviados por cada institución educativa.</li>"+
+      "<li>Informe Sintético Municipal y los seis informes sintéticos por grupo (G1 a G6).</li>"+
+      "<li>Hoja de cálculo con las respuestas de cada institución educativa y los totales generales.</li>"+
+      "<li>FAQs, video resumen, mapa mental resumen, informe interno e infografía del FEM 2026.</li>"+
+      "</ul>"+
+      "<p style=\"font-size:14px;color:#4A4A4A;line-height:1.6;margin:0;\">Quedamos atentos a cualquier inquietud sobre su uso.</p>"+
+      "</div>"+
+      "<div style=\"background:#F7F8FA;padding:18px 28px;text-align:center;border-top:1px solid #E5E7EA;\">"+
+      "<p style=\"font-size:13px;color:#0B6A44;font-weight:700;margin:0;\">Secretaría de Educación de Neiva</p>"+
+      "<p style=\"font-size:12px;color:#888888;margin:4px 0 0;font-style:italic;\">“Escuela Viva: Voces que construyen territorio”</p>"+
+      "</div>"+
+      "</div>"+
+      "</div>";
+
+    try{
+      GmailApp.sendEmail(dest.email, asunto, cuerpoTexto, {
+        htmlBody:cuerpoHTML, from:REMITENTE_FEM, name:"Secretaría de Educación de Neiva"
+      });
+      enviados.push(dest.email);
+    }catch(error){
+      fallidos.push(dest.email+" — "+error.message);
+    }
+  });
+
+  Logger.log("========================================");
+  Logger.log("CORREO DE ACCESO AL PANEL SUPERADMIN — RESULTADO");
+  Logger.log("Enviados ("+enviados.length+"): "+enviados.join(", "));
+  if(fallidos.length){ Logger.log("Fallidos ("+fallidos.length+"): "+fallidos.join(" | ")); }
+  Logger.log("========================================");
+
+  return {enviados:enviados, fallidos:fallidos};
+}
