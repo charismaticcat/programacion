@@ -265,7 +265,18 @@ div.tarjeta-seccion:hover, div.tarjeta-seccion:focus-visible { transform: none; 
 @media (max-width: 640px) {
   .mitad-temporizador-socializacion { border-right: none; border-bottom: 1px solid var(--gris-borde); padding-right: 0; padding-bottom: 16px; }
 }
-.mitad-notas-socializacion textarea { min-height: 220px; }
+.caja-respuestas-reales-socializacion {
+  min-height: 220px;
+  max-height: 420px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  background: var(--gris-fondo);
+  border: 1px solid var(--gris-borde);
+  border-radius: var(--radio);
+  padding: 14px;
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
 .aviso-socializacion {
   text-align: center;
   font-weight: 700;

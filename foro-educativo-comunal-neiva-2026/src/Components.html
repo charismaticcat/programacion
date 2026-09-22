@@ -544,10 +544,11 @@ function renderSocializacionPreparacion(datos) {
  * Checklist de la Sesión de socialización (Documento Orientador FEM2026,
  * item 10) — una fila por IE del grupo, con su estado ("✅ Socializó" o
  * pendiente), un botón para iniciar el temporizador de 10 minutos y otro
- * para anotar/editar sus datos relevantes en cualquier momento (no
- * depende de haber usado el temporizador). Los clics se manejan con un
- * único listener delegado en JS.html (mismo patrón que el resto de la
- * app para listas que se repintan).
+ * para consultar de solo lectura sus respuestas reales (extraídas de
+ * Drive, ver SocializacionDatos.gs) en cualquier momento, sin depender
+ * de haber usado el temporizador. Los clics se manejan con un único
+ * listener delegado en JS.html (mismo patrón que el resto de la app
+ * para listas que se repintan).
  */
 function renderChecklistSocializacionIE(datos) {
   var contenedor = document.getElementById("listaSocializacionIE");
@@ -564,8 +565,9 @@ function renderChecklistSocializacionIE(datos) {
     if (!ie.socializo) {
       html += "<button type='button' class='btn btn-secundario' data-iniciar-socializacion-ie='" + escapeHtml(ie.idIE) + "'>▶ Iniciar temporizador</button>";
     }
-    html += "<button type='button' class='btn btn-secundario' data-editar-socializacion-ie='" + escapeHtml(ie.idIE) + "'>" +
-      (ie.datosRelevantes ? "📝 Ver/editar datos relevantes" : "📝 Datos relevantes") + "</button>";
+    if (ie.tieneRespuestasReales) {
+      html += "<button type='button' class='btn btn-secundario' data-ver-socializacion-ie='" + escapeHtml(ie.idIE) + "'>📄 Ver respuestas registradas</button>";
+    }
     html += "</div></div>";
   });
   contenedor.innerHTML = html;

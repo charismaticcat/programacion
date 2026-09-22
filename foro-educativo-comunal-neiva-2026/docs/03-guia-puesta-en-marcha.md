@@ -2550,6 +2550,70 @@ Verificado: `node --check` de Access.gs, Grupos.gs y Code.gs; extracción y `nod
 duplicados; comparación automatizada `getElementById` vs. IDs reales (mismas 8 referencias colgantes ya
 confirmadas con guarda nula, ninguna nueva).
 
+## 4.73 Quincuagésimo séptimo lote (parte 4, final del lote grande): Socialización con respuestas reales de Drive, quitar la toma manual de notas
+
+Último punto del pedido grande de 8 partes del usuario: "Add a new comm after text area in Socialización.
+Drag answers to socialización from the folder for each group to each one of the questions... keep only
+iniciar temporizador, remove datos relevantes." — se quitó la toma manual de notas en vivo durante la
+Sesión de socialización y se reemplazó por las respuestas REALES que cada institución educativa ya dejó
+registradas en el Foro Educativo Institucional (documentos "Respuestas Compiladas - Grupo GX FEM 2026" en
+la carpeta de Drive "Informes por grupos", uno por grupo), mostradas de solo lectura.
+
+- **`SocializacionDatos.gs`** (nuevo): `RESPUESTAS_REALES_SOCIALIZACION_`, un objeto con las respuestas
+  reales de las 34 instituciones que tenían contenido registrado en los 6 documentos de Drive (una
+  institución del catálogo, MARIA AUXILIADORA - FORTALECILLAS, no tenía ninguna respuesta registrada en
+  su documento fuente — todas las preguntas aparecían como "—" — así que no tiene entrada, y simplemente
+  no se le ofrece el botón "Ver respuestas registradas"). Cada valor es un texto ya formateado con las
+  preguntas y respuestas reales de Sesión 1/2/3, extraídas y transcritas programáticamente (parseo con
+  Python de la tabla markdown de cada documento, no a mano) para evitar errores de transcripción en un
+  volumen de texto grande. Clave: `_normalizarClaveSocializacion_(nombre)` — `normalizarTexto_` (Utils.gs)
+  más limpieza de puntos y un prefijo "I.E./IE " inicial, mismo criterio tolerante que
+  `normalizarNombreIEConversatorio_` en Conversatorio.gs, para no depender de que el nombre en
+  `GruposComunal` coincida carácter a carácter con el de los documentos de Drive. Único alias explícito
+  necesario: "LICEO DE SANTA LIBRADA" (nombre en el documento) → "LICEO SANTA LIBRADA" (nombre esperado en
+  el catálogo, mismo alias que ya existía para esa IE en `ALIAS_IE_CONVERSATORIO_`).
+- **`Socializacion.gs`**:
+  - `obtenerSocializacionGrupo`: cada IE ahora trae también `respuestasReales` y `tieneRespuestasReales`
+    (`obtenerRespuestasRealesSocializacionIE_`).
+  - `guardarSocializacionIE`: perdió el parámetro `datosRelevantes` que antes llegaba del textarea en
+    vivo — ahora, al marcar `socializo=true`, el propio servidor resuelve el nombre real de la IE
+    (`obtenerInstitucionesDelGrupo`) y guarda como `DATOS_RELEVANTES` sus respuestas reales. Con esto, todo
+    lo que ya consumía ese campo (el PDF "Aportes relevantes del <Grupo>" vía
+    `generarPdfAportesRelevantesSocializacion`, y el `<details>` por IE en Sesión 1 vía
+    `renderSocializacionPreparacion` en Components.html) sigue funcionando exactamente igual, ahora con
+    contenido real en vez de notas escritas a mano.
+- **`Code.gs`**: `rpcGuardarSocializacionIE` pierde el parámetro `datosRelevantes` (mismo motivo).
+- **`Index.html`** (`panelTemporizadorSocializacion`): la mitad de la pantalla partida que tenía el
+  textarea "Datos relevantes de esta IE" + botón "💾 Guardar" pasó a ser `panelRespuestasRealesSocializacion`,
+  una caja de solo lectura con las respuestas reales de la IE que está sonando el temporizador.
+- **`Modal.html`** (`modalDatosRelevantesIE`): se repropuso como visor de solo lectura ("Respuestas
+  registradas de...") — sin textarea ni botón "Guardar", solo el texto y "Cerrar". Se sigue usando para
+  consultar las respuestas de cualquier IE del checklist, esté o no sonando su temporizador.
+- **`Components.html`** (`renderChecklistSocializacionIE`): el botón "📝 Ver/editar datos relevantes" pasó
+  a ser "📄 Ver respuestas registradas" (`data-ver-socializacion-ie`, reemplaza a
+  `data-editar-socializacion-ie`) — solo aparece si `tieneRespuestasReales`; "▶ Iniciar temporizador" se
+  mantiene igual para las IE que aún no socializan.
+- **`JS.html`**: `guardarDatosRelevantesEnVivo_`/`btnGuardarDatosRelevantesEnVivo`/
+  `btnGuardarDatosRelevantesIE` (guardado manual) se eliminaron; `btnFinalizarSocializacionIE` ahora solo
+  llama a `rpcGuardarSocializacionIE(..., true)` sin texto — el servidor completa `DATOS_RELEVANTES` con
+  las respuestas reales. `iniciarTemporizadorSocializacionIE_` y `abrirDatosRelevantesSocializacionIE_`
+  ahora pintan `registro.respuestasReales` en la caja de solo lectura en vez de precargar un textarea.
+- **`CSS.html`**: nueva `.caja-respuestas-reales-socializacion` (scroll, `white-space: pre-wrap`), usada
+  tanto en el panel partido como en el modal.
+
+Verificado: `node --check` de Socializacion.gs, Code.gs y SocializacionDatos.gs (las 205 KB de datos
+generados también pasan `node --check` sin errores); extracción y `node --check` de los bloques `<script>`
+de Index.html/JS.html/Components.html/Modal.html/CSS.html (limpio, mismo falso positivo permanente de
+Index.html); sin IDs duplicados nuevos; comparación `getElementById` vs. IDs reales para
+`panelRespuestasRealesSocializacion`/`campoDatosRelevantesIE`/`tituloDatosRelevantesIE` (todas
+resueltas); búsqueda de referencias colgantes a los IDs/atributos eliminados
+(`campoDatosRelevantesEnVivo`, `btnGuardarDatosRelevantesEnVivo`, `btnGuardarDatosRelevantesIE`,
+`mensajeDatosRelevantesEnVivo`, `mensajeDatosRelevantesIE`, `data-editar-socializacion-ie`) — ninguna.
+
+Con esto queda completo el pedido grande de 8 partes (rename, agenda Jornada Tarde, Participación al
+final, Socialización con respuestas reales, asistencia solo al final, acceso sin código por dueño de
+grupo, casilla de IE presentes, fix del error de valoración).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

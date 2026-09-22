@@ -244,9 +244,9 @@ function rpcObtenerSocializacionGrupo(idGrupo) {
   });
 }
 
-function rpcGuardarSocializacionIE(idGrupo, tokenSesion, dispositivoId, idIE, socializo, datosRelevantes) {
+function rpcGuardarSocializacionIE(idGrupo, tokenSesion, dispositivoId, idIE, socializo) {
   return ejecutarRpcSeguro_(function () {
-    return guardarSocializacionIE(idGrupo, tokenSesion, dispositivoId, idIE, socializo, datosRelevantes);
+    return guardarSocializacionIE(idGrupo, tokenSesion, dispositivoId, idIE, socializo);
   });
 }
 

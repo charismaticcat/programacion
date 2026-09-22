@@ -36,22 +36,28 @@ function obtenerSocializacionGrupo(idGrupo) {
 
   return instituciones.map(function (ie) {
     var guardada = porClave[_claveSocializacion_(idGrupo, ie.idIE)];
+    var respuestasReales = obtenerRespuestasRealesSocializacionIE_(ie.institucion);
     return {
       idIE: ie.idIE,
       institucion: ie.institucion,
       socializo: guardada ? String(guardada.SOCIALIZO || "") === "SI" : false,
-      datosRelevantes: guardada ? String(guardada.DATOS_RELEVANTES || "") : ""
+      datosRelevantes: guardada ? String(guardada.DATOS_RELEVANTES || "") : "",
+      respuestasReales: respuestasReales,
+      tieneRespuestasReales: !!respuestasReales
     };
   });
 }
 
 /**
- * Marca/desmarca una IE como ya socializada y guarda sus datos
- * relevantes (UPSERT, ambos juntos) — spec del usuario: al dar
- * "Finalizar" en el temporizador se abre la pantalla de datos relevantes
- * de esa IE, y de ahí se guarda todo de una vez.
+ * Marca/desmarca una IE como ya socializada (spec del usuario: quitar la
+ * toma manual de "datos relevantes" en vivo, dejar solo el temporizador —
+ * las respuestas reales de esta IE, ya extraídas de sus "Respuestas
+ * Compiladas" en Drive, ver SocializacionDatos.gs, quedan guardadas como
+ * DATOS_RELEVANTES automáticamente al marcar "Finalizar", así lo que
+ * consumía ese campo (PDF de aportes relevantes, Sesión 1) sigue
+ * funcionando sin cambios).
  */
-function guardarSocializacionIE(idGrupo, tokenSesion, dispositivoId, idIE, socializo, datosRelevantes) {
+function guardarSocializacionIE(idGrupo, tokenSesion, dispositivoId, idIE, socializo) {
   idGrupo = String(idGrupo || "").trim();
   idIE = String(idIE || "").trim();
   if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
@@ -59,12 +65,17 @@ function guardarSocializacionIE(idGrupo, tokenSesion, dispositivoId, idIE, socia
   }
   if (!idIE) return { ok: false, mensaje: "Falta la institución." };
 
+  var institucionInfo = obtenerInstitucionesDelGrupo(idGrupo).find(function (ie) {
+    return ie.idIE === idIE;
+  });
+  var datosRelevantes = institucionInfo ? obtenerRespuestasRealesSocializacionIE_(institucionInfo.institucion) : "";
+
   return conLock_(function () {
     upsertFila_(HOJA_SOCIALIZACION_IE_, cabecerasSocializacionIE_(), "CLAVE", _claveSocializacion_(idGrupo, idIE), {
       ID_GRUPO: idGrupo,
       ID_IE: idIE,
       SOCIALIZO: socializo ? "SI" : "NO",
-      DATOS_RELEVANTES: String(datosRelevantes == null ? "" : datosRelevantes),
+      DATOS_RELEVANTES: datosRelevantes,
       ULTIMA_ACTUALIZACION: new Date()
     });
     return { ok: true };

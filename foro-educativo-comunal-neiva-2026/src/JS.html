@@ -1320,12 +1320,16 @@ function cargarRecursosSesion1() {
  * item 10) — reemplaza a "Preparación" (item 9): checklist de qué IE ya
  * socializó, con un temporizador de apoyo (10 min + botón "+2 minutos")
  * por institución. Mientras el temporizador corre, la pantalla se parte
- * a la mitad (spec del usuario): una mitad el reloj, la otra un textarea
- * con botón "Guardar" para consolidar en vivo lo compartido por esa IE
- * — "Finalizar" guarda lo que haya en ese textarea y cierra el panel. El
- * cuadro emergente "Datos relevantes" (modalDatosRelevantesIE) se
- * conserva solo para editar una IE que YA NO está en temporizador
- * (data-editar-socializacion-ie).
+ * a la mitad (spec del usuario): una mitad el reloj, la otra las
+ * respuestas REALES que esa IE ya dejó registradas en sus sesiones
+ * (SocializacionDatos.gs), de solo lectura — ya no hay toma manual de
+ * notas en vivo. "Finalizar" simplemente marca la IE como socializada
+ * (el servidor guarda esas mismas respuestas reales como
+ * DATOS_RELEVANTES, ver Socializacion.gs, para que el PDF de aportes
+ * relevantes y el Consolidado de Sesión 1 sigan funcionando sin cambios).
+ * El cuadro emergente (modalDatosRelevantesIE) se conserva para consultar
+ * las respuestas de cualquier IE fuera del temporizador
+ * (data-ver-socializacion-ie).
  * ------------------------------------------------------------------ */
 var estadoSocializacion = {
   datos: [],
@@ -1419,9 +1423,11 @@ function iniciarTemporizadorSocializacionIE_(idIE, nombreIE) {
   document.getElementById("nombreIESocializando").textContent = nombreIE;
   _actualizarRelojSocializacion_();
   var registro = estadoSocializacion.datos.find(function (ie) { return ie.idIE === idIE; });
-  var campoNotas = document.getElementById("campoDatosRelevantesEnVivo");
-  if (campoNotas) campoNotas.value = registro ? (registro.datosRelevantes || "") : "";
-  mostrarMensaje("mensajeDatosRelevantesEnVivo", "");
+  var panelRespuestas = document.getElementById("panelRespuestasRealesSocializacion");
+  if (panelRespuestas) {
+    panelRespuestas.textContent = (registro && registro.respuestasReales) ||
+      "No hay respuestas registradas en Drive para esta institución.";
+  }
   document.getElementById("panelTemporizadorSocializacion").classList.remove("oculto");
   document.getElementById("panelTemporizadorSocializacion").scrollIntoView({ behavior: "smooth", block: "center" });
   mostrarAvisoMomentoSocializacion_("🟢 Socialización de " + nombreIE + " iniciada.");
@@ -1448,61 +1454,35 @@ document.getElementById("btnMas2MinSocializacion").addEventListener("click", fun
   mostrarAvisoMomentoSocializacion_("➕ Se añadieron 2 minutos a la presentación de " + estadoSocializacion.ieActivaNombre + ".");
 });
 
-/** Guarda lo escrito en el textarea en vivo (botón "Guardar" o al presionar "Finalizar"). */
-function guardarDatosRelevantesEnVivo_(callback) {
+/** Marca la IE activa como socializada (el servidor ya guarda sus respuestas reales). */
+function finalizarSocializacionIE_() {
   var idIE = estadoSocializacion.ieActivaId;
-  if (!idIE) {
-    if (callback) callback();
-    return;
-  }
-  var texto = document.getElementById("campoDatosRelevantesEnVivo").value;
-  llamarServidor("rpcGuardarSocializacionIE", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, idIE, true, texto], function (r) {
+  if (!idIE) return;
+  llamarServidor("rpcGuardarSocializacionIE", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, idIE, true], function (r) {
     if (!r.ok) {
-      mostrarMensaje("mensajeDatosRelevantesEnVivo", r.mensaje || "No fue posible guardar.", "error");
+      mostrarMensaje("mensajeGlobal", r.mensaje || "No fue posible guardar.", "error");
       return;
     }
-    mostrarMensaje("mensajeDatosRelevantesEnVivo", "Guardado.", "exito");
     cargarSocializacionIE();
-    if (callback) callback();
   }, function () {
-    mostrarMensaje("mensajeDatosRelevantesEnVivo", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+    mostrarMensaje("mensajeGlobal", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
   });
 }
-
-document.getElementById("btnGuardarDatosRelevantesEnVivo").addEventListener("click", function () {
-  guardarDatosRelevantesEnVivo_();
-});
 
 document.getElementById("btnFinalizarSocializacionIE").addEventListener("click", function () {
   clearInterval(estadoSocializacion.temporizadorId);
   document.getElementById("panelTemporizadorSocializacion").classList.add("oculto");
-  guardarDatosRelevantesEnVivo_();
+  finalizarSocializacionIE_();
 });
 
-/** Cuadro emergente "Datos relevantes" — solo para editar una IE que ya no está en temporizador. */
+/** Cuadro emergente de solo lectura con las respuestas reales de una IE (fuera del temporizador). */
 function abrirDatosRelevantesSocializacionIE_(idIE, nombreIE) {
   var registro = estadoSocializacion.datos.find(function (ie) { return ie.idIE === idIE; });
-  document.getElementById("tituloDatosRelevantesIE").textContent = "Datos relevantes de " + (nombreIE || (registro && registro.institucion) || "");
-  document.getElementById("campoDatosRelevantesIE").value = registro ? registro.datosRelevantes || "" : "";
-  document.getElementById("campoDatosRelevantesIE").setAttribute("data-ie-actual", idIE);
-  mostrarMensaje("mensajeDatosRelevantesIE", "");
+  document.getElementById("tituloDatosRelevantesIE").textContent = "Respuestas registradas de " + (nombreIE || (registro && registro.institucion) || "");
+  document.getElementById("campoDatosRelevantesIE").textContent = (registro && registro.respuestasReales) ||
+    "No hay respuestas registradas en Drive para esta institución.";
   abrirModal("modalDatosRelevantesIE");
 }
-
-document.getElementById("btnGuardarDatosRelevantesIE").addEventListener("click", function () {
-  var idIE = document.getElementById("campoDatosRelevantesIE").getAttribute("data-ie-actual");
-  var texto = document.getElementById("campoDatosRelevantesIE").value;
-  llamarServidor("rpcGuardarSocializacionIE", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, idIE, true, texto], function (r) {
-    if (!r.ok) {
-      mostrarMensaje("mensajeDatosRelevantesIE", r.mensaje || "No fue posible guardar.", "error");
-      return;
-    }
-    cerrarModal("modalDatosRelevantesIE");
-    cargarSocializacionIE();
-  }, function () {
-    mostrarMensaje("mensajeDatosRelevantesIE", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
-  });
-});
 
 document.addEventListener("click", function (evento) {
   var iniciar = evento.target.closest("[data-iniciar-socializacion-ie]");
@@ -1511,11 +1491,11 @@ document.addEventListener("click", function (evento) {
     var registro = estadoSocializacion.datos.find(function (ie) { return ie.idIE === idIE; });
     iniciarTemporizadorSocializacionIE_(idIE, registro ? registro.institucion : "");
   }
-  var editar = evento.target.closest("[data-editar-socializacion-ie]");
-  if (editar) {
-    var idIEEditar = editar.getAttribute("data-editar-socializacion-ie");
-    var registroEditar = estadoSocializacion.datos.find(function (ie) { return ie.idIE === idIEEditar; });
-    abrirDatosRelevantesSocializacionIE_(idIEEditar, registroEditar ? registroEditar.institucion : "");
+  var ver = evento.target.closest("[data-ver-socializacion-ie]");
+  if (ver) {
+    var idIEVer = ver.getAttribute("data-ver-socializacion-ie");
+    var registroVer = estadoSocializacion.datos.find(function (ie) { return ie.idIE === idIEVer; });
+    abrirDatosRelevantesSocializacionIE_(idIEVer, registroVer ? registroVer.institucion : "");
   }
 });
 

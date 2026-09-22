@@ -599,11 +599,13 @@
       <div id="listaSocializacionIE"></div>
     </div>
 
-    <!-- Pantalla partida (spec del usuario): una mitad el temporizador, la
-         otra mitad para consolidar en vivo lo compartido por la IE, en vez
-         del cuadro emergente "Datos relevantes" que se abría antes solo al
-         finalizar (ese cuadro se conserva para editar una IE que ya no
-         está en temporizador — ver data-editar-socializacion-ie). -->
+    <!-- Pantalla partida: una mitad el temporizador, la otra las respuestas
+         REALES que esa IE ya dejó registradas en sus sesiones (spec del
+         usuario: quitar la toma manual de "datos relevantes", dejar solo
+         "iniciar temporizador" + respuestas reales de Drive, ver
+         SocializacionDatos.gs). El mismo cuadro de solo lectura se
+         reutiliza para consultar cualquier IE fuera del temporizador
+         — ver data-ver-socializacion-ie. -->
     <div class="tarjeta oculto" id="panelTemporizadorSocializacion">
       <h3 class="subtitulo-campo" id="nombreIESocializando"></h3>
       <p class="aviso-socializacion oculto" id="avisoMomentoSocializacion"></p>
@@ -616,14 +618,10 @@
           </div>
         </div>
         <div class="mitad-socializacion mitad-notas-socializacion">
-          <label for="campoDatosRelevantesEnVivo">Datos relevantes de esta IE</label>
-          <p class="ayuda">Consignen aquí, en vivo, lo más relevante que comparta la institución mientras
-            socializa.</p>
-          <textarea id="campoDatosRelevantesEnVivo" rows="10" placeholder="Escriban aquí mientras escuchan…"></textarea>
-          <div id="mensajeDatosRelevantesEnVivo"></div>
-          <div class="fila-botones">
-            <button type="button" class="btn btn-secundario" id="btnGuardarDatosRelevantesEnVivo">💾 Guardar</button>
-          </div>
+          <label>Respuestas registradas de esta IE</label>
+          <p class="ayuda">Reflexiones, conclusiones y propuestas que esta institución ya dejó registradas
+            en sus sesiones — como apoyo mientras socializa en vivo.</p>
+          <div id="panelRespuestasRealesSocializacion" class="caja-respuestas-reales-socializacion"></div>
         </div>
       </div>
     </div>
