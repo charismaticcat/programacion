@@ -255,8 +255,12 @@
         <option value="Funcionario Secretaría de Educación Municipal">Funcionario Secretaría de Educación Municipal</option>
         <option value="Otro">Otro</option>
       </select>
-      <label for="campoAcompananteResponsableConversatorio">Acompañante (opcional)</label>
-      <input type="text" id="campoAcompananteResponsableConversatorio" placeholder="Nombre y rol del acompañante, si asiste otra persona" autocomplete="off">
+      <label>Acompañantes (opcional)</label>
+      <p class="ayuda" style="margin-top:-6px;">Si asiste más de una persona, agregue una fila por cada acompañante con su nombre y su rol.</p>
+      <div id="listaAcompanantesResponsableConversatorio"></div>
+      <div class="fila-botones">
+        <button type="button" class="btn btn-secundario" id="btnAgregarAcompananteConversatorio">+ Agregar acompañante</button>
+      </div>
       <div id="mensajeResponsableConversatorio"></div>
       <div class="fila-botones">
         <button class="btn btn-primario" id="btnContinuarResponsableConversatorio">Continuar</button>

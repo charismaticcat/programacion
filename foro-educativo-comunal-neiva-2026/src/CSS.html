@@ -207,6 +207,19 @@ div.tarjeta-seccion:hover, div.tarjeta-seccion:focus-visible { transform: none; 
 .badge-no { background: var(--rojo); color: var(--blanco); }
 .badge-sin-responder { background: var(--amarillo); color: #4a3800; }
 
+/* Fila dinámica de acompañante (nombre + rol) en la pantalla de
+   responsable del Conversatorio — spec del usuario: "Acompañantes
+   (opcional) debe permitir también agregar más acompañantes y
+   seleccionar rol". */
+.fila-acompanante-conversatorio {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;
+}
+.fila-acompanante-conversatorio input,
+.fila-acompanante-conversatorio select {
+  flex: 1 1 160px; margin: 0;
+}
+.fila-acompanante-conversatorio .btn-enlace { flex: 0 0 auto; }
+
 /* Sesión de socialización (Documento Orientador FEM2026, item 10). */
 .fila-socializacion-ie {
   display: flex;

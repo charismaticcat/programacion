@@ -2353,6 +2353,42 @@ la pantalla de elección de grupo: "en pantalla de Grupo de articulación técni
 Verificado: extracción y `node --check` de los bloques `<script>` de Index.html (limpio, mismo falso
 positivo permanente) y Components.html (limpio); sin IDs duplicados ni etiquetas sin cerrar.
 
+## 4.69 Quincuagésimo sexto lote: pantalla de bienvenida siempre con las dos sesiones, varios acompañantes con rol
+
+Dos pedidos del usuario: "pantalla de bienvenida debe mostar las dos sesiones para seleccionar" y
+"Acompañantes (opcional) debe permitir también agregar más acompañantes y seleccionar rol".
+
+- **Fix del salto automático a "Encuentro" (JS.html)**: `retomarSeccionElegida_`, una función que existía
+  desde antes de la pivote a Conversatorio, saltaba automáticamente `pantallaEleccionSeccion` e iba directo
+  a `pantallaAcceso` si el dispositivo ya tenía una sección guardada en `localStorage`
+  (`fec_seccion_elegida`) — cualquier dispositivo que ya hubiera entrado antes al Encuentro dejaba de ver
+  la pantalla de bienvenida con las dos tarjetas. Se eliminó esa función por completo: la pantalla de
+  bienvenida ahora **siempre** se muestra primero, con las dos sesiones para elegir. El valor guardado en
+  `localStorage` se sigue usando (solo para rotular el título/logo de `pantallaAcceso` una vez elegida la
+  sección), pero ya no decide saltarse la pantalla de bienvenida.
+- **Acompañantes múltiples con rol (Index.html, Components.html, JS.html, CSS.html)**: el campo único de
+  texto libre "Acompañante (opcional)" de la pantalla de responsable del Conversatorio se reemplazó por una
+  lista dinámica de filas — cada fila tiene un campo de nombre y un desplegable de rol (mismo catálogo que
+  el rol del responsable: Rector(a)/Coordinador(a) académico(a)/Docente/Enlace-articulador(a)
+  SENA/Orientador(a)/Funcionario Secretaría de Educación Municipal/Otro), con un botón "+ Agregar
+  acompañante" y un "✕ Quitar" por fila.
+  - `Components.html`: nueva `renderAcompanantesResponsableConversatorio(filas)` — repinta las filas desde
+    cero cada vez (JS.html lee los valores actuales del DOM antes de agregar/quitar una fila, para no
+    perder lo ya escrito).
+  - `JS.html`: `leerFilasAcompanantesConversatorioDelDom_()` lee las filas actuales; el esquema de la hoja
+    **no cambió** — la columna `ACOMPANANTE` de `ConversatorioAccesos` sigue siendo un solo texto, ahora
+    compuesto como "Nombre (Rol), Nombre (Rol)" cuando hay varios (`formatearAcompanantesConversatorio_`
+    antes de guardar). Al reabrir la pantalla, `parsearAcompanantesConversatorio_` reconstruye las filas a
+    partir de ese texto guardado (un acompañante guardado antes de este lote, sin rol entre paréntesis, se
+    recupera igual como una fila con el nombre y el rol vacío). El banner de bienvenida
+    (`textoBannerResponsableConversatorio_`) no cambió — sigue mostrando el mismo texto combinado tal cual
+    quedó guardado.
+  - `CSS.html`: `.fila-acompanante-conversatorio` (layout en fila, responsive).
+
+Verificado: `node --check` de los 4 `.gs` tocados (ninguno en este lote) y extracción + `node --check` de
+los bloques `<script>` de Index.html, Components.html, JS.html y CSS.html (limpio, mismo falso positivo
+permanente de `TOKEN_ACCESO`/`ID_GRUPO`); sin IDs duplicados nuevos ni etiquetas sin cerrar en Index.html.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

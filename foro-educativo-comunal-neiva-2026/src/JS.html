@@ -414,19 +414,14 @@ function cambiarPantalla(idPantalla) {
  * territorio" y "Conecta Educa"), cada una con su propio logo y su
  * propia entrada — el código de acceso sigue siendo el mismo del grupo
  * en ambas (un solo GRUPO/sesión, ver nota en la guía de puesta en
- * marcha). Se recuerda la última sección elegida en este dispositivo
- * (localStorage) para no pedirla de nuevo en cada visita (spec del
- * usuario, item 3: "clic en Inicio debe ir directo a Ingresar código").
+ * marcha). La pantalla de bienvenida SIEMPRE muestra las dos sesiones
+ * para elegir (spec del usuario: "pantalla de bienvenida debe mostrar
+ * las dos sesiones para seleccionar") — ya NO se salta automáticamente
+ * a pantallaAcceso aunque el dispositivo tenga una sección recordada;
+ * ese valor solo se usa para rotular la pantalla de Acceso una vez
+ * elegida.
  * ------------------------------------------------------------------ */
 var CLAVE_SECCION_LOCAL_ = "fec_seccion_elegida";
-// Conecta Educa ya no usa este mecanismo de "sección recordada" — va
-// directo a Conversatorio (btnIrConversatorio) sin pasar por
-// aplicarSeccionElegida_/pantallaAcceso. Solo queda ENCUENTRO aquí: si
-// un dispositivo tenía guardado "CONECTAEDUCA" de antes de este cambio,
-// retomarSeccionElegida_ (más abajo) ya no lo reconoce como válido y cae
-// de vuelta a pantallaEleccionSeccion en vez de saltar a la pantalla
-// vieja de acceso (bug reportado por el usuario: "actualmente esta
-// iniciando en conecta educa").
 var TEXTOS_SECCION_ = {
   ENCUENTRO: { titulo: "Encuentro de voces que construyen territorio", logo: LOGO_ENCUENTRO_ID }
 };
@@ -477,21 +472,6 @@ document.getElementById("btnCambiarSeccionAcceso").addEventListener("click", fun
   cambiarPantalla("pantallaEleccionSeccion");
 });
 
-// Si este dispositivo ya había elegido una sección antes, se salta la
-// pantalla de elección y se va directo a Acceso (spec del usuario, item
-// 3) — "← Elegir otra sección" sigue disponible ahí por si se
-// equivocó o quiere entrar a la otra sección desde el mismo dispositivo.
-(function retomarSeccionElegida_() {
-  var guardada = "";
-  try {
-    guardada = localStorage.getItem(CLAVE_SECCION_LOCAL_) || "";
-  } catch (e) {}
-  if (guardada && TEXTOS_SECCION_[guardada]) {
-    aplicarSeccionElegida_(guardada);
-    cambiarPantalla("pantallaAcceso");
-  }
-})();
-
 /* ------------------------------------------------------------------ *
  * Conversatorio (Conecta Educa, pedido del usuario): mini-herramienta
  * independiente y autocontenida — cada Institución Educativa se elige a sí
@@ -536,6 +516,58 @@ function conCatalogoTecnicasConversatorio_(callback) {
     callback([]);
   });
 }
+
+/**
+ * El campo ACOMPANANTE del servidor sigue siendo un solo texto (sin
+ * cambiar el esquema de la hoja) — aquí se guarda como "Nombre (Rol),
+ * Nombre (Rol)" cuando hay varios acompañantes (spec del usuario:
+ * "Acompañantes (opcional) debe permitir también agregar más
+ * acompañantes y seleccionar rol"). parsearAcompanantesConversatorio_
+ * reconstruye las filas editables a partir de ese texto al reabrir la
+ * pantalla; formatearAcompanantesConversatorio_ hace el camino inverso.
+ */
+function parsearAcompanantesConversatorio_(texto) {
+  texto = String(texto || "").trim();
+  if (!texto) return [];
+  return texto.split(",").map(function (parte) {
+    parte = parte.trim();
+    var m = parte.match(/^(.*)\(([^)]+)\)$/);
+    return m ? { nombre: m[1].trim(), rol: m[2].trim() } : { nombre: parte, rol: "" };
+  }).filter(function (a) { return a.nombre; });
+}
+
+function formatearAcompanantesConversatorio_(filas) {
+  return (filas || [])
+    .filter(function (a) { return a.nombre; })
+    .map(function (a) { return a.rol ? (a.nombre + " (" + a.rol + ")") : a.nombre; })
+    .join(", ");
+}
+
+/** Lee las filas de acompañantes actualmente en el DOM (antes de agregar/quitar una fila, para no perder lo ya escrito). */
+function leerFilasAcompanantesConversatorioDelDom_() {
+  var filas = [];
+  document.querySelectorAll("#listaAcompanantesResponsableConversatorio .fila-acompanante-conversatorio").forEach(function (fila) {
+    filas.push({
+      nombre: fila.querySelector(".campo-nombre-acompanante-conversatorio").value.trim(),
+      rol: fila.querySelector(".campo-rol-acompanante-conversatorio").value
+    });
+  });
+  return filas;
+}
+
+document.getElementById("btnAgregarAcompananteConversatorio").addEventListener("click", function () {
+  var filas = leerFilasAcompanantesConversatorioDelDom_();
+  filas.push({ nombre: "", rol: "" });
+  renderAcompanantesResponsableConversatorio(filas);
+});
+document.getElementById("listaAcompanantesResponsableConversatorio").addEventListener("click", function (e) {
+  var boton = e.target.closest("[data-quitar-acompanante-conversatorio]");
+  if (!boton) return;
+  var idx = Number(boton.getAttribute("data-quitar-acompanante-conversatorio"));
+  var filas = leerFilasAcompanantesConversatorioDelDom_();
+  filas.splice(idx, 1);
+  renderAcompanantesResponsableConversatorio(filas.length ? filas : [{ nombre: "", rol: "" }]);
+});
 
 /** Texto del banner de bienvenida (spec del usuario, literal): "respetado (a), (rol seleccionado) de la IE (nombre) y (acompañante si registró)". */
 function textoBannerResponsableConversatorio_() {
@@ -583,7 +615,8 @@ function mostrarPantallaResponsableConversatorio_(r) {
   document.getElementById("institucionResponsableConversatorio").textContent = "Institución: " + r.institucion;
   document.getElementById("campoNombreResponsableConversatorio").value = r.responsableNombre || "";
   document.getElementById("campoRolResponsableConversatorio").value = r.responsableRol || "";
-  document.getElementById("campoAcompananteResponsableConversatorio").value = r.acompanante || "";
+  var filasAcompanantes = parsearAcompanantesConversatorio_(r.acompanante);
+  renderAcompanantesResponsableConversatorio(filasAcompanantes.length ? filasAcompanantes : [{ nombre: "", rol: "" }]);
   mostrarMensaje("mensajeResponsableConversatorio", "");
   cambiarPantalla("pantallaResponsableConversatorio");
 }
@@ -612,7 +645,7 @@ function seleccionarInstitucionConversatorio_(institucion, idMensaje) {
 document.getElementById("btnContinuarResponsableConversatorio").addEventListener("click", function () {
   var nombre = document.getElementById("campoNombreResponsableConversatorio").value.trim();
   var rol = document.getElementById("campoRolResponsableConversatorio").value;
-  var acompanante = document.getElementById("campoAcompananteResponsableConversatorio").value.trim();
+  var acompanante = formatearAcompanantesConversatorio_(leerFilasAcompanantesConversatorioDelDom_());
   if (!nombre) {
     mostrarMensaje("mensajeResponsableConversatorio", "Ingrese el nombre del responsable.", "error");
     return;

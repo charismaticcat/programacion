@@ -595,6 +595,38 @@ function renderGruposCaracterizacionConversatorio(grupos, grupoElegido) {
   contenedor.innerHTML = html;
 }
 
+// Mismo catálogo de roles que el select de "Rol en la institución" del
+// responsable (Index.html) — se reutiliza para cada acompañante (spec del
+// usuario: "Acompañantes (opcional) debe permitir también agregar más
+// acompañantes y seleccionar rol").
+var OPCIONES_ROL_ACOMPANANTE_CONVERSATORIO_ = [
+  "Rector(a)", "Coordinador(a) académico(a)", "Docente", "Enlace/articulador(a) SENA",
+  "Orientador(a)", "Funcionario Secretaría de Educación Municipal", "Otro"
+];
+
+/**
+ * Filas dinámicas de acompañantes (nombre + rol) en la pantalla de
+ * responsable del Conversatorio. Cada llamada reemplaza por completo el
+ * contenido del contenedor — JS.html es quien lee los valores actuales del
+ * DOM antes de agregar/quitar una fila, para no perder lo ya escrito.
+ */
+function renderAcompanantesResponsableConversatorio(filas) {
+  var contenedor = document.getElementById("listaAcompanantesResponsableConversatorio");
+  if (!contenedor) return;
+  var html = "";
+  (filas || []).forEach(function (a, idx) {
+    var opciones = "<option value=''>— Rol —</option>" + OPCIONES_ROL_ACOMPANANTE_CONVERSATORIO_.map(function (r) {
+      return "<option value='" + escapeHtml(r) + "'" + (a.rol === r ? " selected" : "") + ">" + escapeHtml(r) + "</option>";
+    }).join("");
+    html += "<div class='fila-acompanante-conversatorio'>" +
+      "<input type='text' class='campo-nombre-acompanante-conversatorio' placeholder='Nombre del acompañante' value='" + escapeHtml(a.nombre || "") + "'>" +
+      "<select class='campo-rol-acompanante-conversatorio'>" + opciones + "</select>" +
+      "<button type='button' class='btn-enlace' data-quitar-acompanante-conversatorio='" + idx + "'>✕ Quitar</button>" +
+      "</div>";
+  });
+  contenedor.innerHTML = html;
+}
+
 /** Fila de solo-lectura ("Sin responder." si está vacío). */
 function _filaLecturaConversatorio_(etiqueta, valor) {
   return "<p><strong>" + etiqueta + ":</strong> " + escapeHtml(valor || "Sin responder.") + "</p>";
