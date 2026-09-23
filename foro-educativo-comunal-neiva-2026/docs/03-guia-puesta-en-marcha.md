@@ -2682,6 +2682,63 @@ nueva); búsqueda exhaustiva de referencias colgantes a todo lo eliminado en est
 `datosRelevantes`) — ninguna, salvo dos comentarios en Conversatorio.gs que solo citaban el patrón por
 analogía, corregidos para apuntar a un ejemplo que sigue existiendo (`generarInformeGrupo`).
 
+## 4.75 Quincuagésimo noveno lote: quitar "Total de firmantes" (no hay QR), Responsable de envío al principio de Participación, y eliminar Confirmación de caracterización de la navegación
+
+Tercer pedido del usuario en la misma sesión: "Total de firmantes debe desaparecer pues no hay QR /
+Responsable de envío debe aparecer al principio y los/las/el/la responsable de envío junto con los datos
+de nombre y email / la pantalla de Confirmación de caracterización desaparece completamente".
+
+- **`panelFirmantes` (encabezado sticky, Index.html) — nunca se muestra**: el QR está muerto desde el
+  lote de "Asistencia: solo PDF + un solo método obligatorio" (`elegirMetodoAsistencia("LISTADO")` se
+  fuerza siempre), así que este contador en vivo de firmantes ya no tenía razón de ser. Se quitó la única
+  línea que lo mostraba (`JS.html`, dentro del handler de acceso exitoso) — el resto de su lógica
+  (`iniciarPollingFirmantes`, `mostrarPanelMetodoAsistencia`) se dejó intacta porque alimenta datos que
+  otras vistas ya ocultaban por su cuenta.
+- **`filaContadorParticipantesTarjeta` ("Total de participantes registrados", tarjeta de Participación y
+  asistencia)**: mismo dato (mismo `rpcEstadoFirmantes`) con otro texto — se le agregó `class="oculto"`
+  por defecto en el HTML, en vez de depender solo del `classList.toggle` que ya lo ocultaba para el
+  método LISTADO (evita cualquier parpadeo antes de que ese código corra).
+- **`renderFichaCaracterizacion` (Components.html)**: se quitó la fila "Total de firmantes" de la tabla
+  de Participación — "Responsable de envío" queda como primera fila automáticamente.
+- **Responsable de envío, al principio de Participación**: la tarjeta completa (ficha + formulario +
+  asistentes de envío) se movió al inicio de `pantallaParticipacion`, antes de "Fotografía general del
+  grupo" y de "Participación y asistencia" — nombre y correo del responsable ya se mostraban juntos en
+  `fichaResponsablePrincipal` (`renderResponsables`, sin cambios).
+- **`pantallaConfirmacionCaracterizacion` eliminada de la navegación** (mismo patrón "ocultar, no
+  borrar" del proyecto): queda en el HTML con un comentario "PANTALLA INALCANZABLE", pero ningún botón
+  lleva ya hacia ella.
+  - Los botones "Continuar a Confirmación de caracterización" al final de Sesión 1
+    (`btnContinuarACierreEncuentro`) y de Sesión 2/ConectaEduca ahora dicen "Continuar a Participación" y
+    apuntan directo a `pantallaParticipacion` — que ya iba justo después de Confirmación de
+    caracterización, así que el resto del recorrido no cambió.
+  - El botón "Atrás" de Participación, que apuntaba a Confirmación de caracterización con `data-ir`, pasó
+    a tener su propio id (`btnAtrasParticipacion`) con un listener que ramifica por `estado.seccion`
+    (Sesión 1 o Sesión 2, según Encuentro/ConectaEduca) — mismo destino que tenía "Atrás, corregir" en la
+    pantalla que desapareció.
+  - La advertencia "estas instituciones no tienen ninguna persona registrada en la matriz de
+    participación", que vivía en el botón "Confirmo que la información es correcta" de Confirmación de
+    caracterización, se movió al botón "Continuar" de Participación
+    (`verificarYContinuarParticipacion_`, nueva función) — mismo mecanismo de refrescar
+    `estado.participacionEstamento` antes de decidir, para evitar el mismo bug de datos obsoletos que ya
+    se había corregido ahí.
+  - Se quitaron las entradas "Caracterización" de `PASOS_PROGRESO_ENCUENTRO_`/`PASOS_PROGRESO_CONECTAEDUCA_`
+    (la barra de progreso navegable) y la subsección "🏫 Caracterización del grupo" (ficha de solo lectura
+    con Rector(a) por IE + enlace "Editar en Confirmación de caracterización") de "Revisar todo antes de
+    enviar" — su único contenido único (Rector(a) editable por IE) no se reubicó, y "Responsable de envío"
+    ya se mostraba aparte, en su propia subsección de Revisar todo.
+  - Los botones internos de la pantalla eliminada (`btnAtrasCaracterizacion`, `btnConfirmarCaracterizacion`)
+    y su función de carga (`cargarConfirmacionCaracterizacion`) se dejaron intactos, sin punto de entrada
+    que los dispare, por si se necesita reactivar la pantalla.
+  - No se tocó `ORDEN_PANTALLAS` ni `PANTALLAS_COMUNES_SECCION_`: dejar `pantallaConfirmacionCaracterizacion`
+    ahí no rompe nada (solo afecta el índice de "hasta dónde se puede volver" de la barra de progreso) y
+    sirve de red de seguridad si algún grupo tenía esa pantalla guardada como `ULTIMA_PANTALLA` antes de
+    este cambio.
+
+Verificado: extracción y `node --check` de los bloques `<script>` de Index.html/JS.html/Components.html/
+Modal.html (limpio, mismo único falso positivo permanente de Index.html); sin IDs duplicados entre
+Index.html y Modal.html; comparación `getElementById` vs. IDs reales (mismas 8 referencias colgantes ya
+confirmadas con guarda nula, ninguna nueva).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

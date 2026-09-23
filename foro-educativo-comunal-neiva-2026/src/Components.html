@@ -237,7 +237,6 @@ function renderFichaCaracterizacion(grupo, instituciones, estadoFirmantes, respo
   html += "</table>";
 
   html += "<table class='ficha-caracterizacion'><caption>Participación</caption>";
-  html += "<tr><td>Total de firmantes</td><td><strong>" + ((estadoFirmantes && estadoFirmantes.total) || 0) + "</strong></td></tr>";
   html += "<tr><td>Responsable de envío</td><td>" +
     (responsables.principal ? escapeHtml(responsables.principal.nombre) + " — " + escapeHtml(responsables.principal.correo) : "Sin registrar") +
     "</td></tr>";

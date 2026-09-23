@@ -435,7 +435,9 @@
   <!-- 6. PARTICIPACIÓN — spec del usuario: "Screen 2: Remove participacion
        and set it to the end of the form" — ya no va justo después de la
        agenda/Consentimiento; ahora es el último paso de captura de datos,
-       entre Confirmación de caracterización y Revisión y cierre. -->
+       justo después de Sesión 1/Sesión 2 y antes de Revisión y cierre
+       (Confirmación de caracterización, que iba entre medio, desapareció
+       de la navegación — spec del usuario). -->
   <section id="pantallaParticipacion" class="pantalla">
     <!-- El listado de asistencia (PDF) ya no se descarga/sube aquí al
          inicio del recorrido — spec del usuario: "Remove asistencia PDF
@@ -446,32 +448,10 @@
          retiraron de aquí; la lógica del RPC compartido
          (rpcSubirListadoAsistencia/rpcGuardarCantidadListadoAsistencia)
          sigue intacta y ahora solo se usa desde el panel del final. -->
-    <div class="tarjeta">
-      <h3 class="subtitulo-campo">Fotografía general del grupo</h3>
-      <p class="ayuda">Una foto representativa del encuentro de este grupo, independiente del método de
-        asistencia elegido. <strong>Es obligatoria para poder finalizar el Foro</strong> — si no la tienes
-        a mano ahora, puedes subirla más tarde, al final, cuando se descargue el informe.</p>
-      <div id="previaFotoGrupo"></div>
-      <div id="formularioFotoGrupo">
-        <input type="file" id="campoFotoGrupo" accept="image/*">
-        <div class="fila-botones">
-          <button class="btn btn-secundario" id="btnSubirFotoGrupo">Subir fotografía del grupo</button>
-          <button class="btn btn-secundario" id="btnFotoGrupoMasTarde">Subir más tarde</button>
-        </div>
-      </div>
-      <div id="mensajeFotoGrupo"></div>
-    </div>
-
-    <div class="tarjeta">
-      <h2 class="titulo-seccion">Participación y asistencia</h2>
-      <p class="mensaje info">📝 <strong>Todas las personas presentes deben firmar la asistencia</strong>, incluidas
-        quienes van a diligenciar este instrumento.</p>
-      <p class="contador-participantes-tarjeta" id="filaContadorParticipantesTarjeta">👥 Total de participantes registrados:
-        <strong id="contadorParticipantesTarjeta">0</strong></p>
-      <p class="ayuda">Instituciones educativas de <strong id="nombreGrupoParticipacion"></strong>:</p>
-      <div class="lista-instituciones" id="listaInstituciones"></div>
-    </div>
-
+    <!-- Responsable de envío — al principio de Participación (spec del usuario:
+         "Responsable de envío debe aparecer al principio"), antes de la foto y
+         de la asistencia. Nombre y correo del responsable ya se muestran juntos
+         en fichaResponsablePrincipal (renderResponsables, Components.html). -->
     <div class="tarjeta">
       <h2 class="titulo-seccion">Responsable de envío</h2>
       <p class="ayuda">Esta persona recibirá por correo el informe final del grupo. Puedes agregar hasta
@@ -516,6 +496,35 @@
       </div>
     </div>
 
+    <div class="tarjeta">
+      <h3 class="subtitulo-campo">Fotografía general del grupo</h3>
+      <p class="ayuda">Una foto representativa del encuentro de este grupo, independiente del método de
+        asistencia elegido. <strong>Es obligatoria para poder finalizar el Foro</strong> — si no la tienes
+        a mano ahora, puedes subirla más tarde, al final, cuando se descargue el informe.</p>
+      <div id="previaFotoGrupo"></div>
+      <div id="formularioFotoGrupo">
+        <input type="file" id="campoFotoGrupo" accept="image/*">
+        <div class="fila-botones">
+          <button class="btn btn-secundario" id="btnSubirFotoGrupo">Subir fotografía del grupo</button>
+          <button class="btn btn-secundario" id="btnFotoGrupoMasTarde">Subir más tarde</button>
+        </div>
+      </div>
+      <div id="mensajeFotoGrupo"></div>
+    </div>
+
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">Participación y asistencia</h2>
+      <p class="mensaje info">📝 <strong>Todas las personas presentes deben firmar la asistencia</strong>, incluidas
+        quienes van a diligenciar este instrumento.</p>
+      <!-- Contador en vivo de firmantes — oculto por defecto (spec del usuario:
+           "Total de firmantes debe desaparecer pues no hay QR"; ver también
+           mostrarPanelMetodoAsistencia, JS.html, que ya lo ocultaba para LISTADO). -->
+      <p class="contador-participantes-tarjeta oculto" id="filaContadorParticipantesTarjeta">👥 Total de participantes registrados:
+        <strong id="contadorParticipantesTarjeta">0</strong></p>
+      <p class="ayuda">Instituciones educativas de <strong id="nombreGrupoParticipacion"></strong>:</p>
+      <div class="lista-instituciones" id="listaInstituciones"></div>
+    </div>
+
     <!-- Instituciones educativas presentes — spec del usuario: "Responsable
          de envio debe seleccionar qué instituciones educativas están
          presentes", justo después de Responsable de envío. Solo las IE
@@ -539,7 +548,11 @@
     </div>
 
     <div class="fila-botones">
-      <button class="btn btn-secundario" data-ir="pantallaConfirmacionCaracterizacion">Atrás</button>
+      <!-- "Atrás" ramifica por sección (Encuentro/ConectaEduca) ahora que
+           Confirmación de caracterización desapareció — ver
+           btnAtrasParticipacion, JS.html, mismo patrón que tenía
+           btnAtrasCaracterizacion. -->
+      <button class="btn btn-secundario" id="btnAtrasParticipacion">Atrás</button>
       <button class="btn btn-primario" id="btnContinuarAParticipacion">Continuar</button>
     </div>
   </section>
@@ -820,7 +833,7 @@
     </div>
     <div class="fila-botones">
       <button class="btn btn-secundario" data-ir="pantallaSesionSocializacion">Atrás</button>
-      <button class="btn btn-primario" id="btnContinuarACierreEncuentro" data-ir="pantallaConfirmacionCaracterizacion" disabled title="Envíe primero Sesión 1 de forma definitiva">Continuar a Confirmación de caracterización</button>
+      <button class="btn btn-primario" id="btnContinuarACierreEncuentro" data-ir="pantallaParticipacion" disabled title="Envíe primero Sesión 1 de forma definitiva">Continuar a Participación</button>
     </div>
     <p class="ayuda oculto" id="avisoSesion1NoEnviada" style="text-align:center;">Envíe Sesión 1 de forma
       definitiva (botón de arriba) para poder continuar.</p>
@@ -934,15 +947,19 @@
       </div>
     </div>
     <div class="fila-botones">
-      <button class="btn btn-primario" data-ir="pantallaConfirmacionCaracterizacion">Continuar a Confirmación de caracterización</button>
+      <button class="btn btn-primario" data-ir="pantallaParticipacion">Continuar a Participación</button>
     </div>
   </section>
 
-  <!-- 9bis. CONFIRMACIÓN DE CARACTERIZACIÓN — movida al final del recorrido,
-       justo antes de Revisión y cierre (spec del usuario): antes iba justo
-       después de Participación, como paso intermedio hacia las sesiones de
-       trabajo; ahora es el último chequeo de que la información del grupo
-       esté correcta, antes de valorar y generar el informe. -->
+  <!-- PANTALLA INALCANZABLE (spec del usuario: "la pantalla de Confirmación
+       de caracterización desaparece completamente") — Sesión 1 y Sesión 2
+       ahora continúan directo a Participación (que ya iba justo después de
+       esta pantalla, así que el resto del recorrido no cambia). La
+       advertencia de instituciones sin participación marcada se movió a
+       btnContinuarAParticipacion (JS.html); el resto (ficha con rector(a)
+       editable, cambio de foto aquí) no se reubicó. Queda en el HTML sin
+       borrar, por si se necesita reactivar, pero ya no es alcanzable desde
+       la navegación. -->
   <section id="pantallaConfirmacionCaracterizacion" class="pantalla">
     <div class="tarjeta">
       <h2 class="titulo-seccion">Confirmación de caracterización</h2>
@@ -1327,14 +1344,6 @@
           <button class="btn btn-secundario" id="btnSubirFotoGrupoRevisar">Subir fotografía del grupo</button>
         </div>
         <div id="mensajeFotoGrupoRevisar"></div>
-      </div>
-    </div>
-
-    <div class="revisar-todo-seccion">
-      <h3 class="subtitulo-campo">🏫 Caracterización del grupo</h3>
-      <div id="fichaCaracterizacionRevisarSoloLectura"></div>
-      <div class="fila-botones">
-        <button type="button" class="btn btn-secundario" data-ir-revisar="pantallaConfirmacionCaracterizacion">✏️ Editar en Confirmación de caracterización</button>
       </div>
     </div>
 

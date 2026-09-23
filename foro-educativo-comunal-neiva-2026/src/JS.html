@@ -98,15 +98,16 @@ function urlImagenDrive(idArchivo, ancho) {
 // (más abajo), así que pantallaPerteneceASeccionActual_ las rechaza y
 // nada en la app navega hacia ellas. pantallaSesionSocializacion las
 // reemplaza (item 10).
-// Confirmación de caracterización se movió al final del recorrido, justo
-// antes de Revisión y cierre (spec del usuario) — antes iba justo después
-// de Participación, como paso intermedio obligatorio hacia las sesiones
-// de trabajo; ahora es el último chequeo ("verificar que todo esté
-// correcto") antes de valorar y generar el informe. Participación, a su
-// vez, se movió también al final (spec del usuario: "Screen 2: Remove
-// participacion and set it to the end of the form") — ahora va justo
-// después de Confirmación de caracterización, como último paso antes de
-// Revisión y cierre.
+// Confirmación de caracterización ya NO es alcanzable desde la navegación
+// (spec del usuario: "la pantalla de Confirmación de caracterización
+// desaparece completamente") — Sesión 1/Sesión 2 continúan directo a
+// Participación. Se deja en ORDEN_PANTALLAS sin tocar (no rompe nada: solo
+// afecta el índice de "hasta dónde se puede volver" de la barra de
+// progreso) y su HTML/lógica siguen en pie por si se necesita reactivar.
+// Participación se movió al final del recorrido (spec del usuario: "Screen
+// 2: Remove participacion and set it to the end of the form") — va justo
+// después de Sesión 1/Sesión 2, como último paso antes de Revisión y
+// cierre.
 var ORDEN_PANTALLAS = [
   "pantallaEleccionSeccion", "pantallaAcceso",
   "pantallaAccesoConversatorio", "pantallaAccesoSuperadminConversatorio", "pantallaPanelSuperadminConversatorio",
@@ -229,16 +230,16 @@ function llamarServidor(nombreFuncion, args, onExito, onError) {
  * de forma definitiva). Ir hacia atrás siempre es seguro: esas pantallas
  * ya son las mismas que "✏️ Editar en…" de Revisar todo permite abrir.
  */
+// "Caracterización" ya no es un paso navegable (spec del usuario: "la
+// pantalla de Confirmación de caracterización desaparece completamente").
 var PASOS_PROGRESO_ENCUENTRO_ = [
   { id: "pantallaSesionSocializacion", etiqueta: "Socialización" },
   { id: "pantallaSesion1", etiqueta: "Sesión 1" },
-  { id: "pantallaConfirmacionCaracterizacion", etiqueta: "Caracterización" },
   { id: "pantallaParticipacion", etiqueta: "Participación" },
   { id: "pantallaRevisionCierre", etiqueta: "Cierre" }
 ];
 var PASOS_PROGRESO_CONECTAEDUCA_ = [
   { id: "pantallaSesion2", etiqueta: "Conecta Educa" },
-  { id: "pantallaConfirmacionCaracterizacion", etiqueta: "Caracterización" },
   { id: "pantallaParticipacion", etiqueta: "Participación" },
   { id: "pantallaRevisionCierre", etiqueta: "Cierre" }
 ];
@@ -1540,7 +1541,10 @@ function _procesarRespuestaAccesoGrupo_(r, idMensaje, reintentarForzado) {
   renderListaInstituciones(estado.instituciones);
   actualizarEtiquetasConectaEducaGrupo();
   renderFotoGrupo(estado.fotoGrupoId, "previaFotoGrupo", "formularioFotoGrupo", estado.grupo);
-  document.getElementById("panelFirmantes").classList.remove("oculto");
+  // panelFirmantes ya NO se muestra (spec del usuario: "Total de firmantes
+  // debe desaparecer pues no hay QR") — queda siempre oculto; se deja el
+  // resto de su lógica (iniciarPollingFirmantes, mostrarPanelMetodoAsistencia)
+  // sin tocar porque alimenta datos que otras vistas ya ocultan por su cuenta.
 
   // Desde el item 13 (Documento Orientador FEM2026) el único método de
   // asistencia es el listado en PDF — si el grupo no lo tenía guardado
@@ -2429,10 +2433,11 @@ document.getElementById("btnContinuarAParticipacion").addEventListener("click", 
     document.getElementById("formularioFotoGrupo").scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }
-  // La advertencia de "Verifique la participación por institución" ya NO
-  // se muestra aquí (spec del usuario: "solo debe aparecer en la
-  // confirmación de autorización [de caracterización], no antes") — queda
-  // únicamente en btnConfirmarCaracterizacion, más abajo.
+  // La advertencia de "Verifique la participación por institución" se
+  // muestra aquí, justo antes de continuar (spec del usuario: "la pantalla
+  // de Confirmación de caracterización desaparece completamente" — este
+  // chequeo vivía en su botón "Confirmo que la información es correcta";
+  // ver verificarYContinuarParticipacion_, más abajo).
   // Recordatorio de hasta 4 colaboradores (responsable de envío + hasta 3
   // asistentes) que pueden recibir el informe — spec del usuario: "al dar
   // continuar, recordar que es posible tener hasta 4 colaboradores". Se
@@ -2444,14 +2449,14 @@ document.getElementById("btnContinuarAParticipacion").addEventListener("click", 
         "para que reciban el informe del grupo — lo encuentras en \"Responsable de envío\", más abajo en " +
         "esta misma pantalla.",
       function () {
-        irTrasParticipacion_();
+        verificarYContinuarParticipacion_();
       },
       "Colaboradores del grupo",
       { textoConfirmar: "Entendido, continuar", textoCancelar: "Volver a revisar" }
     );
     return;
   }
-  irTrasParticipacion_();
+  verificarYContinuarParticipacion_();
 });
 
 /** Instituciones PRESENTES cuya columna en la matriz de participación por estamento quedó en cero. */
@@ -2465,44 +2470,63 @@ function institucionesSinParticipacionMarcada_() {
 
 /**
  * Tras "Continuar" en Participación: directo a Revisión y cierre —
- * Participación es ahora el último paso de captura de datos, justo
- * después de Confirmación de caracterización (spec del usuario: "Screen
- * 2: Remove participacion and set it to the end of the form").
+ * Participación es ahora el último paso de captura de datos.
  */
 function irTrasParticipacion_() {
   cambiarPantalla("pantallaRevisionCierre");
 }
 
 /**
- * Tras confirmar la caracterización: a Participación — que ahora es el
- * último paso de captura de datos antes de Revisión y cierre (spec del
- * usuario: "Screen 2: Remove participacion and set it to the end of the
- * form"). Igual para ambas secciones, no hace falta ramificar por
- * estado.seccion.
+ * Verificación de "instituciones sin participación marcada" antes de
+ * continuar (spec del usuario: "la pantalla de Confirmación de
+ * caracterización desaparece completamente" — este chequeo vivía en su
+ * botón "Confirmo que la información es correcta", ahora movido aquí).
+ * Antes de decidir, se refresca `estado.participacionEstamento` desde el
+ * servidor: el autoguardado por columna de la matriz
+ * (guardarColumnaParticipacionEstamento_) lo pone en null apenas se guarda
+ * y lo repuebla en segundo plano sin avisar a nadie — si el grupo
+ * terminaba de escribir la cantidad de estudiantes/egresados/padres y le
+ * daba click a "Continuar" casi de inmediato, se podía leer ese `null` (o
+ * un valor viejo) y saltarse la advertencia aunque sí hubiera IE sin
+ * declarar (bug reportado por el usuario, cuando esto vivía en
+ * Confirmación de caracterización).
  */
-function irTrasConfirmarCaracterizacion_() {
-  cambiarPantalla("pantallaParticipacion");
+function verificarYContinuarParticipacion_() {
+  flushGuardadosPendientesParticipacionEstamento_(function () {
+    cargarParticipacionEstamento(function () {
+      var institucionesSinMarcar = institucionesSinParticipacionMarcada_();
+      if (institucionesSinMarcar.length) {
+        confirmarAccion(
+          "Estas instituciones no tienen ninguna persona registrada en el cuadro de \"Participación por " +
+            "estamento e institución\": " + institucionesSinMarcar.join(", ") + ". ¿La información es correcta?",
+          irTrasParticipacion_,
+          "Verifique la participación por institución",
+          { textoConfirmar: "Es correcto", textoCancelar: "No es correcto, voy a corregir" }
+        );
+        return;
+      }
+      irTrasParticipacion_();
+    });
+  });
 }
 
-/** "Atrás, corregir" de Confirmación de caracterización: vuelve a la sesión de trabajo de la sección actual. */
+/**
+ * "Atrás" de Participación: vuelve a la sesión de trabajo de la sección
+ * actual — mismo destino que tenía "Atrás, corregir" en Confirmación de
+ * caracterización (btnAtrasCaracterizacion, pantalla ahora inalcanzable),
+ * ramificado por estado.seccion porque Participación es compartida entre
+ * Encuentro y ConectaEduca.
+ */
+document.getElementById("btnAtrasParticipacion").addEventListener("click", function () {
+  cambiarPantalla(estado.seccion === "CONECTAEDUCA" ? "pantallaSesion2" : "pantallaSesion1");
+});
+
+/** "Atrás, corregir" de Confirmación de caracterización (pantalla inalcanzable, ver Index.html) — vuelve a la sesión de trabajo de la sección actual. */
 document.getElementById("btnAtrasCaracterizacion").addEventListener("click", function () {
   cambiarPantalla(estado.seccion === "CONECTAEDUCA" ? "pantallaSesion2" : "pantallaSesion1");
 });
 
-// La advertencia "Verifique la participación por institución" solo se
-// muestra aquí, en la confirmación de caracterización (spec del
-// usuario) — no antes, en Participación (ver btnContinuarAParticipacion).
-//
-// Antes de decidir si hay que mostrar "Invitados especiales", se refresca
-// `estado.participacionEstamento` desde el servidor: el autoguardado por
-// columna de la matriz (guardarColumnaParticipacionEstamento_) lo pone en
-// null apenas se guarda y lo repuebla en segundo plano sin avisar a nadie
-// — si el grupo terminaba de escribir la cantidad de estudiantes/
-// egresados/padres y le daba click a "Confirmar" casi de inmediato,
-// `irTrasConfirmarCaracterizacion_` podía leer ese `null` (o un valor
-// viejo) y saltarse la pantalla de invitados aunque sí se hubiera
-// declarado gente — dejando sin aparecer nunca la opción de enviar el
-// enlace de invitados (bug reportado por el usuario).
+/** "Confirmo que la información es correcta" de Confirmación de caracterización (pantalla inalcanzable, ver Index.html) — se deja intacto por si se reactiva. */
 document.getElementById("btnConfirmarCaracterizacion").addEventListener("click", function () {
   flushGuardadosPendientesParticipacionEstamento_(function () {
     cargarParticipacionEstamento(function () {
@@ -2511,13 +2535,13 @@ document.getElementById("btnConfirmarCaracterizacion").addEventListener("click",
         confirmarAccion(
           "Estas instituciones no tienen ninguna persona registrada en el cuadro de \"Participación por " +
             "estamento e institución\": " + institucionesSinMarcar.join(", ") + ". ¿La información es correcta?",
-          irTrasConfirmarCaracterizacion_,
+          function () { cambiarPantalla("pantallaParticipacion"); },
           "Verifique la participación por institución",
           { textoConfirmar: "Es correcto", textoCancelar: "No es correcto, voy a corregir" }
         );
         return;
       }
-      irTrasConfirmarCaracterizacion_();
+      cambiarPantalla("pantallaParticipacion");
     });
   });
 });
@@ -4388,19 +4412,6 @@ function abrirRevisarTodo_() {
   window.scrollTo(0, 0);
 
   refrescarVistasFotoGrupo_();
-
-  var contenedorCaracterizacion = document.getElementById("fichaCaracterizacionRevisarSoloLectura");
-  if (contenedorCaracterizacion) {
-    var filasIE = (estado.instituciones || [])
-      .map(function (ie) {
-        return "<tr><td>" + escapeHtml(ie.institucion) + "</td><td>" + escapeHtml(ie.idIE) + "</td>" +
-          "<td>" + escapeHtml(ie.rector || "—") + "</td></tr>";
-      })
-      .join("");
-    contenedorCaracterizacion.innerHTML =
-      "<table class='ficha-caracterizacion'><tr><th>Institución educativa</th><th>DANE</th><th>Rector(a)</th></tr>" +
-      filasIE + "</table>";
-  }
 
   // Matriz de participación por estamento: mismo dato, mismo formulario
   // editable (contenedorParticipacionEstamentoRevisar ya está en
