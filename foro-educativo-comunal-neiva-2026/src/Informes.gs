@@ -348,20 +348,6 @@ function generarInformeGrupo(idGrupo) {
 
   // ConectaEduca.
   titulo1_(body, "ConectaEduca — oportunidades de articulación");
-  if (String(sesion1.NECESIDADES_ARTICULACION_GRUPO || "").trim() || String(sesion1.OPORTUNIDADES_GRUPO || "").trim()) {
-    subtitulo_(body, "Necesidades de articulación");
-    parrafo_(body, sesion1.NECESIDADES_ARTICULACION_GRUPO);
-    subtitulo_(body, "Oportunidades identificadas");
-    parrafo_(body, sesion1.OPORTUNIDADES_GRUPO);
-  }
-  if (String(sesion1.APRECIACION_SENA_GRUPO || "").trim()) {
-    subtitulo_(body, "Apreciación sobre los programas de articulación del SENA");
-    parrafo_(body, sesion1.APRECIACION_SENA_GRUPO);
-  }
-  if (String(sesion1.PROFUNDIZACIONES_GRUPO || "").trim()) {
-    subtitulo_(body, "Profundizaciones dentro de la institución educativa");
-    parrafo_(body, sesion1.PROFUNDIZACIONES_GRUPO);
-  }
   if (conectaEduca.length) {
     var filasCE = [["Actor / entidad", "Tipo", "Área", "IE interesadas"]].concat(
       conectaEduca.map(function (r) {
@@ -373,12 +359,14 @@ function generarInformeGrupo(idGrupo) {
     parrafo_(body, "No se registraron actores de ConectaEduca para este grupo.");
   }
 
-  // Construcción colectiva con el sector productivo y la educación superior (segunda parte de ConectaEduca).
+  // Preguntas de conversatorio (construcción colectiva con el sector productivo y la educación superior).
   [
-    ["Prioridades de las instituciones del grupo", "PRIORIDADES_CE"],
-    ["Acuerdos entre instituciones de las comunas (comunas y rural)", "ACUERDOS_CE"],
-    ["Propuestas de las instituciones del grupo", "PROPUESTAS_CE"],
-    ["Ruta de trabajo sugerida por las IE del grupo", "RUTA_CE"]
+    ["¿Qué necesitan hoy las instituciones educativas del sector productivo y qué puede aportar el sector productivo a la formación de las y los estudiantes?", "CONECTAEDUCA_P1"],
+    ["¿Cómo podemos articular el currículo escolar con las realidades, necesidades y oportunidades productivas del territorio?", "CONECTAEDUCA_P2"],
+    ["¿Qué acción concreta podemos construir conjuntamente entre las instituciones educativas y el sector productivo para ampliar las oportunidades de las y los estudiantes?", "CONECTAEDUCA_P3"],
+    ["¿Qué compromisos concretos puede asumir cada parte —instituciones educativas y sector productivo— para fortalecer la articulación y generar oportunidades para las y los estudiantes?", "CONECTAEDUCA_P4"],
+    ["¿Qué acciones concretas podemos desarrollar conjuntamente en el corto y mediano plazo para convertir estos compromisos en oportunidades reales de formación, orientación y acercamiento al mundo productivo?", "CONECTAEDUCA_P5"],
+    ["¿Cómo podemos hacer seguimiento a estos compromisos y acciones para garantizar su continuidad y valorar sus resultados?", "CONECTAEDUCA_P6"]
   ].forEach(function (par) {
     subtitulo_(body, par[0]);
     parrafo_(body, sesion1[par[1]]);

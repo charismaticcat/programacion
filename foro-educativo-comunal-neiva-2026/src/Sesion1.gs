@@ -24,17 +24,13 @@ function cabecerasSesion1Comunal_() {
     "FEM2025_P1", "FEM2025_P2",
     "CURRICULO_P1", "CURRICULO_P2", "CURRICULO_P3", "CURRICULO_P4", "CURRICULO_P5",
     "GOBIERNO_P1", "GOBIERNO_P2", "GOBIERNO_P3", "GOBIERNO_P4",
-    // Preguntas de grupo antes de ConectaEduca (Sesión 2) — se guardan
-    // aquí por simplicidad, igual que el resto: no son por actor, son
-    // UN solo par de respuestas por grupo.
-    "NECESIDADES_ARTICULACION_GRUPO", "OPORTUNIDADES_GRUPO",
-    // Dos preguntas nuevas de grupo, también antes de ConectaEduca (spec
-    // del usuario): apreciación objetiva de los y las estudiantes sobre
-    // los programas de articulación del SENA, e intensificaciones dentro
-    // de la institución educativa.
-    "APRECIACION_SENA_GRUPO", "PROFUNDIZACIONES_GRUPO",
-    // Segunda parte de ConectaEduca (Sesión 2) — min 50/máx 400 palabras.
-    "PRIORIDADES_CE", "ACUERDOS_CE", "PROPUESTAS_CE", "RUTA_CE",
+    // ConectaEduca (Sesión 2) — 6 "Preguntas de conversatorio" (spec del
+    // usuario, sexagésimo lote): construcción colectiva con el sector
+    // productivo y la educación superior. Reemplazan a las 8 preguntas
+    // anteriores (NECESIDADES_ARTICULACION_GRUPO..RUTA_CE, ver columnas
+    // heredadas más abajo). Min 50/máx 400 palabras, las 6 obligatorias.
+    "CONECTAEDUCA_P1", "CONECTAEDUCA_P2", "CONECTAEDUCA_P3",
+    "CONECTAEDUCA_P4", "CONECTAEDUCA_P5", "CONECTAEDUCA_P6",
     // Espacio libre y opcional por sesión para hallazgos propios de la
     // comunidad que no encajan en las preguntas orientadoras — mismo
     // espíritu que la Sesión Propia/4 (opcional) de FEI 3.1
@@ -52,16 +48,22 @@ function cabecerasSesion1Comunal_() {
     "REFLEXIONES", "DESAFIOS", "APUESTAS", "CONCLUSIONES",
     "PRIORIDADES", "PROPUESTAS_COLECTIVAS", "ACUERDOS", "RUTA",
     "PROPUESTAS_IE", "EXPERIENCIAS", "RETOS", "APORTES_TERRITORIALES", "CONVERGENCIAS", "IDENTIDAD",
+    // NECESIDADES_ARTICULACION_GRUPO..RUTA_CE eran las 8 preguntas de
+    // ConectaEduca (Sesión 2) antes de las 6 "Preguntas de conversatorio"
+    // (sexagésimo lote, ver CONECTAEDUCA_P1..P6 arriba).
+    "NECESIDADES_ARTICULACION_GRUPO", "OPORTUNIDADES_GRUPO",
+    "APRECIACION_SENA_GRUPO", "PROFUNDIZACIONES_GRUPO",
+    "PRIORIDADES_CE", "ACUERDOS_CE", "PROPUESTAS_CE", "RUTA_CE",
     "ULTIMA_ACTUALIZACION"
   ];
 }
 
-/** Campos con mínimo 50 / máximo 400 palabras (Sesión 1 + ConectaEduca segunda parte). */
+/** Campos con mínimo 50 / máximo 400 palabras (Sesión 1 + ConectaEduca). */
 var CAMPOS_SESION1_CON_RANGO_PALABRAS_ = [
   "FEM2025_P1", "FEM2025_P2",
   "CURRICULO_P1", "CURRICULO_P2", "CURRICULO_P3", "CURRICULO_P4", "CURRICULO_P5",
   "GOBIERNO_P1", "GOBIERNO_P2", "GOBIERNO_P3", "GOBIERNO_P4",
-  "PRIORIDADES_CE", "ACUERDOS_CE", "PROPUESTAS_CE", "RUTA_CE"
+  "CONECTAEDUCA_P1", "CONECTAEDUCA_P2", "CONECTAEDUCA_P3", "CONECTAEDUCA_P4", "CONECTAEDUCA_P5", "CONECTAEDUCA_P6"
 ];
 var MIN_PALABRAS_SESION1_ = 50;
 var MAX_PALABRAS_SESION1_ = 400;
@@ -73,8 +75,10 @@ var CAMPOS_SESION1_OBLIGATORIOS_ = [
   "GOBIERNO_P1", "GOBIERNO_P2", "GOBIERNO_P3", "GOBIERNO_P4"
 ];
 
-/** Campos obligatorios para el envío definitivo de Sesión 2 / ConectaEduca (Sesion1.gs los guarda, ConectaEduca.gs los valida). */
-var CAMPOS_SESION2_OBLIGATORIOS_ = ["PRIORIDADES_CE", "ACUERDOS_CE", "PROPUESTAS_CE", "RUTA_CE"];
+/** Campos obligatorios para el envío definitivo de Sesión 2 / ConectaEduca — las 6 "Preguntas de conversatorio" (Sesion1.gs los guarda, ConectaEduca.gs los valida). */
+var CAMPOS_SESION2_OBLIGATORIOS_ = [
+  "CONECTAEDUCA_P1", "CONECTAEDUCA_P2", "CONECTAEDUCA_P3", "CONECTAEDUCA_P4", "CONECTAEDUCA_P5", "CONECTAEDUCA_P6"
+];
 
 /** Todos los campos de contenido que se pueden guardar (obligatorios + aportes propios, opcionales). */
 var CAMPOS_SESION1_ = cabecerasSesion1Comunal_().filter(function (c) {

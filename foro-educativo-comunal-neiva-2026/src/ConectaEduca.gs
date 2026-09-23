@@ -78,12 +78,11 @@ function eliminarActorConectaEduca(idGrupo, idRegistro, tokenSesion, dispositivo
 }
 
 /**
- * Marca Sesión 2 (ConectaEduca) como enviada definitivamente. Los 4
- * campos de la segunda parte de ConectaEduca (PRIORIDADES_CE,
- * ACUERDOS_CE, PROPUESTAS_CE, RUTA_CE) se guardan, junto con el resto de
- * "consolidados de grupo", en Sesion1Comunal (mismo mecanismo genérico
- * de UPSERT-por-grupo con fusión — ver Sesion1.gs), así que se validan
- * aquí leyendo obtenerSesion1().
+ * Marca Sesión 2 (ConectaEduca) como enviada definitivamente. Las 6
+ * "Preguntas de conversatorio" (CONECTAEDUCA_P1..P6) se guardan, junto
+ * con el resto de "consolidados de grupo", en Sesion1Comunal (mismo
+ * mecanismo genérico de UPSERT-por-grupo con fusión — ver Sesion1.gs),
+ * así que se validan aquí leyendo obtenerSesion1().
  */
 function enviarSesion2Definitiva(idGrupo, tokenSesion, dispositivoId) {
   idGrupo = String(idGrupo || "").trim();

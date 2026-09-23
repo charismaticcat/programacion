@@ -114,7 +114,7 @@ var ORDEN_PANTALLAS = [
   "pantallaResponsableConversatorio",
   "pantallaResolucionConversatorio", "pantallaCaracterizacionConversatorio", "pantallaCierreConversatorio",
   "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia",
-  "pantallaConsentimientoGrupo", "pantallaConsentimientoConectaEduca",
+  "pantallaConsentimientoConectaEduca", "pantallaResponsableConectaEduca", "pantallaConsentimientoGrupo",
   "pantallaInvitadosEspeciales",
   "pantallaPreSocializacion", "pantallaSeleccionIEPreparacion", "pantallaPreparacionIE",
   "pantallaSesionSocializacion",
@@ -150,12 +150,16 @@ var PANTALLAS_COMUNES_SECCION_ = [
   "pantallaConfirmacionCaracterizacion", "pantallaRevisionCierre", "pantallaInformeGenerado", "pantallaDespedida"
 ];
 var PANTALLAS_SOLO_ENCUENTRO_ = [
-  "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia", "pantallaConsentimientoGrupo",
+  "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia",
   "pantallaSesionSocializacion", "pantallaSesion1"
 ];
 // item 17 (Documento Orientador FEM2026): Conecta Educa tiene su propio
-// consentimiento informado, distinto del de pantallaConsentimientoGrupo.
-var PANTALLAS_SOLO_CONECTAEDUCA_ = ["pantallaConsentimientoConectaEduca", "pantallaSesion2"];
+// consentimiento informado, distinto del de pantallaConsentimientoGrupo —
+// que, desde este lote, es su "Screen 2" (Jornada Tarde), exclusiva de
+// esta sección junto con pantallaResponsableConectaEduca ("Screen 1").
+var PANTALLAS_SOLO_CONECTAEDUCA_ = [
+  "pantallaConsentimientoConectaEduca", "pantallaResponsableConectaEduca", "pantallaConsentimientoGrupo", "pantallaSesion2"
+];
 
 /** true si `idPantalla` es alcanzable desde la sección actualmente elegida (estado.seccion). */
 function pantallaPerteneceASeccionActual_(idPantalla) {
@@ -357,6 +361,7 @@ function cambiarPantalla(idPantalla) {
     cargarParticipacionEstamento();
   }
   if (idPantalla === "pantallaConfirmacionCaracterizacion") cargarConfirmacionCaracterizacion();
+  if (idPantalla === "pantallaResponsableConectaEduca") cargarResponsables();
   if (idPantalla === "pantallaInvitadosEspeciales") {
     // Se refresca siempre al entrar (no solo al confirmar la
     // caracterización), por si se resume el recorrido directo en esta
@@ -1566,6 +1571,8 @@ function _procesarRespuestaAccesoGrupo_(r, idMensaje, reintentarForzado) {
   if (elNombreGrupoBienvenida) elNombreGrupoBienvenida.textContent = r.grupo;
   poblarSelectInstituciones("campoIEResponsable", estado.instituciones);
   poblarSelectInstituciones("campoIEAsistente", estado.instituciones);
+  poblarSelectInstituciones("campoIEResponsableCE", estado.instituciones);
+  poblarSelectInstituciones("campoIEAsistenteCE", estado.instituciones);
   renderListaInstituciones(estado.instituciones);
   actualizarEtiquetasConectaEducaGrupo();
   renderFotoGrupo(estado.fotoGrupoId, "previaFotoGrupo", "formularioFotoGrupo", estado.grupo);
@@ -1636,10 +1643,11 @@ function _procesarRespuestaAccesoGrupo_(r, idMensaje, reintentarForzado) {
 
   // ConectaEduca no tiene pantallas de introducción propias (Inicio/
   // Presentación/Metodología son exclusivas de Encuentro, item 8) — va
-  // directo a Consentimiento o Participación, igual que
+  // directo a Consentimiento o, si ya se dio, al primer paso real
+  // (Responsable de envío, "Screen 1" de ConectaEduca), igual que
   // irTrasMetodologia_ al terminar la introducción de Encuentro.
   if (estado.seccion === "CONECTAEDUCA") {
-    cambiarPantalla(estado.consentimientoConectaEduca ? "pantallaParticipacion" : "pantallaConsentimientoConectaEduca");
+    cambiarPantalla(estado.consentimientoConectaEduca ? "pantallaResponsableConectaEduca" : "pantallaConsentimientoConectaEduca");
     return;
   }
 
@@ -2284,10 +2292,10 @@ document.getElementById("btnCerrarInvitadoFinalizado").addEventListener("click",
 });
 
 /* ------------------------------------------------------------------ *
- * Agenda de la Jornada Tarde (reemplaza el antiguo Consentimiento
- * informado del grupo, spec del usuario) — ya no hay checkbox ni
- * listado de asistencia aquí, solo "Continuar". El listado de
- * asistencia se gestiona ahora al final, en Revisión y cierre.
+ * Agenda de la Jornada Tarde — "Screen 2" de ConectaEduca (spec del
+ * usuario), exclusiva de esa sección desde este lote. Ya no hay
+ * checkbox ni listado de asistencia aquí, solo "Continuar"; el listado
+ * de asistencia se gestiona en Participación/Revisión y cierre.
  * ------------------------------------------------------------------ */
 document.getElementById("btnAceptarConsentimientoGrupo").addEventListener("click", function () {
   llamarServidor("rpcGuardarConsentimientoGrupo", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
@@ -2296,10 +2304,9 @@ document.getElementById("btnAceptarConsentimientoGrupo").addEventListener("click
       return;
     }
     estado.consentimientoGrupo = true;
-    // Participación ya no es el siguiente paso (spec del usuario: se movió
-    // al final del recorrido, justo antes de Revisión y cierre) — de la
-    // agenda se pasa directo a la Sesión de socialización.
-    cambiarPantalla("pantallaSesionSocializacion");
+    // Siguiente paso: "Screen 3" de ConectaEduca — 6 preguntas de
+    // conversatorio + registro de actores (pantallaSesion2).
+    cambiarPantalla("pantallaSesion2");
   });
 });
 
@@ -2368,7 +2375,9 @@ document.getElementById("btnAceptarConsentimientoConectaEduca").addEventListener
       return;
     }
     estado.consentimientoConectaEduca = true;
-    cambiarPantalla("pantallaParticipacion");
+    // ConectaEduca en 4 pantallas (spec del usuario): Responsable de envío
+    // → Jornada Tarde → 6 preguntas de conversatorio → Participación.
+    cambiarPantalla("pantallaResponsableConectaEduca");
   });
 });
 
@@ -2968,7 +2977,7 @@ document.getElementById("btnFotoGrupoMasTarde").addEventListener("click", functi
 function cargarRolesForo() {
   llamarServidor("rpcRolesForo", [], function (roles) {
     estado.rolesForo = roles || [];
-    ["campoRolForoResponsable", "campoRolForoAsistente", "campoRolPreparacionIE"].forEach(function (id) {
+    ["campoRolForoResponsable", "campoRolForoAsistente", "campoRolForoResponsableCE", "campoRolForoAsistenteCE", "campoRolPreparacionIE"].forEach(function (id) {
       var select = document.getElementById(id);
       if (!select) return;
       select.innerHTML = "";
@@ -3067,103 +3076,121 @@ function correoValido_(idCampo, idMensaje) {
   if (campo) campo.focus();
   return false;
 }
-activarAutocompletadoCorreo_("campoCorreoResponsable");
-activarAutocompletadoCorreo_("campoCorreoAsistente");
-
 /* ------------------------------------------------------------------ *
- * Responsable de envío y asistentes de envío
+ * Responsable de envío y asistentes de envío — mismo formulario en dos
+ * pantallas: Participación (Encuentro, sin sufijo) y "Screen 1" de
+ * ConectaEduca (sufijo "CE", spec del usuario: "Responsable de envio
+ * igual que voces que construyen territorios"). El dato es del GRUPO,
+ * no de la sección (mismo rpcGuardarResponsable/rpcListarResponsables en
+ * ambas), así que cargarResponsables() refresca las dos vistas a la vez
+ * si ambas están en el DOM.
  * ------------------------------------------------------------------ */
-document.getElementById("btnGuardarResponsable").addEventListener("click", function () {
-  var datos = {
-    nombre: document.getElementById("campoNombreResponsable").value.trim(),
-    idIE: document.getElementById("campoIEResponsable").value,
-    rolForo: document.getElementById("campoRolForoResponsable").value,
-    correo: document.getElementById("campoCorreoResponsable").value.trim()
-  };
-  if (!datos.nombre || !datos.correo) {
-    mostrarMensaje("mensajeResponsable", "Nombre y correo son obligatorios.", "error");
-    return;
-  }
-  if (!correoValido_("campoCorreoResponsable", "mensajeResponsable")) return;
-  mostrarCargaAccion_("responsable", "Guardando responsable de envío…");
-  llamarServidor("rpcGuardarResponsable", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, "PRINCIPAL", datos], function (r) {
-    ocultarCargaAccion_();
-    if (!r.ok) {
-      mostrarMensaje("mensajeResponsable", r.mensaje || "No fue posible guardar.", "error");
+function _inicializarResponsableEnvio_(sufijo) {
+  var btnGuardar = document.getElementById("btnGuardarResponsable" + sufijo);
+  if (!btnGuardar) return;
+  activarAutocompletadoCorreo_("campoCorreoResponsable" + sufijo);
+  activarAutocompletadoCorreo_("campoCorreoAsistente" + sufijo);
+
+  btnGuardar.addEventListener("click", function () {
+    var datos = {
+      nombre: document.getElementById("campoNombreResponsable" + sufijo).value.trim(),
+      idIE: document.getElementById("campoIEResponsable" + sufijo).value,
+      rolForo: document.getElementById("campoRolForoResponsable" + sufijo).value,
+      correo: document.getElementById("campoCorreoResponsable" + sufijo).value.trim()
+    };
+    if (!datos.nombre || !datos.correo) {
+      mostrarMensaje("mensajeResponsable" + sufijo, "Nombre y correo son obligatorios.", "error");
       return;
     }
-    mostrarMensaje("mensajeResponsable", "Responsable de envío guardado.", "exito");
-    document.getElementById("formularioResponsablePrincipal").classList.add("oculto");
-    cargarResponsables();
-  }, function (error) {
-    ocultarCargaAccion_();
-    console.error("rpcGuardarResponsable", error);
-    mostrarMensaje("mensajeResponsable", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
-  });
-});
-
-// Una vez hay responsable principal, el formulario se colapsa y solo
-// queda la ficha + el botón "Cambiar responsable de envío" — evita que
-// parezca un formulario en blanco listo para agregar OTRO principal
-// (solo puede haber uno) y deja claro cómo editarlo si hace falta.
-document.getElementById("btnCambiarResponsable").addEventListener("click", function () {
-  var p = (estado.responsables && estado.responsables.principal) || null;
-  document.getElementById("campoNombreResponsable").value = p ? p.nombre || "" : "";
-  document.getElementById("campoCorreoResponsable").value = p ? p.correo || "" : "";
-  if (p && p.rolForo) document.getElementById("campoRolForoResponsable").value = p.rolForo;
-  if (p && p.institucion) {
-    var selectIE = document.getElementById("campoIEResponsable");
-    var opcion = Array.prototype.find.call(selectIE.options, function (o) {
-      return o.textContent === p.institucion;
+    if (!correoValido_("campoCorreoResponsable" + sufijo, "mensajeResponsable" + sufijo)) return;
+    mostrarCargaAccion_("responsable", "Guardando responsable de envío…");
+    llamarServidor("rpcGuardarResponsable", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, "PRINCIPAL", datos], function (r) {
+      ocultarCargaAccion_();
+      if (!r.ok) {
+        mostrarMensaje("mensajeResponsable" + sufijo, r.mensaje || "No fue posible guardar.", "error");
+        return;
+      }
+      mostrarMensaje("mensajeResponsable" + sufijo, "Responsable de envío guardado.", "exito");
+      document.getElementById("formularioResponsablePrincipal" + sufijo).classList.add("oculto");
+      cargarResponsables();
+    }, function (error) {
+      ocultarCargaAccion_();
+      console.error("rpcGuardarResponsable", error);
+      mostrarMensaje("mensajeResponsable" + sufijo, "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
     });
-    if (opcion) selectIE.value = opcion.value;
-  }
-  document.getElementById("formularioResponsablePrincipal").classList.remove("oculto");
-  document.getElementById("filaBotonCambiarResponsable").classList.add("oculto");
-});
+  });
 
-document.getElementById("btnMostrarFormAsistente").addEventListener("click", function () {
-  document.getElementById("formularioAsistenteEnvio").classList.remove("oculto");
-});
+  // Una vez hay responsable principal, el formulario se colapsa y solo
+  // queda la ficha + el botón "Cambiar responsable de envío" — evita que
+  // parezca un formulario en blanco listo para agregar OTRO principal
+  // (solo puede haber uno) y deja claro cómo editarlo si hace falta.
+  document.getElementById("btnCambiarResponsable" + sufijo).addEventListener("click", function () {
+    var p = (estado.responsables && estado.responsables.principal) || null;
+    document.getElementById("campoNombreResponsable" + sufijo).value = p ? p.nombre || "" : "";
+    document.getElementById("campoCorreoResponsable" + sufijo).value = p ? p.correo || "" : "";
+    if (p && p.rolForo) document.getElementById("campoRolForoResponsable" + sufijo).value = p.rolForo;
+    if (p && p.institucion) {
+      var selectIE = document.getElementById("campoIEResponsable" + sufijo);
+      var opcion = Array.prototype.find.call(selectIE.options, function (o) {
+        return o.textContent === p.institucion;
+      });
+      if (opcion) selectIE.value = opcion.value;
+    }
+    document.getElementById("formularioResponsablePrincipal" + sufijo).classList.remove("oculto");
+    document.getElementById("filaBotonCambiarResponsable" + sufijo).classList.add("oculto");
+  });
 
-document.getElementById("btnGuardarAsistente").addEventListener("click", function () {
-  var datos = {
-    nombre: document.getElementById("campoNombreAsistente").value.trim(),
-    idIE: document.getElementById("campoIEAsistente").value,
-    rolForo: document.getElementById("campoRolForoAsistente").value,
-    correo: document.getElementById("campoCorreoAsistente").value.trim()
-  };
-  if (!datos.nombre || !datos.correo) {
-    mostrarMensaje("mensajeAsistente", "Nombre y correo son obligatorios.", "error");
-    return;
-  }
-  if (!correoValido_("campoCorreoAsistente", "mensajeAsistente")) return;
-  llamarServidor("rpcGuardarResponsable", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, "ASISTENTE", datos], function (r) {
-    if (!r.ok) {
-      mostrarMensaje("mensajeAsistente", r.mensaje || "No fue posible agregar.", "error");
+  document.getElementById("btnMostrarFormAsistente" + sufijo).addEventListener("click", function () {
+    document.getElementById("formularioAsistenteEnvio" + sufijo).classList.remove("oculto");
+  });
+
+  document.getElementById("btnGuardarAsistente" + sufijo).addEventListener("click", function () {
+    var datos = {
+      nombre: document.getElementById("campoNombreAsistente" + sufijo).value.trim(),
+      idIE: document.getElementById("campoIEAsistente" + sufijo).value,
+      rolForo: document.getElementById("campoRolForoAsistente" + sufijo).value,
+      correo: document.getElementById("campoCorreoAsistente" + sufijo).value.trim()
+    };
+    if (!datos.nombre || !datos.correo) {
+      mostrarMensaje("mensajeAsistente" + sufijo, "Nombre y correo son obligatorios.", "error");
       return;
     }
-    ["campoNombreAsistente", "campoCorreoAsistente"].forEach(function (id) {
-      document.getElementById(id).value = "";
+    if (!correoValido_("campoCorreoAsistente" + sufijo, "mensajeAsistente" + sufijo)) return;
+    llamarServidor("rpcGuardarResponsable", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, "ASISTENTE", datos], function (r) {
+      if (!r.ok) {
+        mostrarMensaje("mensajeAsistente" + sufijo, r.mensaje || "No fue posible agregar.", "error");
+        return;
+      }
+      [document.getElementById("campoNombreAsistente" + sufijo), document.getElementById("campoCorreoAsistente" + sufijo)].forEach(function (el) {
+        el.value = "";
+      });
+      document.getElementById("formularioAsistenteEnvio" + sufijo).classList.add("oculto");
+      cargarResponsables();
     });
-    document.getElementById("formularioAsistenteEnvio").classList.add("oculto");
-    cargarResponsables();
   });
-});
+}
+_inicializarResponsableEnvio_("");
+_inicializarResponsableEnvio_("CE");
 
+/** Ambas vistas de Responsable de envío (Participación y ConectaEduca) se refrescan a la vez, si están en el DOM. */
+var SUFIJOS_RESPONSABLE_ENVIO_ = ["", "CE"];
 function cargarResponsables() {
   if (!estado.idGrupo) return;
   llamarServidor("rpcListarResponsables", [estado.idGrupo], function (r) {
     estado.responsables = r;
-    renderResponsables(r);
-    document.getElementById("btnMostrarFormAsistente").disabled = (r.asistentes || []).length >= 3;
-    // Si ya hay responsable principal, el formulario se colapsa (evita
-    // que parezca un formulario en blanco listo para "agregar otro") y
-    // se muestra el botón "Cambiar responsable de envío" para reabrirlo
-    // ya con sus datos actuales cargados (ver btnCambiarResponsable).
     var hayPrincipal = !!(r && r.principal);
-    document.getElementById("formularioResponsablePrincipal").classList.toggle("oculto", hayPrincipal);
-    document.getElementById("filaBotonCambiarResponsable").classList.toggle("oculto", !hayPrincipal);
+    SUFIJOS_RESPONSABLE_ENVIO_.forEach(function (sufijo) {
+      var idFicha = "fichaResponsablePrincipal" + sufijo;
+      if (!document.getElementById(idFicha)) return;
+      renderResponsables(r, idFicha, "listaAsistentesEnvio" + sufijo);
+      document.getElementById("btnMostrarFormAsistente" + sufijo).disabled = (r.asistentes || []).length >= 3;
+      // Si ya hay responsable principal, el formulario se colapsa (evita
+      // que parezca un formulario en blanco listo para "agregar otro") y
+      // se muestra el botón "Cambiar responsable de envío" para reabrirlo
+      // ya con sus datos actuales cargados (ver btnCambiarResponsable).
+      document.getElementById("formularioResponsablePrincipal" + sufijo).classList.toggle("oculto", hayPrincipal);
+      document.getElementById("filaBotonCambiarResponsable" + sufijo).classList.toggle("oculto", !hayPrincipal);
+    });
   });
 }
 
@@ -3401,9 +3428,8 @@ var CAMPOS_SESION1 = [
   "FEM2025_P1", "FEM2025_P2",
   "CURRICULO_P1", "CURRICULO_P2", "CURRICULO_P3", "CURRICULO_P4", "CURRICULO_P5",
   "GOBIERNO_P1", "GOBIERNO_P2", "GOBIERNO_P3", "GOBIERNO_P4",
-  "NECESIDADES_ARTICULACION_GRUPO", "OPORTUNIDADES_GRUPO",
-  "APRECIACION_SENA_GRUPO", "PROFUNDIZACIONES_GRUPO",
-  "PRIORIDADES_CE", "ACUERDOS_CE", "PROPUESTAS_CE", "RUTA_CE",
+  // ConectaEduca (Sesión 2) — 6 preguntas de conversatorio (sexagésimo lote).
+  "CONECTAEDUCA_P1", "CONECTAEDUCA_P2", "CONECTAEDUCA_P3", "CONECTAEDUCA_P4", "CONECTAEDUCA_P5", "CONECTAEDUCA_P6",
   "APORTE_PROPIO_S1_TITULO", "APORTE_PROPIO_S1_TEXTO", "APORTE_PROPIO_S2_TITULO", "APORTE_PROPIO_S2_TEXTO"
 ];
 var temporizadorGuardadoSesion1 = null;
@@ -3482,16 +3508,14 @@ var PREGUNTAS_SOLO_LECTURA_SESION1_ = [
   { clave: "GOBIERNO_P3", etiqueta: "Equipos de trabajo institucional (gobierno)" },
   { clave: "GOBIERNO_P4", etiqueta: "Mecanismos de seguimiento (gobierno)" }
 ];
-/** Preguntas de ConectaEduca (Sesión 2) para la vista de solo lectura (sin la tabla de actores, que no se bloquea). */
+/** Preguntas de conversatorio de ConectaEduca (Sesión 2) para la vista de solo lectura (sin la tabla de actores, que no se bloquea). */
 var PREGUNTAS_SOLO_LECTURA_SESION2_ = [
-  { clave: "NECESIDADES_ARTICULACION_GRUPO", etiqueta: "Necesidades de articulación" },
-  { clave: "OPORTUNIDADES_GRUPO", etiqueta: "Oportunidades identificadas" },
-  { clave: "APRECIACION_SENA_GRUPO", etiqueta: "Apreciación sobre los programas de articulación del SENA" },
-  { clave: "PROFUNDIZACIONES_GRUPO", etiqueta: "Profundizaciones dentro de la institución educativa" },
-  { clave: "PRIORIDADES_CE", etiqueta: "Prioridades" },
-  { clave: "ACUERDOS_CE", etiqueta: "Acuerdos" },
-  { clave: "PROPUESTAS_CE", etiqueta: "Propuestas" },
-  { clave: "RUTA_CE", etiqueta: "Ruta de trabajo" }
+  { clave: "CONECTAEDUCA_P1", etiqueta: "Necesidades del sector productivo y aportes a la formación" },
+  { clave: "CONECTAEDUCA_P2", etiqueta: "Articulación del currículo con el territorio" },
+  { clave: "CONECTAEDUCA_P3", etiqueta: "Acción conjunta IE / sector productivo" },
+  { clave: "CONECTAEDUCA_P4", etiqueta: "Compromisos de cada parte" },
+  { clave: "CONECTAEDUCA_P5", etiqueta: "Acciones de corto y mediano plazo" },
+  { clave: "CONECTAEDUCA_P6", etiqueta: "Seguimiento a compromisos y acciones" }
 ];
 
 /**
@@ -3559,11 +3583,9 @@ function actualizarEstadoEnvioSesion1_() {
 }
 function actualizarEstadoEnvioSesion2_() {
   var vistaSoloLectura = document.getElementById("vistaSoloLecturaSesion2");
-  var camposPrevios = document.getElementById("camposEditablesSesion2Previos");
   var camposCE = document.getElementById("camposEditablesSesion2CE");
   var boton = document.getElementById("btnEnviarSesion2");
   if (vistaSoloLectura) vistaSoloLectura.classList.toggle("oculto", !estado.sesion2Enviada);
-  if (camposPrevios) camposPrevios.classList.toggle("oculto", !!estado.sesion2Enviada);
   if (camposCE) camposCE.classList.toggle("oculto", !!estado.sesion2Enviada);
   if (boton) boton.disabled = !!estado.sesion2Enviada;
   if (estado.sesion2Enviada) {
@@ -3575,18 +3597,20 @@ function actualizarEstadoEnvioSesion2_() {
 }
 
 /**
- * Campos obligatorios para el envío definitivo de Sesión 2 — mismos 4 de
- * la segunda parte de ConectaEduca que valida el servidor
+ * Campos obligatorios para el envío definitivo de Sesión 2 — mismas 6
+ * preguntas de conversatorio que valida el servidor
  * (CAMPOS_SESION2_OBLIGATORIOS_, ConectaEduca.gs): revisar aquí antes de
  * enviar evita un viaje al servidor solo para recibir el mismo rechazo
  * (spec del usuario: "no se debe permitir envío de sesión 2 sino se ha
  * llenado todos los espacios").
  */
 var CAMPOS_SESION2_OBLIGATORIOS_CLIENTE_ = [
-  ["PRIORIDADES_CE", "Prioridades de las instituciones del grupo"],
-  ["ACUERDOS_CE", "Acuerdos entre instituciones de las comunas"],
-  ["PROPUESTAS_CE", "Propuestas de las instituciones del grupo"],
-  ["RUTA_CE", "Ruta de trabajo sugerida por las IE del grupo"]
+  ["CONECTAEDUCA_P1", "Necesidades del sector productivo y aportes a la formación"],
+  ["CONECTAEDUCA_P2", "Articulación del currículo con el territorio"],
+  ["CONECTAEDUCA_P3", "Acción conjunta IE / sector productivo"],
+  ["CONECTAEDUCA_P4", "Compromisos de cada parte"],
+  ["CONECTAEDUCA_P5", "Acciones de corto y mediano plazo"],
+  ["CONECTAEDUCA_P6", "Seguimiento a compromisos y acciones"]
 ];
 function camposSesion2Faltantes_() {
   return CAMPOS_SESION2_OBLIGATORIOS_CLIENTE_
@@ -4367,14 +4391,12 @@ var CAMPOS_REVISAR_SESION1_ = [
   { clave: "APORTE_PROPIO_S1_TEXTO", etiqueta: "Aporte propio del grupo — Descripción" }
 ];
 var CAMPOS_REVISAR_SESION2_ = [
-  { clave: "NECESIDADES_ARTICULACION_GRUPO", etiqueta: "Necesidades de articulación" },
-  { clave: "OPORTUNIDADES_GRUPO", etiqueta: "Oportunidades identificadas" },
-  { clave: "APRECIACION_SENA_GRUPO", etiqueta: "Apreciación sobre los programas de articulación del SENA" },
-  { clave: "PROFUNDIZACIONES_GRUPO", etiqueta: "Profundizaciones dentro de la institución educativa" },
-  { clave: "PRIORIDADES_CE", etiqueta: "Prioridades (ConectaEduca)" },
-  { clave: "ACUERDOS_CE", etiqueta: "Acuerdos entre instituciones (ConectaEduca)" },
-  { clave: "PROPUESTAS_CE", etiqueta: "Propuestas (ConectaEduca)" },
-  { clave: "RUTA_CE", etiqueta: "Ruta de trabajo (ConectaEduca)" },
+  { clave: "CONECTAEDUCA_P1", etiqueta: "Necesidades del sector productivo y aportes a la formación" },
+  { clave: "CONECTAEDUCA_P2", etiqueta: "Articulación del currículo con el territorio" },
+  { clave: "CONECTAEDUCA_P3", etiqueta: "Acción conjunta IE / sector productivo" },
+  { clave: "CONECTAEDUCA_P4", etiqueta: "Compromisos de cada parte" },
+  { clave: "CONECTAEDUCA_P5", etiqueta: "Acciones de corto y mediano plazo" },
+  { clave: "CONECTAEDUCA_P6", etiqueta: "Seguimiento a compromisos y acciones" },
   { clave: "APORTE_PROPIO_S2_TITULO", etiqueta: "Aporte propio del grupo — Título", tipo: "text" },
   { clave: "APORTE_PROPIO_S2_TEXTO", etiqueta: "Aporte propio del grupo — Descripción" }
 ];

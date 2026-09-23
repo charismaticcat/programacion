@@ -359,13 +359,13 @@
     </div>
   </section>
 
-  <!-- PANTALLA INALCANZABLE (spec del usuario: "eliminar pantalla Jornada Tarde —
-       ConectaEduca") — queda en el HTML sin borrar, por si se necesita reactivar, pero ya
-       no es alcanzable desde la navegación (ver irTrasMetodologia_ en JS.html, que ahora
-       va directo de la Ruta del Encuentro a la Sesión de socialización). Histórico: esta
-       pantalla reemplazó antes a la de Consentimiento informado del grupo (spec del
-       usuario: "Remove Consentimiento full page and put this instead: Screen 1, Jornada
-       Tarde"). -->
+  <!-- "Screen 2" de ConectaEduca: Jornada Tarde (spec del usuario, ConectaEduca
+       en 4 pantallas: Responsable de envío / Jornada Tarde / 6 preguntas de
+       conversatorio / Participación). Exclusiva de la sección ConectaEduca
+       (ver PANTALLAS_SOLO_CONECTAEDUCA_, JS.html) — reactivada tras haber
+       estado inalcanzable (lote anterior: "eliminar pantalla Jornada Tarde —
+       ConectaEduca" se refería a su lugar en el recorrido de Encuentro, no a
+       su contenido, que sigue siendo la agenda real de ConectaEduca). -->
   <section id="pantallaConsentimientoGrupo" class="pantalla">
     <div class="tarjeta">
       <h2 class="titulo-seccion">Jornada Tarde — ConectaEduca</h2>
@@ -387,7 +387,64 @@
       </table>
       <div id="mensajeConsentimientoGrupo"></div>
       <div class="fila-botones">
+        <button class="btn btn-secundario" data-ir="pantallaResponsableConectaEduca">Atrás</button>
         <button class="btn btn-primario" id="btnAceptarConsentimientoGrupo">Continuar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- "Screen 1" de ConectaEduca: Responsable de envío — mismo formulario que
+       Participación (spec del usuario: "Responsable de envio igual que voces
+       que construyen territorios"), con ids sufijados "CE" porque es el
+       mismo dato del grupo mostrado en otra pantalla (ver
+       _inicializarResponsableEnvio_/cargarResponsables, JS.html). -->
+  <section id="pantallaResponsableConectaEduca" class="pantalla">
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">Responsable de envío</h2>
+      <p class="ayuda">Esta persona recibirá por correo el informe final del grupo. Puedes agregar hasta
+        3 asistentes de envío adicionales que también lo reciban.</p>
+      <div id="fichaResponsablePrincipalCE"></div>
+      <div class="fila-botones oculto" id="filaBotonCambiarResponsableCE">
+        <button type="button" class="btn btn-secundario" id="btnCambiarResponsableCE">✏️ Cambiar responsable de envío</button>
+      </div>
+      <div id="formularioResponsablePrincipalCE">
+        <label for="campoNombreResponsableCE">Nombre completo</label>
+        <input type="text" lang="es" spellcheck="true" id="campoNombreResponsableCE">
+        <label for="campoIEResponsableCE">Institución educativa</label>
+        <select id="campoIEResponsableCE"></select>
+        <label for="campoRolForoResponsableCE">Rol en el foro</label>
+        <select id="campoRolForoResponsableCE"></select>
+        <label for="campoCorreoResponsableCE">Correo electrónico</label>
+        <input type="email" id="campoCorreoResponsableCE">
+        <div id="mensajeResponsableCE"></div>
+        <div class="fila-botones">
+          <button class="btn btn-primario" id="btnGuardarResponsableCE">Guardar responsable de envío</button>
+        </div>
+      </div>
+
+      <h3 class="subtitulo-campo" style="margin-top:20px;">Asistentes de envío</h3>
+      <div id="listaAsistentesEnvioCE"></div>
+      <div class="fila-botones">
+        <button class="btn btn-secundario" id="btnMostrarFormAsistenteCE">+ Agregar asistente de envío</button>
+      </div>
+      <div id="formularioAsistenteEnvioCE" class="oculto" style="margin-top:12px;">
+        <label for="campoNombreAsistenteCE">Nombre completo</label>
+        <input type="text" lang="es" spellcheck="true" id="campoNombreAsistenteCE">
+        <label for="campoIEAsistenteCE">Institución educativa</label>
+        <select id="campoIEAsistenteCE"></select>
+        <label for="campoRolForoAsistenteCE">Rol en el foro</label>
+        <select id="campoRolForoAsistenteCE"></select>
+        <label for="campoCorreoAsistenteCE">Correo electrónico</label>
+        <input type="email" id="campoCorreoAsistenteCE">
+        <div id="mensajeAsistenteCE"></div>
+        <div class="fila-botones">
+          <button class="btn btn-primario" id="btnGuardarAsistenteCE">Agregar asistente</button>
+        </div>
+      </div>
+
+      <div class="fila-botones">
+        <button class="btn btn-secundario" data-ir="pantallaConsentimientoConectaEduca">Atrás</button>
+        <button class="btn btn-primario" data-ir="pantallaConsentimientoGrupo">Continuar</button>
       </div>
     </div>
   </section>
@@ -832,8 +889,10 @@
       definitiva (botón de arriba) para poder continuar.</p>
   </section>
 
-  <!-- 9. CONECTAEDUCA (sección independiente, item 8: se llega directo desde
-       Participación, no desde Sesión 1) -->
+  <!-- 9. CONECTAEDUCA (sección independiente, item 8) — "Screen 3" de las 4
+       pantallas de ConectaEduca (spec del usuario): se llega desde la
+       agenda de Jornada Tarde (pantallaConsentimientoGrupo, "Screen 2"),
+       no desde Sesión 1. -->
   <section id="pantallaSesion2" class="pantalla">
     <div class="tarjeta">
       <h2 class="titulo-seccion">Conecta Educa</h2>
@@ -851,21 +910,7 @@
           <div id="respuestasSoloLecturaSesion2"></div>
         </div>
 
-        <div id="camposEditablesSesion2Previos">
-          <h3 class="subtitulo-campo">Antes de registrar actores</h3>
-          <label for="campo_NECESIDADES_ARTICULACION_GRUPO">Necesidades de articulación</label>
-          <textarea lang="es" spellcheck="true" id="campo_NECESIDADES_ARTICULACION_GRUPO" data-campo-sesion1="NECESIDADES_ARTICULACION_GRUPO"></textarea>
-          <label for="campo_OPORTUNIDADES_GRUPO">Oportunidades identificadas</label>
-          <textarea lang="es" spellcheck="true" id="campo_OPORTUNIDADES_GRUPO" data-campo-sesion1="OPORTUNIDADES_GRUPO"></textarea>
-          <label for="campo_APRECIACION_SENA_GRUPO">Apreciación sobre los programas de articulación del SENA</label>
-          <p class="ayuda">Una apreciación objetiva de los y las estudiantes sobre los programas de
-            articulación con el SENA en la institución.</p>
-          <textarea lang="es" spellcheck="true" id="campo_APRECIACION_SENA_GRUPO" data-campo-sesion1="APRECIACION_SENA_GRUPO"></textarea>
-          <label for="campo_PROFUNDIZACIONES_GRUPO">Profundizaciones dentro de la institución educativa</label>
-          <textarea lang="es" spellcheck="true" id="campo_PROFUNDIZACIONES_GRUPO" data-campo-sesion1="PROFUNDIZACIONES_GRUPO"></textarea>
-        </div>
-
-        <h3 class="subtitulo-campo" style="margin-top:24px;">Registrar actor o entidad</h3>
+        <h3 class="subtitulo-campo">Registrar actor o entidad</h3>
         <p class="ayuda">Registre cada actor o entidad con quien el grupo dialogó.</p>
 
         <label for="campoActorCE">Actor o entidad</label>
@@ -907,15 +952,35 @@
         </table>
 
         <div id="camposEditablesSesion2CE">
-          <h3 class="subtitulo-campo" style="margin-top:24px;">Construcción colectiva con el sector productivo y la educación superior</h3>
-          <label for="campo_PRIORIDADES_CE">Prioridades de las instituciones del <span id="numeroGrupoCE_PRIORIDADES">grupo</span></label>
-          <textarea lang="es" spellcheck="true" id="campo_PRIORIDADES_CE" data-campo-sesion1="PRIORIDADES_CE" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
-          <label for="campo_ACUERDOS_CE">Acuerdos entre instituciones de las <span id="comunasGrupoCE_ACUERDOS">comunas</span></label>
-          <textarea lang="es" spellcheck="true" id="campo_ACUERDOS_CE" data-campo-sesion1="ACUERDOS_CE" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
-          <label for="campo_PROPUESTAS_CE">Propuestas de las instituciones del <span id="numeroGrupoCE_PROPUESTAS">grupo</span></label>
-          <textarea lang="es" spellcheck="true" id="campo_PROPUESTAS_CE" data-campo-sesion1="PROPUESTAS_CE" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
-          <label for="campo_RUTA_CE">Ruta de trabajo sugerida por las IE del <span id="numeroGrupoCE_RUTA">grupo</span></label>
-          <textarea lang="es" spellcheck="true" id="campo_RUTA_CE" data-campo-sesion1="RUTA_CE" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+          <h3 class="subtitulo-campo" style="margin-top:24px;">Preguntas de conversatorio</h3>
+          <p class="ayuda">Construcción colectiva con el sector productivo y la educación superior.</p>
+
+          <label for="campo_CONECTAEDUCA_P1">¿Qué necesitan hoy las instituciones educativas del sector
+            productivo y qué puede aportar el sector productivo a la formación de las y los estudiantes?</label>
+          <textarea lang="es" spellcheck="true" id="campo_CONECTAEDUCA_P1" data-campo-sesion1="CONECTAEDUCA_P1" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+
+          <label for="campo_CONECTAEDUCA_P2">¿Cómo podemos articular el currículo escolar con las realidades,
+            necesidades y oportunidades productivas del territorio?</label>
+          <textarea lang="es" spellcheck="true" id="campo_CONECTAEDUCA_P2" data-campo-sesion1="CONECTAEDUCA_P2" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+
+          <label for="campo_CONECTAEDUCA_P3">¿Qué acción concreta podemos construir conjuntamente entre las
+            instituciones educativas y el sector productivo para ampliar las oportunidades de las y los
+            estudiantes?</label>
+          <textarea lang="es" spellcheck="true" id="campo_CONECTAEDUCA_P3" data-campo-sesion1="CONECTAEDUCA_P3" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+
+          <label for="campo_CONECTAEDUCA_P4">¿Qué compromisos concretos puede asumir cada parte —instituciones
+            educativas y sector productivo— para fortalecer la articulación y generar oportunidades para las
+            y los estudiantes?</label>
+          <textarea lang="es" spellcheck="true" id="campo_CONECTAEDUCA_P4" data-campo-sesion1="CONECTAEDUCA_P4" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+
+          <label for="campo_CONECTAEDUCA_P5">¿Qué acciones concretas podemos desarrollar conjuntamente en el
+            corto y mediano plazo para convertir estos compromisos en oportunidades reales de formación,
+            orientación y acercamiento al mundo productivo?</label>
+          <textarea lang="es" spellcheck="true" id="campo_CONECTAEDUCA_P5" data-campo-sesion1="CONECTAEDUCA_P5" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+
+          <label for="campo_CONECTAEDUCA_P6">¿Cómo podemos hacer seguimiento a estos compromisos y acciones
+            para garantizar su continuidad y valorar sus resultados?</label>
+          <textarea lang="es" spellcheck="true" id="campo_CONECTAEDUCA_P6" data-campo-sesion1="CONECTAEDUCA_P6" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
 
           <details class="desplegable-aporte">
             <summary>➕ Aporte propio del grupo (opcional)</summary>
@@ -940,6 +1005,7 @@
       </div>
     </div>
     <div class="fila-botones">
+      <button class="btn btn-secundario" data-ir="pantallaConsentimientoGrupo">Atrás</button>
       <button class="btn btn-primario" data-ir="pantallaParticipacion">Continuar a Participación</button>
     </div>
   </section>

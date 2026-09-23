@@ -2805,6 +2805,66 @@ búsqueda exhaustiva de referencias colgantes a `HOJA_SOCIALIZACION_IE_`/`cabece
 `guardarSocializacionIE`/`rpcGuardarSocializacionIE` (ninguna, incluyendo el `crear(...)` de Config.gs que sí
 tenía una, corregida).
 
+## 4.77 Sexagésimo lote (parte 2, final): ConectaEduca reorganizado en 4 pantallas, con contenido real
+
+Segunda parte del mismo pedido grande: el usuario dio el contenido real y definitivo de ConectaEduca,
+descrito como 4 "screens" — Responsable de envío (igual que Encuentro), Jornada Tarde (agenda ya existente
+en el HTML pero inalcanzable), 6 "Preguntas de conversatorio" (reemplazan las 8 preguntas genéricas
+anteriores) y Participación/asistencia+caracterización al final —, confirmado por el usuario vía
+`AskUserQuestion` antes de implementar (reemplazar los 8 campos por los 6 nuevos y dividir el flujo en
+pantallas).
+
+- **`pantallaResponsableConectaEduca` (nueva, "Screen 1")**: mismo formulario que "Responsable de envío" de
+  Participación (ficha + hasta 3 asistentes de envío), con ids sufijados `CE` porque es el mismo dato del
+  GRUPO (no de la sección) mostrado en dos pantallas distintas. En vez de duplicar a mano los manejadores
+  de clic, se extrajo `_inicializarResponsableEnvio_(sufijo)` (JS.html) — llamada una vez con `""` y otra
+  con `"CE"` — y `cargarResponsables()` ahora refresca ambas vistas (Participación y ConectaEduca) a la vez
+  si ambas están en el DOM, iterando `SUFIJOS_RESPONSABLE_ENVIO_ = ["", "CE"]`. `poblarSelectInstituciones`,
+  `activarAutocompletadoCorreo_` y la lista de roles (`cargarRolesForo`) se extendieron con los ids `CE`.
+- **`pantallaConsentimientoGrupo` reactivada como "Screen 2" (Jornada Tarde)**: ya contenía la agenda real
+  (era la pantalla oculta desde el lote 4.74, "eliminar pantalla Jornada Tarde — ConectaEduca" se refería a
+  su lugar en el recorrido de Encuentro, no a su contenido) — se le agregó un botón "Atrás" hacia
+  `pantallaResponsableConectaEduca` y su botón "Continuar" ahora lleva a `pantallaSesion2` (antes iba a
+  `pantallaSesionSocializacion`, remanente de cuando esta pantalla pertenecía a Encuentro).
+- **`pantallaSesion2` ("Screen 3")**: se quitaron los 8 campos anteriores (`NECESIDADES_ARTICULACION_GRUPO`,
+  `OPORTUNIDADES_GRUPO`, `APRECIACION_SENA_GRUPO`, `PROFUNDIZACIONES_GRUPO`, `PRIORIDADES_CE`,
+  `ACUERDOS_CE`, `PROPUESTAS_CE`, `RUTA_CE`) y se reemplazaron por las 6 "Preguntas de conversatorio" reales
+  dadas por el usuario (`CONECTAEDUCA_P1`..`P6`, 50-400 palabras, las 6 obligatorias) — el registro de
+  actores/entidades (`ConectaEduca.gs`) no se tocó, sigue igual. Se agregó un botón "Atrás" hacia
+  `pantallaConsentimientoGrupo`.
+- **Navegación**: `btnAceptarConsentimientoConectaEduca` ahora lleva a `pantallaResponsableConectaEduca`
+  (antes saltaba directo a `pantallaParticipacion`, sin pasar nunca por Sesión 2 — un hueco del recorrido ya
+  existente antes de este lote); el mismo destino se corrigió en el flujo de "ya di consentimiento, ¿a dónde
+  voy?" (antes de este lote mandaba directo a Participación). `ORDEN_PANTALLAS`,
+  `PANTALLAS_SOLO_CONECTAEDUCA_` y `PANTALLAS_SOLO_ENCUENTRO_` se actualizaron para reflejar las pantallas
+  nuevas y que `pantallaConsentimientoGrupo` es ahora exclusiva de ConectaEduca (no de Encuentro).
+  `PASOS_PROGRESO_CONECTAEDUCA_` (la barra de progreso navegable) no cambió — sigue listando solo los pasos
+  de trabajo (Conecta Educa, Participación, Cierre), igual que Encuentro no lista sus propias pantallas de
+  introducción.
+- **Backend**: `Sesion1.gs` — `CONECTAEDUCA_P1..P6` reemplazan a los 8 campos anteriores en
+  `CAMPOS_SESION1_CON_RANGO_PALABRAS_` y `CAMPOS_SESION2_OBLIGATORIOS_` (las 6 son obligatorias, igual que
+  las 4 de "construcción colectiva" que reemplazan); los 8 campos viejos se movieron a la sección de
+  columnas heredadas de `cabecerasSesion1Comunal_` (no se pierden datos ya diligenciados por grupos antes de
+  este cambio). `Informes.gs` — la sección "ConectaEduca" del informe final ahora imprime las 6 preguntas
+  nuevas en vez de las 8 viejas. `Tests.gs` actualizado con los nuevos campos.
+- **Datos de Grupo 3 (Nelson Herrera, Juan José Valenzuela) — pendiente, no se pudo completar aquí**: el
+  usuario pidió incluir estos dos contactos (nombre + correo) como parte de los detalles de ConectaEduca del
+  Grupo 3. Responsable de envío es un dato que vive en la hoja de cálculo en producción (`Responsables.gs`),
+  no en el código, y este entorno no tiene forma de ejecutar funciones contra esa hoja en vivo (`clasp run`
+  no está disponible aquí) — hay que cargarlos a mano desde la propia app, en la pantalla "Responsable de
+  envío" del Grupo 3 (ya sea desde Participación o desde la nueva pantalla de ConectaEduca, comparten el
+  mismo dato).
+
+Verificado: `node --check` de todos los .gs; extracción y `node --check` de los bloques `<script>` de
+Index.html/JS.html/Components.html/Modal.html (limpio, mismo único falso positivo permanente); sin IDs
+duplicados; comparación `getElementById` vs. IDs reales (mismas 8 referencias colgantes ya confirmadas con
+guarda nula, más 3 nuevas esperadas por dejar sin llamar en vez de borrar — `listaRecursosSesion1Botones`,
+`listaSocializacionPreparacion` del lote anterior, y `comunasGrupoCE_ACUERDOS`/`numeroGrupoCE_*` de
+`actualizarEtiquetasConectaEducaGrupo`, que ya no tiene ningún elemento al que apuntar pero se deja
+definida); cada pantalla de `ORDEN_PANTALLAS` (27 en total) tiene su `<section id>` correspondiente;
+búsqueda exhaustiva de referencias colgantes a los 8 campos viejos de ConectaEduca (ninguna, salvo
+comentarios históricos y la lista de columnas heredadas, intencional).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:
