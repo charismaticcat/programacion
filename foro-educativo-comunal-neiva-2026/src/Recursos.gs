@@ -49,6 +49,35 @@ function _urlDescargaDocumentoDrive_(idArchivo) {
   return "https://docs.google.com/document/d/" + idArchivo + "/export?format=pdf";
 }
 
+function _urlEdicionDocumentoDrive_(idArchivo) {
+  return "https://docs.google.com/document/d/" + idArchivo + "/edit";
+}
+
+/**
+ * Enlace único al documento de consolidado del grupo (spec del usuario:
+ * "En pantalla de Consolidado de Socialización solo deja el documento de
+ * consolidado de cada grupo" + "pantalla completa de Consolidado de
+ * Socialización debe ser editable" + "se debe generar un solo link,
+ * eliminar todo el registro del spreadsheets") — reemplaza tanto la fila
+ * de "Archivos de apoyo" como el bloque de referencia por pregunta
+ * (SintesisGrupos.gs) que mostraba Sesión 1: en vez de extraer y mostrar
+ * el texto dentro de la app, se enlaza directo al Google Doc real
+ * ("Informe de Síntesis" del grupo, el mismo que ya estaba mapeado en
+ * RECURSOS_POR_GRUPO_), para que el grupo lo abra y edite ahí mismo. No
+ * se cambia ningún permiso de ese documento — el enlace simplemente usa
+ * la URL de edición nativa de Docs; si el grupo no tiene acceso de
+ * edición, Docs se lo pedirá o lo abrirá en modo lectura por su cuenta.
+ */
+function obtenerEnlaceConsolidadoGrupo(idGrupo) {
+  var idGrupoStr = String(idGrupo || "").trim();
+  var porGrupo = RECURSOS_POR_GRUPO_[idGrupoStr];
+  if (!porGrupo || !porGrupo.informeSintesisId) return null;
+  return {
+    titulo: "Consolidado de " + idGrupoStr,
+    url: _urlEdicionDocumentoDrive_(porGrupo.informeSintesisId)
+  };
+}
+
 /**
  * Los recursos descargables necesarios antes de iniciar Sesión 1, en
  * orden: primero los 2 dependientes del grupo activo (Respuestas

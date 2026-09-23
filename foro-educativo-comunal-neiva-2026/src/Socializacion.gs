@@ -12,56 +12,21 @@
  * dejar el temporizador") — las respuestas reales del grupo se muestran
  * en Sesión 1, ver SintesisGrupos.gs.
  *
- * Mismo patrón de clave compuesta ID_GRUPO+ID_IE (columna CLAVE) que
- * PreparacionIE/ParticipacionEstamento (ver Preparacion.gs).
+ * El checklist "¿ya socializó?" ya NO se guarda en una hoja de cálculo
+ * (spec del usuario: "eliminar todo el registro del spreadsheets") — es
+ * una ayuda puramente visual para quien lleva el registro en vivo durante
+ * la sesión (una sola persona, en un solo dispositivo), así que su estado
+ * se mantiene solo en el cliente (JS.html, estadoSocializacion.datos) y
+ * se reinicia si se recarga la página. obtenerSocializacionGrupo sigue
+ * siendo la fuente de las instituciones del grupo, todas con socializo
+ * en falso al cargar.
  */
-
-var HOJA_SOCIALIZACION_IE_ = "SocializacionIE";
-
-function cabecerasSocializacionIE_() {
-  return ["CLAVE", "ID_GRUPO", "ID_IE", "SOCIALIZO", "ULTIMA_ACTUALIZACION"];
-}
-
-function _claveSocializacion_(idGrupo, idIE) {
-  return String(idGrupo || "").trim() + "|" + String(idIE || "").trim();
-}
 
 /** Checklist de socialización de todas las IE del grupo, listo para pintar en pantalla. */
 function obtenerSocializacionGrupo(idGrupo) {
   idGrupo = String(idGrupo || "").trim();
   var instituciones = obtenerInstitucionesDelGrupo(idGrupo);
-  var hoja = obtenerHoja_(HOJA_SOCIALIZACION_IE_, cabecerasSocializacionIE_());
-  var porClave = {};
-  leerFilasComoObjetos_(hoja).forEach(function (f) {
-    porClave[String(f.CLAVE || "")] = f;
-  });
-
   return instituciones.map(function (ie) {
-    var guardada = porClave[_claveSocializacion_(idGrupo, ie.idIE)];
-    return {
-      idIE: ie.idIE,
-      institucion: ie.institucion,
-      socializo: guardada ? String(guardada.SOCIALIZO || "") === "SI" : false
-    };
+    return { idIE: ie.idIE, institucion: ie.institucion, socializo: false };
   });
-}
-
-/** Marca/desmarca una IE como ya socializada. */
-function guardarSocializacionIE(idGrupo, tokenSesion, dispositivoId, idIE, socializo) {
-  idGrupo = String(idGrupo || "").trim();
-  idIE = String(idIE || "").trim();
-  if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
-    return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión ya no está activa en este dispositivo." };
-  }
-  if (!idIE) return { ok: false, mensaje: "Falta la institución." };
-
-  return conLock_(function () {
-    upsertFila_(HOJA_SOCIALIZACION_IE_, cabecerasSocializacionIE_(), "CLAVE", _claveSocializacion_(idGrupo, idIE), {
-      ID_GRUPO: idGrupo,
-      ID_IE: idIE,
-      SOCIALIZO: socializo ? "SI" : "NO",
-      ULTIMA_ACTUALIZACION: new Date()
-    });
-    return { ok: true };
-  }, 15000);
 }

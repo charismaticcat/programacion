@@ -205,9 +205,21 @@ function obtenerDispositivoId() {
 /* ------------------------------------------------------------------ *
  * Llamadas al servidor (envoltorio de google.script.run)
  * ------------------------------------------------------------------ */
-function llamarServidor(nombreFuncion, args, onExito, onError) {
+function llamarServidor(nombreFuncion, args, onExito, onError, _intentoReintento) {
   google.script.run
     .withSuccessHandler(function (resultado) {
+      // Reintento automático ante contención del lock global (spec del
+      // usuario: "revisa este error 'El sistema está ocupado...'") — con
+      // varios grupos guardando a la vez durante el evento en vivo, el
+      // ScriptLock compartido (conLock_, Data.gs) puede agotar su tiempo
+      // de espera; en vez de mostrarle el error al usuario de inmediato,
+      // se reintenta un par de veces con una pausa corta antes de rendirse.
+      if (resultado && resultado.ok === false && resultado.codigo === "SISTEMA_OCUPADO" && (_intentoReintento || 0) < 2) {
+        setTimeout(function () {
+          llamarServidor(nombreFuncion, args, onExito, onError, (_intentoReintento || 0) + 1);
+        }, 1500);
+        return;
+      }
       if (onExito) onExito(resultado);
     })
     .withFailureHandler(function (error) {
@@ -295,10 +307,12 @@ document.getElementById("btnIrInicio").addEventListener("click", function () {
   // botón no hace nada hasta ese momento (en la práctica, en esa
   // pantalla ya se está viendo "Inicio" desde el flujo normal).
   if (!estado.idGrupo) return;
-  // "pantallaInicio" (bienvenida) es exclusiva de la sección Encuentro
-  // (item 8) — en ConectaEduca no hay un equivalente, así que "Inicio"
-  // lleva a Participación, su primer paso real.
-  cambiarPantalla(estado.seccion === "CONECTAEDUCA" ? "pantallaParticipacion" : "pantallaInicio");
+  // "Inicio" vuelve a la elección de sección (spec del usuario: "Boton
+  // inicio debe regresar a seleccion de voces que contruyen y/o hacia
+  // conectaeduca") — antes llevaba a pantallaInicio en Encuentro y a
+  // Participación en ConectaEduca; ahora es el mismo destino para ambas
+  // secciones, para poder cambiar de una a otra sin recargar la página.
+  cambiarPantalla("pantallaEleccionSeccion");
 });
 
 // Índice de Participación en ORDEN_PANTALLAS — más allá de este punto,
@@ -358,11 +372,11 @@ function cambiarPantalla(idPantalla) {
   if (idPantalla === "pantallaSesionSocializacion") cargarSocializacionIE();
   if (idPantalla === "pantallaSesion1") {
     cargarSesion1();
-    cargarRecursosSesion1();
-    // Respuestas de referencia del grupo (Informe de Síntesis, spec del
-    // usuario) para "Construcción colectiva del grupo" — ver
-    // cargarSocializacionPreparacion / SintesisGrupos.gs.
-    cargarSocializacionPreparacion();
+    // Un solo enlace al documento de consolidado del grupo (spec del
+    // usuario) — reemplaza a cargarRecursosSesion1()/cargarSocializacionPreparacion(),
+    // que mostraban "Archivos de apoyo" y el bloque de referencia por
+    // pregunta dentro de la app; ver cargarEnlaceConsolidadoSocializacion.
+    cargarEnlaceConsolidadoSocializacion();
     // "Continuar a Revisión y cierre" no se habilita hasta que Sesión 1 se
     // envió de forma definitiva (spec del usuario) — se refresca cada vez
     // que se entra a esta pantalla, no solo tras hacer clic en Enviar,
@@ -1312,6 +1326,21 @@ function cargarRecursosSesion1() {
   });
 }
 
+/**
+ * Un solo enlace al documento de consolidado del grupo, en "Consolidado
+ * de Socialización" (Sesión 1) — spec del usuario: "solo deja el
+ * documento de consolidado de cada grupo" / "debe ser editable" / "un
+ * solo link, eliminar todo el registro del spreadsheets". Reemplaza a
+ * cargarRecursosSesion1() y cargarSocializacionPreparacion() en esta
+ * pantalla (ambas se dejan definidas, sin llamarse desde aquí, por si se
+ * necesitan reactivar).
+ */
+function cargarEnlaceConsolidadoSocializacion() {
+  llamarServidor("rpcObtenerEnlaceConsolidadoGrupo", [estado.idGrupo], function (enlace) {
+    renderEnlaceConsolidadoSocializacion(enlace);
+  });
+}
+
 /* ------------------------------------------------------------------ *
  * Sesión de socialización (Documento Orientador FEM2026, sección D,
  * item 10) — reemplaza a "Preparación" (item 9): checklist de qué IE ya
@@ -1439,19 +1468,18 @@ document.getElementById("btnMas2MinSocializacion").addEventListener("click", fun
   mostrarAvisoMomentoSocializacion_("➕ Se añadieron 2 minutos a la presentación de " + estadoSocializacion.ieActivaNombre + ".");
 });
 
-/** Marca la IE activa como socializada (el servidor ya guarda sus respuestas reales). */
+/**
+ * Marca la IE activa como socializada — solo en el cliente (spec del
+ * usuario: "eliminar todo el registro del spreadsheets"), ya que es un
+ * checklist puramente visual para quien lleva el registro en vivo, no un
+ * dato que otras pantallas necesiten leer después.
+ */
 function finalizarSocializacionIE_() {
   var idIE = estadoSocializacion.ieActivaId;
   if (!idIE) return;
-  llamarServidor("rpcGuardarSocializacionIE", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, idIE, true], function (r) {
-    if (!r.ok) {
-      mostrarMensaje("mensajeGlobal", r.mensaje || "No fue posible guardar.", "error");
-      return;
-    }
-    cargarSocializacionIE();
-  }, function () {
-    mostrarMensaje("mensajeGlobal", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
-  });
+  var registro = estadoSocializacion.datos.find(function (ie) { return ie.idIE === idIE; });
+  if (registro) registro.socializo = true;
+  renderChecklistSocializacionIE(estadoSocializacion.datos);
 }
 
 document.getElementById("btnFinalizarSocializacionIE").addEventListener("click", function () {
@@ -1541,6 +1569,12 @@ function _procesarRespuestaAccesoGrupo_(r, idMensaje, reintentarForzado) {
   renderListaInstituciones(estado.instituciones);
   actualizarEtiquetasConectaEducaGrupo();
   renderFotoGrupo(estado.fotoGrupoId, "previaFotoGrupo", "formularioFotoGrupo", estado.grupo);
+  // "Instituciones educativas presentes" se movió a "Querida Comunidad
+  // Educativa del grupo" (pantallaInicio, spec del usuario) — se carga
+  // aquí, apenas se valida el acceso, para que ya esté lista al mostrar
+  // esa pantalla (cargarParticipacionEstamento también alimenta la matriz
+  // de estamento, que se sigue usando más adelante en Participación).
+  cargarParticipacionEstamento();
   // panelFirmantes ya NO se muestra (spec del usuario: "Total de firmantes
   // debe desaparecer pues no hay QR") — queda siempre oculto; se deja el
   // resto de su lógica (iniciarPollingFirmantes, mostrarPanelMetodoAsistencia)

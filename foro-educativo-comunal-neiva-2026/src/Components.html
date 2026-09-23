@@ -290,6 +290,28 @@ function renderRecursosSesion1(recursos) {
 }
 
 /**
+ * Enlace único al documento de consolidado del grupo, en "Consolidado de
+ * Socialización" (Sesión 1) — spec del usuario: un solo link, editable
+ * directo en Docs (ver obtenerEnlaceConsolidadoGrupo, Recursos.gs).
+ */
+function renderEnlaceConsolidadoSocializacion(enlace) {
+  var contenedor = document.getElementById("enlaceConsolidadoSocializacion");
+  if (!contenedor) return;
+  if (!enlace || !enlace.url) {
+    contenedor.innerHTML = "<p class='ayuda'>Todavía no hay un documento de consolidado disponible para este grupo.</p>";
+    return;
+  }
+  var enlaceEl = document.createElement("a");
+  enlaceEl.className = "btn btn-secundario";
+  enlaceEl.href = enlace.url;
+  enlaceEl.target = "_blank";
+  enlaceEl.rel = "noopener";
+  enlaceEl.textContent = "📄 Abrir y editar: " + enlace.titulo;
+  contenedor.innerHTML = "";
+  contenedor.appendChild(enlaceEl);
+}
+
+/**
  * Vista previa de la fotografía general del grupo — reutilizable en
  * Participación y en la pantalla final (Informe generado), donde vuelve
  * a pedirse si se aplazó. Una vez subida, se muestra la foto, se

@@ -244,12 +244,6 @@ function rpcObtenerSocializacionGrupo(idGrupo) {
   });
 }
 
-function rpcGuardarSocializacionIE(idGrupo, tokenSesion, dispositivoId, idIE, socializo) {
-  return ejecutarRpcSeguro_(function () {
-    return guardarSocializacionIE(idGrupo, tokenSesion, dispositivoId, idIE, socializo);
-  });
-}
-
 /** Respuestas de referencia del grupo (Informe de Síntesis) para "Construcción colectiva del grupo" — ver SintesisGrupos.gs. */
 function rpcObtenerRespuestasSintesisGrupo(idGrupo) {
   return ejecutarRpcSeguro_(function () {
@@ -516,6 +510,12 @@ function rpcEnviarSesion1(idGrupo, tokenSesion, dispositivoId) {
 function rpcObtenerRecursosSesion1(idGrupo) {
   return ejecutarRpcSeguro_(function () {
     return obtenerRecursosSesion1(idGrupo);
+  });
+}
+
+function rpcObtenerEnlaceConsolidadoGrupo(idGrupo) {
+  return ejecutarRpcSeguro_(function () {
+    return obtenerEnlaceConsolidadoGrupo(idGrupo);
   });
 }
 

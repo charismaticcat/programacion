@@ -2739,6 +2739,72 @@ Modal.html (limpio, mismo único falso positivo permanente de Index.html); sin I
 Index.html y Modal.html; comparación `getElementById` vs. IDs reales (mismas 8 referencias colgantes ya
 confirmadas con guarda nula, ninguna nueva).
 
+## 4.76 Sexagésimo lote (parte 1 de un pedido grande): botón Inicio, reintento "sistema ocupado", instrucción de 10 minutos, Consolidado de Socialización con un solo link, IE presentes en Bienvenida
+
+Cuarto pedido del usuario en la misma sesión, una lista larga de ajustes puntuales y una petición grande de
+ConectaEduca (esta última, parte 2, en la sección siguiente). Antes de tocar código se investigaron dos
+ítems ambiguos con preguntas al usuario (`AskUserQuestion`): qué debía quedar en "Consolidado de
+Socialización" y adónde debía moverse "Instituciones educativas presentes" — ambos confirmados con la
+opción recomendada.
+
+- **Investigado, sin cambio**: "al dar click en finalizar el temporizador por una IE pone en verde el
+  recuadro gris" — es el comportamiento esperado del checklist (`renderChecklistSocializacionIE`,
+  Components.html: clase `.socializo-hecho`, ✅ en vez de ⬜), no un error.
+- **`Data.gs` (`conLock_`) / `JS.html` (`llamarServidor`)**: investigado el error "El sistema está ocupado,
+  intenta de nuevo en unos segundos" — viene del `LockService.getScriptLock()` compartido por **todos** los
+  RPC de escritura (más de 25 puntos de uso), con un timeout de 10s; con varios grupos guardando a la vez
+  durante el evento en vivo, es esperable que a veces se agote. En vez de aumentar el timeout (alargaría la
+  espera percibida en cada guardado), `llamarServidor` ahora reintenta automáticamente hasta 2 veces (1.5s
+  de pausa entre intentos) cuando el resultado trae `codigo: "SISTEMA_OCUPADO"`, antes de mostrarle el
+  error al usuario — transparente para todos los RPC existentes, no hizo falta tocarlos uno por uno.
+- **`Index.html` (`pantallaSesionSocializacion`)**: el texto de ayuda se reemplazó por un aviso más directo
+  — "⏱️ Cada institución educativa tiene 10 minutos para socializar..." (antes decía "hasta 10 minutos" al
+  final de un párrafo largo, spec del usuario: "una instrucción clara de que cada IE tiene 10 minutos").
+- **"Consolidado de Socialización" (Sesión 1) — un solo link editable**: se quitaron la fila "📎 Archivos de
+  apoyo para esta sesión" (`listaRecursosSesion1Botones`/`cargarRecursosSesion1`) y el bloque de referencia
+  por pregunta "🗣️ Respuestas del grupo (Informe de Síntesis)" (`listaSocializacionPreparacion`/
+  `cargarSocializacionPreparacion`, que leía `SintesisGrupos.gs`) — ambas funciones se dejan definidas, sin
+  llamarse desde esta pantalla, por si se necesitan reactivar. En su lugar, un solo `<div
+  id="enlaceConsolidadoSocializacion">`, alimentado por `rpcObtenerEnlaceConsolidadoGrupo` →
+  `obtenerEnlaceConsolidadoGrupo` (nuevo, `Recursos.gs`): abre el Google Doc real "Informe de Síntesis" del
+  grupo (mismo `informeSintesisId` ya mapeado en `RECURSOS_POR_GRUPO_`) con su URL nativa de edición
+  (`/edit`, no `/export?format=pdf` como los demás recursos) — no se cambió ningún permiso del documento, el
+  enlace solo usa la URL de edición de Docs; si el grupo no tiene acceso de edición, Docs se lo pedirá o lo
+  abrirá en modo lectura por su cuenta. Esto también resuelve "la pantalla completa debe ser editable": al
+  no haber ya una vista de solo lectura dentro de la app, el documento se abre y edita directo en Drive.
+- **Checklist de Socialización, sin spreadsheet** (spec del usuario: "se debe generar un solo link, eliminar
+  todo el registro del spreadsheets y adaptarlo a la nueva lógica"): la hoja `SocializacionIE` (columna
+  `SOCIALIZO`) se eliminó por completo — `Socializacion.gs` quedó solo con `obtenerSocializacionGrupo`
+  (devuelve las IE del grupo, todas con `socializo: false` al cargar); se borraron `guardarSocializacionIE`,
+  `cabecerasSocializacionIE_`, `_claveSocializacion_` y el `crear(HOJA_SOCIALIZACION_IE_, ...)` de
+  `Config.gs`. `rpcGuardarSocializacionIE` se quitó de `Code.gs`. En JS.html, `finalizarSocializacionIE_()`
+  ya no llama al servidor: marca la IE activa como socializada directo en `estadoSocializacion.datos` (en
+  memoria del navegador) y vuelve a pintar el checklist — es una ayuda visual para quien lleva el registro
+  en vivo (una sola persona, un solo dispositivo, spec ya existente), no un dato que otra pantalla necesite
+  leer después, así que no hacía falta persistirlo.
+- **"Instituciones educativas presentes" movida a "Querida Comunidad Educativa del grupo"** (pantallaInicio,
+  spec del usuario) — antes vivía en Participación, justo después de Responsable de envío. Se confirmó con
+  el usuario que se mueve el selector tal cual, **sin** el filtro que había pedido ("habilitar únicamente
+  las IE presentes en socialización y en asistencia"): en esa pantalla, la segunda del recorrido, todavía no
+  existe esa información, así que el filtro no podía aplicarse ahí. `renderListaIEPresentes` sigue
+  alimentándose de `rpcObtenerParticipacionEstamento` (vía `cargarParticipacionEstamento()`), que ahora se
+  llama una vez apenas se valida el acceso (antes solo se llamaba al llegar a Participación) — los mismos
+  datos siguen usándose más adelante para la matriz de estamento, sin duplicar lógica.
+- **Botón "🏠 Inicio"**: antes llevaba a `pantallaInicio` en la sección Encuentro y a `pantallaParticipacion`
+  en ConectaEduca (que no tiene pantalla de bienvenida propia); ahora, en ambas secciones, lleva a
+  `pantallaEleccionSeccion` (spec del usuario: "Boton inicio debe regresar a seleccion de voces que
+  contruyen y/o hacia conectaeduca") — mismo destino ya usado en otros puntos de la app para cambiar de
+  sección sin recargar la página.
+
+Verificado: `node --check` de todos los .gs; extracción y `node --check` de los bloques `<script>` de
+Index.html/JS.html/Components.html/Modal.html (limpio, mismo único falso positivo permanente); sin IDs
+duplicados; comparación `getElementById` vs. IDs reales (las 8 referencias colgantes ya confirmadas con
+guarda nula, más 2 nuevas — `listaRecursosSesion1Botones` y `listaSocializacionPreparacion` — ambas
+guardadas con `if (!contenedor) return`, esperadas por dejar esas funciones sin llamar en vez de borrarlas);
+búsqueda exhaustiva de referencias colgantes a `HOJA_SOCIALIZACION_IE_`/`cabecerasSocializacionIE_`/
+`guardarSocializacionIE`/`rpcGuardarSocializacionIE` (ninguna, incluyendo el `crear(...)` de Config.gs que sí
+tenía una, corregida).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

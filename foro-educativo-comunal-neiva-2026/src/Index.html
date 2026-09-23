@@ -87,6 +87,21 @@
       <p>El Encuentro de voces que construyen territorio, Neiva 2026, reúne a las instituciones educativas organizadas por
         grupos territoriales para socializar los resultados de sus VOCES QUE CONSTRUYEN TERRITORIO,
         construir conclusiones colectivas y dialogar con ConectaEduca.</p>
+    </div>
+
+    <!-- Instituciones educativas presentes — movida aquí, al principio del
+         recorrido (spec del usuario), desde Participación. Solo las IE
+         marcadas aquí aparecen en la matriz de estamento y en el informe
+         final. -->
+    <div class="tarjeta">
+      <h3 class="subtitulo-campo">Instituciones educativas presentes</h3>
+      <p class="ayuda">Marque las instituciones educativas del grupo que están presentes en esta sesión —
+        solo ellas aparecerán en la matriz de participación y en el informe final.</p>
+      <div id="listaIEPresentes"></div>
+      <div id="mensajeIEPresentes"></div>
+    </div>
+
+    <div class="tarjeta">
       <div class="fila-botones">
         <button class="btn btn-primario" id="btnComenzarForo">Comenzar</button>
       </div>
@@ -525,19 +540,6 @@
       <div class="lista-instituciones" id="listaInstituciones"></div>
     </div>
 
-    <!-- Instituciones educativas presentes — spec del usuario: "Responsable
-         de envio debe seleccionar qué instituciones educativas están
-         presentes", justo después de Responsable de envío. Solo las IE
-         marcadas aquí aparecen en la matriz de estamento y en el informe
-         final. -->
-    <div class="tarjeta">
-      <h3 class="subtitulo-campo">Instituciones educativas presentes</h3>
-      <p class="ayuda">Marque las instituciones educativas del grupo que están presentes en esta sesión —
-        solo ellas aparecerán en la matriz de participación y en el informe final.</p>
-      <div id="listaIEPresentes"></div>
-      <div id="mensajeIEPresentes"></div>
-    </div>
-
     <div class="tarjeta">
       <h3 class="subtitulo-campo">Cantidad de asistentes por estamento e institución</h3>
       <p class="ayuda">Registre cuántas personas de cada estamento participaron, por cada institución
@@ -615,9 +617,10 @@
   <section id="pantallaSesionSocializacion" class="pantalla">
     <div class="tarjeta">
       <h2 class="titulo-seccion">Sesión de socialización</h2>
-      <p class="ayuda">Marquen cada institución educativa a medida que socialice oralmente sus reflexiones,
-        conclusiones y propuestas de VOCES QUE CONSTRUYEN TERRITORIO (hasta 10 minutos por institución). Una
-        sola persona puede llevar este registro por el grupo.</p>
+      <p class="mensaje info">⏱️ <strong>Cada institución educativa tiene 10 minutos</strong> para socializar
+        oralmente sus reflexiones, conclusiones y propuestas de VOCES QUE CONSTRUYEN TERRITORIO. Una sola
+        persona puede llevar este registro por el grupo: inicie el temporizador de cada institución cuando
+        le toque su turno.</p>
       <div id="listaSocializacionIE"></div>
     </div>
 
@@ -727,22 +730,12 @@
         existir hallazgos, reflexiones o propuestas propias de la comunidad que no encajen en las preguntas
         anteriores pueden escribirlos al final. Todos los campos son obligatorios.</p>
 
-      <div class="tarjeta-recursos">
-        <h3 class="subtitulo-campo">📎 Archivos de apoyo para esta sesión</h3>
-        <p class="ayuda">Descargue estos documentos de VOCES QUE CONSTRUYEN TERRITORIO para tenerlos a mano
-          mientras socializan los resultados de su grupo.</p>
-        <div id="listaRecursosSesion1Botones" class="fila-botones-recursos"></div>
-      </div>
-
-      <div class="tarjeta-socializacion" id="tarjetaSocializacionPreparacion">
-        <h3 class="subtitulo-campo">🗣️ Respuestas del grupo (Informe de Síntesis)</h3>
-        <p class="ayuda">Lo que este grupo ya respondió a cada una de estas preguntas durante el Foro
-          Educativo Institucional, según el Informe de Síntesis del grupo — como referencia para construir
-          la respuesta colectiva de hoy.</p>
-        <p class="ayuda">💡 Al seleccionar una parte del texto de cualquier pregunta, queda copiada y
-          puede pegarse en la pregunta correspondiente de "Construcción colectiva del grupo", más abajo.</p>
-        <div id="listaSocializacionPreparacion"></div>
-      </div>
+      <!-- Un solo enlace al documento real del grupo (spec del usuario: "solo
+           deja el documento de consolidado de cada grupo" / "debe ser
+           editable" / "un solo link, eliminar todo el registro del
+           spreadsheets") — reemplaza tanto "Archivos de apoyo" como el
+           bloque de referencia por pregunta que se mostraba antes. -->
+      <div id="enlaceConsolidadoSocializacion"></div>
 
     </div>
 
