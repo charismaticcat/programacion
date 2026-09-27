@@ -1,9 +1,13 @@
-# FASE 1 — Arquitectura y diseño (v2)
+# FASE 1 — Arquitectura y diseño (v3)
 ### Formulario público de captura + Super Admin / CRM (Google Apps Script · Sheets · Drive · clasp)
 
 > Estado: **diseño aprobado con ajustes del cliente**. No contiene código de implementación. Pendiente de la instrucción para pasar a FASE 2.
 >
-> Cambios frente a la v1: sin NIT, sin tipo de persona, formulario público sin identificación, propietario en blanco, emails repetidos descartados, actividad completada con el CIIU, teléfonos fijos con 608, solo 4 municipios y cuenta @gmail.com.
+> **Objetivo central:** que el cliente ingrese su información, que el administrador la vea y la edite, y que al final se genere **un reporte editable por cliente**.
+>
+> Cambios de la v2: sin NIT, sin tipo de persona, formulario público sin identificación, propietario en blanco, emails repetidos descartados, actividad completada con el CIIU, teléfonos fijos con 608, solo 4 municipios y cuenta @gmail.com.
+>
+> Cambios de la v3: **todos los campos son editables**, **el email solo alimenta la base de datos** (el sistema no envía correos) y **reporte editable por cliente** en Google Docs.
 
 ---
 
@@ -23,7 +27,9 @@
 | D9 | Municipios | Solo Neiva, Pitalito, Palermo y Rivera | El catálogo `MUNICIPIOS` tiene solo esos 4 (41001, 41551, 41524, 41615). El formulario público los ofrece en una lista cerrada y el servidor rechaza cualquier otro. |
 | D10 | Formulario público | **No requiere identificación**: el cliente solo llena los datos | Sin búsqueda en la base, sin código de verificación y sin mostrar datos existentes. La vinculación con la base la hace el admin (§5.6). |
 | — | Cuenta | @gmail.com | Aplica los límites de cuota de la cuenta gratuita (§10). |
-| — | Uso del email | Por email | Se usa para la confirmación de envío y para el enlace de "continuar después" (§4). |
+| D11 | Campos editables | **Todos los campos son editables** | En el formulario público todos los campos son de libre edición: ninguno es de solo lectura ni viene precargado. En el Super Admin, **cada campo de cada cliente se puede editar** (incluidos los importados de la base: razón social, teléfono, dirección, actividad, etc.) y cada cambio queda en la auditoría con el valor anterior. Las listas (municipio, tipo de establecimiento) también se pueden cambiar en cualquier momento. |
+| D12 | Uso del email | **Solo alimenta la base de datos** | El email es un dato más del cliente. **El sistema no envía correos**: no hay confirmación, ni enlace para continuar, ni verificación. El borrador vive en el navegador del cliente. |
+| D13 | Resultado final | **Un reporte editable por cliente** | Google Doc generado con todos los datos e imágenes del cliente, guardado en su carpeta de Drive y editable por el admin (§4.1). |
 | — | Importación | Los 30.780 registros | Todos entran al CRM como `PROSPECTO`. |
 | — | Catálogo de productos web y precios | Sí | Tabla `PRODUCTOS_WEB` configurable. **Faltan los valores** (§11). |
 | — | Responsable del tratamiento de datos | **Equipo Webpaya** | Figura en la política, el aviso de privacidad y los emails. |
@@ -69,18 +75,21 @@
                                                            ▼
  ┌─────── FORMULARIO PÚBLICO (Web App A) ───────┐    ┌───────────────────────────┐
  │ Sin identificación. Llenar ─► Revisar ─►     │───►│ DB_CORE                   │
- │ Enviar ─► email de confirmación + radicado   │    │ CLIENTES (30.780 PROSPECTO│
- │ (enlace para continuar después por email)    │    │  + nuevos ORIGEN=FORMULARIO)│
+ │ Enviar ─► radicado en pantalla               │    │ CLIENTES (30.780 PROSPECTO│
+ │ (borrador guardado en el navegador)          │    │  + nuevos ORIGEN=FORMULARIO)│
  └──────────────┬───────────────────────────────┘    │ CONTACTOS, SEDES,         │
                 │ archivos                           │ SERVICIOS, PRODUCTOS,     │
                 ▼                                    │ TESTIMONIOS, CONTENIDO_WEB│
  ┌───────────────────────────┐                       │ ARCHIVOS, AUTORIZACIONES, │
- │ DRIVE CRM_WEB/01_CLIENTES │◄──── IDs ─────────────│ SOLICITUDES               │
- └───────────────────────────┘                       └────────────┬──────────────┘
+ │ DRIVE CRM_WEB/01_CLIENTES │◄──── IDs ─────────────│ SOLICITUDES, REPORTES     │
+ │  └ 12_REPORTE (Google Doc │                       └────────────┬──────────────┘
+ │     editable por cliente) │
+ └───────────────────────────┘
                                                                   │
  ┌─────── SUPER ADMIN / CRM (Web App B) ────────┐    ┌────────────▼──────────────┐
  │ Conciliación: solicitud ⇄ prospecto de base  │◄──►│ DB_CRM                    │
- │ Clientes · Duplicados · Archivos · Pipeline  │    │ OPORTUNIDADES, ACTIVIDADES│
+ │ Clientes (todo editable) · Reporte por       │    │ OPORTUNIDADES, ACTIVIDADES│
+ │ cliente · Duplicados · Archivos · Pipeline   │    │                           │
  │ Kanban · Actividades · Seguimientos          │    │ SEGUIMIENTOS, PROPUESTAS, │
  │ Propuestas · Ventas · KPIs · Auditoría       │    │ VENTAS, PROYECTOS_WEB,    │
  └──────────────────────────────────────────────┘    │ DUPLICADOS                │
@@ -88,7 +97,7 @@
                                                      │ DB_SISTEMA: USUARIOS_ADMIN│
                                                      │ CONFIGURACION, CATALOGOS, │
                                                      │ SECUENCIAS, FORM_CAMPOS,  │
-                                                     │ PRODUCTOS_WEB, COLA_EMAILS│
+                                                     │ PRODUCTOS_WEB             │
                                                      ├───────────────────────────┤
                                                      │ DB_AUDITORIA_YYYY         │
                                                      └───────────────────────────┘
@@ -99,7 +108,8 @@
 ```text
 Base existente ─► (CRM: prospección por teléfono/WhatsApp/email con enlace al formulario)
 Formulario público (sin identificación) ─► Sheets (datos) + Drive (archivos)
-   ─► Super Admin: conciliación con la base ─► revisión ─► oportunidad
+   ─► REPORTE EDITABLE del cliente (Google Doc)
+   ─► Super Admin: ver y editar todo ─► conciliación con la base ─► oportunidad
    ─► Seguimiento ─► Propuesta ─► Venta ─► Proyecto web
 ```
 
@@ -183,12 +193,12 @@ Claves que salen de la hoja `Plantilla original`: `nombre_pagina_opcion_1`, `nom
 `ARCHIVO_ID, CLIENTE_ID, SOLICITUD_ID, ENTIDAD, ENTIDAD_ID, CATEGORIA (LOGO|FOTO_NEGOCIO|FOTO_EQUIPO|FOTO_PRODUCTO|FOTO_SERVICIO|FOTO_TESTIMONIO|PROPUESTA|COMPROBANTE|OTRO), NOMBRE_ORIGINAL, NOMBRE_DRIVE, DRIVE_FILE_ID, MIME_DETECTADO, TAMANO_BYTES, SHA256, ESTADO (CUARENTENA|APROBADO|RECHAZADO|PAPELERA), MOTIVO_RECHAZO, + control`
 
 #### AUTORIZACIONES (DB_CORE)
-`AUTORIZACION_ID, CLIENTE_ID, SOLICITUD_ID, TIPO (TRATAMIENTO_DATOS|USO_IMAGENES|PUBLICACION_CONTENIDO|CONTACTO_WHATSAPP|CONTACTO_EMAIL|CONTACTO_LLAMADA|USO_RAZON_SOCIAL_BASE|USO_FOTOS_TESTIMONIOS), OTORGADA, TEXTO_VERSION, TEXTO_HASH, FECHA_HORA, FIRMANTE_NOMBRE, FIRMANTE_EMAIL, EMAIL_CONFIRMADO_EN, USER_AGENT, REVOCADA_EN, + control`
+`AUTORIZACION_ID, CLIENTE_ID, SOLICITUD_ID, TIPO (TRATAMIENTO_DATOS|USO_IMAGENES|PUBLICACION_CONTENIDO|CONTACTO_WHATSAPP|CONTACTO_EMAIL|CONTACTO_LLAMADA|USO_RAZON_SOCIAL_BASE|USO_FOTOS_TESTIMONIOS), OTORGADA, TEXTO_VERSION, TEXTO_HASH, FECHA_HORA, FIRMANTE_NOMBRE, USER_AGENT, REVOCADA_EN, + control`
 
-> Como no hay identificación, la prueba del consentimiento es el texto aceptado (versión y hash), la hora y la **confirmación posterior del email** (clic en el enlace del correo de confirmación).
+> Como no hay identificación ni confirmación por email (D12), la prueba del consentimiento es el texto aceptado (versión y hash), la hora y el nombre del firmante. El admin puede corroborarlo por teléfono o WhatsApp y dejarlo como actividad.
 
 #### SOLICITUDES (DB_CORE) — cada formulario diligenciado
-`SOLICITUD_ID, CLIENTE_ID, ESTADO (BORRADOR|ENVIADA|EN_REVISION|REQUIERE_CORRECCION|APROBADA|DESCARTADA_SPAM), PASO_ACTUAL, PORCENTAJE, RADICADO (WEB-2026-000123), TOKEN_HASH, TOKEN_EXPIRA_EN, EMAIL_CONTACTO, EMAIL_CONFIRMADO, EMAIL_CONFIRMADO_EN, ENVIADA_EN, SNAPSHOT_FILE_ID, CONCILIACION_ESTADO (PENDIENTE|VINCULADA|NUEVO_CLIENTE), CLIENTE_BASE_VINCULADO, OBSERVACIONES_ADMIN, REVISADO_POR, REVISADO_EN, + control`
+`SOLICITUD_ID, CLIENTE_ID, ESTADO (BORRADOR|ENVIADA|EN_REVISION|REQUIERE_CORRECCION|APROBADA|DESCARTADA_SPAM), PASO_ACTUAL, PORCENTAJE, RADICADO (WEB-2026-000123), TOKEN_HASH, ENVIADA_EN, SNAPSHOT_FILE_ID, CONCILIACION_ESTADO (PENDIENTE|VINCULADA|NUEVO_CLIENTE), CLIENTE_BASE_VINCULADO, OBSERVACIONES_ADMIN, REVISADO_POR, REVISADO_EN, + control`
 
 #### OPORTUNIDADES (DB_CRM)
 `OPORTUNIDAD_ID, CLIENTE_ID, TITULO, PRODUCTO_WEB_ID, ETAPA, PROBABILIDAD, VALOR_ESTIMADO, FECHA_CIERRE_ESTIMADA, ORIGEN_LEAD, RESPONSABLE_EMAIL, MOTIVO_PERDIDA, FECHA_CIERRE_REAL, ORDEN_KANBAN, + control`
@@ -219,11 +229,11 @@ Claves que salen de la hoja `Plantilla original`: `nombre_pagina_opcion_1`, `nom
 
 Los valores quedan pendientes (§11). Las propuestas y los KPI toman los precios de aquí.
 
-#### COLA_EMAILS (DB_SISTEMA) — necesaria por la cuota de @gmail.com
-`EMAIL_ID, DESTINO, PLANTILLA, DATOS_JSON, PRIORIDAD (1=confirmación, 2=continuar, 3=CRM), ESTADO (PENDIENTE|ENVIADO|ERROR), INTENTOS, ENVIADO_EN`
+#### REPORTES (DB_CORE) — el reporte editable de cada cliente (D13)
+`REPORTE_ID, CLIENTE_ID, SOLICITUD_ID, VERSION_REPORTE (1, 2, 3…), DOC_ID, DOC_URL, PDF_ARCHIVO_ID (opcional), GENERADO_POR (SISTEMA|ADMIN:email), GENERADO_EN, ULTIMA_EDICION_DOC (fecha de modificación leída de Drive), EDITADO_MANUALMENTE (bool), ESTADO (PENDIENTE|GENERADO|ERROR|REEMPLAZADO), + control`
 
 #### CONFIGURACION, CATALOGOS, SECUENCIAS, FORM_CAMPOS (DB_SISTEMA)
-- `CONFIGURACION` (clave-valor): `MAX_UPLOAD_MB` (10), `MAX_TOTAL_MB_SOLICITUD` (100), `TOKEN_TTL_DIAS` (7), `TEXTO_AUTORIZACION_VERSION`, `ETAPAS_PIPELINE_JSON`, `RESPONSABLE_TRATAMIENTO` (= "Equipo Webpaya"), `EMAIL_RESERVA_DIARIA_ADMIN` (15), `MANTENIMIENTO`.
+- `CONFIGURACION` (clave-valor): `MAX_UPLOAD_MB` (10), `MAX_TOTAL_MB_SOLICITUD` (100), `TEXTO_AUTORIZACION_VERSION`, `ETAPAS_PIPELINE_JSON`, `RESPONSABLE_TRATAMIENTO` (= "Equipo Webpaya"), `PLANTILLA_REPORTE_DOC_ID`, `MANTENIMIENTO`.
 - `CATALOGOS`: `MUNICIPIOS` (solo 4), `TIPOS_ESTABLECIMIENTO`, `ETAPAS`, `MOTIVOS_PERDIDA`, `RESULTADOS_ACTIVIDAD`.
 - `SECUENCIAS`: radicados, `CLIENTE_ID` nuevos, propuestas y ventas (bajo `LockService`).
 - `FORM_CAMPOS`: definición de pasos y campos del formulario.
@@ -234,7 +244,7 @@ Los valores quedan pendientes (§11). Las propuestas y los KPI toman los precios
 ### 2.3 Relaciones
 
 ```text
-CLIENTES 1─N CONTACTOS | SEDES | SERVICIOS | PRODUCTOS | TESTIMONIOS | CONTENIDO_WEB | ARCHIVOS | AUTORIZACIONES | SOLICITUDES
+CLIENTES 1─N CONTACTOS | SEDES | SERVICIOS | PRODUCTOS | TESTIMONIOS | CONTENIDO_WEB | ARCHIVOS | AUTORIZACIONES | SOLICITUDES | REPORTES
 CLIENTES 1─N OPORTUNIDADES 1─N ACTIVIDADES / SEGUIMIENTOS / PROPUESTAS
 OPORTUNIDADES 1─0..1 VENTAS 1─0..1 PROYECTOS_WEB
 PRODUCTOS_WEB 1─N OPORTUNIDADES
@@ -248,7 +258,7 @@ CLIENTES N─N CLIENTES (DUPLICADOS / conciliación)
 | `DB_ORIGEN` | `BASE_CCH`: copia de solo lectura, sin NIT |
 | `DB_CORE` | Clientes y todo lo que escribe el formulario |
 | `DB_CRM` | Lo que escriben los admins |
-| `DB_SISTEMA` | Configuración, usuarios, catálogos y cola de emails |
+| `DB_SISTEMA` | Configuración, usuarios, catálogos y productos web |
 | `DB_AUDITORIA_YYYY` | Auditoría, rota por año |
 
 Tamaño estimado: `CLIENTES` tiene unas 38 columnas × 31.000 filas ≈ 1,2 M celdas, dentro del límite de 10 M por archivo.
@@ -277,9 +287,10 @@ CRM_WEB/                                   (cuenta @gmail.com propietaria; nada 
 │           ├── 08_SOLICITUDES/            (snapshot JSON de cada envío)
 │           ├── 09_PROPUESTAS/
 │           ├── 10_VENTAS/
-│           └── 11_PROYECTO_WEB/
+│           ├── 11_PROYECTO_WEB/
+│           └── 12_REPORTE/                (REPORTE_CLI-030801_v1, _v2… Google Docs editables)
 ├── 02_CUARENTENA/YYYY-MM-DD/              (entrada de toda subida pública)
-├── 03_PLANTILLAS/                         (propuesta, textos legales versionados)
+├── 03_PLANTILLAS/                         (PLANTILLA_REPORTE_CLIENTE (Google Doc), propuesta, textos legales)
 └── 04_EXPORTS/                            (se borran a los 7 días)
 ```
 
@@ -295,13 +306,13 @@ CRM_WEB/                                   (cuenta @gmail.com propietaria; nada 
 
 ## 4. Flujo del formulario público (sin identificación)
 
-Es una SPA en `HtmlService` con pasos, guardado automático y un **token de solicitud** que da acceso únicamente a ese borrador.
+Es una SPA en `HtmlService` con pasos, guardado automático y un **token de solicitud** que da acceso únicamente a ese borrador. **Todos los campos son editables** y ninguno viene precargado (D11). El cliente puede volver a cualquier paso y cambiar lo que quiera hasta enviar.
 
 | # | Paso | Contenido | Reglas |
 |---|---|---|---|
 | 0 | Bienvenida | Qué es, tiempo estimado, aviso de privacidad de **Equipo Webpaya** y enlace a la política | Aceptar el aviso para continuar |
 | 1 | Datos del negocio | Razón social o nombre del establecimiento\*, nombre del propietario, nombre comercial (opcional), tipo de establecimiento (opciones 1 y 2), nombre de página deseado (opciones 1 y 2) | Al guardar este paso se crea el borrador y el token |
-| 2 | Contacto | Email\*, teléfono fijo, WhatsApp\*, canal preferido | Fijo de 7 dígitos → se antepone 608 automáticamente. Celular de 10 dígitos. |
+| 2 | Contacto | Email (solo como dato, D12), teléfono fijo, WhatsApp\*, canal preferido | Fijo de 7 dígitos → se antepone 608 automáticamente. Celular de 10 dígitos. |
 | 3 | Ubicación y horarios | Municipio\* (**solo los 4**), dirección\*, barrio. Sede 1 y opcional Sede 2+. Horario entre semana, fin de semana, especiales. Atiende en sitio. | |
 | 4 | Mensaje | ¿Qué le gustaría transmitir en su página web? | Texto |
 | 5 | Imágenes | Logo, fotos del negocio y del equipo | §6.4 |
@@ -311,16 +322,42 @@ Es una SPA en `HtmlService` con pasos, guardado automático y un **token de soli
 | 9 | Servicios adicionales | Agenda de citas (sí/no, versión de pago). Base de datos de clientes (sí/no, versión de pago). | Señales de venta para el CRM |
 | 10 | Autorizaciones | Casillas separadas y **desmarcadas**: tratamiento de datos (obligatoria), uso de imágenes, publicación del contenido, contacto por WhatsApp, email y llamada, "¿Permite el uso de su razón social para alimentar nuestra base de datos?" | Versión y hash del texto |
 | 11 | Revisión | Resumen con enlaces para editar cada paso | |
-| 12 | Envío | Radicado `WEB-2026-000123` en pantalla, email de confirmación en cola y snapshot JSON en Drive | Crea el cliente `ORIGEN = FORMULARIO`, la solicitud `ENVIADA`, las propuestas de conciliación y un seguimiento `REVISAR_SOLICITUD` |
+| 12 | Envío | Radicado `WEB-2026-000123` **en pantalla** (sin email) y snapshot JSON en Drive | Crea el cliente `ORIGEN = FORMULARIO`, la solicitud `ENVIADA`, las propuestas de conciliación, un seguimiento `REVISAR_SOLICITUD` y **pone en cola la generación del reporte** (§4.1) |
 
-\* = obligatorio.
+\* = obligatorio. Los obligatorios se pueden ajustar en `FORM_CAMPOS`.
 
-**Continuar después (uso del email):**
+**Continuar después:** el token del borrador se guarda en `localStorage` del navegador, así que en el mismo dispositivo y navegador se retoma automáticamente. **No hay enlace por email** (D12). Si el cliente cambia de dispositivo, empieza de nuevo o termina en el primero. El token se invalida al enviar.
 
-- El token del borrador se guarda en `localStorage` del navegador, así que en el mismo dispositivo se retoma automáticamente.
-- Para continuar en otro dispositivo, el botón "Enviarme un enlace para continuar" pone en cola un email con `…/exec?c=<token>`. El token expira a los 7 días y **se invalida al enviar** el formulario.
+### 4.1 Reporte editable por cliente (D13)
 
-**Confirmación:** el email de confirmación lleva el radicado y un enlace "Confirmar mi correo". Marca `EMAIL_CONFIRMADO` y refuerza la prueba del consentimiento. No confirmar **no bloquea** la solicitud, pero el CRM la muestra con menor confianza.
+**Formato: Google Doc** en la carpeta `12_REPORTE` del cliente. El admin lo edita directamente en Google Docs (texto, orden, imágenes) y puede descargarlo como PDF o Word desde el propio Docs.
+
+**Contenido** (se genera desde `03_PLANTILLAS/PLANTILLA_REPORTE_CLIENTE`, que el admin puede rediseñar):
+
+1. Encabezado: razón social, nombre comercial, radicado, fecha y logo.
+2. Datos del negocio: propietario, tipo de establecimiento (opciones 1 y 2) y nombres de página deseados (opciones 1 y 2).
+3. Contacto: teléfono fijo, WhatsApp, email y canal preferido.
+4. Ubicación y horarios, por sede.
+5. Qué quiere transmitir.
+6. Servicios (tabla).
+7. Catálogo de productos con costo, y domicilios (sí/no + costo).
+8. Testimonios: texto, foto y permiso.
+9. Servicios adicionales: agenda de citas y base de datos de clientes (sí/no, versión de pago).
+10. Autorizaciones otorgadas.
+11. Galería: fotos del negocio y del equipo, en miniatura.
+12. **Sección "Notas de Webpaya"** vacía, para que el admin complete.
+
+**Cuándo se genera:**
+
+- **Automáticamente al enviar el formulario.** Un trigger del proyecto admin revisa cada 5 minutos las solicitudes `ENVIADA` sin reporte y lo genera. Así el cliente no espera.
+- **A demanda:** botón "Generar/Regenerar reporte" en la ficha del cliente. Usa los datos **actuales** de las hojas, incluidas las ediciones del admin.
+
+**Regla de versiones:** regenerar **nunca sobrescribe** un Doc existente. Crea `_v2`, `_v3`… y marca el anterior como `REEMPLAZADO`. Si el Doc anterior fue editado a mano (`ULTIMA_EDICION_DOC` > `GENERADO_EN`), se avisa antes de regenerar para no perder ese trabajo.
+
+**Dos niveles de edición:**
+
+- **Datos** (Sheets): se editan en la ficha del cliente del Super Admin y alimentan el CRM y las versiones futuras del reporte.
+- **Reporte** (Doc): se edita libremente en Google Docs. Sus cambios **no** vuelven a las hojas; es el documento final de trabajo.
 
 ---
 
@@ -352,7 +389,7 @@ Es una SPA en `HtmlService` con pasos, guardado automático y un **token de soli
 - Conciliación aceptada → los datos del formulario se fusionan en el prospecto de la base (el admin elige campo por campo). Las oportunidades, archivos y solicitudes se reasignan al superviviente y el otro queda con `FUSIONADO_EN`.
 - `GANADA` exige una venta; la venta `PAGADA` crea el `PROYECTOS_WEB` en `BRIEF`.
 - Resultado `VOLVER_A_LLAMAR` exige un seguimiento con fecha.
-- Trigger diario: seguimientos vencidos y resumen por email a cada responsable, si la cuota lo permite.
+- Trigger diario: los seguimientos vencidos pasan a `VENCIDO` y se muestran en el dashboard. No se envía email (D12).
 - `NO_CONTACTAR` bloquea las actividades salientes en el servidor.
 
 ### 5.3 Kanban
@@ -363,16 +400,17 @@ Una columna por etapa. Mover una tarjeta llama a `moverOportunidad(id, etapa, ve
 
 - **Llamada:** enlace `tel:` y registro del resultado.
 - **WhatsApp:** enlace `wa.me/57…` con un mensaje-plantilla que incluye **el enlace al formulario público**. Así se invita a los 30.780 prospectos. Es el canal principal para los 2.110 que no tienen email.
-- **Email:** `GmailApp` con plantillas, a través de `COLA_EMAILS`, respetando la cuota.
+- **Email:** el sistema **no envía correos** (D12). Hay un botón `mailto:` que abre el correo del admin y la actividad se registra manualmente.
 - **Reunión:** evento en Calendar con `CalendarApp`.
 
 ### 5.5 Vistas del Super Admin
 
-1. **Dashboard:** embudo (prospectos → contactados → formularios enviados → propuestas → ventas), pipeline ponderado, ventas del mes, seguimientos vencidos, actividad por admin, distribución por los 4 municipios y por CIIU, y **cuota de email restante del día**.
-2. **Bandeja de solicitudes y conciliación:** cada solicitud nueva con sus candidatos de la base, comparados lado a lado.
-3. **Clientes:** tabla paginada en el servidor. Búsqueda por nombre, email o teléfono. Filtros por municipio, estados, CIIU, tamaño, año de renovación, responsable, "sin email" y "teléfono compartido". Ficha 360°.
-4. **Duplicados**, **Archivos** (aprobar o rechazar), **Pipeline/Kanban**, **Seguimientos**, **Propuestas**, **Ventas**.
-5. **Auditoría** (solo `SUPER_ADMIN`) y **Configuración** (catálogos, productos web y precios, usuarios, textos legales).
+1. **Bandeja de entrada de formularios:** lo último que enviaron los clientes, con acceso directo a la ficha y al reporte. **Es la vista principal.**
+2. **Dashboard:** embudo (prospectos → contactados → formularios enviados → propuestas → ventas), pipeline ponderado, ventas del mes, seguimientos vencidos, actividad por admin y distribución por los 4 municipios y por CIIU.
+3. **Conciliación:** cada solicitud nueva con sus candidatos de la base, comparados lado a lado.
+4. **Clientes:** tabla paginada en el servidor. Búsqueda por nombre, email o teléfono. Filtros por municipio, estados, CIIU, tamaño, año de renovación, responsable, "sin email" y "teléfono compartido". Ficha 360° con **edición en línea de todos los campos** (D11): datos importados, datos del formulario, sedes, servicios, productos, testimonios y archivos (reemplazar o eliminar). Cada guardado controla conflictos por `VERSION` y deja en la auditoría el valor anterior y el nuevo. Botones **Generar/Regenerar reporte** y **Abrir reporte**.
+5. **Duplicados**, **Archivos** (aprobar o rechazar), **Pipeline/Kanban**, **Seguimientos**, **Propuestas**, **Ventas**.
+6. **Auditoría** (solo `SUPER_ADMIN`) y **Configuración** (catálogos, productos web y precios, usuarios, textos legales).
 
 ### 5.6 Conciliación y duplicados (sin NIT)
 
@@ -435,8 +473,9 @@ La conciliación se ejecuta al enviar cada solicitud, sobre un índice en caché
 | Sheets / Drive | Compartir por error | Revisión semanal automática de permisos con alerta si aparece acceso público. |
 | Drive | Archivos maliciosos o pesados | §6.4. |
 | Sesiones | Robo del token del borrador | Solo da acceso a ese borrador, expira a los 7 días, se invalida al enviar y nunca da acceso a la base. |
-| Formulario abierto | Spam o datos falsos | §6.3, confirmación de email y revisión del admin antes de cualquier acción comercial. |
+| Formulario abierto | Spam o datos falsos | §6.3 y revisión del admin antes de cualquier acción comercial. |
 | Datos personales (Ley 1581/2012, Decreto 1377/2013) | Uso comercial de 30.780 registros del registro mercantil | Responsable: **Equipo Webpaya**. Política publicada, aviso en el formulario, autorización expresa con prueba, canal de consulta y supresión (`NO_CONTACTAR`) y minimización (**el NIT no se almacena**). Se recomienda revisión legal y evaluar el registro en el RNBD. |
+| Edición total (D11) | Un cambio erróneo del admin sobrescribe un dato bueno | Auditoría con el valor anterior, botón "deshacer" desde la auditoría y backups nocturnos. |
 | Datos de terceros | Fotos de clientes en los testimonios | Permiso explícito y aprobación del admin. |
 | Exportaciones | Fuga masiva | Solo `SUPER_ADMIN`, auditadas, con caducidad de 7 días. |
 
@@ -460,19 +499,19 @@ crm-web/
 │   ├── 04_Audit.js
 │   ├── 05_Validators.js         # ≤30 palabras, email, teléfono, municipio ∈ 4
 │   ├── 06_DriveStore.js         # carpetas perezosas, cuarentena, firma mágica, hash
-│   ├── 07_Mailer.js             # COLA_EMAILS + control de cuota
+│   ├── 07_ReportBuilder.js      # Google Doc desde plantilla: marcadores {{campo}}, tablas, imágenes
 │   └── 08_Errors.js             # respuesta {ok, data, error}
 ├── apps/
 │   ├── public/
 │   │   ├── .clasp.json  appsscript.json   # USER_DEPLOYING, ANYONE_ANONYMOUS
 │   │   ├── server/ Main.js · Api.js (api_crearBorrador, api_guardarPaso, api_subirFragmento,
-│   │   │           api_enviar, api_pedirEnlaceContinuar, api_confirmarEmail) · TokenService.js ·
+│   │   │           api_enviar) · TokenService.js ·
 │   │   │           AntiSpam.js · FormService.js · UploadService.js
 │   │   └── client/ index.html · styles.html · app.js.html · steps/*.html · components/*.html
 │   └── admin/
 │       ├── .clasp.json  appsscript.json   # USER_ACCESSING, ANYONE (cuenta Google)
 │       ├── server/ Main.js · Api.js · AuthAdmin.js · ClientesService.js · ConciliacionService.js ·
-│       │           DuplicadosService.js · ArchivosService.js · OportunidadesService.js ·
+│       │           DuplicadosService.js · ArchivosService.js · ReporteService.js · OportunidadesService.js ·
 │       │           ActividadesService.js · SeguimientosService.js · PropuestasService.js ·
 │       │           VentasService.js · KpiService.js · AuditService.js · SearchIndex.js · Triggers.js
 │       ├── setup/ Install.js (idempotente) · ImportBase.js (lotes de 2.000 reanudables, reglas D1–D9)
@@ -508,10 +547,12 @@ crm-web/
 
 | # | Riesgo | Mitigación |
 |---|---|---|
-| R1 | **Cuota de @gmail.com: unos 100 destinatarios de email al día** | `COLA_EMAILS` con prioridades (1 confirmación, 2 continuar, 3 CRM), un trigger cada 10 minutos que envía según `MailApp.getRemainingDailyQuota()`, una reserva diaria para admins y el contador visible en el dashboard. Las campañas masivas a prospectos van **por WhatsApp**, no por email. Si se superan unos 60 formularios al día, pasar a Workspace (1.500 al día). |
-| R2 | Formulario abierto → spam o datos falsos | §6.3, confirmación de email y revisión del admin. |
+| R1 | ~~Cuota de email de @gmail.com~~ | **Eliminado**: el sistema no envía correos (D12). Las invitaciones a prospectos van por WhatsApp o llamada. |
+| R1b | El cliente pierde el borrador si cambia de dispositivo o borra el navegador (no hay enlace por email) | Autosave en el servidor con cada paso, formulario corto por pasos y aviso visible de "termine en este mismo dispositivo". El admin ve también los borradores sin enviar en la bandeja (filtro `BORRADOR`) y puede completarlos o contactar al cliente. |
+| R1c | Generar reportes consume tiempo de trigger (90 min/día en @gmail.com) | Unos 10–20 s por reporte: caben más de 200 al día. Generación en cola, con reintento en caso de error. |
+| R2 | Formulario abierto → spam o datos falsos | §6.3 y revisión del admin. |
 | R3 | La vinculación con la base es menos precisa sin NIT ni identificación | Conciliación por email único, teléfono y nombre + municipio, siempre con decisión manual (§5.6). |
-| R4 | 2.110 prospectos sin email (D5) y unos 50 sin teléfono válido | Contacto por teléfono o WhatsApp. Filtro "sin email" en el CRM. |
+| R4 | 2.110 prospectos sin email (D5) y unos 50 sin teléfono válido | Contacto por teléfono o WhatsApp, filtro "sin email" en el CRM. El admin puede completar el email a mano (D11). |
 | R5 | Teléfonos compartidos (3.118 filas) | Marca `TELEFONO_COMPARTIDO` y puntaje bajo en la conciliación. |
 | R6 | Límite de 6 minutos y lectura lenta de 31.000 filas | `TextFinder` para búsquedas puntuales, índice compacto gzip en `CacheService` y paginación en el servidor. |
 | R7 | Unas 30 ejecuciones simultáneas, contando todas las anónimas contra el propietario | Autosave con *debounce*, subidas secuenciales e invitaciones escalonadas. |
@@ -520,6 +561,7 @@ crm-web/
 | R10 | Cumplimiento de habeas data | §7. Equipo Webpaya como responsable. Revisión legal antes de lanzar. |
 | R11 | Una cuenta @gmail.com personal como único propietario | Cuenta dedicada a Webpaya (no personal) con verificación en dos pasos, backups y procedimiento de recuperación documentado. |
 | R12 | Triggers de @gmail.com limitados a 90 min/día | Triggers cortos e idempotentes. Importación inicial y detección de duplicados en lotes repartidos en varios días si fuera necesario. |
+| R13a | Regenerar un reporte borra las ediciones hechas a mano en el Doc | Nunca se sobrescribe: se crean versiones y se avisa si el Doc fue editado (§4.1). |
 | R13 | Cambios en la plantilla del formulario | `FORM_CAMPOS` + `CONTENIDO_WEB` clave-valor. |
 | R14 | Autorizaciones inválidas | Casillas separadas y desmarcadas, con texto versionado y hash. |
 
@@ -528,8 +570,8 @@ crm-web/
 ## 11. Pendiente antes de la Fase 2
 
 1. **Precios de `PRODUCTOS_WEB`:** la respuesta fue "sí" a incluir el catálogo, pero faltan los valores de página básica, catálogo, agenda de citas, base de datos de clientes y "versión de pago". Se pueden cargar después desde Configuración sin afectar al desarrollo.
-2. **Interpretación de "por email" + "sin identificación":** se entendió que el email se usa **solo** para la confirmación de envío y para el enlace de "continuar después", **no** como verificación para entrar al formulario. Si se prefiere que el email no se use para nada salvo la confirmación, se quita el enlace de continuar y el borrador vive solo en el navegador.
-
+2. **Reporte:** el mensaje quedó cortado en *"se genera un reporte editable por cada cliente para poner…"*. Se diseñó como Google Doc con todos los datos, imágenes y una sección de notas (§4.1). **Falta confirmar el destino del reporte** (¿para poner en la construcción de la página?, ¿para enviar al cliente?, ¿como propuesta?), porque eso define su orden y su diseño.
+3. **Campos obligatorios del formulario:** con "todos los campos son editables" se propone dejar como obligatorios solo razón social o nombre del establecimiento, WhatsApp, municipio, dirección y la autorización de tratamiento de datos. El resto es opcional. Es ajustable en `FORM_CAMPOS`.
 ---
 
 *Fin de la FASE 1. En espera de la instrucción para implementar.*
