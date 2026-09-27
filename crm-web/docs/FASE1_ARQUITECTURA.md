@@ -1,4 +1,4 @@
-# FASE 1 — Arquitectura y diseño (v4)
+# FASE 1 — Arquitectura y diseño (v5)
 ### Formulario público de captura + Super Admin / CRM (Google Apps Script · Sheets · Drive · clasp)
 
 > Estado: **diseño aprobado con ajustes del cliente**. No contiene código de implementación. Pendiente de la instrucción para pasar a FASE 2.
@@ -29,6 +29,9 @@
 | — | Cuenta | @gmail.com | Aplica los límites de cuota de la cuenta gratuita (§10). |
 | D11 | Campos editables | **Todos los campos son editables** | En el formulario público todos los campos son de libre edición: ninguno es de solo lectura ni viene precargado. En el Super Admin, **cada campo de cada cliente se puede editar** (incluidos los importados de la base: razón social, teléfono, dirección, actividad, etc.) y cada cambio queda en la auditoría con el valor anterior. Las listas (municipio, tipo de establecimiento) también se pueden cambiar en cualquier momento. |
 | D12 | Uso del email | **Solo alimenta la base de datos** | El email es un dato más del cliente. **El sistema no envía correos**: no hay confirmación, ni enlace para continuar, ni verificación. El borrador vive en el navegador del cliente. |
+| D14 | Precios | **Espacio de precios editable** | Ningún precio es fijo. `PRODUCTOS_WEB.PRECIO` es solo una **sugerencia opcional** (puede quedar vacío). En oportunidades, propuestas y ventas cada valor (`VALOR_ESTIMADO`, precio por ítem, descuento, total) **se escribe o modifica a mano**. Los precios del cliente (servicios, productos, domicilios) también son campos libres. |
+| D15 | Campos autocompletables vs. libres | **Todo lo que no tenga datos para autocompletar es editable** | Solo hay 2 campos con **sugerencias**: municipio (los 4) y tipo de establecimiento (catálogo). Ambos tienen autocompletado **y** siguen siendo editables: el tipo de establecimiento admite texto libre si no está en la lista (se guarda y el admin puede añadirlo al catálogo). **Todos los demás campos son texto libre editable.** |
+| D16 | Software de diseño web | **Aún no definido** | El reporte usa la estructura genérica por secciones web + JSON opcional (§4.1). Cuando se elija el software, solo se ajusta la plantilla del reporte, sin cambiar datos ni código de captura. |
 | D13 | Resultado final | **Un reporte editable por cliente** | Google Doc generado con todos los datos e imágenes del cliente, guardado en su carpeta de Drive y editable por el admin (§4.1). |
 | — | Importación | Los 30.780 registros | Todos entran al CRM como `PROSPECTO`. |
 | — | Catálogo de productos web y precios | Sí | Tabla `PRODUCTOS_WEB` configurable. **Faltan los valores** (§11). |
@@ -201,7 +204,7 @@ Claves que salen de la hoja `Plantilla original`: `nombre_pagina_opcion_1`, `nom
 `SOLICITUD_ID, CLIENTE_ID, ESTADO (BORRADOR|ENVIADA|EN_REVISION|REQUIERE_CORRECCION|APROBADA|DESCARTADA_SPAM), PASO_ACTUAL, PORCENTAJE, RADICADO (WEB-2026-000123), TOKEN_HASH, ENVIADA_EN, SNAPSHOT_FILE_ID, CONCILIACION_ESTADO (PENDIENTE|VINCULADA|NUEVO_CLIENTE), CLIENTE_BASE_VINCULADO, OBSERVACIONES_ADMIN, REVISADO_POR, REVISADO_EN, + control`
 
 #### OPORTUNIDADES (DB_CRM)
-`OPORTUNIDAD_ID, CLIENTE_ID, TITULO, PRODUCTO_WEB_ID, ETAPA, PROBABILIDAD, VALOR_ESTIMADO, FECHA_CIERRE_ESTIMADA, ORIGEN_LEAD, RESPONSABLE_EMAIL, MOTIVO_PERDIDA, FECHA_CIERRE_REAL, ORDEN_KANBAN, + control`
+`OPORTUNIDAD_ID, CLIENTE_ID, TITULO, PRODUCTO_WEB_ID, ETAPA, PROBABILIDAD, VALOR_ESTIMADO (editable), FECHA_CIERRE_ESTIMADA, ORIGEN_LEAD, RESPONSABLE_EMAIL, MOTIVO_PERDIDA, FECHA_CIERRE_REAL, ORDEN_KANBAN, + control`
 
 #### ACTIVIDADES (DB_CRM)
 `ACTIVIDAD_ID, CLIENTE_ID, OPORTUNIDAD_ID, TIPO (LLAMADA|WHATSAPP|EMAIL|REUNION|NOTA|VISITA|CAMBIO_ETAPA), DIRECCION (ENTRANTE|SALIENTE), RESULTADO (CONTESTO|NO_CONTESTO|NUMERO_ERRADO|INTERESADO|NO_INTERESADO|VOLVER_A_LLAMAR|ENVIADO|RESPONDIDO|REALIZADA|CANCELADA), ASUNTO, DETALLE, DURACION_MIN, FECHA_HORA, CALENDAR_EVENT_ID, REALIZADA_POR, + control`
@@ -210,7 +213,7 @@ Claves que salen de la hoja `Plantilla original`: `nombre_pagina_opcion_1`, `nom
 `SEGUIMIENTO_ID, CLIENTE_ID, OPORTUNIDAD_ID, ACTIVIDAD_ORIGEN_ID, TIPO (LLAMAR|WHATSAPP|EMAIL|REUNION|ENVIAR_PROPUESTA|REVISAR_SOLICITUD|COBRAR|OTRO), DESCRIPCION, FECHA_VENCIMIENTO, PRIORIDAD, ESTADO (PENDIENTE|COMPLETADO|VENCIDO|CANCELADO), ASIGNADO_A, COMPLETADO_EN, + control`
 
 #### PROPUESTAS (DB_CRM)
-`PROPUESTA_ID, OPORTUNIDAD_ID, CLIENTE_ID, NUMERO (PRO-2026-0001), ITEMS_JSON, SUBTOTAL, DESCUENTO, TOTAL, VALIDEZ_HASTA, ESTADO (BORRADOR|ENVIADA|ACEPTADA|RECHAZADA|VENCIDA), PDF_ARCHIVO_ID, ENVIADA_EN, + control`
+`PROPUESTA_ID, OPORTUNIDAD_ID, CLIENTE_ID, NUMERO (PRO-2026-0001), ITEMS_JSON (descripción, cantidad y precio unitario, todos editables), SUBTOTAL, DESCUENTO, TOTAL, VALIDEZ_HASTA, ESTADO (BORRADOR|ENVIADA|ACEPTADA|RECHAZADA|VENCIDA), PDF_ARCHIVO_ID, ENVIADA_EN, + control`
 
 #### VENTAS (DB_CRM)
 `VENTA_ID, OPORTUNIDAD_ID, PROPUESTA_ID, CLIENTE_ID, NUMERO (VEN-2026-0001), FECHA_VENTA, VALOR_TOTAL, FORMA_PAGO, ESTADO_PAGO (PENDIENTE|PARCIAL|PAGADA|ANULADA), VALOR_PAGADO, COMPROBANTE_ARCHIVO_ID, VENDEDOR_EMAIL, PROYECTO_ID, + control`
@@ -224,10 +227,10 @@ Claves que salen de la hoja `Plantilla original`: `nombre_pagina_opcion_1`, `nom
 #### USUARIOS_ADMIN (DB_SISTEMA)
 `USUARIO_ID, EMAIL (cuenta Google), NOMBRE, ROL (SUPER_ADMIN|ADMIN|VENDEDOR|LECTURA), ACTIVO, MUNICIPIOS_ASIGNADOS, ULTIMO_ACCESO, + control`
 
-#### PRODUCTOS_WEB (DB_SISTEMA) — lo que vende Webpaya
+#### PRODUCTOS_WEB (DB_SISTEMA) — lo que vende Webpaya (precios sugeridos y editables, D14)
 `PRODUCTO_WEB_ID, NOMBRE (ej. Página básica, Catálogo, Agenda de citas, Base de datos de clientes), DESCRIPCION, PRECIO, ES_ADICIONAL, ES_VERSION_PAGO, ACTIVO, ORDEN`
 
-Los valores quedan pendientes (§11). Las propuestas y los KPI toman los precios de aquí.
+`PRECIO` es opcional y editable en cualquier momento desde Configuración. Al crear una propuesta u oportunidad **se precarga como sugerencia** y el admin lo cambia libremente en cada caso. Si está vacío, el campo aparece en blanco para escribirlo.
 
 #### REPORTES (DB_CORE) — el reporte editable de cada cliente (D13)
 `REPORTE_ID, CLIENTE_ID, SOLICITUD_ID, VERSION_REPORTE (1, 2, 3…), DOC_ID, DOC_URL, PDF_ARCHIVO_ID (opcional), GENERADO_POR (SISTEMA|ADMIN:email), GENERADO_EN, ULTIMA_EDICION_DOC (fecha de modificación leída de Drive), EDITADO_MANUALMENTE (bool), ESTADO (PENDIENTE|GENERADO|ERROR|REEMPLAZADO), + control`
@@ -584,10 +587,12 @@ crm-web/
 
 ## 11. Pendiente antes de la Fase 2
 
-1. **Precios de `PRODUCTOS_WEB`:** la respuesta fue "sí" a incluir el catálogo, pero faltan los valores de página básica, catálogo, agenda de citas, base de datos de clientes y "versión de pago". Se pueden cargar después desde Configuración sin afectar al desarrollo.
+1. ~~Precios~~ → **Resuelto (D14):** espacio de precios editable. No hace falta definir valores para implementar.
 2. ~~Destino del reporte~~ → **Resuelto:** es para pasar la información al software de diseño de la página web (§4.1).
 3. ~~Campos obligatorios~~ → **Resuelto:** no todos son obligatorios. Solo lo son la razón social o nombre del establecimiento, **un medio de contacto** (WhatsApp o teléfono fijo) y la autorización de tratamiento de datos (exigida por la Ley 1581). **Todo lo demás es opcional.** Se ajusta en `FORM_CAMPOS` sin tocar código.
-4. *(Opcional)* **Nombre del software de diseño** (WordPress/Elementor, Wix, Webflow, etc.). Si se conoce, el orden del reporte y el JSON se ajustan exactamente a sus bloques. Si no, se usa la estructura genérica de §4.1.
+4. ~~Software de diseño~~ → **Aún no definido (D16):** se implementa la estructura genérica. Adaptarla después solo requiere cambiar la plantilla del reporte.
+
+**No quedan decisiones bloqueantes para la Fase 2.**
 ---
 
 *Fin de la FASE 1. En espera de la instrucción para implementar.*
