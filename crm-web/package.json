@@ -1,0 +1,22 @@
+{
+  "name": "webpaya-crm-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Formulario público de onboarding + Super Admin / CRM en Google Apps Script",
+  "scripts": {
+    "test": "node tests/run-tests.js",
+    "test:ui": "NODE_PATH=$(npm root -g) node tests/ui-tests.js",
+    "dev": "node tests/dev-server.js",
+    "docs:db": "node tests/gen-db-doc.js",
+    "push": "clasp push",
+    "pull": "clasp pull",
+    "open": "clasp open",
+    "deploy": "clasp deploy --description \"Webpaya CRM\""
+  },
+  "devDependencies": {
+    "@google/clasp": "^2.4.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,7 +1,7 @@
 # FASE 1 — Arquitectura y diseño (v5)
 ### Formulario público de captura + Super Admin / CRM (Google Apps Script · Sheets · Drive · clasp)
 
-> Estado: **diseño aprobado con ajustes del cliente**. No contiene código de implementación. Pendiente de la instrucción para pasar a FASE 2.
+> Estado: **implementado**. Los ajustes hechos durante la implementación están en [FASE2_IMPLEMENTACION.md](FASE2_IMPLEMENTACION.md).
 >
 > **Objetivo central:** que el cliente ingrese su información, que el administrador la vea y la edite, y que al final se genere **un reporte editable por cliente**.
 >

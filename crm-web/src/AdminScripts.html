@@ -1,0 +1,1531 @@
+<script>
+(() => {
+  'use strict';
+
+  // ================================================================ Estado y utilidades
+  const TOKEN_KEY = 'wp_admin_token';
+  const A = { token: '', user: null, meta: null, view: 'dashboard', params: {}, challenge: '', client: null, clientTab: 'resumen' };
+
+  const ss = {
+    get: (k) => { try { return window.sessionStorage.getItem(k); } catch (e) { return null; } },
+    set: (k, v) => { try { window.sessionStorage.setItem(k, v); } catch (e) { /* sin almacenamiento */ } },
+    del: (k) => { try { window.sessionStorage.removeItem(k); } catch (e) { /* sin almacenamiento */ } }
+  };
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.prototype.slice.call((r || document).querySelectorAll(s));
+
+  /** Crea elementos de forma segura (nunca innerHTML con datos). */
+  function h(tag, attrs, ...children) {
+    const el = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(k => {
+      const v = attrs[k];
+      if (v === undefined || v === null || v === false) return;
+      if (k === 'text') el.textContent = v;
+      else if (k === 'class') el.className = v;
+      else if (k.indexOf('on') === 0 && typeof v === 'function') el.addEventListener(k.slice(2), v);
+      else if (k === 'value') el.value = v;
+      else if (k === 'checked') el.checked = !!v;
+      else if (k === 'style') el.setAttribute('style', v);
+      else el.setAttribute(k, v === true ? '' : v);
+    });
+    const add = (c) => {
+      if (c === null || c === undefined || c === false) return;
+      if (Array.isArray(c)) c.forEach(add);
+      else el.appendChild(typeof c === 'string' || typeof c === 'number' ? document.createTextNode(String(c)) : c);
+    };
+    children.forEach(add);
+    return el;
+  }
+  const clear = (el) => { while (el.firstChild) el.removeChild(el.firstChild); return el; };
+  const money = (n) => { const v = Math.round(Number(n) || 0); return (v < 0 ? '-$ ' : '$ ') + String(Math.abs(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); };
+  const parseMoney = (v) => { const d = String(v == null ? '' : v).replace(/[^\d]/g, ''); return d ? parseInt(d, 10) : 0; };
+  const dt = (s) => (s ? String(s).replace('T', ' ').slice(0, 16) : '');
+  const pretty = (v) => {
+    if (!v) return '';
+    if (A.meta && A.meta.etapas) { const st = A.meta.etapas.find(e => e.key === v); if (st) return st.label; }
+    const s = String(v).replace(/_/g, ' ').toLowerCase();
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  };
+  const stageBadge = (e) => h('span', { class: 'badge st-' + e, text: pretty(e) || 'Sin gestión' });
+  const today = () => (A.meta ? A.meta.today : new Date().toISOString().slice(0, 10));
+  const can = (perm) => !!(A.user && (A.user.permissions.indexOf('*') >= 0 || A.user.permissions.indexOf(perm) >= 0));
+  const isSeller = () => A.user && A.user.rol === 'VENDEDOR';
+
+  // ================================================================ Servidor
+  function rpc(fn, ...args) {
+    return new Promise((resolve, reject) => {
+      if (!window.google || !google.script || !google.script.run) { reject({ code: 'NETWORK', message: 'Abra el panel desde la aplicación publicada.' }); return; }
+      const runner = google.script.run
+        .withSuccessHandler(res => (res && res.ok ? resolve(res.data) : reject((res && res.error) || { code: 'UNKNOWN', message: 'Respuesta inesperada.' })))
+        .withFailureHandler(err => reject({ code: 'NETWORK', message: 'Sin conexión con el servidor.', raw: String((err && err.message) || err) }));
+      runner[fn].apply(runner, args);
+    });
+  }
+  /** Llamada autenticada: agrega el token y maneja sesión vencida. */
+  function api(fn, ...args) {
+    return rpc(fn, A.token, ...args).catch(err => {
+      if (err.code === 'UNAUTHENTICATED') { ss.del(TOKEN_KEY); A.token = ''; showAuth('login'); toast(err.message, 'error'); }
+      if (err.code === 'PASSWORD_CHANGE_REQUIRED') showAuth('password');
+      throw err;
+    });
+  }
+  function toast(msg, kind) {
+    const el = h('div', { class: 'toast ' + (kind || ''), role: kind === 'error' ? 'alert' : 'status', text: msg });
+    const box = $('#toasts');
+    box.appendChild(el);
+    while (box.children.length > 3) box.removeChild(box.firstChild);
+    setTimeout(() => el.remove(), kind === 'error' ? 7000 : 3500);
+  }
+  const fail = (err) => { if (err && err.code !== 'UNAUTHENTICATED') toast((err && err.message) || 'Error', 'error'); };
+  function loading(el) { clear(el).appendChild(h('div', { class: 'loading' }, h('div', { class: 'spinner' }), 'Cargando…')); }
+  function download(file) {
+    const bin = atob(file.base64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const url = URL.createObjectURL(new Blob([bytes], { type: file.mime }));
+    const a = h('a', { href: url, download: file.name });
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+  }
+
+  // ================================================================ Modales
+  /**
+   * modal({title, body, actions:[{label, class, onClick: () => Promise|boolean}], wide})
+   * onClick devuelve false para no cerrar, o una promesa (cierra al resolver).
+   */
+  function modal(opts) {
+    const root = $('#modalRoot');
+    const prevFocus = document.activeElement;
+    let closed = false;
+    const close = (fromAction) => {
+      if (closed) return;
+      closed = true;
+      back.remove();
+      if (!fromAction && opts.onClose) opts.onClose();
+      if (prevFocus && prevFocus.focus) prevFocus.focus();
+    };
+    const footer = h('footer', null);
+    (opts.actions || [{ label: 'Cerrar', class: 'btn-ghost' }]).forEach(a => {
+      const b = h('button', { type: 'button', class: 'btn ' + (a.class || 'btn-ghost'), text: a.label });
+      b.addEventListener('click', () => {
+        if (!a.onClick) { close(); return; }
+        const r = a.onClick();
+        if (r === false) return;
+        if (r && typeof r.then === 'function') {
+          $$('button', footer).forEach(x => { x.disabled = true; });
+          r.then(res => { if (res !== false) close(true); }).catch(fail).then(() => $$('button', footer).forEach(x => { x.disabled = false; }));
+        } else close(true);
+      });
+      footer.appendChild(b);
+    });
+    const dlg = h('div', { class: 'modal', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'mTitle', style: opts.wide ? 'width:min(1000px,100%)' : null },
+      h('header', null, h('h2', { id: 'mTitle', text: opts.title }), h('button', { type: 'button', class: 'xbtn', 'aria-label': 'Cerrar', text: '×', onclick: () => close(false) })),
+      h('div', { class: 'mbody' }, opts.body), footer);
+    const back = h('div', { class: 'modal-back' }, dlg);
+    back.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(false); });
+    root.appendChild(back);
+    const first = $('input, select, textarea, button', dlg.querySelector('.mbody')) || $('button', footer);
+    if (first) first.focus();
+    return { close };
+  }
+  function confirmDialog(title, message, okLabel) {
+    return new Promise(resolve => {
+      modal({
+        title, body: h('p', { text: message }), onClose: () => resolve(false),
+        actions: [{ label: 'Cancelar', class: 'btn-ghost', onClick: () => { resolve(false); } },
+          { label: okLabel || 'Confirmar', class: 'btn-primary', onClick: () => { resolve(true); } }]
+      });
+    });
+  }
+
+  // ================================================================ Formularios genéricos (desde el esquema)
+  function enumOptions(col) {
+    if (col.enumKey === 'cat:MUNICIPIOS') return A.meta.municipios;
+    if (col.enumKey === 'ref:PRODUCTOS_WEB') return A.meta.productosWeb.map(p => ({ value: p.id, label: p.nombre }));
+    return (A.meta.enums[col.enumKey] || []).filter(Boolean);
+  }
+  function inputFor(col, value, id) {
+    const common = { id, name: col.name, 'data-col': col.name, 'data-type': col.type };
+    switch (col.type) {
+      case 't': return h('textarea', Object.assign({ rows: 3 }, common), value == null ? '' : String(value));
+      case 'b': return h('label', { class: 'check-inline' }, h('input', Object.assign({ type: 'checkbox', checked: !!value }, common)), h('span', { text: 'Sí' }));
+      case 'n': return h('input', Object.assign({ type: 'number', step: 'any', value: value === '' || value == null ? '' : String(value) }, common));
+      case 'm': return h('input', Object.assign({ type: 'text', inputmode: 'numeric', value: value ? money(value) : '' }, common));
+      case 'd': return h('input', Object.assign({ type: 'date', value: value || '' }, common));
+      case 'dt': return h('input', Object.assign({ type: 'datetime-local', value: value ? String(value).slice(0, 16) : '' }, common));
+      case 'e': {
+        const sel = h('select', common, h('option', { value: '', text: '—' }));
+        enumOptions(col).forEach(o => {
+          const val = typeof o === 'object' ? o.value : o;
+          const lab = typeof o === 'object' ? o.label : pretty(o);
+          sel.appendChild(h('option', { value: val, text: lab }));
+        });
+        if (value && !$$('option', sel).some(o => o.value === value)) sel.appendChild(h('option', { value, text: pretty(value) }));
+        sel.value = value || '';
+        return sel;
+      }
+      default: {
+        const inp = h('input', Object.assign({ type: 'text', value: value == null ? '' : String(value) }, common));
+        if (col.name === 'TIPO_ESTABLECIMIENTO') inp.setAttribute('list', 'dl-tipos');
+        return inp;
+      }
+    }
+  }
+  function readInputs(root) {
+    const out = {};
+    $$('[data-col]', root).forEach(el => {
+      const t = el.getAttribute('data-type');
+      const k = el.getAttribute('data-col');
+      if (t === 'b') out[k] = el.checked;
+      else if (t === 'm') out[k] = parseMoney(el.value);
+      else if (t === 'n') out[k] = el.value === '' ? '' : Number(el.value);
+      else out[k] = el.value;
+    });
+    return out;
+  }
+  function formGrid(table, record, onlyEditable) {
+    const cols = A.meta.schema[table].filter(c => (onlyEditable ? c.editable : true));
+    const grid = h('div', { class: 'form-grid' });
+    cols.forEach((c, i) => {
+      const id = 'fld-' + table + '-' + c.name + '-' + i;
+      grid.appendChild(h('div', { class: 'field' + (c.type === 't' ? ' wide' : '') }, h('label', { for: id, text: c.label }), inputFor(c, record ? record[c.name] : '', id)));
+    });
+    return grid;
+  }
+  /** Modal de edición genérico para una tabla. */
+  function recordModal(title, table, record, save) {
+    const body = formGrid(table, record || {}, true);
+    return modal({
+      title, body,
+      actions: [{ label: 'Cancelar' }, {
+        label: 'Guardar', class: 'btn-primary',
+        onClick: () => save(readInputs(body)).then(r => { toast('Guardado.', 'ok'); return r; })
+      }]
+    });
+  }
+
+  // ================================================================ Autenticación
+  function showAuth(which) {
+    ['Login', '2fa', 'Setup', 'Password', 'App'].forEach(v => { $('#view' + v).hidden = true; });
+    const map = { login: 'Login', '2fa': '2fa', setup: 'Setup', password: 'Password', app: 'App' };
+    $('#view' + map[which]).hidden = false;
+    const first = $('#view' + map[which] + ' input');
+    if (first && which !== 'app') first.focus();
+  }
+  const msg = (id, text, kind) => { const el = $(id); clear(el); if (text) el.appendChild(h('div', { class: 'notice ' + (kind || 'error'), text })); };
+
+  function onLogin(e) {
+    e.preventDefault();
+    msg('#loginMsg', '');
+    const btn = $('#loginBtn');
+    btn.disabled = true;
+    rpc('adm_login', $('#loginEmail').value.trim(), $('#loginPass').value, navigator.userAgent).then(r => {
+      if (r.twoFactor) { A.challenge = r.challenge; showAuth('2fa'); return; }
+      afterLogin(r);
+    }).catch(err => msg('#loginMsg', err.message)).then(() => { btn.disabled = false; $('#loginPass').value = ''; });
+  }
+  function on2fa(e) {
+    e.preventDefault();
+    rpc('adm_verify2fa', A.challenge, $('#twoFaCode').value.trim(), navigator.userAgent).then(afterLogin).catch(err => msg('#twoFaMsg', err.message));
+  }
+  function afterLogin(r) {
+    A.token = r.token;
+    ss.set(TOKEN_KEY, r.token);
+    if (r.user.mustChange) { showAuth('password'); return; }
+    boot();
+  }
+  function onSetup(e) {
+    e.preventDefault();
+    if ($('#setupPass').value !== $('#setupPass2').value) { msg('#setupMsg', 'Las contraseñas no coinciden.'); return; }
+    rpc('adm_createSuperAdmin', $('#setupCode').value.trim(), $('#setupEmail').value.trim(), $('#setupName').value.trim(), $('#setupPass').value)
+      .then(r => { msg('#setupMsg', 'Listo. Inicie sesión con ' + r.email + '.', 'ok'); $('#loginEmail').value = r.email; setTimeout(() => showAuth('login'), 1200); })
+      .catch(err => msg('#setupMsg', err.message));
+  }
+  function onPassword(e) {
+    e.preventDefault();
+    if ($('#pwdNew').value !== $('#pwdNew2').value) { msg('#pwdMsg', 'Las contraseñas no coinciden.'); return; }
+    rpc('adm_changePassword', A.token, $('#pwdCurrent').value, $('#pwdNew').value)
+      .then(() => { toast('Contraseña actualizada.', 'ok'); $$('#pwdForm input').forEach(i => { i.value = ''; }); boot(); })
+      .catch(err => msg('#pwdMsg', err.message));
+  }
+  function logout() {
+    rpc('adm_logout', A.token).catch(() => null);
+    ss.del(TOKEN_KEY);
+    A.token = '';
+    A.user = null;
+    showAuth('login');
+  }
+
+  function boot() {
+    api('adm_me').then(r => {
+      A.user = r.user;
+      A.meta = r.meta;
+      $('#meName').textContent = r.user.nombre;
+      $('#meRole').textContent = pretty(r.user.rol) + ' · ' + r.user.email;
+      let dl = $('#dl-tipos');
+      if (!dl) { dl = h('datalist', { id: 'dl-tipos' }); document.body.appendChild(dl); }
+      clear(dl);
+      A.meta.tiposEstablecimiento.forEach(t => dl.appendChild(h('option', { value: t })));
+      renderNav();
+      showAuth('app');
+      go(A.view || 'dashboard', A.params);
+    }).catch(err => { if (err.code !== 'PASSWORD_CHANGE_REQUIRED') showAuth('login'); });
+  }
+
+  function init() {
+    $('#loginForm').addEventListener('submit', onLogin);
+    $('#twoFaForm').addEventListener('submit', on2fa);
+    $('#setupForm').addEventListener('submit', onSetup);
+    $('#pwdForm').addEventListener('submit', onPassword);
+    $('#goSetup').addEventListener('click', () => showAuth('setup'));
+    $('#backLogin').addEventListener('click', () => showAuth('login'));
+    $('#btnLogout').addEventListener('click', logout);
+    $('#btnChangePwd').addEventListener('click', () => showAuth('password'));
+    $('#menuBtn').addEventListener('click', () => {
+      const open = !$('#sidebar').classList.contains('open');
+      $('#sidebar').classList.toggle('open', open);
+      $('#menuBtn').setAttribute('aria-expanded', String(open));
+    });
+    A.token = ss.get(TOKEN_KEY) || '';
+    if (A.token) { boot(); return; }
+    rpc('adm_setupStatus').then(s => {
+      if (!s.configured) { showAuth('login'); msg('#loginMsg', 'El sistema aún no está configurado: ejecute setup() en el editor de Apps Script.', 'warn'); return; }
+      showAuth(s.hasSuperAdmin ? 'login' : 'setup');
+    }).catch(() => showAuth('login'));
+  }
+
+  // ================================================================ Navegación
+  const NAV = [
+    { id: 'dashboard', label: 'Dashboard', perm: 'dashboard' },
+    { sep: 'Clientes' },
+    { id: 'solicitudes', label: 'Solicitudes recibidas', perm: 'solicitudes.read' },
+    { id: 'clientes', label: 'Clientes', perm: 'clients.read' },
+    { id: 'duplicados', label: 'Duplicados', perm: 'duplicates' },
+    { id: 'archivos', label: 'Archivos por revisar', perm: 'files.read' },
+    { sep: 'CRM' },
+    { id: 'pipeline', label: 'Pipeline / Kanban', perm: 'crm.read' },
+    { id: 'seguimientos', label: 'Seguimientos', perm: 'crm.read' },
+    { id: 'actividades', label: 'Actividades', perm: 'crm.read' },
+    { sep: 'Ventas' },
+    { id: 'ventas', label: 'Propuestas y ventas', perm: 'sales.read' },
+    { id: 'proyectos', label: 'Proyectos web', perm: 'sales.read' },
+    { sep: 'Sistema' },
+    { id: 'auditoria', label: 'Auditoría', perm: 'audit.read' },
+    { id: 'usuarios', label: 'Usuarios', perm: 'users.manage' },
+    { id: 'configuracion', label: 'Configuración', perm: 'config.write' }
+  ];
+  function renderNav() {
+    const ul = clear($('#nav'));
+    let pendingSep = null;
+    NAV.forEach(n => {
+      if (n.sep) { pendingSep = n.sep; return; }
+      if (!can(n.perm)) return;
+      if (pendingSep) { ul.appendChild(h('li', { class: 'nav-sep', text: pendingSep })); pendingSep = null; }
+      ul.appendChild(h('li', null, h('button', { type: 'button', 'data-view': n.id, onclick: () => go(n.id) }, h('span', { text: n.label }))));
+    });
+  }
+  function go(view, params) {
+    A.view = view;
+    A.params = params || {};
+    $$('#nav button').forEach(b => b.setAttribute('aria-current', b.getAttribute('data-view') === (view === 'cliente' ? 'clientes' : view) ? 'page' : 'false'));
+    $('#sidebar').classList.remove('open');
+    clear($('#viewActions'));
+    const body = $('#viewBody');
+    loading(body);
+    const fn = VIEWS[view] || VIEWS.dashboard;
+    fn(body, A.params);
+    $('#main').focus({ preventScroll: true });
+    window.scrollTo(0, 0);
+  }
+  const setTitle = (t) => { $('#viewTitle').textContent = t; };
+  const addAction = (label, cls, onClick) => $('#viewActions').appendChild(h('button', { type: 'button', class: 'btn ' + cls, text: label, onclick: onClick }));
+
+  // ================================================================ Tablas
+  function table(columns, rows, opts) {
+    opts = opts || {};
+    columns = columns.filter(Boolean);
+    if (!rows.length) return h('div', { class: 'empty', text: opts.empty || 'Sin resultados.' });
+    const thead = h('thead', null, h('tr', null, columns.map(c => h('th', { class: c.num ? 'num' : null, scope: 'col', text: c.label }))));
+    const tbody = h('tbody', null, rows.map(r => {
+      const tr = h('tr', { class: opts.onRow ? 'click' : null }, columns.map(c => {
+        const v = c.render ? c.render(r) : r[c.key];
+        return h('td', { class: c.num ? 'num' : null }, v instanceof Node ? v : (v == null ? '' : String(v)));
+      }));
+      if (opts.onRow) {
+        tr.tabIndex = 0;
+        tr.addEventListener('click', (e) => { if (!e.target.closest('button, a, select, input')) opts.onRow(r); });
+        tr.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target === tr) opts.onRow(r); });
+      }
+      return tr;
+    }));
+    return h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' }, thead, tbody));
+  }
+  function selectField(label, id, options, value, withAll) {
+    const sel = h('select', { id });
+    if (withAll !== false) sel.appendChild(h('option', { value: '', text: withAll || 'Todos' }));
+    options.forEach(o => sel.appendChild(h('option', { value: typeof o === 'object' ? o.value : o, text: typeof o === 'object' ? o.label : pretty(o) })));
+    sel.value = value || '';
+    return h('div', { class: 'field' }, h('label', { for: id, text: label }), sel);
+  }
+
+  // ================================================================ Gráficos (paleta validada, sin librerías)
+  function hbars(items, fmt) {
+    const max = Math.max(1, ...items.map(i => i.value));
+    return h('div', { class: 'hbars' }, items.map(i => h('div', { class: 'hbar', title: i.label + ': ' + fmt(i.value) + (i.extra ? ' · ' + i.extra : '') },
+      h('span', { class: 'lbl', text: i.label }),
+      h('span', { class: 'track' }, h('span', { class: 'fill', style: 'display:block;width:' + Math.max(0.5, 100 * i.value / max) + '%' })),
+      h('span', { class: 'val', text: fmt(i.value) + (i.extra ? ' · ' + i.extra : '') }))));
+  }
+  function vbarsPair(rows, s1, s2) {
+    if (!rows.some(r => r.a || r.b)) return h('div', { class: 'empty', text: 'Aún no hay ' + s1.toLowerCase() + ' ni ' + s2.toLowerCase() + ' registrados en estos meses.' });
+    const max = Math.max(1, ...rows.map(r => Math.max(r.a, r.b)));
+    const wrap = h('div', { class: 'viz' });
+    const tip = h('div', { class: 'viz-tip', hidden: true });
+    const bars = h('div', { class: 'vbars', role: 'img', 'aria-label': s1 + ' y ' + s2 + ' por mes' }, rows.map(r => h('div', { class: 'vgroup' },
+      [['a', 's1', s1], ['b', 's2', s2]].map(p => {
+        const bar = h('div', { class: 'vbar ' + p[1], style: 'height:' + Math.max(1, 100 * r[p[0]] / max) + '%' });
+        bar.addEventListener('mouseenter', () => {
+          tip.textContent = r.label + ' · ' + p[2] + ': ' + money(r[p[0]]);
+          tip.hidden = false;
+          tip.style.left = (bar.offsetLeft + bar.offsetWidth / 2) + 'px';
+          tip.style.top = bar.offsetTop + 'px';
+        });
+        bar.addEventListener('mouseleave', () => { tip.hidden = true; });
+        return bar;
+      }))));
+    const legend = h('div', { class: 'legend' }, h('span', null, h('i', { style: 'background:var(--series-1)' }), s1), h('span', null, h('i', { style: 'background:var(--series-2)' }), s2));
+    const labels = h('div', { class: 'vlabels' }, rows.map(r => h('span', { text: r.label })));
+    const tbl = table([{ label: 'Mes', key: 'label' }, { label: s1, num: true, render: r => money(r.a) }, { label: s2, num: true, render: r => money(r.b) }], rows);
+    tbl.hidden = true;
+    const toggle = h('button', { type: 'button', class: 'btn-link small', text: 'Ver como tabla', onclick: () => { tbl.hidden = !tbl.hidden; toggle.textContent = tbl.hidden ? 'Ver como tabla' : 'Ocultar tabla'; } });
+    wrap.appendChild(legend);
+    wrap.appendChild(bars);
+    wrap.appendChild(labels);
+    wrap.appendChild(tip);
+    return h('div', null, wrap, h('div', { style: 'margin-top:8px' }, toggle), tbl);
+  }
+  const tile = (label, value, sub, alert, onClick) => h('div', { class: 'tile' + (alert ? ' alert' : ''), role: onClick ? 'button' : null, tabindex: onClick ? '0' : null, style: onClick ? 'cursor:pointer' : null, onclick: onClick || null },
+    h('div', { class: 'label', text: label }), h('div', { class: 'value', text: value }), sub ? h('div', { class: 'sub', text: sub }) : null);
+  const monthLabel = (m) => { const names = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']; return names[Number(m.slice(5, 7)) - 1] + ' ' + m.slice(2, 4); };
+
+  // ================================================================ VISTAS
+  const VIEWS = {};
+
+  // ---------------------------------------------------------------- Dashboard
+  VIEWS.dashboard = (body) => {
+    setTitle('Dashboard');
+    addAction('Actualizar', 'btn-ghost', () => go('dashboard'));
+    api('adm_dashboard').then(d => {
+      clear(body);
+      body.appendChild(h('div', { class: 'tiles' },
+        tile('Clientes', d.clientes.total.toLocaleString('es-CO'), d.clientes.sinEmail.toLocaleString('es-CO') + ' sin email', false, () => go('clientes')),
+        tile('Formularios por revisar', String(d.solicitudes.porRevisar), d.solicitudes.recibidas30 + ' recibidos en 30 días', d.solicitudes.porRevisar > 0, () => go('solicitudes')),
+        tile('Oportunidades abiertas', String(d.oportunidades.abiertas), money(d.oportunidades.valorPipeline) + ' en pipeline', false, () => go('pipeline')),
+        tile('Valor ponderado', money(d.oportunidades.valorPonderado), 'valor × probabilidad'),
+        tile('Ventas del mes', money(d.ventas.mesValor), d.ventas.mesCantidad + ' cierre(s)', false, () => go('ventas')),
+        tile('Pagos del mes', money(d.ventas.pagosMes), 'Saldo pendiente ' + money(d.ventas.saldoPendiente)),
+        tile('Seguimientos vencidos', String(d.seguimientos.vencidos), d.seguimientos.hoy + ' para hoy · ' + d.seguimientos.proximos7 + ' próximos 7 días', d.seguimientos.vencidos > 0, () => go('seguimientos', { bucket: 'vencidos' })),
+        tile('Tasa de conversión', d.oportunidades.tasaConversion + ' %', d.oportunidades.ganadasMes + ' ganadas · ' + d.oportunidades.perdidasMes + ' perdidas este mes')
+      ));
+      const funnel = d.embudo.map(e => ({ label: e.etapa, value: e.valor }));
+      const pipe = A.meta.etapas.map(e => ({ label: e.label, value: d.oportunidades.porEtapa[e.key].value, extra: d.oportunidades.porEtapa[e.key].count + ' opp.' }));
+      const months = d.ventas.porMes.map(m => ({ label: monthLabel(m.mes), a: m.ventas, b: m.pagos }));
+      const acts = Object.keys(d.actividades30).map(k => ({ label: pretty(k), value: d.actividades30[k] })).sort((a, b) => b.value - a.value);
+      const mun = Object.keys(d.clientes.porMunicipio).map(k => ({ label: pretty(k), value: d.clientes.porMunicipio[k] })).sort((a, b) => b.value - a.value);
+      const n = (v) => Number(v).toLocaleString('es-CO');
+      body.appendChild(h('div', { class: 'grid-2' },
+        h('div', { class: 'card' }, h('h2', { text: 'Embudo comercial' }), hbars(funnel, n)),
+        h('div', { class: 'card' }, h('h2', { text: 'Valor del pipeline por etapa' }), h('p', { class: 'small muted', text: 'Abiertas y cerradas este mes.' }), hbars(pipe, money))
+      ));
+      body.appendChild(h('div', { class: 'grid-2' },
+        h('div', { class: 'card' }, h('h2', { text: 'Ventas y pagos por mes' }), vbarsPair(months, 'Ventas', 'Pagos')),
+        h('div', { class: 'card' }, h('h2', { text: 'Actividades (últimos 30 días)' }), acts.length ? hbars(acts, n) : h('div', { class: 'empty', text: 'Sin actividades registradas.' }))
+      ));
+      body.appendChild(h('div', { class: 'grid-3' },
+        h('div', { class: 'card' }, h('h2', { text: 'Mis seguimientos' }),
+          table([{ label: 'Vence', render: r => h('span', { class: r.FECHA_VENCIMIENTO < today() ? 'badge danger' : 'badge', text: r.FECHA_VENCIMIENTO }) }, { label: 'Cliente', key: 'CLIENTE_NOMBRE' }, { label: 'Tipo', render: r => pretty(r.TIPO) }],
+            d.seguimientos.mios, { onRow: r => go('cliente', { id: r.CLIENTE_ID, tab: 'crm' }), empty: 'Nada pendiente.' })),
+        h('div', { class: 'card' }, h('h2', { text: 'Solicitudes recientes' }),
+          table([{ label: 'Radicado', key: 'RADICADO' }, { label: 'Cliente', key: 'CLIENTE_NOMBRE' }, { label: 'Estado', render: r => pretty(r.ESTADO) }],
+            d.solicitudes.recientes, { onRow: r => openSolicitud(r.SOLICITUD_ID), empty: 'Aún no hay formularios enviados.' })),
+        h('div', { class: 'card' }, h('h2', { text: 'Clientes por municipio' }), hbars(mun, n))
+      ));
+    }).catch(err => { clear(body).appendChild(h('div', { class: 'notice error', text: err.message })); });
+  };
+
+  // ---------------------------------------------------------------- Solicitudes
+  VIEWS.solicitudes = (body, params) => {
+    setTitle('Solicitudes recibidas');
+    const f = { estado: params.estado || 'ENVIADAS', cambiosPendientes: !!params.cambiosPendientes };
+    const filters = h('div', { class: 'filters' },
+      selectField('Estado', 'fs-estado', [{ value: 'ENVIADAS', label: 'Enviadas (todas menos borradores)' }, { value: 'ENVIADA', label: 'Por revisar' }, { value: 'EN_REVISION', label: 'En revisión' }, { value: 'APROBADA', label: 'Aprobadas' }, { value: 'DESCARTADA', label: 'Descartadas' }, { value: 'BORRADOR', label: 'Borradores (sin enviar)' }, { value: 'TODAS', label: 'Todas' }], f.estado, false),
+      h('label', { class: 'check-inline' }, h('input', { type: 'checkbox', id: 'fs-cambios', checked: f.cambiosPendientes }), 'Solo con correcciones pendientes'));
+    const list = h('div', null);
+    const load = () => {
+      loading(list);
+      api('adm_listSolicitudes', { estado: $('#fs-estado').value, cambiosPendientes: $('#fs-cambios').checked }).then(rows => {
+        clear(list).appendChild(table([
+          { label: 'Radicado', key: 'RADICADO' },
+          { label: 'Enviada', render: r => dt(r.ENVIADA_EN) || h('span', { class: 'muted', text: 'Borrador ' + (r.PORCENTAJE || 0) + ' %' }) },
+          { label: 'Cliente', render: r => r.CLIENTE_NOMBRE || '—' },
+          { label: 'Vinculación', render: r => pretty(r.TIPO_VINCULACION) },
+          { label: 'Estado', render: r => h('span', { class: 'badge' + (r.ESTADO === 'ENVIADA' ? ' warn' : r.ESTADO === 'APROBADA' ? ' ok' : ''), text: pretty(r.ESTADO) }) },
+          { label: 'Correcciones', render: r => (r.CAMBIOS_ESTADO === 'PENDIENTE' ? h('span', { class: 'badge warn', text: 'Pendientes' }) : pretty(r.CAMBIOS_ESTADO === 'NINGUNO' ? '' : r.CAMBIOS_ESTADO)) },
+          { label: 'Reporte', render: r => pretty(r.REPORTE_ESTADO === 'NO_APLICA' ? '' : r.REPORTE_ESTADO) }
+        ], rows, { onRow: r => openSolicitud(r.SOLICITUD_ID, load) }));
+      }).catch(fail);
+    };
+    filters.addEventListener('change', load);
+    clear(body).appendChild(h('div', { class: 'card' }, filters, list));
+    load();
+  };
+
+  function renderFormData(d) {
+    const box = h('div', null);
+    if (!d || !d.negocio) return h('p', { class: 'muted', text: 'Sin datos.' });
+    const kv = (pairs) => h('dl', { class: 'kv' }, pairs.filter(p => p[1] !== '' && p[1] !== undefined && p[1] !== null && p[1] !== false).map(p => [h('dt', { text: p[0] }), h('dd', { text: p[1] === true ? 'Sí' : String(p[1]) })]));
+    box.appendChild(h('h3', { text: 'Negocio' }));
+    box.appendChild(kv([['Razón social', d.negocio.razonSocial], ['Propietario', d.negocio.nombrePropietario], ['Nombre comercial', d.negocio.nombreComercial], ['Tipo', [d.negocio.tipoEstablecimiento, d.negocio.tipoEstablecimientoAlt].filter(Boolean).join(' / ')], ['Actividad', d.negocio.actividad], ['Nombres de página', [d.negocio.nombrePagina1, d.negocio.nombrePagina2].filter(Boolean).join(' / ')]]));
+    box.appendChild(h('h3', { text: 'Contacto' }));
+    box.appendChild(kv([['WhatsApp', d.contacto.whatsapp], ['Fijo', d.contacto.telefonoFijo], ['Email', d.contacto.email], ['Canal', pretty(d.contacto.canalPreferido)], ['Redes', d.contacto.redes]]));
+    box.appendChild(h('h3', { text: 'Sedes' }));
+    (d.sedes || []).forEach((s, i) => box.appendChild(kv([['Sede ' + (i + 1), [s.nombre, s.direccion, s.barrio, s.municipio].filter(Boolean).join(', ')], ['Horario', [s.horarioSemana, s.horarioFinSemana].filter(Boolean).join(' · ')]])));
+    box.appendChild(h('h3', { text: 'Mensaje' }));
+    box.appendChild(kv([['Transmitir', d.marca && d.marca.mensaje], ['Clientes', d.marca && d.marca.publicoObjetivo], ['Diferencial', d.marca && d.marca.diferenciales]]));
+    box.appendChild(h('p', { class: 'small muted', text: (d.servicios || []).length + ' servicios · ' + (d.productos || []).length + ' productos · ' + (d.testimonios || []).length + ' testimonios' }));
+    return box;
+  }
+
+  function openSolicitud(id, onChange) {
+    api('adm_getSolicitud', id).then(s => {
+      const body = h('div', null);
+      body.appendChild(h('dl', { class: 'kv' },
+        h('dt', { text: 'Radicado' }), h('dd', { text: s.RADICADO }),
+        h('dt', { text: 'Estado' }), h('dd', { text: pretty(s.ESTADO) }),
+        h('dt', { text: 'Enviada' }), h('dd', { text: dt(s.ENVIADA_EN) || 'Sin enviar (' + (s.PORCENTAJE || 0) + ' %)' }),
+        h('dt', { text: 'Vinculación' }), h('dd', { text: pretty(s.TIPO_VINCULACION) + (s.CLIENTE_BASE_ID ? ' · ' + s.CLIENTE_BASE_ID : '') }),
+        h('dt', { text: 'Reporte' }), h('dd', { text: pretty(s.REPORTE_ESTADO) })));
+      if (s.cambios.length && s.CAMBIOS_ESTADO === 'PENDIENTE') {
+        body.appendChild(h('h3', { text: 'Correcciones propuestas por el cliente' }));
+        body.appendChild(h('p', { class: 'small muted', text: 'Marque las que desea aplicar al registro del cliente.' }));
+        s.cambios.forEach((c, i) => body.appendChild(h('div', { class: 'diff-row' },
+          h('input', { type: 'checkbox', id: 'chg-' + i, 'data-campo': c.campo, checked: true, 'aria-label': 'Aplicar ' + c.etiqueta }),
+          h('label', { for: 'chg-' + i }, h('strong', { text: c.etiqueta })),
+          h('div', null, h('div', { class: 'small muted', text: 'Actual' }), h('div', { text: c.actual })),
+          h('div', null, h('div', { class: 'small muted', text: 'Propuesto' }), h('div', { text: c.propuesto })))));
+      } else if (s.cambios.length) {
+        body.appendChild(h('p', { class: 'small muted', text: 'Correcciones: ' + pretty(s.CAMBIOS_ESTADO) }));
+      }
+      body.appendChild(h('h3', { text: 'Información enviada' }));
+      body.appendChild(renderFormData(s.datos));
+      const obs = h('textarea', { id: 'solObs', rows: 3 }, s.OBSERVACIONES_ADMIN || '');
+      const est = h('select', { id: 'solEstado' }, ['ENVIADA', 'EN_REVISION', 'APROBADA', 'DESCARTADA'].map(e => h('option', { value: e, text: pretty(e) })));
+      est.value = s.ESTADO === 'BORRADOR' ? 'ENVIADA' : s.ESTADO;
+      if (s.ESTADO !== 'BORRADOR') {
+        body.appendChild(h('h3', { text: 'Revisión interna' }));
+        body.appendChild(h('div', { class: 'form-grid' },
+          h('div', { class: 'field' }, h('label', { for: 'solEstado', text: 'Estado' }), est),
+          h('div', { class: 'field wide' }, h('label', { for: 'solObs', text: 'Observaciones internas (no salen en el reporte)' }), obs)));
+      }
+      const actions = [{ label: 'Cerrar' }];
+      const cid = s.CLIENTE_ID || s.CLIENTE_BASE_ID;
+      if (cid) actions.push({ label: 'Abrir cliente', class: 'btn-ghost', onClick: () => { go('cliente', { id: cid }); } });
+      if (s.cambios.length && s.CAMBIOS_ESTADO === 'PENDIENTE' && can('clients.write')) {
+        actions.push({ label: 'Descartar correcciones', class: 'btn-ghost', onClick: () => api('adm_applyCorrections', id, [], true).then(() => { toast('Correcciones descartadas.', 'ok'); if (onChange) onChange(); }) });
+        actions.push({
+          label: 'Aplicar marcadas', class: 'btn-accent', onClick: () => {
+            const campos = $$('[data-campo]', body).filter(c => c.checked).map(c => c.getAttribute('data-campo'));
+            return api('adm_applyCorrections', id, campos, false).then(r => { toast('Aplicadas: ' + (r.applied.join(', ') || 'ninguna'), 'ok'); if (onChange) onChange(); });
+          }
+        });
+      }
+      if (s.ESTADO !== 'BORRADOR' && can('clients.write')) {
+        actions.push({ label: 'Guardar revisión', class: 'btn-primary', onClick: () => api('adm_setSolicitudEstado', id, est.value, obs.value).then(() => { toast('Solicitud actualizada.', 'ok'); if (onChange) onChange(); }) });
+      }
+      modal({ title: 'Solicitud ' + s.RADICADO, body, actions, wide: true });
+    }).catch(fail);
+  }
+
+  // ---------------------------------------------------------------- Clientes (lista)
+  VIEWS.clientes = (body, params) => {
+    setTitle('Clientes');
+    if (can('clients.create')) addAction('+ Nuevo cliente', 'btn-primary', newClient);
+    if (can('export')) addAction('Exportar CSV', 'btn-ghost', () => api('adm_exportClients', currentQuery()).then(f => { download(f); toast(f.count + ' registros exportados.', 'ok'); }).catch(fail));
+    const st = Object.assign({ q: '', page: 1, sort: 'actualizado', filters: {} }, params.query || {});
+    const users = A.meta.usuarios.map(u => ({ value: u.email, label: u.nombre }));
+    const qInput = h('input', { type: 'search', id: 'fc-q', value: st.q, placeholder: 'Nombre, teléfono, email o ID' });
+    const filters = h('div', { class: 'filters' },
+      h('div', { class: 'field q' }, h('label', { for: 'fc-q', text: 'Buscar' }), qInput),
+      selectField('Municipio', 'fc-municipio', A.meta.municipios, st.filters.municipio),
+      selectField('Etapa CRM', 'fc-estadoCrm', A.meta.etapas.map(e => ({ value: e.key, label: e.label })), st.filters.estadoCrm),
+      selectField('Formulario', 'fc-estadoFormulario', A.meta.enums.ESTADO_FORMULARIO, st.filters.estadoFormulario),
+      selectField('Origen', 'fc-origen', A.meta.enums.ORIGEN, st.filters.origen),
+      isSeller() ? null : selectField('Responsable', 'fc-responsable', [{ value: '__SIN__', label: 'Sin responsable' }].concat(users), st.filters.responsable),
+      selectField('Prioridad', 'fc-prioridad', A.meta.enums.PRIORIDAD, st.filters.prioridad),
+      selectField('Tamaño', 'fc-tamano', A.meta.enums.TAMANO, st.filters.tamano),
+      h('div', { class: 'field' }, h('label', { for: 'fc-ciiu', text: 'CIIU (prefijo)' }), h('input', { type: 'text', id: 'fc-ciiu', value: st.filters.ciiu || '', placeholder: 'Ej. G47' })),
+      selectField('Orden', 'fc-sort', [{ value: 'actualizado', label: 'Últimos actualizados' }, { value: 'nombre', label: 'Nombre A-Z' }, { value: 'id', label: 'ID' }], st.sort, false),
+      h('label', { class: 'check-inline' }, h('input', { type: 'checkbox', id: 'fc-sinEmail', checked: !!st.filters.sinEmail }), 'Sin email'),
+      h('label', { class: 'check-inline' }, h('input', { type: 'checkbox', id: 'fc-telComp', checked: !!st.filters.telefonoCompartido }), 'Teléfono compartido'),
+      h('label', { class: 'check-inline' }, h('input', { type: 'checkbox', id: 'fc-noContactar', checked: st.filters.noContactar === 'SI' }), 'No contactar'));
+    const results = h('div', null);
+    const currentQuery = () => ({
+      q: $('#fc-q').value.trim(), page: st.page, pageSize: 25, sort: $('#fc-sort').value,
+      filters: {
+        municipio: $('#fc-municipio').value, estadoCrm: $('#fc-estadoCrm').value, estadoFormulario: $('#fc-estadoFormulario').value,
+        origen: $('#fc-origen').value, responsable: $('#fc-responsable') ? $('#fc-responsable').value : '', prioridad: $('#fc-prioridad').value,
+        tamano: $('#fc-tamano').value, ciiu: $('#fc-ciiu').value.trim(), sinEmail: $('#fc-sinEmail').checked,
+        telefonoCompartido: $('#fc-telComp').checked, noContactar: $('#fc-noContactar').checked ? 'SI' : ''
+      }
+    });
+    const load = () => {
+      loading(results);
+      const q = currentQuery();
+      A.params.query = q;
+      api('adm_searchClients', q).then(r => {
+        clear(results);
+        results.appendChild(h('p', { class: 'small muted', text: r.total.toLocaleString('es-CO') + ' cliente(s)' }));
+        results.appendChild(table([
+          { label: 'ID', key: 'CLIENTE_ID' },
+          { label: 'Cliente', render: c => h('div', null, h('strong', { text: c.NOMBRE_COMERCIAL || c.RAZON_SOCIAL }), c.NOMBRE_COMERCIAL ? h('div', { class: 'small muted', text: c.RAZON_SOCIAL }) : null) },
+          { label: 'Teléfono', render: c => c.TELEFONO + (c.TELEFONO_COMPARTIDO ? ' ⚑' : '') },
+          { label: 'Email', key: 'EMAIL' },
+          { label: 'Municipio', render: c => pretty(c.MUNICIPIO) },
+          { label: 'Etapa', render: c => stageBadge(c.ESTADO_CRM) },
+          { label: 'Formulario', render: c => pretty(c.ESTADO_FORMULARIO) },
+          { label: 'Responsable', render: c => c.RESPONSABLE_EMAIL || '—' }
+        ], r.items, { onRow: c => go('cliente', { id: c.CLIENTE_ID, back: q }) }));
+        results.appendChild(h('div', { class: 'pager' },
+          h('button', { type: 'button', class: 'btn btn-ghost btn-sm', disabled: r.page <= 1, text: '← Anterior', onclick: () => { st.page = r.page - 1; load(); } }),
+          h('span', { class: 'small', text: 'Página ' + r.page + ' de ' + r.pages }),
+          h('button', { type: 'button', class: 'btn btn-ghost btn-sm', disabled: r.page >= r.pages, text: 'Siguiente →', onclick: () => { st.page = r.page + 1; load(); } })));
+      }).catch(fail);
+    };
+    let t = null;
+    qInput.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => { st.page = 1; load(); }, 400); });
+    filters.addEventListener('change', (e) => { if (e.target !== qInput) { st.page = 1; load(); } });
+    clear(body).appendChild(h('div', { class: 'card' }, filters, results));
+    load();
+  };
+
+  function newClient() {
+    recordModal('Nuevo cliente', 'CLIENTES', { PRIORIDAD: 'MEDIA' }, (v) => api('adm_createClient', v).then(r => {
+      if (r.duplicados && r.duplicados.length) toast('Atención: posibles duplicados detectados (' + r.duplicados.length + ').', 'error');
+      go('cliente', { id: r.cliente.CLIENTE_ID });
+      return r;
+    }));
+  }
+
+  // ---------------------------------------------------------------- Ficha del cliente
+  VIEWS.cliente = (body, params) => {
+    setTitle('Cliente');
+    addAction('← Volver a clientes', 'btn-ghost', () => go('clientes', { query: params.back }));
+    A.clientTab = params.tab || 'resumen';
+    loadClient(params.id);
+  };
+  function loadClient(id) {
+    const body = $('#viewBody');
+    api('adm_getClient', id).then(d => {
+      A.client = d;
+      setTitle(d.cliente.NOMBRE_COMERCIAL || d.cliente.RAZON_SOCIAL || d.cliente.CLIENTE_ID);
+      renderClient(body);
+    }).catch(err => { clear(body).appendChild(h('div', { class: 'notice error', text: err.message })); });
+  }
+  const reloadClient = () => loadClient(A.client.cliente.CLIENTE_ID);
+
+  const CLIENT_TABS = [
+    { id: 'resumen', label: 'Resumen', group: 'Cliente' },
+    { id: 'datos', label: 'Datos del cliente', group: 'Información pública' },
+    { id: 'contenido', label: 'Contenido web' },
+    { id: 'archivos', label: 'Archivos' },
+    { id: 'reporte', label: 'Solicitudes y reporte' },
+    { id: 'crm', label: 'Oportunidades y actividades', group: 'CRM interno' },
+    { id: 'ventas', label: 'Propuestas y ventas' },
+    { id: 'historial', label: 'Historial', perm: 'audit.read' }
+  ];
+
+  function renderClient(body) {
+    const d = A.client;
+    const c = d.cliente;
+    clear(body);
+    const head = h('div', { class: 'card' }, h('div', { class: 'client-head' },
+      h('div', null,
+        h('h2', { text: c.NOMBRE_COMERCIAL || c.RAZON_SOCIAL || c.CLIENTE_ID }),
+        h('div', { class: 'small muted', text: c.CLIENTE_ID + ' · ' + pretty(c.ORIGEN) + (c.RAZON_SOCIAL && c.NOMBRE_COMERCIAL ? ' · ' + c.RAZON_SOCIAL : '') }),
+        h('div', { class: 'actions', style: 'margin-top:8px' }, stageBadge(c.ESTADO_CRM), h('span', { class: 'badge', text: 'Formulario: ' + pretty(c.ESTADO_FORMULARIO) }),
+          c.NO_CONTACTAR ? h('span', { class: 'badge danger', text: 'NO CONTACTAR' }) : null,
+          c.PRIORIDAD ? h('span', { class: 'badge', text: 'Prioridad ' + pretty(c.PRIORIDAD) }) : null)),
+      h('div', { class: 'actions' },
+        c.TELEFONO ? h('a', { class: 'btn btn-ghost', href: 'tel:+57' + c.TELEFONO, target: '_blank', rel: 'noopener', text: '📞 Llamar' }) : null,
+        c.TELEFONO && /^3/.test(c.TELEFONO) ? h('button', { type: 'button', class: 'btn btn-ghost', text: 'WhatsApp', onclick: () => openWhatsapp(c) }) : null,
+        c.EMAIL ? h('a', { class: 'btn btn-ghost', href: 'mailto:' + c.EMAIL, target: '_blank', rel: 'noopener', text: '✉ Email' }) : null,
+        can('crm.write') ? h('button', { type: 'button', class: 'btn btn-primary', text: 'Registrar actividad', onclick: () => activityModal(c) }) : null)));
+    if (d.duplicados.length) {
+      head.appendChild(h('div', { class: 'notice warn' }, 'Posibles duplicados: ',
+        d.duplicados.map(x => h('button', { type: 'button', class: 'btn-link', text: x.OTRO + ' (' + pretty(x.REGLA) + ' ' + x.PUNTAJE + ')', onclick: () => compareDuplicate(x.DUP_ID) }))));
+    }
+    const tabs = h('div', { class: 'tabs', role: 'tablist' });
+    CLIENT_TABS.forEach(t => {
+      if (t.perm && !can(t.perm)) return;
+      if (t.group) tabs.appendChild(h('span', { class: 'tab-group', text: t.group }));
+      tabs.appendChild(h('button', { type: 'button', role: 'tab', 'aria-selected': String(A.clientTab === t.id), text: t.label, onclick: () => { A.clientTab = t.id; renderClient(body); } }));
+    });
+    head.appendChild(tabs);
+    const panel = h('div', { role: 'tabpanel' });
+    head.appendChild(panel);
+    body.appendChild(head);
+    (CLIENT_PANELS[A.clientTab] || CLIENT_PANELS.resumen)(panel, d);
+  }
+
+  function openWhatsapp(c) {
+    api('adm_whatsappLink', c.CLIENTE_ID).then(r => {
+      window.open(r.url, '_blank', 'noopener');
+      confirmDialog('WhatsApp', '¿Registrar esta conversación de WhatsApp como actividad?', 'Registrar').then(ok => { if (ok) activityModal(c, { TIPO: 'WHATSAPP', ASUNTO: 'Invitación por WhatsApp', DETALLE: r.mensaje }); });
+    }).catch(fail);
+  }
+
+  const kvList = (pairs) => h('dl', { class: 'kv' }, pairs.filter(p => p[1] !== '' && p[1] != null).map(p => [h('dt', { text: p[0] }), h('dd', null, p[1] instanceof Node ? p[1] : String(p[1]))]));
+
+  const CLIENT_PANELS = {
+    resumen(panel, d) {
+      const c = d.cliente;
+      const stageSel = h('select', { id: 'stageSel', 'aria-label': 'Cambiar etapa' }, A.meta.etapas.map(e => h('option', { value: e.key, text: e.label })));
+      stageSel.value = c.ESTADO_CRM || 'NUEVO';
+      stageSel.disabled = !can('crm.write');
+      stageSel.addEventListener('change', () => changeClientStage(c, stageSel.value, d).catch(err => { fail(err); stageSel.value = c.ESTADO_CRM; }));
+      const respSel = h('select', { id: 'respSel', 'aria-label': 'Responsable' }, h('option', { value: '', text: 'Sin responsable' }), A.meta.usuarios.map(u => h('option', { value: u.email, text: u.nombre + ' (' + pretty(u.rol) + ')' })));
+      respSel.value = c.RESPONSABLE_EMAIL || '';
+      respSel.disabled = isSeller() || !can('clients.write');
+      respSel.addEventListener('change', () => api('adm_assignClient', c.CLIENTE_ID, respSel.value).then(() => { toast('Responsable asignado.', 'ok'); reloadClient(); }).catch(fail));
+      const pending = d.crm.seguimientos.filter(s => s.ESTADO === 'PENDIENTE');
+      panel.appendChild(h('div', { class: 'grid-2' },
+        h('div', null,
+          h('div', { class: 'form-grid' },
+            h('div', { class: 'field' }, h('label', { for: 'stageSel', text: 'Etapa CRM' }), stageSel),
+            h('div', { class: 'field' }, h('label', { for: 'respSel', text: 'Responsable' }), respSel)),
+          h('h3', { text: 'Datos principales' }),
+          kvList([['Propietario', c.NOMBRE_PROPIETARIO || '—'], ['Razón social', c.RAZON_SOCIAL], ['Nombre comercial', c.NOMBRE_COMERCIAL || '—'], ['Teléfono', c.TELEFONO + (c.TELEFONO_COMPARTIDO ? ' (compartido con otros registros)' : '')], ['Email', c.EMAIL || '—'], ['Municipio', pretty(c.MUNICIPIO)], ['Dirección', [c.DIRECCION, c.BARRIO].filter(Boolean).join(', ')], ['Actividad', c.ACTIVIDAD + (c.ACTIVIDAD_FUENTE === 'CIIU' ? ' (desde CIIU)' : '')], ['CIIU', c.CIIU_CODIGO], ['Tamaño', pretty(c.TAMANO_EMPRESA)], ['Último año renovado', c.ULT_ANO_RENOVACION], ['Carpeta Drive', d.driveFolderUrl ? h('a', { href: d.driveFolderUrl, target: '_blank', rel: 'noopener', text: 'Abrir carpeta' }) : '—']])),
+        h('div', null,
+          h('div', { class: 'section-title' }, h('h3', { text: 'Seguimientos pendientes (' + pending.length + ')' }), can('crm.write') ? h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: '+ Seguimiento', onclick: () => followupModal(c) }) : null),
+          table([{ label: 'Vence', render: s => h('span', { class: s.FECHA_VENCIMIENTO < today() ? 'badge danger' : 'badge', text: s.FECHA_VENCIMIENTO }) }, { label: 'Tipo', render: s => pretty(s.TIPO) }, { label: 'Descripción', key: 'DESCRIPCION' }], pending.slice(0, 5), { empty: 'Sin pendientes.' }),
+          h('h3', { text: 'Últimas actividades' }),
+          timeline(d.crm.actividades.slice(0, 5)),
+          h('p', { class: 'small muted', text: 'Actualizado ' + dt(c.ACTUALIZADO_EN) + ' por ' + c.ACTUALIZADO_POR }))));
+    },
+
+    datos(panel, d) {
+      const c = d.cliente;
+      const editable = can('clients.write');
+      panel.appendChild(h('div', { class: 'zone-public' }, h('p', { class: 'small muted', text: 'Todos los campos son editables. Cada cambio queda en la auditoría con el valor anterior.' })));
+      const grid = formGrid('CLIENTES', c, true);
+      if (!editable) $$('input, select, textarea', grid).forEach(i => { i.disabled = true; });
+      panel.appendChild(grid);
+      const ro = A.meta.schema.CLIENTES.filter(col => !col.editable && ['CLIENTE_ID', 'ORIGEN', 'ID_REGISTRO_ORIGEN', 'ACTIVIDAD_FUENTE', 'TELEFONO_ORIGINAL', 'MUNICIPIO_COD', 'BARRIO_COD', 'FEC_MATRICULA', 'FEC_RENOVACION', 'ULT_ANO_RENOVACION', 'OBSERVACION_IMPORTACION', 'CREADO_EN', 'CREADO_POR', 'VERSION'].indexOf(col.name) >= 0);
+      panel.appendChild(h('h3', { text: 'Datos de origen (solo lectura)' }));
+      panel.appendChild(kvList(ro.map(col => [col.label, c[col.name]])));
+      if (editable) {
+        panel.appendChild(h('div', { class: 'actions', style: 'margin-top:14px' }, h('button', {
+          type: 'button', class: 'btn btn-primary', text: 'Guardar cambios', onclick: () => {
+            const values = readInputs(grid);
+            const patch = {};
+            Object.keys(values).forEach(k => {
+              const before = c[k] == null ? '' : c[k];
+              if (String(values[k]) !== String(before)) patch[k] = values[k];
+            });
+            if (!Object.keys(patch).length) { toast('No hay cambios.'); return; }
+            api('adm_updateClient', c.CLIENTE_ID, patch, c.VERSION).then(r => { toast('Guardado: ' + r.changed.length + ' campo(s).', 'ok'); reloadClient(); }).catch(err => { fail(err); if (err.code === 'CONFLICT') reloadClient(); });
+          }
+        })));
+      }
+    },
+
+    contenido(panel, d) {
+      const c = d.cliente;
+      const w = can('clients.write');
+      panel.appendChild(h('p', { class: 'small muted zone-public', text: 'Información pública del cliente: es la que va al reporte y a la página web.' }));
+      const section = (title, table_, rows, cols) => {
+        panel.appendChild(h('div', { class: 'section-title' }, h('h3', { text: title + ' (' + rows.length + ')' }),
+          w ? h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: '+ Agregar', onclick: () => recordModal('Agregar · ' + title, table_, {}, v => api('adm_saveChild', table_, Object.assign(v, { CLIENTE_ID: c.CLIENTE_ID })).then(r => { reloadClient(); return r; })) }) : null));
+        panel.appendChild(table(cols.concat(w ? [{
+          label: '', render: r => h('div', { class: 'actions' },
+            h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Editar', onclick: () => recordModal('Editar · ' + title, table_, r, v => api('adm_saveChild', table_, Object.assign(v, { [keyOf(table_)]: r[keyOf(table_)], VERSION: r.VERSION })).then(x => { reloadClient(); return x; })) }),
+            h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Eliminar', onclick: () => confirmDialog('Eliminar', '¿Eliminar este registro? Queda en la auditoría.', 'Eliminar').then(ok => { if (ok) api('adm_deleteChild', table_, r[keyOf(table_)]).then(() => { toast('Eliminado.', 'ok'); reloadClient(); }).catch(fail); }) }))
+        }] : []), rows, { empty: 'Sin registros.' }));
+      };
+      section('Contactos', 'CONTACTOS', d.publico.contactos, [{ label: 'Nombre', key: 'NOMBRE' }, { label: 'Rol', render: r => pretty(r.ROL) }, { label: 'WhatsApp', key: 'WHATSAPP' }, { label: 'Fijo', key: 'TELEFONO_FIJO' }, { label: 'Email', key: 'EMAIL' }, { label: 'Principal', render: r => (r.ES_PRINCIPAL ? 'Sí' : '') }]);
+      section('Sedes', 'SEDES', d.publico.sedes, [{ label: 'Sede', key: 'NOMBRE_SEDE' }, { label: 'Dirección', render: r => [r.DIRECCION, r.BARRIO, pretty(r.MUNICIPIO)].filter(Boolean).join(', ') }, { label: 'Horario', render: r => [r.HORARIO_SEMANA, r.HORARIO_FIN_SEMANA].filter(Boolean).join(' · ') }]);
+      section('Servicios', 'SERVICIOS', d.publico.servicios, [{ label: 'Servicio', key: 'NOMBRE' }, { label: 'Precio', key: 'PRECIO' }, { label: 'Mostrar precio', render: r => (r.MOSTRAR_PRECIO ? 'Sí' : 'No') }, { label: 'Imagen', render: r => (r.IMAGEN_ARCHIVO_ID ? 'Sí' : '') }]);
+      section('Productos', 'PRODUCTOS', d.publico.productos, [{ label: 'Producto', key: 'NOMBRE' }, { label: 'Categoría', key: 'CATEGORIA' }, { label: 'Precio', key: 'PRECIO' }, { label: 'Disponible', render: r => (r.DISPONIBLE ? 'Sí' : 'No') }]);
+      section('Testimonios', 'TESTIMONIOS', d.publico.testimonios, [{ label: 'Autor', key: 'AUTOR_NOMBRE' }, { label: 'Texto', key: 'TEXTO' }, { label: 'Permiso foto', render: r => (r.PERMISO_USO_FOTO ? 'Sí' : 'No') }, { label: 'Aprobado', render: r => (r.APROBADO_ADMIN ? 'Sí' : 'No') }]);
+      // Contenido clave-valor
+      panel.appendChild(h('div', { class: 'section-title' }, h('h3', { text: 'Respuestas de la plantilla de página' })));
+      const byKey = {};
+      d.publico.contenido.forEach(x => { byKey[x.CAMPO_CLAVE] = x; });
+      const grid = h('div', { class: 'form-grid' });
+      Object.keys(d.contentKeys).forEach(k => {
+        const id = 'cnt-' + k;
+        const ta = h('textarea', { id, rows: 2, disabled: !w }, byKey[k] ? byKey[k].VALOR : '');
+        grid.appendChild(h('div', { class: 'field' }, h('label', { for: id, text: d.contentKeys[k].label }), ta,
+          w ? h('button', {
+            type: 'button', class: 'btn btn-ghost btn-sm', text: 'Guardar', onclick: () => {
+              const rec = byKey[k] ? { CONTENIDO_ID: byKey[k].CONTENIDO_ID, VALOR: ta.value, VERSION: byKey[k].VERSION } : { CLIENTE_ID: c.CLIENTE_ID, CAMPO_CLAVE: k, VALOR: ta.value };
+              api('adm_saveChild', 'CONTENIDO_WEB', rec).then(() => { toast('Guardado.', 'ok'); reloadClient(); }).catch(fail);
+            }
+          }) : null));
+      });
+      panel.appendChild(grid);
+    },
+
+    archivos(panel, d) {
+      const c = d.cliente;
+      if (can('files.write')) {
+        const cat = h('select', { id: 'upCat' }, ['LOGO', 'FOTO_NEGOCIO', 'FOTO_EQUIPO', 'FOTO_PRODUCTO', 'FOTO_SERVICIO', 'FOTO_TESTIMONIO', 'DOCUMENTO', 'COMPROBANTE', 'PROPUESTA', 'OTRO'].map(x => h('option', { value: x, text: pretty(x) })));
+        const inp = h('input', { type: 'file', id: 'upFile', accept: 'image/jpeg,image/png,image/webp,application/pdf' });
+        panel.appendChild(h('div', { class: 'filters' },
+          h('div', { class: 'field' }, h('label', { for: 'upCat', text: 'Categoría' }), cat),
+          h('div', { class: 'field' }, h('label', { for: 'upFile', text: 'Archivo (máx. 10 MB)' }), inp),
+          h('button', {
+            type: 'button', class: 'btn btn-primary', text: 'Subir', onclick: (e) => {
+              const f = inp.files[0];
+              if (!f) { toast('Elija un archivo.', 'error'); return; }
+              const btn = e.target;
+              btn.disabled = true;
+              const r = new FileReader();
+              r.onload = () => api('adm_uploadFile', c.CLIENTE_ID, { category: cat.value, fileName: f.name, mimeType: f.type }, r.result)
+                .then(() => { toast('Archivo cargado.', 'ok'); reloadClient(); }).catch(fail).then(() => { btn.disabled = false; });
+              r.readAsDataURL(f);
+            }
+          })));
+      }
+      if (!d.publico.archivos.length) { panel.appendChild(h('div', { class: 'empty', text: 'Sin archivos.' })); return; }
+      panel.appendChild(filesGrid(d.publico.archivos, reloadClient));
+    },
+
+    reporte(panel, d) {
+      const c = d.cliente;
+      panel.appendChild(h('div', { class: 'section-title' }, h('h3', { text: 'Reportes para diseño web' }),
+        can('reports') ? h('button', { type: 'button', class: 'btn btn-accent btn-sm', text: 'Generar nueva versión', onclick: () => generateReport(c.CLIENTE_ID, false) }) : null));
+      panel.appendChild(h('p', { class: 'small muted', text: 'Google Doc editable con la información pública del cliente, ordenada por secciones de página. Regenerar crea una versión nueva y conserva las anteriores.' }));
+      panel.appendChild(table([
+        { label: 'Versión', render: r => 'v' + r.VERSION_REPORTE },
+        { label: 'Generado', render: r => dt(r.GENERADO_EN) },
+        { label: 'Por', key: 'GENERADO_POR' },
+        { label: 'Estado', render: r => h('span', { class: 'badge' + (r.ESTADO === 'GENERADO' ? ' ok' : ''), text: pretty(r.ESTADO) }) },
+        { label: '', render: r => h('div', { class: 'actions' },
+          h('a', { class: 'btn btn-ghost btn-sm', href: r.DOC_URL, target: '_blank', rel: 'noopener', text: 'Abrir Doc' }),
+          h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'PDF', onclick: () => api('adm_reportPdf', r.REPORTE_ID).then(download).catch(fail) }),
+          h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'JSON', onclick: () => api('adm_reportJson', r.REPORTE_ID).then(download).catch(fail) })) }
+      ], d.reportes, { empty: 'Aún no hay reportes. Se generan solos pocos minutos después de recibir el formulario.' }));
+      panel.appendChild(h('h3', { text: 'Solicitudes (formularios)' }));
+      panel.appendChild(table([
+        { label: 'Radicado', key: 'RADICADO' }, { label: 'Enviada', render: r => dt(r.ENVIADA_EN) }, { label: 'Estado', render: r => pretty(r.ESTADO) },
+        { label: 'Vinculación', render: r => pretty(r.TIPO_VINCULACION) }, { label: 'Correcciones', render: r => pretty(r.CAMBIOS_ESTADO) }
+      ], d.solicitudes, { onRow: r => openSolicitud(r.SOLICITUD_ID, reloadClient), empty: 'Este cliente no ha enviado formularios.' }));
+      panel.appendChild(h('h3', { text: 'Autorizaciones' }));
+      panel.appendChild(table([{ label: 'Tipo', render: r => pretty(r.TIPO) }, { label: 'Otorgada', render: r => h('span', { class: 'badge ' + (r.OTORGADA ? 'ok' : 'danger'), text: r.OTORGADA ? 'Sí' : 'No' }) }, { label: 'Fecha', render: r => dt(r.FECHA_HORA) }, { label: 'Firmante', key: 'FIRMANTE_NOMBRE' }, { label: 'Versión texto', key: 'TEXTO_VERSION' }], d.publico.autorizaciones, { empty: 'Sin autorizaciones registradas.' }));
+    },
+
+    crm(panel, d) {
+      const c = d.cliente;
+      const w = can('crm.write');
+      panel.appendChild(h('p', { class: 'small muted zone-internal', text: 'Información interna del CRM: no se comparte con el cliente ni aparece en el reporte.' }));
+      panel.appendChild(h('div', { class: 'section-title' }, h('h3', { text: 'Oportunidades' }), w ? h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: '+ Oportunidad', onclick: () => oppModal(c) }) : null));
+      panel.appendChild(table([
+        { label: 'Título', key: 'TITULO' },
+        { label: 'Etapa', render: o => (w ? stageSelect(o, reloadClient) : stageBadge(o.ETAPA)) },
+        { label: 'Valor', num: true, render: o => money(o.VALOR_ESTIMADO) },
+        { label: 'Prob.', num: true, render: o => o.PROBABILIDAD + ' %' },
+        { label: 'Cierre', render: o => o.FECHA_CIERRE_REAL || o.FECHA_CIERRE_ESTIMADA },
+        { label: 'Responsable', key: 'RESPONSABLE_EMAIL' },
+        { label: '', render: o => (w ? h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Editar', onclick: () => recordModal('Editar oportunidad', 'OPORTUNIDADES', o, v => api('adm_updateOpportunity', o.OPORTUNIDAD_ID, v, o.VERSION).then(r => { reloadClient(); return r; })) }) : '') }
+      ], d.crm.oportunidades, { empty: 'Sin oportunidades.' }));
+      panel.appendChild(h('div', { class: 'section-title' }, h('h3', { text: 'Seguimientos' }), w ? h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: '+ Seguimiento', onclick: () => followupModal(c) }) : null));
+      panel.appendChild(followupsTable(d.crm.seguimientos, reloadClient));
+      panel.appendChild(h('div', { class: 'section-title' }, h('h3', { text: 'Actividades' }), w ? h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: '+ Actividad', onclick: () => activityModal(c) }) : null));
+      panel.appendChild(timeline(d.crm.actividades));
+    },
+
+    ventas(panel, d) {
+      const c = d.cliente;
+      const w = can('sales.write');
+      const opps = d.crm.oportunidades;
+      panel.appendChild(h('p', { class: 'small muted zone-internal', text: 'Información interna. Todos los valores son editables.' }));
+      panel.appendChild(h('div', { class: 'section-title' }, h('h3', { text: 'Propuestas' }),
+        w && opps.length ? h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: '+ Propuesta', onclick: () => proposalModal(opps, null, reloadClient) }) : null));
+      if (!opps.length) panel.appendChild(h('p', { class: 'small muted', text: 'Cree primero una oportunidad (pestaña CRM).' }));
+      panel.appendChild(proposalsTable(d.crm.propuestas, opps, reloadClient));
+      panel.appendChild(h('div', { class: 'section-title' }, h('h3', { text: 'Ventas (cierres)' }),
+        w && opps.some(o => o.ABIERTA) ? h('button', { type: 'button', class: 'btn btn-accent btn-sm', text: 'Registrar venta', onclick: () => saleModal(opps.filter(o => o.ABIERTA)[0], d.crm.propuestas, reloadClient) }) : null));
+      panel.appendChild(salesTable(d.crm.ventas.map(v => Object.assign({ SALDO: Math.max(0, v.VALOR_TOTAL - v.VALOR_PAGADO) }, v)), reloadClient));
+      panel.appendChild(h('h3', { text: 'Pagos' }));
+      panel.appendChild(paymentsTable(d.crm.pagos, reloadClient));
+      panel.appendChild(h('h3', { text: 'Proyecto web' }));
+      panel.appendChild(projectsTable(d.crm.proyectos, reloadClient));
+    },
+
+    historial(panel, d) {
+      loading(panel);
+      api('adm_listAudit', { clienteId: d.cliente.CLIENTE_ID }, 1).then(r => { clear(panel).appendChild(auditTable(r.items)); }).catch(fail);
+    }
+  };
+  const keyOf = (t) => ({ CONTACTOS: 'CONTACTO_ID', SEDES: 'SEDE_ID', SERVICIOS: 'SERVICIO_ID', PRODUCTOS: 'PRODUCTO_ID', TESTIMONIOS: 'TESTIMONIO_ID', CONTENIDO_WEB: 'CONTENIDO_ID' }[t]);
+
+  function generateReport(clienteId, force) {
+    toast('Generando reporte… puede tardar unos segundos.');
+    api('adm_generateReport', clienteId, force).then(r => {
+      toast('Reporte v' + r.VERSION_REPORTE + ' generado.', 'ok');
+      reloadClient();
+    }).catch(err => {
+      if (err.code === 'REPORT_EDITED') confirmDialog('Reporte editado', err.message, 'Crear versión nueva').then(ok => { if (ok) generateReport(clienteId, true); });
+      else fail(err);
+    });
+  }
+
+  function timeline(acts) {
+    if (!acts.length) return h('div', { class: 'empty', text: 'Sin actividades.' });
+    return h('ul', { class: 'timeline' }, acts.map(a => h('li', null,
+      h('div', { class: 't-head' }, h('strong', { text: pretty(a.TIPO) + (a.RESULTADO ? ' · ' + pretty(a.RESULTADO) : '') + (a.ASUNTO ? ' — ' + a.ASUNTO : '') }), h('span', { class: 'small muted', text: dt(a.FECHA_HORA) + ' · ' + (a.REALIZADA_POR || '') })),
+      a.DETALLE ? h('div', { class: 'small', style: 'white-space:pre-wrap;margin-top:4px', text: a.DETALLE }) : null)));
+  }
+
+  function filesGrid(files, onChange) {
+    return h('div', { class: 'files-grid' }, files.map(f => {
+      const pv = h('div', { class: 'pv', text: f.MIME_TYPE === 'application/pdf' ? 'PDF' : '…' });
+      if (f.MIME_TYPE && f.MIME_TYPE.indexOf('image/') === 0) {
+        api('adm_filePreview', f.ARCHIVO_ID).then(r => { if (r.dataUrl) { pv.textContent = ''; pv.style.backgroundImage = 'url("' + r.dataUrl + '")'; } else pv.textContent = 'Sin vista previa'; }).catch(() => { pv.textContent = 'Sin vista previa'; });
+      }
+      const setStatus = (estado, motivo) => api('adm_setFileStatus', f.ARCHIVO_ID, estado, motivo).then(() => { toast('Archivo actualizado.', 'ok'); onChange(); }).catch(fail);
+      return h('div', { class: 'file-card' }, pv, h('div', { class: 'body' },
+        h('strong', { text: pretty(f.CATEGORIA) }),
+        h('span', { class: 'muted', title: f.NOMBRE_ORIGINAL, text: (f.NOMBRE_ORIGINAL || '').slice(0, 40) + ' · ' + Math.max(1, Math.round((f.TAMANO_BYTES || 0) / 1024)) + ' KB' }),
+        f.CLIENTE_NOMBRE ? h('span', { text: f.CLIENTE_NOMBRE }) : null,
+        h('span', null, h('span', { class: 'badge ' + (f.ESTADO === 'APROBADO' ? 'ok' : f.ESTADO === 'RECHAZADO' ? 'danger' : 'warn'), text: pretty(f.ESTADO) })),
+        h('div', { class: 'actions' },
+          h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Descargar', onclick: () => api('adm_fileDownload', f.ARCHIVO_ID).then(download).catch(fail) }),
+          can('files.write') && f.ESTADO !== 'APROBADO' ? h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Aprobar', onclick: () => setStatus('APROBADO') }) : null,
+          can('files.write') && f.ESTADO !== 'RECHAZADO' ? h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Rechazar', onclick: () => { const m = window.prompt('Motivo del rechazo:'); if (m !== null) setStatus('RECHAZADO', m); } }) : null,
+          can('files.write') ? h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Eliminar', onclick: () => confirmDialog('Eliminar archivo', '¿Enviar este archivo a la papelera?', 'Eliminar').then(ok => { if (ok) setStatus('PAPELERA'); }) }) : null,
+          f.CLIENTE_ID && A.view !== 'cliente' ? h('button', { type: 'button', class: 'btn-link small', text: 'Ver cliente', onclick: () => go('cliente', { id: f.CLIENTE_ID, tab: 'archivos' }) }) : null)));
+    }));
+  }
+
+  // ---------------------------------------------------------------- Etapas y CRM
+  function stageSelect(o, onChange) {
+    const sel = h('select', { 'aria-label': 'Etapa de ' + o.TITULO }, A.meta.etapas.map(e => h('option', { value: e.key, text: e.label })));
+    sel.value = o.ETAPA;
+    sel.addEventListener('change', () => moveOpp(o, sel.value).then(r => { if (r) onChange(); else sel.value = o.ETAPA; }).catch(err => { fail(err); sel.value = o.ETAPA; if (err.code === 'CONFLICT') onChange(); }));
+    return sel;
+  }
+  /** Mueve una oportunidad aplicando las reglas: GANADO → venta; PERDIDO/NO_INTERESADO → motivo. */
+  function moveOpp(o, etapa) {
+    if (etapa === o.ETAPA) return Promise.resolve(null);
+    if (etapa === 'GANADO') {
+      return new Promise(resolve => {
+        const props = (A.client && A.client.crm.propuestas) || [];
+        saleModal(o, props, () => resolve(true), () => resolve(null));
+      });
+    }
+    if (etapa === 'PERDIDO' || etapa === 'NO_INTERESADO') {
+      return new Promise((resolve, reject) => {
+        const sel = h('select', { id: 'motSel' }, h('option', { value: '', text: 'Elija un motivo…' }), A.meta.motivosCierre.map(m => h('option', { value: m, text: m })));
+        const txt = h('textarea', { id: 'motTxt', rows: 3 });
+        modal({
+          title: 'Motivo del cierre (' + pretty(etapa) + ')', onClose: () => resolve(null),
+          body: h('div', { class: 'form-grid' }, h('div', { class: 'field' }, h('label', { for: 'motSel', text: 'Motivo' }), sel), h('div', { class: 'field wide' }, h('label', { for: 'motTxt', text: 'Detalle' }), txt)),
+          actions: [{ label: 'Cancelar', onClick: () => { resolve(null); } }, {
+            label: 'Cerrar oportunidad', class: 'btn-primary', onClick: () => {
+              const motivo = [sel.value, txt.value.trim()].filter(Boolean).join(' · ');
+              if (!motivo) { toast('Indique el motivo.', 'error'); return false; }
+              return api('adm_moveOpportunity', o.OPORTUNIDAD_ID, etapa, o.VERSION, { motivo }).then(r => { toast('Oportunidad cerrada.', 'ok'); resolve(r); }).catch(err => { reject(err); });
+            }
+          }]
+        });
+      });
+    }
+    return api('adm_moveOpportunity', o.OPORTUNIDAD_ID, etapa, o.VERSION).then(r => { toast('Etapa: ' + pretty(etapa), 'ok'); return r; });
+  }
+  function changeClientStage(c, etapa, d) {
+    const open = d.crm.oportunidades.filter(o => o.ABIERTA);
+    if (open.length) return moveOpp(open[0], etapa).then(r => { if (r) reloadClient(); else reloadClient(); });
+    if (etapa === 'GANADO') { toast('Cree una oportunidad y registre la venta.', 'error'); reloadClient(); return Promise.resolve(); }
+    if (etapa === 'PERDIDO' || etapa === 'NO_INTERESADO') {
+      return api('adm_createOpportunity', { CLIENTE_ID: c.CLIENTE_ID, ETAPA: 'POR_CONTACTAR' }).then(o => moveOpp(o, etapa)).then(() => reloadClient());
+    }
+    return api('adm_setClientStage', c.CLIENTE_ID, etapa, {}).then(() => { toast('Etapa: ' + pretty(etapa), 'ok'); reloadClient(); });
+  }
+
+  function oppModal(c) {
+    recordModal('Nueva oportunidad', 'OPORTUNIDADES', { TITULO: 'Página web · ' + (c.NOMBRE_COMERCIAL || c.RAZON_SOCIAL), FECHA_CIERRE_ESTIMADA: '' },
+      v => api('adm_createOpportunity', Object.assign(v, { CLIENTE_ID: c.CLIENTE_ID, ETAPA: 'POR_CONTACTAR' })).then(r => { reloadClient(); return r; }));
+  }
+
+  function activityModal(c, preset) {
+    preset = preset || {};
+    const opps = (A.client && A.client.cliente.CLIENTE_ID === c.CLIENTE_ID) ? A.client.crm.oportunidades.filter(o => o.ABIERTA) : [];
+    const now = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    const f = (id, label, el) => h('div', { class: 'field' + (el.tagName === 'TEXTAREA' ? ' wide' : '') }, h('label', { for: id, text: label }), el);
+    const tipo = h('select', { id: 'actTipo' }, ['LLAMADA', 'WHATSAPP', 'EMAIL', 'REUNION', 'VISITA', 'NOTA'].map(t => h('option', { value: t, text: pretty(t) })));
+    tipo.value = preset.TIPO || 'LLAMADA';
+    const dir = h('select', { id: 'actDir' }, ['SALIENTE', 'ENTRANTE', 'INTERNA'].map(t => h('option', { value: t, text: pretty(t) })));
+    const res = h('select', { id: 'actRes' }, A.meta.enums.ACT_RESULTADO.map(t => h('option', { value: t, text: t ? pretty(t) : '—' })));
+    const asunto = h('input', { type: 'text', id: 'actAsunto', value: preset.ASUNTO || '' });
+    const detalle = h('textarea', { id: 'actDetalle', rows: 4 }, preset.DETALLE || '');
+    const dur = h('input', { type: 'number', id: 'actDur', min: '0', value: '' });
+    const fecha = h('input', { type: 'datetime-local', id: 'actFecha', value: now });
+    const opp = h('select', { id: 'actOpp' }, h('option', { value: '', text: opps.length ? 'La oportunidad abierta' : '—' }), opps.map(o => h('option', { value: o.OPORTUNIDAD_ID, text: o.TITULO })));
+    const segFecha = h('input', { type: 'date', id: 'actSegFecha' });
+    const segDesc = h('input', { type: 'text', id: 'actSegDesc', placeholder: 'Ej. Volver a llamar' });
+    const syncDir = () => { if (tipo.value === 'NOTA') dir.value = 'INTERNA'; else if (dir.value === 'INTERNA') dir.value = 'SALIENTE'; };
+    tipo.addEventListener('change', syncDir);
+    syncDir();
+    const body = h('div', null,
+      c.NO_CONTACTAR ? h('div', { class: 'notice error', text: 'Cliente marcado como NO CONTACTAR: solo puede registrar notas o contactos entrantes.' }) : null,
+      h('div', { class: 'form-grid' }, f('actTipo', 'Tipo', tipo), f('actDir', 'Dirección', dir), f('actRes', 'Resultado', res), f('actFecha', 'Fecha y hora', fecha),
+        f('actAsunto', 'Asunto', asunto), f('actDur', 'Duración (min)', dur), f('actOpp', 'Oportunidad', opp), f('actDetalle', 'Detalle (nota interna)', detalle)),
+      h('h3', { text: 'Crear seguimiento (obligatorio si el resultado es "Volver a llamar")' }),
+      h('div', { class: 'form-grid' }, f('actSegFecha', 'Fecha', segFecha), f('actSegDesc', 'Descripción', segDesc)));
+    modal({
+      title: 'Registrar actividad · ' + (c.NOMBRE_COMERCIAL || c.RAZON_SOCIAL), body, wide: true,
+      actions: [{ label: 'Cancelar' }, {
+        label: 'Guardar', class: 'btn-primary', onClick: () => api('adm_logActivity', {
+          CLIENTE_ID: c.CLIENTE_ID, OPORTUNIDAD_ID: opp.value, TIPO: tipo.value, DIRECCION: dir.value, RESULTADO: res.value,
+          ASUNTO: asunto.value, DETALLE: detalle.value, DURACION_MIN: dur.value, FECHA_HORA: fecha.value,
+          seguimiento: segFecha.value ? { FECHA_VENCIMIENTO: segFecha.value, DESCRIPCION: segDesc.value || 'Seguimiento' } : null
+        }).then(r => { toast('Actividad registrada' + (r.seguimiento ? ' con seguimiento.' : '.'), 'ok'); if (A.view === 'cliente') reloadClient(); return r; })
+      }]
+    });
+  }
+
+  function followupModal(c, record) {
+    const rec = record || { FECHA_VENCIMIENTO: today(), PRIORIDAD: 'MEDIA', TIPO: 'LLAMAR', ASIGNADO_A: c.RESPONSABLE_EMAIL || A.user.email };
+    const body = formGrid('SEGUIMIENTOS', rec, true);
+    const asg = $('[data-col=ASIGNADO_A]', body);
+    if (asg) {
+      const sel = h('select', { id: asg.id, 'data-col': 'ASIGNADO_A', 'data-type': 's' }, A.meta.usuarios.map(u => h('option', { value: u.email, text: u.nombre })));
+      sel.value = rec.ASIGNADO_A || A.user.email;
+      asg.replaceWith(sel);
+    }
+    modal({
+      title: (record ? 'Editar' : 'Nuevo') + ' seguimiento', body,
+      actions: [{ label: 'Cancelar' }, {
+        label: 'Guardar', class: 'btn-primary', onClick: () => api('adm_saveFollowup', Object.assign(readInputs(body), record ? { SEGUIMIENTO_ID: record.SEGUIMIENTO_ID, VERSION: record.VERSION } : { CLIENTE_ID: c.CLIENTE_ID }))
+          .then(r => { toast('Seguimiento guardado.', 'ok'); if (A.view === 'cliente') reloadClient(); else go(A.view, A.params); return r; })
+      }]
+    });
+  }
+
+  function followupsTable(rows, onChange) {
+    return table([
+      { label: 'Vence', render: s => h('span', { class: 'badge' + (s.ESTADO === 'PENDIENTE' && s.FECHA_VENCIMIENTO < today() ? ' danger' : s.FECHA_VENCIMIENTO === today() ? ' warn' : ''), text: s.FECHA_VENCIMIENTO }) },
+      { label: 'Tipo', render: s => pretty(s.TIPO) },
+      { label: 'Descripción', key: 'DESCRIPCION' },
+      { label: 'Asignado a', key: 'ASIGNADO_A' },
+      { label: 'Estado', render: s => pretty(s.ESTADO) + (s.RESULTADO ? ' · ' + s.RESULTADO : '') },
+      { label: '', render: s => (s.ESTADO === 'PENDIENTE' && can('crm.write') ? h('div', { class: 'actions' },
+        h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Completar', onclick: () => { const r = window.prompt('Resultado (opcional):', ''); if (r !== null) api('adm_completeFollowup', s.SEGUIMIENTO_ID, r, 'COMPLETADO').then(() => { toast('Completado.', 'ok'); onChange(); }).catch(fail); } }),
+        h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Cancelar', onclick: () => api('adm_completeFollowup', s.SEGUIMIENTO_ID, 'Cancelado', 'CANCELADO').then(() => { toast('Cancelado.', 'ok'); onChange(); }).catch(fail) })) : '') }
+    ], rows, { empty: 'Sin seguimientos.' });
+  }
+
+  // ---------------------------------------------------------------- Ventas
+  function proposalModal(opps, prop, onDone) {
+    const items = prop ? JSON.parse(JSON.stringify(prop.ITEMS_JSON || [])) : [{ descripcion: '', cantidad: 1, precioUnitario: 0, productoWebId: '' }];
+    const oppSel = h('select', { id: 'propOpp', disabled: !!prop }, opps.map(o => h('option', { value: o.OPORTUNIDAD_ID, text: o.TITULO + ' (' + pretty(o.ETAPA) + ')' })));
+    if (prop) oppSel.value = prop.OPORTUNIDAD_ID;
+    const desc = h('input', { type: 'text', id: 'propDesc', inputmode: 'numeric', value: prop ? money(prop.DESCUENTO) : '' });
+    const val = h('input', { type: 'date', id: 'propVal', value: prop ? prop.VALIDEZ_HASTA : '' });
+    const notas = h('textarea', { id: 'propNotas', rows: 3 }, prop ? prop.NOTAS : '');
+    const list = h('div', null);
+    const total = h('strong', null);
+    const recalc = () => {
+      const sub = items.reduce((s, it) => s + (Number(it.cantidad) || 1) * parseMoney(it.precioUnitario), 0);
+      total.textContent = 'Subtotal ' + money(sub) + ' · Total ' + money(Math.max(0, sub - parseMoney(desc.value)));
+    };
+    const renderItems = () => {
+      clear(list);
+      items.forEach((it, i) => {
+        const pw = h('select', { 'aria-label': 'Producto web ítem ' + (i + 1) }, h('option', { value: '', text: 'Producto…' }), A.meta.productosWeb.map(p => h('option', { value: p.id, text: p.nombre })));
+        pw.value = it.productoWebId || '';
+        const d = h('input', { type: 'text', 'aria-label': 'Descripción ítem ' + (i + 1), value: it.descripcion, placeholder: 'Descripción' });
+        const q = h('input', { type: 'number', min: '1', 'aria-label': 'Cantidad ítem ' + (i + 1), value: String(it.cantidad || 1), style: 'max-width:80px' });
+        const p = h('input', { type: 'text', inputmode: 'numeric', 'aria-label': 'Precio ítem ' + (i + 1), value: it.precioUnitario ? money(it.precioUnitario) : '', placeholder: 'Precio' });
+        pw.addEventListener('change', () => {
+          const prod = A.meta.productosWeb.find(x => x.id === pw.value);
+          it.productoWebId = pw.value;
+          if (prod) { it.descripcion = prod.nombre; d.value = prod.nombre; if (prod.precio) { it.precioUnitario = prod.precio; p.value = money(prod.precio); } }
+          recalc();
+        });
+        d.addEventListener('input', () => { it.descripcion = d.value; });
+        q.addEventListener('input', () => { it.cantidad = Number(q.value) || 1; recalc(); });
+        p.addEventListener('input', () => { it.precioUnitario = parseMoney(p.value); recalc(); });
+        list.appendChild(h('div', { class: 'filters', style: 'margin-bottom:6px' }, pw, d, q, p,
+          h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Quitar', onclick: () => { items.splice(i, 1); renderItems(); } })));
+      });
+      recalc();
+    };
+    desc.addEventListener('input', recalc);
+    renderItems();
+    const body = h('div', null,
+      h('div', { class: 'field' }, h('label', { for: 'propOpp', text: 'Oportunidad' }), oppSel),
+      h('h3', { text: 'Ítems (precios editables)' }), list,
+      h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: '+ Ítem', onclick: () => { items.push({ descripcion: '', cantidad: 1, precioUnitario: 0 }); renderItems(); } }),
+      h('div', { class: 'form-grid', style: 'margin-top:12px' },
+        h('div', { class: 'field' }, h('label', { for: 'propDesc', text: 'Descuento' }), desc),
+        h('div', { class: 'field' }, h('label', { for: 'propVal', text: 'Válida hasta' }), val),
+        h('div', { class: 'field wide' }, h('label', { for: 'propNotas', text: 'Notas' }), notas)),
+      h('p', null, total));
+    modal({
+      title: prop ? 'Editar propuesta ' + prop.NUMERO : 'Nueva propuesta', body, wide: true,
+      actions: [{ label: 'Cancelar' }, {
+        label: 'Guardar', class: 'btn-primary', onClick: () => api('adm_saveProposal', {
+          PROPUESTA_ID: prop ? prop.PROPUESTA_ID : '', OPORTUNIDAD_ID: oppSel.value, items: items.map(it => ({ descripcion: it.descripcion, cantidad: it.cantidad, precioUnitario: parseMoney(it.precioUnitario), productoWebId: it.productoWebId })),
+          DESCUENTO: parseMoney(desc.value), VALIDEZ_HASTA: val.value, NOTAS: notas.value, VERSION: prop ? prop.VERSION : undefined
+        }).then(r => { toast('Propuesta ' + r.NUMERO + ' guardada.', 'ok'); onDone(); return r; })
+      }]
+    });
+  }
+
+  function proposalsTable(rows, opps, onChange) {
+    const w = can('sales.write');
+    return table([
+      { label: 'Número', key: 'NUMERO' }, A.view !== 'cliente' ? { label: 'Cliente', render: p => p.CLIENTE_NOMBRE || '' } : null,
+      { label: 'Total', num: true, render: p => money(p.TOTAL) }, { label: 'Válida hasta', key: 'VALIDEZ_HASTA' },
+      { label: 'Estado', render: p => h('span', { class: 'badge' + (p.ESTADO === 'ACEPTADA' ? ' ok' : p.ESTADO === 'RECHAZADA' ? ' danger' : ''), text: pretty(p.ESTADO) + (p.VENCIDA_CALC ? ' (vencida)' : '') }) },
+      { label: '', render: p => (w ? h('div', { class: 'actions' },
+        p.ESTADO !== 'ACEPTADA' && opps ? h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Editar', onclick: () => proposalModal(opps, p, onChange) }) : null,
+        p.ESTADO === 'BORRADOR' ? h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Marcar enviada', onclick: () => api('adm_setProposalStatus', p.PROPUESTA_ID, 'ENVIADA').then(() => { toast('Propuesta enviada.', 'ok'); onChange(); }).catch(fail) }) : null,
+        p.ESTADO === 'ENVIADA' ? h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Rechazada', onclick: () => api('adm_setProposalStatus', p.PROPUESTA_ID, 'RECHAZADA').then(() => { toast('Actualizada.', 'ok'); onChange(); }).catch(fail) }) : null) : '') }
+    ], rows, { empty: 'Sin propuestas.' });
+  }
+
+  function saleModal(opp, propuestas, onDone, onCancel) {
+    if (!opp) { toast('No hay una oportunidad abierta.', 'error'); return; }
+    const props = (propuestas || []).filter(p => p.OPORTUNIDAD_ID === opp.OPORTUNIDAD_ID && p.ESTADO !== 'RECHAZADA');
+    const accepted = props.find(p => p.ESTADO === 'ACEPTADA') || props[0];
+    const f = (id, label, el) => h('div', { class: 'field' + (el.tagName === 'TEXTAREA' ? ' wide' : '') }, h('label', { for: id, text: label }), el);
+    const prop = h('select', { id: 'vProp' }, h('option', { value: '', text: 'Sin propuesta' }), props.map(p => h('option', { value: p.PROPUESTA_ID, text: p.NUMERO + ' · ' + money(p.TOTAL) })));
+    prop.value = accepted ? accepted.PROPUESTA_ID : '';
+    const valor = h('input', { type: 'text', id: 'vValor', inputmode: 'numeric', value: money(accepted ? accepted.TOTAL : opp.VALOR_ESTIMADO) });
+    prop.addEventListener('change', () => { const p = props.find(x => x.PROPUESTA_ID === prop.value); if (p) valor.value = money(p.TOTAL); });
+    const fecha = h('input', { type: 'date', id: 'vFecha', value: today() });
+    const forma = h('select', { id: 'vForma' }, A.meta.enums.FORMA_PAGO.map(x => h('option', { value: x, text: pretty(x) })));
+    const pago = h('input', { type: 'text', id: 'vPago', inputmode: 'numeric', placeholder: 'Opcional' });
+    const metodo = h('select', { id: 'vMetodo' }, A.meta.enums.METODO_PAGO.map(x => h('option', { value: x, text: pretty(x) })));
+    const ref = h('input', { type: 'text', id: 'vRef' });
+    const notas = h('textarea', { id: 'vNotas', rows: 2 });
+    return modal({
+      title: 'Registrar venta · ' + opp.TITULO, onClose: () => { if (onCancel) onCancel(); },
+      body: h('div', null, h('p', { class: 'small muted', text: 'Al guardar, la oportunidad pasa a Ganado y se crea el proyecto web.' }),
+        h('div', { class: 'form-grid' }, f('vProp', 'Propuesta', prop), f('vValor', 'Valor total (editable)', valor), f('vFecha', 'Fecha de venta', fecha), f('vForma', 'Forma de pago', forma),
+          f('vPago', 'Pago inicial', pago), f('vMetodo', 'Método del pago', metodo), f('vRef', 'Referencia del pago', ref), f('vNotas', 'Notas', notas))),
+      actions: [{ label: 'Cancelar', onClick: () => { if (onCancel) onCancel(); } }, {
+        label: 'Registrar venta', class: 'btn-accent', onClick: () => api('adm_registerSale', {
+          OPORTUNIDAD_ID: opp.OPORTUNIDAD_ID, PROPUESTA_ID: prop.value, VALOR_TOTAL: parseMoney(valor.value), FECHA_VENTA: fecha.value,
+          FORMA_PAGO: forma.value, PAGO_INICIAL: parseMoney(pago.value), METODO: metodo.value, REFERENCIA: ref.value, NOTAS: notas.value
+        }).then(r => { toast('Venta ' + r.venta.NUMERO + ' registrada. Proyecto web creado.', 'ok'); if (onDone) onDone(); return r; })
+      }]
+    });
+  }
+
+  function paymentModal(v, onDone) {
+    const f = (id, label, el) => h('div', { class: 'field' }, h('label', { for: id, text: label }), el);
+    const valor = h('input', { type: 'text', id: 'pValor', inputmode: 'numeric', value: money(Math.max(0, v.VALOR_TOTAL - v.VALOR_PAGADO)) });
+    const fecha = h('input', { type: 'date', id: 'pFecha', value: today() });
+    const metodo = h('select', { id: 'pMetodo' }, A.meta.enums.METODO_PAGO.map(x => h('option', { value: x, text: pretty(x) })));
+    const ref = h('input', { type: 'text', id: 'pRef' });
+    modal({
+      title: 'Registrar pago · ' + v.NUMERO,
+      body: h('div', { class: 'form-grid' }, f('pValor', 'Valor', valor), f('pFecha', 'Fecha', fecha), f('pMetodo', 'Método', metodo), f('pRef', 'Referencia', ref)),
+      actions: [{ label: 'Cancelar' }, { label: 'Registrar pago', class: 'btn-primary', onClick: () => api('adm_registerPayment', { VENTA_ID: v.VENTA_ID, VALOR: parseMoney(valor.value), FECHA_PAGO: fecha.value, METODO: metodo.value, REFERENCIA: ref.value }).then(r => { toast('Pago registrado.', 'ok'); onDone(); return r; }) }]
+    });
+  }
+
+  function salesTable(rows, onChange) {
+    const w = can('sales.write');
+    return table([
+      { label: 'Número', key: 'NUMERO' }, A.view !== 'cliente' ? { label: 'Cliente', render: v => v.CLIENTE_NOMBRE || '' } : null, { label: 'Fecha', key: 'FECHA_VENTA' },
+      { label: 'Valor', num: true, render: v => money(v.VALOR_TOTAL) }, { label: 'Pagado', num: true, render: v => money(v.VALOR_PAGADO) }, { label: 'Saldo', num: true, render: v => money(v.SALDO) },
+      { label: 'Estado', render: v => h('span', { class: 'badge' + (v.ESTADO_PAGO === 'PAGADA' ? ' ok' : v.ESTADO_PAGO === 'ANULADA' ? ' danger' : ' warn'), text: pretty(v.ESTADO_PAGO) }) },
+      { label: '', render: v => (w && v.ESTADO_PAGO !== 'ANULADA' ? h('div', { class: 'actions' },
+        v.ESTADO_PAGO !== 'PAGADA' ? h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: '+ Pago', onclick: () => paymentModal(v, onChange) }) : null,
+        h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Editar', onclick: () => recordModal('Editar venta ' + v.NUMERO, 'VENTAS', v, x => api('adm_updateSale', v.VENTA_ID, x, v.VERSION).then(r => { onChange(); return r; })) }),
+        h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Anular', onclick: () => { const m = window.prompt('Motivo de la anulación:'); if (m) api('adm_cancelSale', v.VENTA_ID, m).then(() => { toast('Venta anulada.', 'ok'); onChange(); }).catch(fail); } })) : '') }
+    ], rows, { empty: 'Sin ventas.' });
+  }
+  function paymentsTable(rows, onChange) {
+    return table([
+      { label: 'Fecha', key: 'FECHA_PAGO' }, { label: 'Venta', render: p => p.VENTA_NUMERO || p.VENTA_ID }, A.view !== 'cliente' ? { label: 'Cliente', render: p => p.CLIENTE_NOMBRE || '' } : null,
+      { label: 'Valor', num: true, render: p => money(p.VALOR) }, { label: 'Método', render: p => pretty(p.METODO) }, { label: 'Referencia', key: 'REFERENCIA' },
+      { label: '', render: p => (can('sales.write') ? h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Eliminar', onclick: () => confirmDialog('Eliminar pago', '¿Eliminar este pago? Se recalculará el saldo.', 'Eliminar').then(ok => { if (ok) api('adm_deletePayment', p.PAGO_ID).then(() => { toast('Pago eliminado.', 'ok'); onChange(); }).catch(fail); }) }) : '') }
+    ], rows, { empty: 'Sin pagos.' });
+  }
+  function projectsTable(rows, onChange) {
+    return table([
+      A.view !== 'cliente' ? { label: 'Cliente', render: p => p.CLIENTE_NOMBRE || p.CLIENTE_ID } : null, { label: 'Estado', render: p => h('span', { class: 'badge', text: pretty(p.ESTADO) }) },
+      { label: 'Entrega', key: 'FECHA_ENTREGA_ESTIMADA' }, { label: 'Dominio', key: 'DOMINIO' }, { label: 'Responsable', key: 'RESPONSABLE_EMAIL' },
+      { label: '', render: p => h('div', { class: 'actions' },
+        can('sales.write') ? h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Editar', onclick: () => recordModal('Proyecto web', 'PROYECTOS_WEB', p, x => api('adm_updateProject', p.PROYECTO_ID, x, p.VERSION).then(r => { onChange(); return r; })) }) : null,
+        A.view !== 'cliente' ? h('button', { type: 'button', class: 'btn-link small', text: 'Cliente', onclick: () => go('cliente', { id: p.CLIENTE_ID, tab: 'reporte' }) }) : null) }
+    ], rows, { empty: 'Sin proyectos. Se crean al registrar una venta.' });
+  }
+
+  // ---------------------------------------------------------------- Pipeline / Kanban
+  VIEWS.pipeline = (body, params) => {
+    setTitle('Pipeline');
+    const st = Object.assign({ mode: 'kanban', responsable: isSeller() ? 'me' : '', q: '', closedDays: 60 }, params);
+    const users = A.meta.usuarios.map(u => ({ value: u.email, label: u.nombre }));
+    const filters = h('div', { class: 'filters' },
+      h('div', { class: 'field q' }, h('label', { for: 'pp-q', text: 'Buscar' }), h('input', { type: 'search', id: 'pp-q', value: st.q })),
+      selectField('Responsable', 'pp-resp', [{ value: 'me', label: 'Mis oportunidades' }].concat(users), st.responsable),
+      selectField('Cerradas de los últimos', 'pp-days', [{ value: '30', label: '30 días' }, { value: '60', label: '60 días' }, { value: '180', label: '180 días' }, { value: '365', label: '1 año' }], String(st.closedDays), false),
+      selectField('Vista', 'pp-mode', [{ value: 'kanban', label: 'Kanban' }, { value: 'lista', label: 'Lista' }], st.mode, false));
+    const board = h('div', null);
+    const load = () => {
+      loading(board);
+      const f = { q: $('#pp-q').value, responsable: $('#pp-resp').value, closedDays: Number($('#pp-days').value) };
+      A.params = Object.assign({}, f, { mode: $('#pp-mode').value });
+      api('adm_listOpportunities', f).then(r => {
+        clear(board);
+        if ($('#pp-mode').value === 'lista') {
+          board.appendChild(table([
+            { label: 'Cliente', key: 'CLIENTE_NOMBRE' }, { label: 'Título', key: 'TITULO' },
+            { label: 'Etapa', render: o => (can('crm.write') ? stageSelect(o, load) : stageBadge(o.ETAPA)) },
+            { label: 'Valor', num: true, render: o => money(o.VALOR_ESTIMADO) }, { label: 'Prob.', num: true, render: o => o.PROBABILIDAD + ' %' },
+            { label: 'Días en etapa', num: true, key: 'DIAS_EN_ETAPA' }, { label: 'Próximo seguimiento', key: 'PROXIMO_SEGUIMIENTO' }, { label: 'Responsable', key: 'RESPONSABLE_EMAIL' }
+          ], r.items, { onRow: o => go('cliente', { id: o.CLIENTE_ID, tab: 'crm' }) }));
+          return;
+        }
+        board.appendChild(kanban(r, load));
+      }).catch(fail);
+    };
+    filters.addEventListener('change', load);
+    let t = null;
+    $('input', filters).addEventListener('input', () => { clearTimeout(t); t = setTimeout(load, 400); });
+    clear(body).appendChild(h('div', { class: 'card' }, filters, h('p', { class: 'small muted', text: 'Arrastre las tarjetas entre columnas o use el selector de cada tarjeta. Ganado exige registrar la venta; Perdido y No interesado exigen motivo.' }), board));
+    load();
+  };
+
+  function kanban(r, reload) {
+    const w = can('crm.write');
+    const wrap = h('div', { class: 'kanban' });
+    r.stages.forEach(st => {
+      const items = r.items.filter(o => o.ETAPA === st.key);
+      const col = h('section', { class: 'kcol', 'data-stage': st.key, 'aria-label': st.label },
+        h('div', { class: 'kcol-head' }, h('strong', { text: st.label }), h('span', { class: 'muted', text: items.length + ' · ' + money(r.totals[st.key].value) })));
+      const cards = h('div', { class: 'kcards' });
+      items.forEach(o => {
+        const overdue = o.PROXIMO_SEGUIMIENTO && o.PROXIMO_SEGUIMIENTO < today();
+        const card = h('article', { class: 'kcard' + (overdue ? ' overdue' : ''), draggable: w ? 'true' : null, 'data-id': o.OPORTUNIDAD_ID, tabindex: '0' },
+          h('div', { class: 'title', text: o.CLIENTE_NOMBRE }),
+          h('div', { class: 'small', text: o.TITULO }),
+          h('div', { class: 'meta' }, h('span', { text: money(o.VALOR_ESTIMADO) }), h('span', { text: o.DIAS_EN_ETAPA + ' d en etapa' })),
+          o.PROXIMO_SEGUIMIENTO ? h('div', { class: 'meta' }, h('span', { text: (overdue ? '⚠ ' : '') + 'Seguimiento ' + o.PROXIMO_SEGUIMIENTO })) : null,
+          w ? stageSelect(o, reload) : null);
+        card.addEventListener('click', (e) => { if (!e.target.closest('select')) go('cliente', { id: o.CLIENTE_ID, tab: 'crm' }); });
+        card.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target === card) go('cliente', { id: o.CLIENTE_ID, tab: 'crm' }); });
+        card.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', o.OPORTUNIDAD_ID); card.classList.add('dragging'); });
+        card.addEventListener('dragend', () => card.classList.remove('dragging'));
+        cards.appendChild(card);
+      });
+      if (w) {
+        col.addEventListener('dragover', (e) => { e.preventDefault(); col.classList.add('over'); });
+        col.addEventListener('dragleave', () => col.classList.remove('over'));
+        col.addEventListener('drop', (e) => {
+          e.preventDefault();
+          col.classList.remove('over');
+          const id = e.dataTransfer.getData('text/plain');
+          const o = r.items.find(x => x.OPORTUNIDAD_ID === id);
+          if (!o || o.ETAPA === st.key) return;
+          const openSale = () => api('adm_getClient', o.CLIENTE_ID).then(d => { A.client = d; return moveOpp(o, st.key); });
+          (st.key === 'GANADO' ? openSale() : moveOpp(o, st.key)).then(x => { if (x) reload(); }).catch(err => { fail(err); reload(); });
+        });
+      }
+      col.appendChild(cards);
+      wrap.appendChild(col);
+    });
+    return wrap;
+  }
+
+  // ---------------------------------------------------------------- Seguimientos
+  VIEWS.seguimientos = (body, params) => {
+    setTitle('Seguimientos');
+    const st = Object.assign({ bucket: 'vencidos', asignado: 'me' }, params);
+    const tabs = h('div', { class: 'tabs', role: 'tablist' });
+    [['vencidos', 'Vencidos'], ['hoy', 'Hoy'], ['proximos', 'Próximos'], ['completados', 'Completados']].forEach(b => tabs.appendChild(
+      h('button', { type: 'button', role: 'tab', 'aria-selected': String(st.bucket === b[0]), text: b[1], onclick: () => go('seguimientos', Object.assign({}, st, { bucket: b[0] })) })));
+    const users = A.meta.usuarios.map(u => ({ value: u.email, label: u.nombre }));
+    const filters = h('div', { class: 'filters' }, selectField('Asignado a', 'sg-asg', [{ value: 'me', label: 'Mí' }, { value: 'all', label: 'Todos' }].concat(users), st.asignado, false));
+    filters.addEventListener('change', () => go('seguimientos', Object.assign({}, st, { asignado: $('#sg-asg').value })));
+    const list = h('div', null);
+    clear(body).appendChild(h('div', { class: 'card' }, tabs, filters, list));
+    loading(list);
+    const reload = () => go('seguimientos', st);
+    api('adm_listFollowups', st.bucket, st.asignado).then(rows => {
+      clear(list).appendChild(table([
+        { label: 'Vence', render: s => h('span', { class: 'badge' + (s.VENCIDO ? ' danger' : ''), text: s.FECHA_VENCIMIENTO }) },
+        { label: 'Cliente', render: s => h('button', { type: 'button', class: 'btn-link', text: s.CLIENTE_NOMBRE, onclick: () => go('cliente', { id: s.CLIENTE_ID, tab: 'crm' }) }) },
+        { label: 'Teléfono', render: s => (s.CLIENTE_TELEFONO ? h('a', { href: 'tel:+57' + s.CLIENTE_TELEFONO, text: s.CLIENTE_TELEFONO }) : '') },
+        { label: 'Tipo', render: s => pretty(s.TIPO) }, { label: 'Descripción', key: 'DESCRIPCION' }, { label: 'Prioridad', render: s => pretty(s.PRIORIDAD) },
+        { label: 'Asignado', key: 'ASIGNADO_A' },
+        { label: '', render: s => (s.ESTADO === 'PENDIENTE' && can('crm.write') ? h('div', { class: 'actions' },
+          h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Completar', onclick: () => { const r = window.prompt('Resultado (opcional):', ''); if (r !== null) api('adm_completeFollowup', s.SEGUIMIENTO_ID, r, 'COMPLETADO').then(() => { toast('Completado.', 'ok'); reload(); }).catch(fail); } }),
+          h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Reprogramar', onclick: () => followupModal({ CLIENTE_ID: s.CLIENTE_ID }, s) })) : pretty(s.ESTADO)) }
+      ], rows, { empty: 'Nada por aquí.' }));
+    }).catch(fail);
+  };
+
+  // ---------------------------------------------------------------- Actividades
+  VIEWS.actividades = (body) => {
+    setTitle('Actividades');
+    const filters = h('div', { class: 'filters' },
+      h('div', { class: 'field q' }, h('label', { for: 'ac-q', text: 'Buscar' }), h('input', { type: 'search', id: 'ac-q' })),
+      selectField('Tipo', 'ac-tipo', A.meta.enums.ACT_TIPO, ''),
+      selectField('Realizadas por', 'ac-por', [{ value: 'me', label: 'Mí' }], ''),
+      h('div', { class: 'field' }, h('label', { for: 'ac-desde', text: 'Desde' }), h('input', { type: 'date', id: 'ac-desde' })),
+      h('div', { class: 'field' }, h('label', { for: 'ac-hasta', text: 'Hasta' }), h('input', { type: 'date', id: 'ac-hasta' })));
+    const list = h('div', null);
+    const load = () => {
+      loading(list);
+      api('adm_listActivities', { q: $('#ac-q').value, tipo: $('#ac-tipo').value, realizadaPor: $('#ac-por').value, desde: $('#ac-desde').value, hasta: $('#ac-hasta').value }).then(rows => {
+        clear(list).appendChild(table([
+          { label: 'Fecha', render: a => dt(a.FECHA_HORA) }, { label: 'Cliente', key: 'CLIENTE_NOMBRE' }, { label: 'Tipo', render: a => pretty(a.TIPO) },
+          { label: 'Resultado', render: a => pretty(a.RESULTADO) }, { label: 'Asunto', key: 'ASUNTO' }, { label: 'Por', key: 'REALIZADA_POR' }
+        ], rows, { onRow: a => go('cliente', { id: a.CLIENTE_ID, tab: 'crm' }) }));
+      }).catch(fail);
+    };
+    filters.addEventListener('change', load);
+    clear(body).appendChild(h('div', { class: 'card' }, h('p', { class: 'small muted', text: 'Para registrar una llamada, WhatsApp, email, reunión o nota, abra la ficha del cliente y use "Registrar actividad".' }), filters, list));
+    load();
+  };
+
+  // ---------------------------------------------------------------- Propuestas y ventas
+  VIEWS.ventas = (body, params) => {
+    setTitle('Propuestas y ventas');
+    const tab = params.tab || 'oportunidades';
+    const tabs = h('div', { class: 'tabs', role: 'tablist' });
+    [['oportunidades', 'Oportunidades'], ['propuestas', 'Propuestas'], ['ventas', 'Cierres (ventas)'], ['pagos', 'Pagos']].forEach(t => tabs.appendChild(
+      h('button', { type: 'button', role: 'tab', 'aria-selected': String(tab === t[0]), text: t[1], onclick: () => go('ventas', { tab: t[0] }) })));
+    const list = h('div', null);
+    clear(body).appendChild(h('div', { class: 'card' }, tabs, list));
+    loading(list);
+    const reload = () => go('ventas', { tab });
+    if (tab === 'oportunidades') {
+      api('adm_listOpportunities', { closedDays: 365 }).then(r => clear(list).appendChild(table([
+        { label: 'Cliente', key: 'CLIENTE_NOMBRE' }, { label: 'Título', key: 'TITULO' }, { label: 'Etapa', render: o => stageBadge(o.ETAPA) },
+        { label: 'Valor', num: true, render: o => money(o.VALOR_ESTIMADO) }, { label: 'Cierre', render: o => o.FECHA_CIERRE_REAL || o.FECHA_CIERRE_ESTIMADA }, { label: 'Responsable', key: 'RESPONSABLE_EMAIL' }
+      ], r.items, { onRow: o => go('cliente', { id: o.CLIENTE_ID, tab: 'ventas' }) }))).catch(fail);
+    } else if (tab === 'propuestas') {
+      api('adm_listProposals', {}).then(rows => clear(list).appendChild(proposalsTable(rows, null, reload))).catch(fail);
+    } else if (tab === 'ventas') {
+      api('adm_listSales', {}).then(rows => clear(list).appendChild(salesTable(rows, reload))).catch(fail);
+    } else {
+      api('adm_listPayments', {}).then(rows => clear(list).appendChild(paymentsTable(rows, reload))).catch(fail);
+    }
+  };
+
+  VIEWS.proyectos = (body) => {
+    setTitle('Proyectos web');
+    const list = h('div', null);
+    clear(body).appendChild(h('div', { class: 'card' }, h('p', { class: 'small muted', text: 'Se crean al registrar una venta. Use el reporte del cliente como insumo para el diseño.' }), list));
+    loading(list);
+    api('adm_listProjects', {}).then(rows => clear(list).appendChild(projectsTable(rows, () => go('proyectos')))).catch(fail);
+  };
+
+  // ---------------------------------------------------------------- Duplicados
+  VIEWS.duplicados = (body) => {
+    setTitle('Duplicados y conciliación');
+    const list = h('div', null);
+    clear(body).appendChild(h('div', { class: 'card' }, h('p', { class: 'small muted', text: 'Posibles coincidencias entre clientes nuevos (formulario) y la base. Toda fusión es manual y queda en auditoría.' }), list));
+    loading(list);
+    api('adm_listDuplicates', 'PENDIENTE').then(rows => clear(list).appendChild(table([
+      { label: 'Puntaje', num: true, key: 'PUNTAJE' }, { label: 'Regla', render: r => pretty(r.REGLA) },
+      { label: 'Cliente A (se conserva)', render: r => r.CLIENTE_A + ' · ' + r.NOMBRE_A }, { label: 'Cliente B', render: r => r.CLIENTE_B + ' · ' + r.NOMBRE_B },
+      { label: 'Detectado', render: r => dt(r.CREADO_EN) }
+    ], rows, { onRow: r => compareDuplicate(r.DUP_ID), empty: 'No hay posibles duplicados pendientes.' }))).catch(fail);
+  };
+
+  function compareDuplicate(dupId) {
+    api('adm_compareDuplicate', dupId).then(r => {
+      const labels = {};
+      A.meta.schema.CLIENTES.forEach(c => { labels[c.name] = c.label; });
+      const rows = r.fields.filter(f => r.a[f] || r.b[f]).map(f => {
+        const same = String(r.a[f]) === String(r.b[f]);
+        return h('div', { class: 'diff-row' },
+          h('span', null),
+          h('strong', { text: labels[f] || f }),
+          h('label', { class: 'check-inline' }, h('input', { type: 'radio', name: 'ch-' + f, value: 'A', checked: !!r.a[f] || !r.b[f], disabled: same }), h('span', { text: String(r.a[f] === true ? 'Sí' : r.a[f] === false ? 'No' : r.a[f] || '—') })),
+          h('label', { class: 'check-inline' }, h('input', { type: 'radio', name: 'ch-' + f, value: 'B', checked: !r.a[f] && !!r.b[f], disabled: same }), h('span', { text: String(r.b[f] === true ? 'Sí' : r.b[f] === false ? 'No' : r.b[f] || '—') })));
+      });
+      const body = h('div', null,
+        h('p', { class: 'small muted', text: 'Regla: ' + pretty(r.dup.REGLA) + ' · puntaje ' + r.dup.PUNTAJE + '. Elija qué valor conservar en cada campo. Se conserva el cliente A; oportunidades, archivos y actividades de B pasan a A.' }),
+        h('div', { class: 'diff-row' }, h('span', null), h('strong', { text: 'Campo' }), h('strong', { text: 'A · ' + r.a.CLIENTE_ID }), h('strong', { text: 'B · ' + r.b.CLIENTE_ID })), rows);
+      modal({
+        title: 'Comparar posibles duplicados', body, wide: true,
+        actions: [{ label: 'Cerrar' },
+          { label: 'No es el mismo', class: 'btn-ghost', onClick: () => api('adm_resolveDuplicate', dupId, 'NO_ES_EL_MISMO', {}).then(() => { toast('Marcado como distinto.', 'ok'); go(A.view === 'cliente' ? 'cliente' : 'duplicados', A.params); }) },
+          {
+            label: 'Es el mismo: fusionar', class: 'btn-accent', onClick: () => {
+              const choices = {};
+              r.fields.forEach(f => { const sel = $('input[name="ch-' + f + '"]:checked', body); if (sel) choices[f] = sel.value; });
+              return api('adm_resolveDuplicate', dupId, 'ES_EL_MISMO', choices).then(x => { toast('Clientes fusionados.', 'ok'); go('cliente', { id: x.clienteId }); });
+            }
+          }]
+      });
+    }).catch(fail);
+  }
+
+  // ---------------------------------------------------------------- Archivos por revisar
+  VIEWS.archivos = (body) => {
+    setTitle('Archivos por revisar');
+    const list = h('div', null);
+    clear(body).appendChild(h('div', { class: 'card' }, list));
+    loading(list);
+    api('adm_pendingFiles').then(rows => { clear(list); list.appendChild(rows.length ? filesGrid(rows, () => go('archivos')) : h('div', { class: 'empty', text: 'No hay archivos pendientes de revisión.' })); }).catch(fail);
+  };
+
+  // ---------------------------------------------------------------- Auditoría
+  function auditTable(items) {
+    return table([
+      { label: 'Fecha', render: a => dt(a.FECHA_HORA) }, { label: 'Actor', key: 'ACTOR' }, { label: 'Acción', key: 'ACCION' },
+      { label: 'Entidad', render: a => a.ENTIDAD + (a.ENTIDAD_ID ? ' · ' + a.ENTIDAD_ID : '') }, { label: 'Campos', key: 'CAMPOS' },
+      { label: 'Resultado', render: a => h('span', { class: 'badge' + (a.RESULTADO === 'OK' ? ' ok' : ' danger'), text: a.RESULTADO }) },
+      { label: 'Detalle', render: a => {
+        const d = h('details', null, h('summary', { text: a.DETALLE ? a.DETALLE.slice(0, 60) : 'Ver' }));
+        if (a.DETALLE) d.appendChild(h('p', { class: 'small', text: a.DETALLE }));
+        if (a.ANTES_JSON) d.appendChild(h('pre', { class: 'small', style: 'white-space:pre-wrap', text: 'Antes: ' + JSON.stringify(a.ANTES_JSON, null, 1) }));
+        if (a.DESPUES_JSON) d.appendChild(h('pre', { class: 'small', style: 'white-space:pre-wrap', text: 'Después: ' + JSON.stringify(a.DESPUES_JSON, null, 1) }));
+        return d;
+      } }
+    ], items, { empty: 'Sin registros.' });
+  }
+  VIEWS.auditoria = (body, params) => {
+    setTitle('Auditoría');
+    const st = Object.assign({ page: 1 }, params);
+    const filters = h('div', { class: 'filters' },
+      h('div', { class: 'field q' }, h('label', { for: 'au-q', text: 'Buscar (ID, detalle)' }), h('input', { type: 'search', id: 'au-q', value: st.q || '' })),
+      h('div', { class: 'field' }, h('label', { for: 'au-actor', text: 'Actor contiene' }), h('input', { type: 'text', id: 'au-actor', value: st.actor || '' })),
+      selectField('Entidad', 'au-ent', ['CLIENTES', 'SOLICITUDES', 'OPORTUNIDADES', 'ACTIVIDADES', 'SEGUIMIENTOS', 'PROPUESTAS', 'VENTAS', 'PAGOS', 'PROYECTOS_WEB', 'ARCHIVOS', 'REPORTES', 'USUARIOS_ADMIN', 'CONFIGURACION', 'DUPLICADOS'], st.entidad),
+      selectField('Acción', 'au-acc', ['CREAR', 'EDITAR', 'CAMBIO_ETAPA', 'CAMBIO_ESTADO', 'ACTIVIDAD', 'SEGUIMIENTO', 'VENTA', 'PAGO', 'LOGIN', 'ACCESO', 'FUSIONAR', 'EXPORTAR', 'ENVIAR_FORMULARIO', 'SUBIR_ARCHIVO', 'GENERAR_REPORTE'], st.accion),
+      selectField('Resultado', 'au-res', ['OK', 'DENEGADO', 'ERROR'], st.resultado),
+      h('div', { class: 'field' }, h('label', { for: 'au-desde', text: 'Desde' }), h('input', { type: 'date', id: 'au-desde', value: st.desde || '' })),
+      h('div', { class: 'field' }, h('label', { for: 'au-hasta', text: 'Hasta' }), h('input', { type: 'date', id: 'au-hasta', value: st.hasta || '' })));
+    const list = h('div', null);
+    const load = () => {
+      loading(list);
+      const f = { q: $('#au-q').value, actor: $('#au-actor').value, entidad: $('#au-ent').value, accion: $('#au-acc').value, resultado: $('#au-res').value, desde: $('#au-desde').value, hasta: $('#au-hasta').value };
+      api('adm_listAudit', f, st.page).then(r => {
+        clear(list).appendChild(auditTable(r.items));
+        list.appendChild(h('div', { class: 'pager' },
+          r.truncated ? h('span', { class: 'small muted', text: 'Se consultan los 20.000 registros más recientes.' }) : null,
+          h('button', { type: 'button', class: 'btn btn-ghost btn-sm', disabled: r.page <= 1, text: '← Anterior', onclick: () => { st.page--; load(); } }),
+          h('span', { class: 'small', text: 'Página ' + r.page + ' de ' + r.pages + ' · ' + r.total + ' registros' }),
+          h('button', { type: 'button', class: 'btn btn-ghost btn-sm', disabled: r.page >= r.pages, text: 'Siguiente →', onclick: () => { st.page++; load(); } })));
+      }).catch(fail);
+    };
+    filters.addEventListener('change', () => { st.page = 1; load(); });
+    clear(body).appendChild(h('div', { class: 'card' }, filters, list));
+    load();
+  };
+
+  // ---------------------------------------------------------------- Usuarios
+  VIEWS.usuarios = (body) => {
+    setTitle('Usuarios');
+    addAction('+ Nuevo usuario', 'btn-primary', () => {
+      const f = (id, label, el) => h('div', { class: 'field' }, h('label', { for: id, text: label }), el);
+      const nombre = h('input', { type: 'text', id: 'uNombre' });
+      const email = h('input', { type: 'email', id: 'uEmail' });
+      const rol = h('select', { id: 'uRol' }, A.meta.enums.ROL.map(r => h('option', { value: r, text: pretty(r) })));
+      rol.value = 'VENDEDOR';
+      modal({
+        title: 'Nuevo usuario', body: h('div', { class: 'form-grid' }, f('uNombre', 'Nombre', nombre), f('uEmail', 'Email', email), f('uRol', 'Rol', rol)),
+        actions: [{ label: 'Cancelar' }, {
+          label: 'Crear', class: 'btn-primary', onClick: () => api('adm_createUser', { NOMBRE: nombre.value, EMAIL: email.value, ROL: rol.value }).then(r => {
+            showTempPassword(r.user.EMAIL, r.temporaryPassword);
+            go('usuarios');
+          })
+        }]
+      });
+    });
+    const list = h('div', null);
+    clear(body).appendChild(h('div', { class: 'card' },
+      h('p', { class: 'small muted', text: 'Roles: Super Admin (todo), Admin (CRM completo, sin usuarios/configuración/auditoría), Vendedor (solo clientes asignados), Lectura (solo consulta).' }), list));
+    loading(list);
+    api('adm_listUsers').then(rows => clear(list).appendChild(table([
+      { label: 'Nombre', key: 'NOMBRE' }, { label: 'Email', key: 'EMAIL' }, { label: 'Rol', render: u => pretty(u.ROL) },
+      { label: 'Activo', render: u => h('span', { class: 'badge ' + (u.ACTIVO ? 'ok' : 'danger'), text: u.ACTIVO ? 'Sí' : 'No' }) },
+      { label: 'Último acceso', render: u => dt(u.ULTIMO_ACCESO) }, { label: 'Bloqueado hasta', render: u => dt(u.BLOQUEADO_HASTA) },
+      { label: '', render: u => h('div', { class: 'actions' },
+        h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Editar', onclick: () => {
+          const rol = h('select', { id: 'eRol' }, A.meta.enums.ROL.map(r => h('option', { value: r, text: pretty(r) })));
+          rol.value = u.ROL;
+          const nombre = h('input', { type: 'text', id: 'eNombre', value: u.NOMBRE });
+          const activo = h('input', { type: 'checkbox', id: 'eActivo', checked: u.ACTIVO });
+          modal({
+            title: 'Editar ' + u.EMAIL,
+            body: h('div', { class: 'form-grid' }, h('div', { class: 'field' }, h('label', { for: 'eNombre', text: 'Nombre' }), nombre), h('div', { class: 'field' }, h('label', { for: 'eRol', text: 'Rol' }), rol), h('label', { class: 'check-inline' }, activo, 'Activo')),
+            actions: [{ label: 'Cancelar' }, { label: 'Guardar', class: 'btn-primary', onClick: () => api('adm_updateUser', u.USUARIO_ID, { NOMBRE: nombre.value, ROL: rol.value, ACTIVO: activo.checked, VERSION: u.VERSION }).then(() => { toast('Usuario actualizado.', 'ok'); go('usuarios'); }) }]
+          });
+        } }),
+        h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Restablecer contraseña', onclick: () => confirmDialog('Restablecer contraseña', 'Se generará una contraseña temporal y se cerrarán sus sesiones.', 'Restablecer').then(ok => { if (ok) api('adm_resetUserPassword', u.USUARIO_ID).then(r => showTempPassword(u.EMAIL, r.temporaryPassword)).catch(fail); }) })) }
+    ], rows))).catch(fail);
+  };
+  function showTempPassword(email, pass) {
+    modal({
+      title: 'Contraseña temporal',
+      body: h('div', null, h('p', { text: 'Entregue esta contraseña a ' + email + ' por un canal seguro. Solo se muestra una vez; deberá cambiarla al ingresar.' }),
+        h('p', null, h('code', { style: 'font-size:20px;background:#eef1ef;padding:6px 10px;border-radius:8px', text: pass })))
+    });
+  }
+
+  // ---------------------------------------------------------------- Configuración
+  VIEWS.configuracion = (body) => {
+    setTitle('Configuración');
+    Promise.all([api('adm_getConfig'), api('adm_systemInfo'), api('adm_importStatus')]).then(([cfg, info, imp]) => {
+      clear(body);
+      // Sistema
+      body.appendChild(h('div', { class: 'card' }, h('h2', { text: 'Sistema' }),
+        info.permisos.length ? h('div', { class: 'notice error', text: 'Atención: compartido públicamente: ' + info.permisos.join(', ') }) : h('div', { class: 'notice ok', text: 'Hojas y carpetas privadas (sin enlaces públicos).' }),
+        kvList([['Formulario público', h('a', { href: info.publicUrl, target: '_blank', rel: 'noopener', text: info.publicUrl })], ['Base de datos', h('a', { href: info.dbUrl, target: '_blank', rel: 'noopener', text: 'Abrir CRM_WEB_DB' })], ['Auditoría', h('a', { href: info.auditUrl, target: '_blank', rel: 'noopener', text: 'Abrir CRM_WEB_AUDITORIA' })], ['Carpeta de clientes', h('a', { href: info.rootFolderUrl, target: '_blank', rel: 'noopener', text: 'Abrir CLIENTES_WEB' })]])));
+      // Importación
+      const impBox = h('div', { class: 'card' }, h('h2', { text: 'Importación de la base (CCH@E26-9316)' }),
+        kvList([['Fuente configurada', imp.sourceConfigured ? 'Sí' : 'No (defina IMPORT_SOURCE_SPREADSHEET_ID en Propiedades del script)'], ['Estado', pretty(imp.state)], ['Progreso', imp.imported + ' / ' + imp.total], ['Mensaje', imp.lastMessage]]),
+        h('div', { class: 'actions', style: 'margin-top:10px' },
+          h('button', { type: 'button', class: 'btn btn-ghost', text: 'Actualizar estado', onclick: () => go('configuracion') }),
+          h('button', { type: 'button', class: 'btn btn-primary', disabled: !imp.sourceConfigured || imp.state === 'EN_CURSO', text: imp.state === 'COMPLETADA' ? 'Volver a importar (solo agrega faltantes)' : 'Iniciar importación', onclick: () => confirmDialog('Importar base', 'Se importarán los registros que falten. Puede tardar varios minutos y continúa en segundo plano.', 'Importar').then(ok => { if (ok) { toast('Importando…'); api('adm_importStart').then(s => { toast(s.lastMessage, 'ok'); go('configuracion'); }).catch(fail); } }) })));
+      body.appendChild(impBox);
+      // Ajustes
+      const setBox = h('div', { class: 'card' }, h('h2', { text: 'Ajustes' }));
+      Object.keys(cfg.settings).forEach(k => {
+        const s = cfg.settings[k];
+        const id = 'set-' + k;
+        const input = s.type === 'b' ? h('select', { id }, h('option', { value: 'true', text: 'Sí' }), h('option', { value: 'false', text: 'No' })) : h('input', { type: 'text', id, value: String(s.value) });
+        if (s.type === 'b') input.value = s.value ? 'true' : 'false';
+        setBox.appendChild(h('div', { class: 'filters' }, h('div', { class: 'field q', style: 'max-width:none;flex:1' }, h('label', { for: id, text: s.label }), input),
+          h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Guardar', onclick: () => api('adm_saveSetting', k, input.value).then(() => toast('Ajuste guardado.', 'ok')).catch(fail) })));
+      });
+      body.appendChild(setBox);
+      // Productos web
+      const pw = h('div', { class: 'card' }, h('h2', null, h('span', { text: 'Productos web de Webpaya (precios sugeridos, editables)' }),
+        h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: '+ Producto', onclick: () => recordModal('Nuevo producto web', 'PRODUCTOS_WEB', { ACTIVO: true }, v => api('adm_saveProductoWeb', v).then(r => { go('configuracion'); return r; })) })));
+      pw.appendChild(table([{ label: 'Nombre', key: 'NOMBRE' }, { label: 'Precio sugerido', num: true, render: p => (p.PRECIO_SUGERIDO ? money(p.PRECIO_SUGERIDO) : '—') }, { label: 'Adicional', render: p => (p.ES_ADICIONAL ? 'Sí' : '') }, { label: 'Activo', render: p => (p.ACTIVO ? 'Sí' : 'No') },
+        { label: '', render: p => h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Editar', onclick: () => recordModal('Editar producto web', 'PRODUCTOS_WEB', p, v => api('adm_saveProductoWeb', Object.assign(v, { PRODUCTO_WEB_ID: p.PRODUCTO_WEB_ID, VERSION: p.VERSION })).then(r => { go('configuracion'); return r; })) }) }], cfg.productosWeb));
+      body.appendChild(pw);
+      // Catálogos
+      const cat = h('div', { class: 'card' }, h('h2', { text: 'Catálogos (autocompletado)' }));
+      Object.keys(cfg.catalogos).forEach(name => {
+        const items = cfg.catalogos[name];
+        const fixed = name === 'MUNICIPIOS';
+        const input = h('input', { type: 'text', 'aria-label': 'Nuevo ítem en ' + name, placeholder: 'Nuevo ítem' });
+        cat.appendChild(h('h3', { text: pretty(name) + (fixed ? ' (fijo por decisión del negocio)' : '') }));
+        cat.appendChild(h('div', { class: 'actions' }, items.map(it => h('span', { class: 'badge' + (it.ACTIVO ? '' : ' danger') },
+          it.ETIQUETA, fixed ? null : h('button', { type: 'button', class: 'btn-link small', 'aria-label': (it.ACTIVO ? 'Desactivar ' : 'Activar ') + it.ETIQUETA, text: it.ACTIVO ? '×' : '↺', onclick: () => api('adm_saveCatalogItem', { ITEM_ID: it.ITEM_ID, CATALOGO: name, ACTIVO: !it.ACTIVO, VERSION: it.VERSION }).then(() => go('configuracion')).catch(fail) })))));
+        if (!fixed) cat.appendChild(h('div', { class: 'filters', style: 'margin-top:8px' }, input, h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Agregar', onclick: () => api('adm_saveCatalogItem', { CATALOGO: name, ETIQUETA: input.value }).then(() => go('configuracion')).catch(fail) })));
+      });
+      body.appendChild(cat);
+    }).catch(err => { clear(body).appendChild(h('div', { class: 'notice error', text: err.message })); });
+  };
+
+  document.addEventListener('DOMContentLoaded', init);
+})();
+</script>

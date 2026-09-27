@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="robots" content="noindex, nofollow">
+  <title><?= pageTitle ?></title>
+  <?!= include_('AdminStyles'); ?>
+</head>
+<body>
+  <!-- Inicio de sesión -->
+  <div class="auth-wrap" id="viewLogin" hidden>
+    <form class="auth-card" id="loginForm" novalidate>
+      <div class="actions" style="margin-bottom:14px"><span class="brand-mark" aria-hidden="true">W</span><strong>Webpaya CRM</strong></div>
+      <h1>Iniciar sesión</h1>
+      <p>Acceso restringido al equipo de Webpaya.</p>
+      <div class="field"><label for="loginEmail">Email</label><input type="email" id="loginEmail" autocomplete="username" required></div>
+      <div class="field"><label for="loginPass">Contraseña</label><input type="password" id="loginPass" autocomplete="current-password" required></div>
+      <div id="loginMsg" role="alert"></div>
+      <button type="submit" class="btn btn-primary" style="width:100%;min-height:44px" id="loginBtn">Entrar</button>
+      <p class="small" style="margin-top:14px"><button type="button" class="btn-link" id="goSetup">Crear o restablecer Super Admin (requiere código)</button></p>
+    </form>
+  </div>
+
+  <!-- Segundo factor -->
+  <div class="auth-wrap" id="view2fa" hidden>
+    <form class="auth-card" id="twoFaForm" novalidate>
+      <h1>Código de verificación</h1>
+      <p>Enviamos un código de 6 dígitos a su email.</p>
+      <div class="field"><label for="twoFaCode">Código</label><input type="text" id="twoFaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></div>
+      <div id="twoFaMsg" role="alert"></div>
+      <button type="submit" class="btn btn-primary" style="width:100%;min-height:44px">Verificar</button>
+    </form>
+  </div>
+
+  <!-- Configuración inicial -->
+  <div class="auth-wrap" id="viewSetup" hidden>
+    <form class="auth-card" id="setupForm" novalidate>
+      <h1>Crear o restablecer Super Admin</h1>
+      <p>Use el código que muestra <code>setup()</code> o <code>createSetupCode()</code> en el editor de Apps Script. El código sirve una sola vez.</p>
+      <div class="field"><label for="setupCode">Código de configuración</label><input type="text" id="setupCode" autocomplete="off" placeholder="XXXX-XXXX-XXXX"></div>
+      <div class="field"><label for="setupName">Nombre</label><input type="text" id="setupName" autocomplete="name"></div>
+      <div class="field"><label for="setupEmail">Email (usuario)</label><input type="email" id="setupEmail" autocomplete="username"></div>
+      <div class="field"><label for="setupPass">Contraseña</label><input type="password" id="setupPass" autocomplete="new-password"><span class="small muted">Mínimo 10 caracteres con letras y números.</span></div>
+      <div class="field"><label for="setupPass2">Repita la contraseña</label><input type="password" id="setupPass2" autocomplete="new-password"></div>
+      <div id="setupMsg" role="alert"></div>
+      <button type="submit" class="btn btn-primary" style="width:100%;min-height:44px">Guardar</button>
+      <p class="small" style="margin-top:14px"><button type="button" class="btn-link" id="backLogin">Volver al inicio de sesión</button></p>
+    </form>
+  </div>
+
+  <!-- Cambio obligatorio de contraseña -->
+  <div class="auth-wrap" id="viewPassword" hidden>
+    <form class="auth-card" id="pwdForm" novalidate>
+      <h1>Cambie su contraseña</h1>
+      <p>Por seguridad debe definir una contraseña propia.</p>
+      <div class="field"><label for="pwdCurrent">Contraseña actual (temporal)</label><input type="password" id="pwdCurrent" autocomplete="current-password"></div>
+      <div class="field"><label for="pwdNew">Nueva contraseña</label><input type="password" id="pwdNew" autocomplete="new-password"></div>
+      <div class="field"><label for="pwdNew2">Repita la nueva contraseña</label><input type="password" id="pwdNew2" autocomplete="new-password"></div>
+      <div id="pwdMsg" role="alert"></div>
+      <button type="submit" class="btn btn-primary" style="width:100%;min-height:44px">Cambiar contraseña</button>
+    </form>
+  </div>
+
+  <!-- Aplicación -->
+  <div class="shell" id="viewApp" hidden>
+    <aside class="sidebar" id="sidebar" aria-label="Menú principal">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">W</span>Webpaya CRM</div>
+      <ul class="nav" id="nav"></ul>
+      <div class="me">
+        <div id="meName"></div>
+        <div class="small" id="meRole" style="opacity:.8"></div>
+        <button type="button" id="btnChangePwd">Cambiar contraseña</button><br>
+        <button type="button" id="btnLogout">Cerrar sesión</button>
+      </div>
+    </aside>
+    <main class="main" id="main" tabindex="-1">
+      <div class="topline">
+        <button type="button" class="btn btn-ghost menu-btn" id="menuBtn" aria-controls="sidebar" aria-expanded="false">☰ Menú</button>
+        <h1 id="viewTitle">Dashboard</h1>
+        <div class="actions" id="viewActions"></div>
+      </div>
+      <div id="viewBody"></div>
+    </main>
+  </div>
+
+  <div id="modalRoot"></div>
+  <div id="toasts" aria-live="polite"></div>
+
+  <?!= include_('AdminScripts'); ?>
+</body>
+</html>

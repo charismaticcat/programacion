@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <title><?= pageTitle ?></title>
+  <?!= include_('Styles'); ?>
+</head>
+<body>
+  <a class="skip" href="#main">Saltar al contenido</a>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">W</span><span id="appName">Webpaya</span></div>
+    <span class="spacer"></span>
+    <span class="radicado" id="radicadoBadge" hidden></span>
+    <span class="save-state" id="saveState" role="status" aria-live="polite"><span class="dot" aria-hidden="true"></span><span class="txt">Listo</span></span>
+  </header>
+
+  <div class="layout">
+    <aside class="stepper" aria-label="Pasos del formulario">
+      <ol id="stepList"></ol>
+    </aside>
+
+    <main id="main" tabindex="-1">
+      <div class="progress-mobile" id="progressMobile" aria-hidden="true">
+        <div><strong id="pmTitle"></strong> <span id="pmCount" class="help"></span></div>
+        <div class="bar"><span id="pmBar" style="width:0%"></span></div>
+      </div>
+      <div id="globalNotice"></div>
+
+      <!-- 0 · Bienvenida -->
+      <section class="step" data-step="welcome" aria-labelledby="h-welcome">
+        <div class="hero">
+          <h1 id="h-welcome">Construyamos juntos su página web</h1>
+          <p>Cuéntenos sobre su negocio. Con esta información nuestro equipo diseñará su página. Toma unos 10 minutos y puede continuar más tarde en este mismo dispositivo.</p>
+        </div>
+        <div class="card">
+          <h2>Antes de empezar</h2>
+          <ul class="checklist">
+            <li>Tenga a mano su logo y algunas fotos del negocio (JPG, PNG o WEBP).</li>
+            <li>Piense en los servicios o productos que quiere mostrar y sus precios.</li>
+            <li>Ningún campo es difícil: lo que no sepa, puede dejarlo en blanco.</li>
+            <li>Su avance se guarda automáticamente.</li>
+          </ul>
+          <div class="notice info" id="privacyNotice">
+            <strong>Aviso de privacidad.</strong>
+            <span id="privacyText">Sus datos serán tratados por Equipo Webpaya para elaborar su página web, conforme a la Ley 1581 de 2012.</span>
+          </div>
+          <label class="check" for="acceptNotice">
+            <input type="checkbox" id="acceptNotice">
+            <span><strong>He leído el aviso de privacidad</strong><span class="help">Al final del formulario le pediremos su autorización expresa.</span></span>
+          </label>
+          <div class="hp" aria-hidden="true">
+            <label for="website">No llenar este campo</label>
+            <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+          </div>
+          <div id="resumeBox" hidden class="notice ok" style="margin-top:16px">
+            Tiene un formulario en progreso (<strong id="resumeRadicado"></strong>). Continuará donde lo dejó.
+          </div>
+        </div>
+      </section>
+
+      <!-- 1 · Identificación y búsqueda -->
+      <section class="step" data-step="identificacion" aria-labelledby="h-ident">
+        <div class="card">
+          <h2 id="h-ident" tabindex="-1">¿Ya está registrado con nosotros?</h2>
+          <p class="lead">Si su negocio está en nuestra base, podemos llenar algunos datos por usted. Es opcional.</p>
+          <div class="option-cards" role="group" aria-label="Cómo desea continuar">
+            <button type="button" class="option-card" id="optSearch" aria-pressed="false">
+              <strong>Buscar mis datos</strong><span class="help">Por teléfono, email o nombre del negocio.</span>
+            </button>
+            <button type="button" class="option-card" id="optNew" aria-pressed="false">
+              <strong>Llenar desde cero</strong><span class="help">Soy nuevo o prefiero escribir todo.</span>
+            </button>
+          </div>
+
+          <div id="linkedBox" hidden class="notice ok linked" style="margin-top:18px">
+            <span>Datos precargados de: <strong id="linkedName"></strong></span>
+            <button type="button" class="btn btn-ghost btn-sm" id="btnUnlink">No soy yo</button>
+          </div>
+
+          <div id="searchBox" hidden>
+            <div class="tabs" role="tablist" aria-label="Buscar por">
+              <button type="button" class="tab" role="tab" data-type="telefono" aria-selected="true">Teléfono</button>
+              <button type="button" class="tab" role="tab" data-type="email" aria-selected="false">Email</button>
+              <button type="button" class="tab" role="tab" data-type="nombre" aria-selected="false">Nombre del negocio</button>
+            </div>
+            <form id="searchForm" class="search-row" novalidate>
+              <div class="field">
+                <label for="searchValue" id="searchLabel">Teléfono del negocio</label>
+                <input type="search" id="searchValue" autocomplete="off" maxlength="150">
+              </div>
+              <div class="field" id="searchMunicipioField" hidden>
+                <label for="searchMunicipio">Municipio</label>
+                <select id="searchMunicipio"><option value="">Todos</option></select>
+              </div>
+              <button type="submit" class="btn btn-primary" id="btnSearch">Buscar</button>
+            </form>
+            <div id="searchStatus" role="status" aria-live="polite"></div>
+            <div class="results" id="searchResults"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2 · Datos del negocio -->
+      <section class="step" data-step="negocio" aria-labelledby="h-negocio">
+        <div class="card">
+          <h2 id="h-negocio" tabindex="-1">Datos del negocio</h2>
+          <p class="lead">Confirme o corrija la información. Todos los campos se pueden editar.</p>
+          <div id="prefillNotice"></div>
+          <div class="grid">
+            <div class="field full" data-field="razonSocial">
+              <label for="f-razonSocial">Razón social o nombre del establecimiento<span class="req" data-req="razonSocial" hidden>*</span></label>
+              <input type="text" id="f-razonSocial" data-path="negocio.razonSocial" maxlength="200" autocomplete="organization">
+            </div>
+            <div class="field" data-field="nombrePropietario">
+              <label for="f-nombrePropietario">Nombre del propietario<span class="req" data-req="nombrePropietario" hidden>*</span></label>
+              <input type="text" id="f-nombrePropietario" data-path="negocio.nombrePropietario" maxlength="150" autocomplete="name">
+            </div>
+            <div class="field">
+              <label for="f-nombreComercial">Nombre comercial</label>
+              <input type="text" id="f-nombreComercial" data-path="negocio.nombreComercial" maxlength="200">
+              <span class="help">Como lo conocen sus clientes. Déjelo vacío si es igual a la razón social.</span>
+            </div>
+            <div class="field">
+              <label for="f-tipo1">Tipo de establecimiento (opción 1)</label>
+              <input type="text" id="f-tipo1" data-path="negocio.tipoEstablecimiento" list="tiposList" maxlength="120" placeholder="Escriba o elija de la lista">
+            </div>
+            <div class="field">
+              <label for="f-tipo2">Tipo de establecimiento (opción 2)</label>
+              <input type="text" id="f-tipo2" data-path="negocio.tipoEstablecimientoAlt" list="tiposList" maxlength="120">
+            </div>
+            <datalist id="tiposList"></datalist>
+            <div class="field full">
+              <label for="f-actividad">¿A qué se dedica el negocio?</label>
+              <textarea id="f-actividad" data-path="negocio.actividad" maxlength="1000" rows="3"></textarea>
+            </div>
+            <div class="field">
+              <label for="f-pag1">Nombre de página que le gustaría (opción 1)</label>
+              <input type="text" id="f-pag1" data-path="negocio.nombrePagina1" maxlength="120" placeholder="Ej. panaderiaeltrigal">
+            </div>
+            <div class="field">
+              <label for="f-pag2">Nombre de página (opción 2)</label>
+              <input type="text" id="f-pag2" data-path="negocio.nombrePagina2" maxlength="120">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3 · Contacto -->
+      <section class="step" data-step="contacto" aria-labelledby="h-contacto">
+        <div class="card">
+          <h2 id="h-contacto" tabindex="-1">Contacto</h2>
+          <p class="lead">¿Cómo lo encuentran sus clientes y cómo lo contactamos nosotros?</p>
+          <div id="hintNotice"></div>
+          <div class="grid">
+            <div class="field" data-field="whatsapp">
+              <label for="f-whatsapp">WhatsApp<span class="req" data-req="medioContacto" hidden>*</span></label>
+              <input type="tel" id="f-whatsapp" data-path="contacto.whatsapp" inputmode="numeric" maxlength="15" autocomplete="tel" placeholder="3001234567">
+              <span class="help">Celular de 10 dígitos.</span>
+            </div>
+            <div class="field" data-field="telefonoFijo">
+              <label for="f-fijo">Teléfono fijo</label>
+              <input type="tel" id="f-fijo" data-path="contacto.telefonoFijo" inputmode="numeric" maxlength="15" placeholder="8712345">
+              <span class="help">Si escribe 7 dígitos agregamos el indicativo 608.</span>
+            </div>
+            <div class="field full" data-field="email">
+              <label for="f-email">Email<span class="req" data-req="email" hidden>*</span></label>
+              <input type="email" id="f-email" data-path="contacto.email" maxlength="150" autocomplete="email">
+            </div>
+            <div class="field full">
+              <span class="label" id="lbl-canal">¿Por dónde prefiere que lo contactemos?</span>
+              <div class="choices" role="radiogroup" aria-labelledby="lbl-canal">
+                <label class="choice"><input type="radio" name="canal" value="WHATSAPP" data-path="contacto.canalPreferido"><span>WhatsApp</span></label>
+                <label class="choice"><input type="radio" name="canal" value="LLAMADA" data-path="contacto.canalPreferido"><span>Llamada</span></label>
+                <label class="choice"><input type="radio" name="canal" value="EMAIL" data-path="contacto.canalPreferido"><span>Email</span></label>
+              </div>
+            </div>
+            <div class="field">
+              <label for="f-horarioContacto">Mejor horario para contactarlo</label>
+              <input type="text" id="f-horarioContacto" data-path="contacto.horarioContacto" maxlength="120" placeholder="Ej. mañanas">
+            </div>
+            <div class="field">
+              <label for="f-redes">Redes sociales</label>
+              <textarea id="f-redes" data-path="contacto.redes" maxlength="1000" rows="2" placeholder="Instagram, Facebook, TikTok…"></textarea>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4 · Sedes -->
+      <section class="step" data-step="sedes" aria-labelledby="h-sedes">
+        <div class="card">
+          <h2 id="h-sedes" tabindex="-1">Sedes y horarios</h2>
+          <p class="lead">Dirección y horarios de atención. Agregue más sedes si tiene.</p>
+          <div class="repeater" id="rep-sedes"></div>
+          <button type="button" class="btn btn-ghost add-btn" data-add="sedes">+ Agregar sede</button>
+        </div>
+      </section>
+
+      <!-- 5 · Mensaje y marca -->
+      <section class="step" data-step="marca" aria-labelledby="h-marca">
+        <div class="card">
+          <h2 id="h-marca" tabindex="-1">Mensaje y marca</h2>
+          <p class="lead">Lo que quiere transmitir será el corazón de su página.</p>
+          <div class="grid">
+            <div class="field full">
+              <label for="f-mensaje">¿Qué le gustaría transmitir en su página web?</label>
+              <textarea id="f-mensaje" data-path="marca.mensaje" maxlength="2000" rows="4" data-counter="2000"></textarea>
+            </div>
+            <div class="field full">
+              <label for="f-publico">¿Quiénes son sus clientes?</label>
+              <textarea id="f-publico" data-path="marca.publicoObjetivo" maxlength="1000" rows="2"></textarea>
+            </div>
+            <div class="field full">
+              <label for="f-dif">¿Qué lo hace diferente?</label>
+              <textarea id="f-dif" data-path="marca.diferenciales" maxlength="1000" rows="2"></textarea>
+            </div>
+            <div class="field">
+              <label for="f-colores">Colores de su marca</label>
+              <input type="text" id="f-colores" data-path="marca.colores" maxlength="200" placeholder="Ej. verde y blanco">
+            </div>
+            <div class="field">
+              <label for="f-dominio">¿Ya tiene página o dominio?</label>
+              <input type="text" id="f-dominio" data-path="marca.dominioActual" maxlength="200" placeholder="www.minegocio.com">
+            </div>
+            <div class="field full">
+              <label for="f-referencias">Páginas que le gustan (referencias)</label>
+              <textarea id="f-referencias" data-path="marca.referencias" maxlength="1000" rows="2"></textarea>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6 · Servicios -->
+      <section class="step" data-step="servicios" aria-labelledby="h-servicios">
+        <div class="card">
+          <h2 id="h-servicios" tabindex="-1">Servicios</h2>
+          <p class="lead">Los servicios que quiere mostrar. El precio es libre: "25000", "Desde $20.000" o "A convenir".</p>
+          <div class="repeater" id="rep-servicios"></div>
+          <button type="button" class="btn btn-ghost add-btn" data-add="servicios">+ Agregar servicio</button>
+        </div>
+      </section>
+
+      <!-- 7 · Productos -->
+      <section class="step" data-step="productos" aria-labelledby="h-productos">
+        <div class="card">
+          <h2 id="h-productos" tabindex="-1">Catálogo de productos</h2>
+          <p class="lead">Productos con su costo. Puede agregar una foto a cada uno.</p>
+          <div class="repeater" id="rep-productos"></div>
+          <button type="button" class="btn btn-ghost add-btn" data-add="productos">+ Agregar producto</button>
+        </div>
+        <div class="card">
+          <h3>Domicilios</h3>
+          <div class="choices" role="radiogroup" aria-label="¿Ofrece domicilios?">
+            <label class="choice"><input type="radio" name="domicilios" value="SI" data-path="domicilios.ofrece"><span>Sí ofrezco domicilios</span></label>
+            <label class="choice"><input type="radio" name="domicilios" value="NO" data-path="domicilios.ofrece"><span>No</span></label>
+          </div>
+          <div class="field" style="margin-top:14px" data-show-if="domicilios.ofrece=SI">
+            <label for="f-domcosto">Costo del domicilio</label>
+            <input type="text" id="f-domcosto" data-path="domicilios.costo" maxlength="60" placeholder="Ej. 5000 o Gratis">
+          </div>
+        </div>
+      </section>
+
+      <!-- 8 · Archivos -->
+      <section class="step" data-step="archivos" aria-labelledby="h-archivos">
+        <div class="card">
+          <h2 id="h-archivos" tabindex="-1">Imágenes y archivos</h2>
+          <p class="lead">Formatos: JPG, PNG o WEBP (y PDF en documentos). Máximo <span class="maxMb">10</span> MB por archivo. Las fotos grandes se optimizan antes de subirlas.</p>
+          <div class="upload-block" data-category="LOGO" data-multiple="false" data-title="Logo" data-help="Idealmente PNG con fondo transparente."></div>
+          <div class="upload-block" data-category="FOTO_NEGOCIO" data-multiple="true" data-title="Fotos del negocio" data-help="Fachada, interior, productos en exhibición…"></div>
+          <div class="upload-block" data-category="FOTO_EQUIPO" data-multiple="true" data-title="Fotos del equipo" data-help="Personas que atienden el negocio."></div>
+          <div class="upload-block" data-category="DOCUMENTO" data-multiple="true" data-title="Documentos (opcional)" data-help="Menús, catálogos o brochures en PDF o imagen." data-pdf="true"></div>
+        </div>
+      </section>
+
+      <!-- 9 · Testimonios -->
+      <section class="step" data-step="testimonios" aria-labelledby="h-testimonios">
+        <div class="card">
+          <h2 id="h-testimonios" tabindex="-1">Testimonios de clientes</h2>
+          <p class="lead">Opiniones de sus clientes, de máximo <span class="maxWords">30</span> palabras. Si agrega una foto, confirme que tiene permiso.</p>
+          <div class="repeater" id="rep-testimonios"></div>
+          <button type="button" class="btn btn-ghost add-btn" data-add="testimonios">+ Agregar testimonio</button>
+        </div>
+      </section>
+
+      <!-- 10 · Adicionales -->
+      <section class="step" data-step="adicionales" aria-labelledby="h-adicionales">
+        <div class="card">
+          <h2 id="h-adicionales" tabindex="-1">Servicios adicionales</h2>
+          <p class="lead">Funciones que podemos agregar a su página.</p>
+          <div class="field">
+            <span class="label" id="lbl-agenda">¿Le gustaría una agenda de citas en línea?</span>
+            <div class="choices" role="radiogroup" aria-labelledby="lbl-agenda">
+              <label class="choice"><input type="radio" name="agenda" value="SI" data-path="adicionales.agendaCitas"><span>Sí</span></label>
+              <label class="choice"><input type="radio" name="agenda" value="NO" data-path="adicionales.agendaCitas"><span>No</span></label>
+            </div>
+          </div>
+          <div class="field" style="margin-top:12px" data-show-if="adicionales.agendaCitas=SI">
+            <span class="label" id="lbl-agendaPago">¿Le interesa la versión de pago de la agenda?</span>
+            <div class="choices" role="radiogroup" aria-labelledby="lbl-agendaPago">
+              <label class="choice"><input type="radio" name="agendaPago" value="SI" data-path="adicionales.agendaVersionPago"><span>Sí</span></label>
+              <label class="choice"><input type="radio" name="agendaPago" value="NO" data-path="adicionales.agendaVersionPago"><span>No</span></label>
+            </div>
+          </div>
+          <div class="field" style="margin-top:22px">
+            <span class="label" id="lbl-bd">¿Le gustaría una base de datos de sus clientes?</span>
+            <div class="choices" role="radiogroup" aria-labelledby="lbl-bd">
+              <label class="choice"><input type="radio" name="bd" value="SI" data-path="adicionales.bdClientes"><span>Sí</span></label>
+              <label class="choice"><input type="radio" name="bd" value="NO" data-path="adicionales.bdClientes"><span>No</span></label>
+            </div>
+          </div>
+          <div class="field" style="margin-top:12px" data-show-if="adicionales.bdClientes=SI">
+            <span class="label" id="lbl-bdPago">¿Le interesa la versión de pago de la base de datos?</span>
+            <div class="choices" role="radiogroup" aria-labelledby="lbl-bdPago">
+              <label class="choice"><input type="radio" name="bdPago" value="SI" data-path="adicionales.bdVersionPago"><span>Sí</span></label>
+              <label class="choice"><input type="radio" name="bdPago" value="NO" data-path="adicionales.bdVersionPago"><span>No</span></label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 11 · Autorizaciones -->
+      <section class="step" data-step="autorizaciones" aria-labelledby="h-aut">
+        <div class="card">
+          <h2 id="h-aut" tabindex="-1">Autorizaciones</h2>
+          <p class="lead">Marque las que otorga. Ninguna viene marcada por defecto. La de tratamiento de datos es necesaria para enviar.</p>
+          <div id="authList" style="display:grid;gap:10px"></div>
+          <div class="field" style="margin-top:18px" data-field="firmanteNombre">
+            <label for="f-firmante">Nombre completo de quien autoriza<span class="req">*</span></label>
+            <input type="text" id="f-firmante" data-path="autorizaciones.firmanteNombre" maxlength="150" autocomplete="name">
+          </div>
+        </div>
+      </section>
+
+      <!-- 12 · Revisión -->
+      <section class="step" data-step="revision" aria-labelledby="h-rev">
+        <div class="card">
+          <h2 id="h-rev" tabindex="-1">Revise su información</h2>
+          <p class="lead">Si algo no está bien, use "Editar". Cuando todo esté listo, envíe.</p>
+          <div id="reviewErrors"></div>
+          <div id="reviewBody"></div>
+        </div>
+      </section>
+
+      <!-- 13 · Confirmación -->
+      <section class="step" data-step="confirmacion" aria-labelledby="h-ok">
+        <div class="card" style="text-align:center">
+          <div class="success-icon" style="margin:0 auto 14px" aria-hidden="true">✓</div>
+          <h2 id="h-ok" tabindex="-1">¡Recibimos su información!</h2>
+          <p class="lead">Guarde este número de radicado para cualquier consulta:</p>
+          <p><span class="big-code" id="okRadicado"></span></p>
+          <p class="help" id="okFecha"></p>
+          <p>Nuestro equipo revisará sus datos y lo contactará por el medio que eligió.</p>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px">
+            <button type="button" class="btn btn-ghost" onclick="window.print()">Imprimir comprobante</button>
+            <button type="button" class="btn btn-primary" id="btnNewForm">Iniciar un formulario nuevo</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <nav class="step-nav" aria-label="Navegación del formulario">
+    <div class="inner">
+      <span class="grow" id="navHint"></span>
+      <button type="button" class="btn btn-ghost" id="btnPrev">Anterior</button>
+      <button type="button" class="btn btn-primary" id="btnNext">Siguiente</button>
+    </div>
+  </nav>
+
+  <div id="toast" aria-live="assertive"></div>
+  <div class="overlay" id="overlay" role="alert" aria-busy="true"><div style="text-align:center"><div class="spinner" style="margin:0 auto 12px"></div><strong id="overlayText">Enviando…</strong></div></div>
+
+  <?!= include_('Scripts'); ?>
+</body>
+</html>

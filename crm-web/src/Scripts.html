@@ -1,0 +1,1021 @@
+<script>
+(function () {
+  'use strict';
+
+  // ============================================================ Estado
+  var STEPS = [
+    { id: 'welcome', title: 'Bienvenida' },
+    { id: 'identificacion', title: 'Identificación' },
+    { id: 'negocio', title: 'Datos del negocio' },
+    { id: 'contacto', title: 'Contacto' },
+    { id: 'sedes', title: 'Sedes y horarios' },
+    { id: 'marca', title: 'Mensaje y marca' },
+    { id: 'servicios', title: 'Servicios' },
+    { id: 'productos', title: 'Productos' },
+    { id: 'archivos', title: 'Imágenes y archivos' },
+    { id: 'testimonios', title: 'Testimonios' },
+    { id: 'adicionales', title: 'Servicios adicionales' },
+    { id: 'autorizaciones', title: 'Autorizaciones' },
+    { id: 'revision', title: 'Revisión y envío' },
+    { id: 'confirmacion', title: 'Confirmación', hidden: true }
+  ];
+  var TOKEN_KEY = 'wp_form_token';
+  var S = {
+    token: '', radicado: '', data: emptyData(), files: [], step: 0, maxStep: 0, boot: null,
+    vinculado: null, hints: null, prefilled: false, saving: false, pendingSave: false, dirty: false,
+    submitting: false, submitted: false, searchType: 'telefono', retryDelay: 5000, retryTimer: null,
+    stepErrors: {}, previews: {}
+  };
+  var saveTimer = null;
+
+  function emptyData() {
+    return {
+      negocio: {}, contacto: {}, sedes: [{ ref: newRef() }], marca: {}, servicios: [], productos: [],
+      domicilios: {}, testimonios: [], adicionales: {}, autorizaciones: {}
+    };
+  }
+  function newRef() { return 'r' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); }
+
+  // ============================================================ Utilidades
+  var store = {
+    get: function (k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { window.localStorage.setItem(k, v); } catch (e) { /* almacenamiento no disponible */ } },
+    del: function (k) { try { window.localStorage.removeItem(k); } catch (e) { /* almacenamiento no disponible */ } }
+  };
+  function $(sel, root) { return (root || document).querySelector(sel); }
+  function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+
+  /** Crea elementos sin usar innerHTML (evita XSS). */
+  function h(tag, attrs) {
+    var el = document.createElement(tag);
+    attrs = attrs || {};
+    Object.keys(attrs).forEach(function (k) {
+      var v = attrs[k];
+      if (v === undefined || v === null || v === false) return;
+      if (k === 'text') el.textContent = v;
+      else if (k === 'class') el.className = v;
+      else if (k.indexOf('on') === 0 && typeof v === 'function') el.addEventListener(k.slice(2), v);
+      else if (k === 'value') el.value = v;
+      else if (k === 'checked') el.checked = !!v;
+      else if (k === 'style') el.setAttribute('style', v);
+      else el.setAttribute(k, v === true ? '' : v);
+    });
+    for (var i = 2; i < arguments.length; i++) {
+      var c = arguments[i];
+      if (c === null || c === undefined || c === false) continue;
+      if (Array.isArray(c)) c.forEach(function (x) { if (x) el.appendChild(typeof x === 'string' ? document.createTextNode(x) : x); });
+      else el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+    }
+    return el;
+  }
+  function getPath(obj, path) {
+    return path.split('.').reduce(function (o, k) { return o == null ? undefined : o[k]; }, obj);
+  }
+  function setPath(obj, path, value) {
+    var parts = path.split('.');
+    var o = obj;
+    for (var i = 0; i < parts.length - 1; i++) {
+      if (o[parts[i]] == null || typeof o[parts[i]] !== 'object') o[parts[i]] = {};
+      o = o[parts[i]];
+    }
+    o[parts[parts.length - 1]] = value;
+  }
+  function digits(s) { return String(s || '').replace(/\D/g, ''); }
+  function wordCount(s) { var t = String(s || '').trim(); return t ? t.split(/\s+/).length : 0; }
+  function isEmail(s) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(s || '').trim()); }
+  function fmtSize(b) { return b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
+  function stepIndex(id) { for (var i = 0; i < STEPS.length; i++) if (STEPS[i].id === id) return i; return 0; }
+  function required(key) { return !!(S.boot && S.boot.required.indexOf(key) >= 0); }
+
+  // ============================================================ Servidor
+  function rpc(fn) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return new Promise(function (resolve, reject) {
+      if (!window.google || !google.script || !google.script.run) {
+        reject({ code: 'NETWORK', message: 'Esta página debe abrirse desde la aplicación publicada.' });
+        return;
+      }
+      var runner = google.script.run
+        .withSuccessHandler(function (res) {
+          if (res && res.ok) resolve(res.data);
+          else reject((res && res.error) || { code: 'UNKNOWN', message: 'Respuesta inesperada del servidor.' });
+        })
+        .withFailureHandler(function (err) {
+          reject({ code: 'NETWORK', message: 'No hay conexión con el servidor. Sus datos siguen guardados en este dispositivo.', raw: String(err && err.message || err) });
+        });
+      runner[fn].apply(runner, args);
+    });
+  }
+
+  function toast(msg, kind) {
+    var box = $('#toast');
+    var el = h('div', { class: 'toast-msg ' + (kind || ''), role: kind === 'error' ? 'alert' : 'status', text: msg });
+    box.appendChild(el);
+    while (box.children.length > 3) box.removeChild(box.firstChild);
+    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, kind === 'error' ? 7000 : 4000);
+  }
+  function overlay(show, text) {
+    $('#overlay').classList.toggle('show', !!show);
+    if (text) $('#overlayText').textContent = text;
+  }
+  function setSaveState(kind, text) {
+    var el = $('#saveState');
+    el.className = 'save-state ' + (kind || '');
+    $('.txt', el).textContent = text;
+  }
+
+  // ============================================================ Guardado automático
+  function backupLocal() {
+    if (!S.radicado) return;
+    store.set('wp_backup_' + S.radicado, JSON.stringify({ data: S.data, step: S.step, ts: Date.now() }));
+  }
+  function markDirty() {
+    S.dirty = true;
+    backupLocal();
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(save, 2000);
+  }
+  function save() {
+    clearTimeout(saveTimer);
+    if (!S.token || S.submitted || S.submitting) return Promise.resolve();
+    if (S.saving) { S.pendingSave = true; return Promise.resolve(); }
+    S.saving = true;
+    S.dirty = false;
+    setSaveState('saving', 'Guardando…');
+    return rpc('pub_save', S.token, S.data, S.step).then(function (r) {
+      S.saving = false;
+      S.retryDelay = 5000;
+      var t = new Date();
+      setSaveState('', 'Guardado ' + ('0' + t.getHours()).slice(-2) + ':' + ('0' + t.getMinutes()).slice(-2));
+      if (S.pendingSave || S.dirty) { S.pendingSave = false; return save(); }
+      return r;
+    }).catch(function (err) {
+      S.saving = false;
+      S.dirty = true;
+      if (err.code === 'NETWORK') {
+        setSaveState('offline', 'Sin conexión: guardado en este dispositivo');
+        clearTimeout(S.retryTimer);
+        S.retryTimer = setTimeout(save, S.retryDelay);
+        S.retryDelay = Math.min(S.retryDelay * 2, 60000);
+      } else if (err.code === 'ALREADY_SUBMITTED') {
+        S.submitted = true;
+        setSaveState('', 'Formulario ya enviado');
+      } else if (err.code === 'BAD_TOKEN') {
+        setSaveState('offline', 'Sesión del formulario no válida');
+        toast(err.message, 'error');
+      } else {
+        setSaveState('offline', 'No se pudo guardar');
+        toast(err.message, 'error');
+      }
+    });
+  }
+
+  // ============================================================ Pasos
+  function renderStepper() {
+    var ol = $('#stepList');
+    ol.textContent = '';
+    STEPS.forEach(function (st, i) {
+      if (st.hidden) return;
+      var cls = [];
+      if (i === S.step) cls.push('current');
+      if (i < S.maxStep || (i < S.step)) cls.push('done');
+      if (S.stepErrors[st.id]) cls.push('has-error');
+      var li = h('li', { class: cls.join(' ') },
+        h('button', {
+          type: 'button', disabled: (i > S.maxStep || S.submitted || (!S.token && i > 0)) ? true : null,
+          'aria-current': i === S.step ? 'step' : null,
+          onclick: function () { goTo(i); }
+        }, h('span', { class: 'num', text: String(i + 1) }), h('span', { text: st.title }))
+      );
+      ol.appendChild(li);
+    });
+    var visible = STEPS.filter(function (s) { return !s.hidden; }).length;
+    $('#pmTitle').textContent = STEPS[S.step].title;
+    $('#pmCount').textContent = S.step < visible ? '· paso ' + (S.step + 1) + ' de ' + visible : '';
+    $('#pmBar').style.width = Math.round(100 * Math.min(S.step, visible - 1) / (visible - 1)) + '%';
+  }
+
+  function showStep(i, noFocus) {
+    S.step = i;
+    if (i > S.maxStep && !STEPS[i].hidden) S.maxStep = i;
+    var id = STEPS[i].id;
+    $$('.step').forEach(function (sec) { sec.classList.toggle('active', sec.getAttribute('data-step') === id); });
+    if (id === 'revision') renderReview();
+    if (id === 'archivos') refreshPreviews();
+    var prev = $('#btnPrev');
+    var next = $('#btnNext');
+    prev.hidden = i === 0 || id === 'confirmacion';
+    next.hidden = id === 'confirmacion';
+    $('.step-nav').hidden = id === 'confirmacion';
+    next.textContent = id === 'welcome' ? (S.token ? 'Continuar' : 'Comenzar') : (id === 'revision' ? 'Enviar información' : 'Siguiente');
+    next.className = 'btn ' + (id === 'revision' ? 'btn-accent' : 'btn-primary');
+    $('#navHint').textContent = id === 'revision' ? 'Revise antes de enviar.' : (S.token ? 'Su avance se guarda automáticamente.' : '');
+    renderStepper();
+    window.scrollTo(0, 0);
+    if (!noFocus) {
+      var heading = $('.step.active h2, .step.active h1');
+      if (heading) { heading.setAttribute('tabindex', '-1'); heading.focus({ preventScroll: true }); }
+    }
+  }
+
+  function goTo(i) {
+    if (i === S.step) return;
+    if (S.token && !S.submitted) { S.dirty = true; save(); }
+    showStep(i);
+  }
+
+  function onNext() {
+    var id = STEPS[S.step].id;
+    if (id === 'welcome') return startOrContinue();
+    if (id === 'revision') return submit();
+    var errs = validateStep(id, false);
+    showFieldErrors(id, errs);
+    if (errs.length) {
+      toast('Revise los campos marcados.', 'error');
+      var first = $('.step.active .invalid input, .step.active .invalid textarea, .step.active .invalid select');
+      if (first) first.focus();
+      return;
+    }
+    goTo(S.step + 1);
+  }
+  function onPrev() { if (S.step > 0) goTo(S.step - 1); }
+
+  // ============================================================ Inicio / reanudación
+  function startOrContinue() {
+    if (!$('#acceptNotice').checked) {
+      toast('Marque que leyó el aviso de privacidad para comenzar.', 'error');
+      $('#acceptNotice').focus();
+      return;
+    }
+    if (S.token) { showStep(Math.max(1, Math.min(S.maxStep, STEPS.length - 2))); return; }
+    var btn = $('#btnNext');
+    btn.disabled = true;
+    rpc('pub_start', { hp: $('#website').value, ua: navigator.userAgent }).then(function (r) {
+      S.token = r.token;
+      S.radicado = r.radicado;
+      store.set(TOKEN_KEY, r.token);
+      showRadicado();
+      S.maxStep = 1;
+      showStep(1);
+    }).catch(function (err) { toast(err.message, 'error'); }).then(function () { btn.disabled = false; });
+  }
+
+  function showRadicado() {
+    var b = $('#radicadoBadge');
+    b.textContent = 'Radicado ' + S.radicado;
+    b.hidden = !S.radicado;
+  }
+
+  function resume(token) {
+    return rpc('pub_resume', token).then(function (r) {
+      S.token = token;
+      S.radicado = r.radicado;
+      showRadicado();
+      if (r.submitted) {
+        S.submitted = true;
+        showConfirmation(r.radicado, r.enviadaEn);
+        return;
+      }
+      var serverData = r.data && Object.keys(r.data).length ? r.data : null;
+      var backup = null;
+      try { backup = JSON.parse(store.get('wp_backup_' + r.radicado) || 'null'); } catch (e) { backup = null; }
+      // Si el navegador tiene cambios que no alcanzaron a llegar al servidor, se conservan.
+      if (backup && backup.data && JSON.stringify(backup.data) !== JSON.stringify(serverData)) {
+        S.data = normalizeData(backup.data);
+        S.dirty = true;
+        toast('Recuperamos cambios guardados en este dispositivo.', 'ok');
+      } else if (serverData) {
+        S.data = normalizeData(serverData);
+      }
+      S.files = r.files || [];
+      S.vinculado = r.vinculado;
+      S.maxStep = Math.max(1, Math.min(Number(r.paso) || 1, STEPS.length - 2));
+      $('#resumeBox').hidden = false;
+      $('#resumeRadicado').textContent = r.radicado;
+      $('#acceptNotice').checked = true;
+      fillForm();
+      if (S.dirty) save();
+    }).catch(function (err) {
+      if (err.code === 'BAD_TOKEN') {
+        store.del(TOKEN_KEY);
+        S.token = '';
+      } else {
+        $('#globalNotice').appendChild(h('div', { class: 'notice error', role: 'alert', text: err.message }));
+      }
+    });
+  }
+
+  function normalizeData(d) {
+    var base = emptyData();
+    Object.keys(base).forEach(function (k) {
+      if (d && d[k] !== undefined && d[k] !== null) base[k] = d[k];
+    });
+    if (!Array.isArray(base.sedes) || !base.sedes.length) base.sedes = [{ ref: newRef() }];
+    ['sedes', 'servicios', 'productos', 'testimonios'].forEach(function (k) {
+      if (!Array.isArray(base[k])) base[k] = [];
+      base[k].forEach(function (it) { if (!it.ref) it.ref = newRef(); });
+    });
+    return base;
+  }
+
+  // ============================================================ Identificación y búsqueda
+  var SEARCH_LABELS = { telefono: 'Teléfono del negocio', email: 'Email del negocio', nombre: 'Nombre o razón social' };
+  function setSearchType(type) {
+    S.searchType = type;
+    $$('.tab').forEach(function (t) { t.setAttribute('aria-selected', t.getAttribute('data-type') === type ? 'true' : 'false'); });
+    $('#searchLabel').textContent = SEARCH_LABELS[type];
+    var input = $('#searchValue');
+    input.value = '';
+    input.setAttribute('inputmode', type === 'telefono' ? 'numeric' : (type === 'email' ? 'email' : 'text'));
+    $('#searchMunicipioField').hidden = type !== 'nombre';
+    $('#searchResults').textContent = '';
+    $('#searchStatus').textContent = '';
+    input.focus();
+  }
+  function doSearch(ev) {
+    ev.preventDefault();
+    var value = $('#searchValue').value.trim();
+    var status = $('#searchStatus');
+    var results = $('#searchResults');
+    results.textContent = '';
+    if (!value) { status.textContent = 'Escriba un dato para buscar.'; return; }
+    if (S.searchType === 'telefono' && [7, 10].indexOf(digits(value).length) < 0) { status.textContent = 'Escriba 7 o 10 dígitos.'; return; }
+    if (S.searchType === 'email' && !isEmail(value)) { status.textContent = 'Escriba un email válido.'; return; }
+    var btn = $('#btnSearch');
+    btn.disabled = true;
+    status.textContent = 'Buscando…';
+    rpc('pub_search', S.token, S.searchType, value, $('#searchMunicipio').value).then(function (r) {
+      if (r.tooMany) {
+        status.textContent = 'Encontramos ' + r.count + ' coincidencias. Escriba el nombre más completo o elija el municipio.';
+        return;
+      }
+      if (!r.items.length) {
+        status.textContent = '';
+        results.appendChild(h('div', { class: 'notice warn' },
+          'No encontramos registros con ese dato. ',
+          h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Continuar sin buscar', onclick: function () { goTo(stepIndex('negocio')); } })));
+        return;
+      }
+      status.textContent = r.items.length === 1 ? 'Encontramos 1 registro.' : 'Encontramos ' + r.items.length + ' registros.';
+      r.items.forEach(function (it) {
+        var meta = [it.municipio, it.barrio, it.telefono ? 'Tel. ' + it.telefono : '', it.email].filter(Boolean).join(' · ');
+        results.appendChild(h('div', { class: 'result' },
+          h('div', null, h('strong', { text: it.nombre }), h('div', { class: 'meta', text: meta })),
+          h('button', { type: 'button', class: 'btn btn-primary btn-sm', text: 'Este es mi negocio', onclick: function () { selectResult(it.ref); } })
+        ));
+      });
+    }).catch(function (err) { status.textContent = err.message; }).then(function () { btn.disabled = false; });
+  }
+  function selectResult(ref) {
+    overlay(true, 'Cargando sus datos…');
+    rpc('pub_select', S.token, ref).then(function (r) {
+      var p = r.prefill;
+      Object.keys(p.negocio).forEach(function (k) { if (p.negocio[k]) S.data.negocio[k] = p.negocio[k]; });
+      Object.keys(p.contacto).forEach(function (k) { if (p.contacto[k]) S.data.contacto[k] = p.contacto[k]; });
+      var s0 = S.data.sedes[0] || (S.data.sedes[0] = { ref: newRef() });
+      Object.keys(p.sede).forEach(function (k) { if (p.sede[k]) s0[k] = p.sede[k]; });
+      S.vinculado = r.vinculado;
+      S.hints = r.hints;
+      S.prefilled = true;
+      fillForm();
+      markDirty();
+      goTo(stepIndex('negocio'));
+      toast('Datos cargados. Revíselos y corrija lo necesario.', 'ok');
+    }).catch(function (err) { toast(err.message, 'error'); }).then(function () { overlay(false); });
+  }
+  function unlink() {
+    rpc('pub_unlink', S.token).then(function () {
+      S.vinculado = null;
+      S.hints = null;
+      S.prefilled = false;
+      renderLinked();
+      toast('Listo. Sus datos no se asociarán a ese registro.', 'ok');
+    }).catch(function (err) { toast(err.message, 'error'); });
+  }
+  function renderLinked() {
+    $('#linkedBox').hidden = !S.vinculado;
+    if (S.vinculado) $('#linkedName').textContent = S.vinculado.nombre;
+    var pn = $('#prefillNotice');
+    pn.textContent = '';
+    if (S.vinculado) {
+      pn.appendChild(h('div', { class: 'notice info' }, 'Encontramos estos datos en nuestra base. Corrija lo que haya cambiado: el equipo revisará sus correcciones.'));
+    }
+    var hn = $('#hintNotice');
+    hn.textContent = '';
+    if (S.hints && (S.hints.telefono || S.hints.email)) {
+      hn.appendChild(h('div', { class: 'notice warn' },
+        'Por seguridad no mostramos su teléfono ni su email. ' +
+        (S.hints.telefono ? 'El teléfono registrado es ' + S.hints.telefono + '. ' : '') +
+        (S.hints.email ? 'El email registrado es ' + S.hints.email + '. ' : '') +
+        'Escríbalos de nuevo si siguen vigentes.'));
+    }
+  }
+
+  // ============================================================ Llenado del formulario
+  function fillForm() {
+    $$('[data-path]').forEach(function (el) {
+      var v = getPath(S.data, el.getAttribute('data-path'));
+      if (el.type === 'radio') el.checked = v === el.value;
+      else if (el.type === 'checkbox') el.checked = !!v;
+      else el.value = v == null ? '' : v;
+    });
+    renderRepeater('sedes');
+    renderRepeater('servicios');
+    renderRepeater('productos');
+    renderRepeater('testimonios');
+    renderUploads();
+    renderAuthList();
+    renderLinked();
+    updateShowIf();
+    updateCounters();
+  }
+
+  function updateShowIf() {
+    $$('[data-show-if]').forEach(function (el) {
+      var parts = el.getAttribute('data-show-if').split('=');
+      el.hidden = getPath(S.data, parts[0]) !== parts[1];
+    });
+  }
+  function updateCounters() {
+    $$('textarea[data-counter]').forEach(function (ta) {
+      var max = Number(ta.getAttribute('data-counter'));
+      var c = ta.parentNode.querySelector('.counter');
+      if (!c) { c = h('span', { class: 'counter', 'aria-live': 'polite' }); ta.parentNode.appendChild(c); }
+      c.textContent = ta.value.length + ' / ' + max;
+    });
+  }
+
+  function onFieldInput(ev) {
+    var el = ev.target;
+    var path = el.getAttribute('data-path');
+    if (path) {
+      if (el.type === 'radio') { if (el.checked) setPath(S.data, path, el.value); }
+      else if (el.type === 'checkbox') setPath(S.data, path, el.checked);
+      else setPath(S.data, path, el.value);
+      clearFieldError(el);
+      updateShowIf();
+      updateCounters();
+      markDirty();
+      return;
+    }
+    var list = el.getAttribute('data-list');
+    if (list) {
+      var idx = Number(el.getAttribute('data-idx'));
+      var key = el.getAttribute('data-key');
+      var item = S.data[list][idx];
+      if (!item) return;
+      item[key] = el.type === 'checkbox' ? el.checked : el.value;
+      clearFieldError(el);
+      if (list === 'testimonios' && key === 'texto') updateWordCounter(el);
+      markDirty();
+    }
+  }
+  function clearFieldError(el) {
+    var f = el.closest('.field');
+    if (f && f.classList.contains('invalid')) {
+      f.classList.remove('invalid');
+      var m = f.querySelector('.error-msg');
+      if (m) m.parentNode.removeChild(m);
+      el.removeAttribute('aria-invalid');
+    }
+  }
+
+  // ============================================================ Repetibles
+  var REPEATERS = {
+    sedes: { title: function (i) { return i === 0 ? 'Sede principal' : 'Sede ' + (i + 1); }, max: function () { return S.boot.limits.sedes; }, removable: function (i) { return i > 0; } },
+    servicios: { title: function (i) { return 'Servicio ' + (i + 1); }, max: function () { return S.boot.limits.servicios; }, removable: function () { return true; }, photo: 'FOTO_SERVICIO' },
+    productos: { title: function (i) { return 'Producto ' + (i + 1); }, max: function () { return S.boot.limits.productos; }, removable: function () { return true; }, photo: 'FOTO_PRODUCTO' },
+    testimonios: { title: function (i) { return 'Testimonio ' + (i + 1); }, max: function () { return S.boot.limits.testimonios; }, removable: function () { return true; }, photo: 'FOTO_TESTIMONIO' }
+  };
+
+  function itemInput(list, i, key, label, opts) {
+    opts = opts || {};
+    var id = 'f-' + list + '-' + i + '-' + key;
+    var item = S.data[list][i];
+    var common = { id: id, 'data-list': list, 'data-idx': String(i), 'data-key': key };
+    var control;
+    if (opts.type === 'textarea') {
+      control = h('textarea', Object.assign({ rows: String(opts.rows || 2), maxlength: String(opts.max || 1500) }, common));
+      control.value = item[key] || '';
+    } else if (opts.type === 'select') {
+      control = h('select', common, h('option', { value: '', text: 'Seleccione…' }),
+        opts.options.map(function (o) { return h('option', { value: o, text: o.charAt(0) + o.slice(1).toLowerCase() }); }));
+      control.value = item[key] || '';
+    } else if (opts.type === 'checkbox') {
+      var cb = h('input', Object.assign({ type: 'checkbox', checked: item[key] === undefined ? !!opts.def : !!item[key] }, common));
+      if (item[key] === undefined && opts.def !== undefined) item[key] = !!opts.def;
+      return h('label', { class: 'inline-check', for: id }, cb, h('span', { text: label }));
+    } else {
+      control = h('input', Object.assign({ type: opts.type || 'text', maxlength: String(opts.max || 200), placeholder: opts.placeholder || null, inputmode: opts.inputmode || null }, common));
+      control.value = item[key] || '';
+    }
+    return h('div', { class: 'field' + (opts.full ? ' full' : ''), 'data-field': list + '.' + i + '.' + key },
+      h('label', { for: id, text: label }), control, opts.help ? h('span', { class: 'help', text: opts.help }) : null);
+  }
+
+  function renderRepeater(list) {
+    var box = $('#rep-' + list);
+    if (!box || !S.boot) return;
+    box.textContent = '';
+    var cfg = REPEATERS[list];
+    var items = S.data[list];
+    if (!items.length) box.appendChild(h('p', { class: 'empty', text: 'Aún no ha agregado ninguno.' }));
+    items.forEach(function (item, i) {
+      var fields;
+      if (list === 'sedes') {
+        fields = [
+          itemInput(list, i, 'nombre', 'Nombre de la sede', { placeholder: i === 0 ? 'Sede principal' : '' }),
+          itemInput(list, i, 'municipio', 'Municipio', { type: 'select', options: S.boot.municipios }),
+          itemInput(list, i, 'direccion', 'Dirección', { max: 200 }),
+          itemInput(list, i, 'barrio', 'Barrio', { max: 120 }),
+          itemInput(list, i, 'referencia', 'Punto de referencia', { max: 200 }),
+          itemInput(list, i, 'googleMapsUrl', 'Enlace de Google Maps', { type: 'url', max: 500, placeholder: 'https://maps.app.goo.gl/…' }),
+          itemInput(list, i, 'telefono', 'Teléfono de la sede', { type: 'tel', inputmode: 'numeric', max: 15 }),
+          itemInput(list, i, 'whatsapp', 'WhatsApp de la sede', { type: 'tel', inputmode: 'numeric', max: 15 }),
+          itemInput(list, i, 'horarioSemana', 'Horario entre semana', { placeholder: 'Lun a vie 8:00 a.m. – 6:00 p.m.' }),
+          itemInput(list, i, 'horarioFinSemana', 'Horario fin de semana', { placeholder: 'Sáb 9:00 a.m. – 1:00 p.m.' }),
+          itemInput(list, i, 'horariosEspeciales', 'Horarios especiales', { type: 'textarea', full: true, max: 1000, help: 'Festivos, temporadas, etc.' }),
+          h('div', { class: 'field full' }, itemInput(list, i, 'atiendeEnSitio', 'Atiende público en este sitio', { type: 'checkbox', def: true }))
+        ];
+      } else if (list === 'servicios') {
+        fields = [
+          itemInput(list, i, 'nombre', 'Nombre del servicio', { max: 150 }),
+          itemInput(list, i, 'precio', 'Precio', { max: 60, placeholder: 'Ej. 25000 o A convenir' }),
+          itemInput(list, i, 'descripcion', 'Descripción', { type: 'textarea', full: true }),
+          h('div', { class: 'field' }, itemInput(list, i, 'mostrarPrecio', 'Mostrar el precio en la página', { type: 'checkbox', def: true })),
+          h('div', { class: 'field' }, itemInput(list, i, 'requiereCita', 'Requiere cita', { type: 'checkbox', def: false })),
+          photoField(list, i, item, cfg.photo, 'Foto del servicio')
+        ];
+      } else if (list === 'productos') {
+        fields = [
+          itemInput(list, i, 'nombre', 'Nombre del producto', { max: 150 }),
+          itemInput(list, i, 'precio', 'Costo / precio', { max: 60, placeholder: 'Ej. 12000' }),
+          itemInput(list, i, 'categoria', 'Categoría', { max: 100 }),
+          h('div', { class: 'field' }, itemInput(list, i, 'mostrarPrecio', 'Mostrar el precio', { type: 'checkbox', def: true }),
+            itemInput(list, i, 'disponible', 'Disponible', { type: 'checkbox', def: true })),
+          itemInput(list, i, 'descripcion', 'Descripción', { type: 'textarea', full: true }),
+          photoField(list, i, item, cfg.photo, 'Foto del producto')
+        ];
+      } else {
+        var texto = itemInput(list, i, 'texto', 'Testimonio', { type: 'textarea', full: true, max: 400 });
+        var counter = h('span', { class: 'counter', 'aria-live': 'polite' });
+        texto.appendChild(counter);
+        fields = [
+          itemInput(list, i, 'autor', 'Nombre del cliente', { max: 120, full: true }),
+          texto,
+          h('div', { class: 'field full' }, itemInput(list, i, 'permisoNombre', 'Tengo permiso para publicar su nombre', { type: 'checkbox', def: false })),
+          h('div', { class: 'field full' }, itemInput(list, i, 'permisoFoto', 'Tengo permiso para publicar su foto', { type: 'checkbox', def: false })),
+          photoField(list, i, item, cfg.photo, 'Foto del cliente (opcional)')
+        ];
+      }
+      var head = h('div', { class: 'item-head' }, h('h3', { text: cfg.title(i) }),
+        cfg.removable(i) ? h('button', { type: 'button', class: 'btn-danger-text', 'aria-label': 'Quitar ' + cfg.title(i), text: 'Quitar', onclick: function () { removeItem(list, i); } }) : null);
+      box.appendChild(h('div', { class: 'item', 'data-item': list + '.' + i }, head, h('div', { class: 'grid' }, fields)));
+    });
+    $$('textarea[data-list=testimonios][data-key=texto]', box).forEach(updateWordCounter);
+    var addBtn = $('[data-add=' + list + ']');
+    if (addBtn) addBtn.disabled = items.length >= cfg.max();
+  }
+
+  function updateWordCounter(ta) {
+    var c = ta.parentNode.querySelector('.counter');
+    if (!c) return;
+    var n = wordCount(ta.value);
+    var max = S.boot.limits.testimonioPalabras;
+    c.textContent = n + ' / ' + max + ' palabras';
+    c.classList.toggle('over', n > max);
+  }
+
+  function addItem(list) {
+    var cfg = REPEATERS[list];
+    if (S.data[list].length >= cfg.max()) { toast('Alcanzó el máximo permitido.', 'error'); return; }
+    S.data[list].push({ ref: newRef() });
+    renderRepeater(list);
+    markDirty();
+    var last = $('#rep-' + list + ' .item:last-child input, #rep-' + list + ' .item:last-child select');
+    if (last) last.focus();
+  }
+  function removeItem(list, i) {
+    var item = S.data[list][i];
+    if (!window.confirm('¿Quitar este elemento?')) return;
+    S.files.filter(function (f) { return f.tempRef && f.tempRef === item.ref; }).forEach(function (f) { removeFile(f.id, true); });
+    S.data[list].splice(i, 1);
+    renderRepeater(list);
+    markDirty();
+  }
+
+  // ============================================================ Archivos
+  function photoField(list, i, item, category, label) {
+    var files = S.files.filter(function (f) { return f.category === category && f.tempRef === item.ref; });
+    var wrap = h('div', { class: 'field full' }, h('span', { class: 'label', text: label }));
+    var row = h('div', { class: 'item-photo' });
+    files.forEach(function (f) { row.appendChild(thumb(f)); });
+    var input = h('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp', 'aria-label': label + ' para ' + REPEATERS[list].title(i) });
+    input.addEventListener('change', function () { handleFiles(category, input.files, item.ref); input.value = ''; });
+    row.appendChild(h('span', { class: 'btn btn-ghost btn-sm file-btn' }, files.length ? 'Cambiar foto' : 'Subir foto', input));
+    wrap.appendChild(row);
+    return wrap;
+  }
+
+  function renderUploads() {
+    $$('.upload-block').forEach(function (block) {
+      var cat = block.getAttribute('data-category');
+      var multiple = block.getAttribute('data-multiple') === 'true';
+      var pdf = block.getAttribute('data-pdf') === 'true';
+      block.textContent = '';
+      var inputId = 'up-' + cat;
+      var input = h('input', { type: 'file', id: inputId, accept: 'image/jpeg,image/png,image/webp' + (pdf ? ',application/pdf' : ''), multiple: multiple || null });
+      input.addEventListener('change', function () { handleFiles(cat, input.files, ''); input.value = ''; });
+      var zone = h('div', { class: 'upload-zone' },
+        h('div', { class: 'zone-text' }, h('label', { for: inputId }, h('strong', { text: block.getAttribute('data-title') })),
+          h('div', { class: 'help', text: block.getAttribute('data-help') + (multiple ? ' Puede elegir varias.' : '') })),
+        h('span', { class: 'btn btn-ghost btn-sm', 'aria-hidden': 'true', text: 'Elegir archivo' + (multiple ? 's' : '') }),
+        input);
+      ['dragenter', 'dragover'].forEach(function (e) { zone.addEventListener(e, function (ev) { ev.preventDefault(); zone.classList.add('drag'); }); });
+      ['dragleave', 'drop'].forEach(function (e) { zone.addEventListener(e, function () { zone.classList.remove('drag'); }); });
+      var thumbs = h('div', { class: 'thumbs', 'aria-live': 'polite' });
+      S.files.filter(function (f) { return f.category === cat && !f.tempRef; }).forEach(function (f) { thumbs.appendChild(thumb(f)); });
+      block.appendChild(h('div', { style: 'margin-bottom:18px' }, zone, thumbs));
+    });
+  }
+
+  function thumb(f) {
+    var isPdf = f.mime === 'application/pdf' || /\.pdf$/i.test(f.name || '');
+    var img = h('div', { class: 'img', role: 'img', 'aria-label': f.name || 'archivo' });
+    var url = S.previews[f.id] || f.localUrl;
+    if (url && !isPdf) img.style.backgroundImage = 'url("' + url + '")';
+    else img.textContent = isPdf ? 'PDF' : '…';
+    var el = h('div', { class: 'thumb' + (f.loading ? ' loading' : ''), 'data-file': f.id || '' }, img,
+      h('div', { class: 'cap', title: f.name, text: f.loading ? 'Subiendo…' : (f.name + ' · ' + fmtSize(f.size || 0)) }));
+    if (!f.loading) el.appendChild(h('button', { type: 'button', class: 'rm', 'aria-label': 'Eliminar ' + f.name, text: '×', onclick: function () { removeFile(f.id); } }));
+    return el;
+  }
+
+  function refreshPreviews() {
+    S.files.forEach(function (f) {
+      if (f.loading || f.localUrl || S.previews[f.id] || f.mime === 'application/pdf' || f.previewRequested) return;
+      f.previewRequested = true;
+      rpc('pub_filePreview', S.token, f.id).then(function (r) {
+        if (r.dataUrl) { S.previews[f.id] = r.dataUrl; rerenderFiles(); }
+      }).catch(function () { /* sin vista previa */ });
+    });
+  }
+  function rerenderFiles() {
+    renderUploads();
+    renderRepeater('servicios');
+    renderRepeater('productos');
+    renderRepeater('testimonios');
+  }
+
+  function extOf(name) { var m = String(name || '').toLowerCase().match(/\.([a-z0-9]+)$/); return m ? m[1] : ''; }
+
+  /** Reduce fotos grandes en el navegador (máx. 2000 px) para ahorrar datos y espacio. */
+  function prepareImage(file) {
+    return new Promise(function (resolve) {
+      if (!/^image\/(jpeg|png|webp)$/.test(file.type) || (file.size < 1500000)) { resolve(file); return; }
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        var max = 2000;
+        var scale = Math.min(1, max / Math.max(img.width, img.height));
+        if (scale === 1 && file.size < 4000000) { URL.revokeObjectURL(url); resolve(file); return; }
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(url);
+        var keepPng = file.type === 'image/png';
+        canvas.toBlob(function (blob) {
+          if (!blob || blob.size >= file.size) { resolve(file); return; }
+          var name = keepPng ? file.name : file.name.replace(/\.[^.]+$/, '') + '.jpg';
+          resolve(new File([blob], name, { type: keepPng ? 'image/png' : 'image/jpeg' }));
+        }, keepPng ? 'image/png' : 'image/jpeg', 0.85);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    });
+  }
+
+  function readAsDataUrl(file) {
+    return new Promise(function (resolve, reject) {
+      var r = new FileReader();
+      r.onload = function () { resolve(r.result); };
+      r.onerror = function () { reject(new Error('No se pudo leer el archivo.')); };
+      r.readAsDataURL(file);
+    });
+  }
+
+  function handleFiles(category, fileList, tempRef) {
+    if (!S.token) { toast('Primero inicie el formulario.', 'error'); return; }
+    var files = Array.prototype.slice.call(fileList || []);
+    if (!files.length) return;
+    var maxBytes = S.boot.maxFileMb * 1048576;
+    var allowPdf = category === 'DOCUMENTO' || category === 'OTRO';
+    var chain = Promise.resolve();
+    files.forEach(function (file) {
+      var ext = extOf(file.name);
+      var okExt = ['jpg', 'jpeg', 'png', 'webp'].indexOf(ext) >= 0 || (allowPdf && ext === 'pdf');
+      if (!okExt) { toast('"' + file.name + '": formato no permitido. Use JPG, PNG, WEBP' + (allowPdf ? ' o PDF.' : '.'), 'error'); return; }
+      if (file.size > maxBytes && ext === 'pdf') { toast('"' + file.name + '" supera ' + S.boot.maxFileMb + ' MB.', 'error'); return; }
+      if (S.files.length >= S.boot.maxFiles) { toast('Alcanzó el máximo de archivos.', 'error'); return; }
+      chain = chain.then(function () { return uploadOne(category, file, tempRef, maxBytes); });
+    });
+  }
+
+  function uploadOne(category, original, tempRef, maxBytes) {
+    var placeholder = { id: 'tmp' + newRef(), category: category, tempRef: tempRef, name: original.name, size: original.size, loading: true };
+    S.files.push(placeholder);
+    rerenderFiles();
+    return prepareImage(original).then(function (file) {
+      if (file.size > maxBytes) throw { code: 'FILE_TOO_LARGE', message: '"' + original.name + '" supera ' + S.boot.maxFileMb + ' MB incluso optimizada.' };
+      return readAsDataUrl(file).then(function (dataUrl) {
+        return rpc('pub_upload', S.token, { category: category, fileName: file.name, mimeType: file.type, tempRef: tempRef }, dataUrl)
+          .then(function (r) {
+            r.localUrl = URL.createObjectURL(file);
+            return r;
+          });
+      });
+    }).then(function (r) {
+      S.files = S.files.filter(function (f) { return f !== placeholder; });
+      if (category === 'LOGO') S.files = S.files.filter(function (f) { return f.category !== 'LOGO'; });
+      if (tempRef) S.files = S.files.filter(function (f) { return !(f.category === category && f.tempRef === tempRef); });
+      S.files.push(r);
+      rerenderFiles();
+      toast(r.duplicate ? 'Ese archivo ya estaba cargado.' : 'Archivo cargado.', 'ok');
+    }).catch(function (err) {
+      S.files = S.files.filter(function (f) { return f !== placeholder; });
+      rerenderFiles();
+      toast((err && err.message) || 'No se pudo cargar el archivo.', 'error');
+    });
+  }
+
+  function removeFile(id, silent) {
+    if (!silent && !window.confirm('¿Eliminar este archivo?')) return;
+    rpc('pub_removeFile', S.token, id).then(function () {
+      S.files = S.files.filter(function (f) { return f.id !== id; });
+      rerenderFiles();
+      if (!silent) toast('Archivo eliminado.', 'ok');
+    }).catch(function (err) { toast(err.message, 'error'); });
+  }
+
+  // ============================================================ Autorizaciones
+  function renderAuthList() {
+    var box = $('#authList');
+    if (!box || !S.boot) return;
+    box.textContent = '';
+    S.boot.autorizaciones.forEach(function (a) {
+      var id = 'aut-' + a.tipo;
+      var cb = h('input', { type: 'checkbox', id: id, 'data-path': 'autorizaciones.' + a.tipo, checked: !!S.data.autorizaciones[a.tipo] });
+      box.appendChild(h('label', { class: 'check' + (a.obligatoria ? ' required' : ''), for: id, 'data-field': a.tipo },
+        cb, h('span', null, h('strong', { text: a.titulo + (a.obligatoria ? ' (obligatoria)' : '') }), h('span', { class: 'help', text: a.texto }))));
+    });
+  }
+
+  // ============================================================ Validación en el navegador
+  function validPhone(v) { var d = digits(v); return !d || d.length === 7 || d.length === 10; }
+
+  function validateStep(id, forSubmit) {
+    var e = [];
+    var d = S.data;
+    var add = function (field, msg) { e.push({ step: id, field: field, message: msg }); };
+    if (id === 'negocio') {
+      if (forSubmit && required('razonSocial') && !String(d.negocio.razonSocial || '').trim()) add('razonSocial', 'Escriba la razón social o el nombre del establecimiento.');
+      if (forSubmit && required('nombrePropietario') && !String(d.negocio.nombrePropietario || '').trim()) add('nombrePropietario', 'Escriba el nombre del propietario.');
+    }
+    if (id === 'contacto') {
+      if (!validPhone(d.contacto.whatsapp)) add('whatsapp', 'WhatsApp: escriba 10 dígitos.');
+      if (!validPhone(d.contacto.telefonoFijo)) add('telefonoFijo', 'Teléfono fijo: escriba 7 o 10 dígitos.');
+      if (d.contacto.email && !isEmail(d.contacto.email)) add('email', 'El email no es válido.');
+      if (forSubmit && required('medioContacto') && !digits(d.contacto.whatsapp) && !digits(d.contacto.telefonoFijo)) add('whatsapp', 'Escriba al menos un teléfono: WhatsApp o fijo.');
+      if (forSubmit && required('email') && !d.contacto.email) add('email', 'Escriba un email.');
+    }
+    if (id === 'sedes') {
+      d.sedes.forEach(function (s, i) {
+        if (!validPhone(s.telefono)) add('sedes.' + i + '.telefono', 'Sede ' + (i + 1) + ': teléfono de 7 o 10 dígitos.');
+        if (!validPhone(s.whatsapp)) add('sedes.' + i + '.whatsapp', 'Sede ' + (i + 1) + ': WhatsApp de 10 dígitos.');
+        if (s.googleMapsUrl && !/^https?:\/\//i.test(s.googleMapsUrl)) add('sedes.' + i + '.googleMapsUrl', 'Sede ' + (i + 1) + ': el enlace debe empezar por https://');
+      });
+      if (forSubmit && required('municipio') && !(d.sedes[0] && d.sedes[0].municipio)) add('sedes.0.municipio', 'Seleccione el municipio.');
+      if (forSubmit && required('direccion') && !(d.sedes[0] && d.sedes[0].direccion)) add('sedes.0.direccion', 'Escriba la dirección.');
+    }
+    if (id === 'servicios' || id === 'productos') {
+      d[id].forEach(function (it, i) {
+        var hasContent = it.descripcion || it.precio || it.categoria;
+        if (hasContent && !String(it.nombre || '').trim()) add(id + '.' + i + '.nombre', (id === 'servicios' ? 'Servicio ' : 'Producto ') + (i + 1) + ': escriba el nombre.');
+      });
+    }
+    if (id === 'testimonios') {
+      d.testimonios.forEach(function (t, i) {
+        if (t.autor && !String(t.texto || '').trim()) add('testimonios.' + i + '.texto', 'Testimonio ' + (i + 1) + ': escriba el texto.');
+        if (wordCount(t.texto) > S.boot.limits.testimonioPalabras) add('testimonios.' + i + '.texto', 'Testimonio ' + (i + 1) + ': máximo ' + S.boot.limits.testimonioPalabras + ' palabras.');
+      });
+    }
+    if (id === 'autorizaciones' && forSubmit) {
+      if (!d.autorizaciones.TRATAMIENTO_DATOS) add('TRATAMIENTO_DATOS', 'Debe aceptar el tratamiento de datos personales para enviar.');
+      if (!String(d.autorizaciones.firmanteNombre || '').trim()) add('firmanteNombre', 'Escriba el nombre de quien autoriza.');
+    }
+    return e;
+  }
+
+  function validateAll() {
+    var all = [];
+    STEPS.forEach(function (s) { all = all.concat(validateStep(s.id, true)); });
+    return all;
+  }
+
+  function showFieldErrors(stepId, errors) {
+    var section = $('.step[data-step="' + stepId + '"]');
+    if (!section) return;
+    $$('.invalid', section).forEach(function (f) {
+      f.classList.remove('invalid');
+      var m = f.querySelector('.error-msg');
+      if (m) m.parentNode.removeChild(m);
+    });
+    errors.forEach(function (err, k) {
+      var f = section.querySelector('[data-field="' + err.field + '"]');
+      if (!f) return;
+      f.classList.add('invalid');
+      var msgId = 'err-' + stepId + '-' + k;
+      f.appendChild(h('span', { class: 'error-msg', id: msgId, text: err.message }));
+      var input = f.querySelector('input, textarea, select');
+      if (input) { input.setAttribute('aria-invalid', 'true'); input.setAttribute('aria-describedby', msgId); }
+    });
+    S.stepErrors[stepId] = errors.length > 0;
+    renderStepper();
+  }
+
+  // ============================================================ Revisión y envío
+  function reviewSection(title, stepId, rows) {
+    var dl = h('dl', { class: 'review' });
+    var any = false;
+    rows.forEach(function (r) {
+      if (r[1] === undefined || r[1] === null || r[1] === '' || r[1] === false) return;
+      any = true;
+      dl.appendChild(h('dt', { text: r[0] }));
+      dl.appendChild(h('dd', { text: r[1] === true ? 'Sí' : String(r[1]) }));
+    });
+    return h('div', { class: 'review-section' },
+      h('div', { class: 'review-head' }, h('h3', { text: title }),
+        h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Editar', 'aria-label': 'Editar ' + title, onclick: function () { goTo(stepIndex(stepId)); } })),
+      any ? dl : h('p', { class: 'empty', text: 'Sin información.' }));
+  }
+  function yesNo(v) { return v === 'SI' ? 'Sí' : (v === 'NO' ? 'No' : ''); }
+
+  function renderReview() {
+    var d = S.data;
+    var body = $('#reviewBody');
+    body.textContent = '';
+    var countFiles = function (cat) { return S.files.filter(function (f) { return f.category === cat && !f.loading; }).length; };
+    body.appendChild(reviewSection('Datos del negocio', 'negocio', [
+      ['Razón social', d.negocio.razonSocial], ['Propietario', d.negocio.nombrePropietario], ['Nombre comercial', d.negocio.nombreComercial],
+      ['Tipo de establecimiento', [d.negocio.tipoEstablecimiento, d.negocio.tipoEstablecimientoAlt].filter(Boolean).join(' / ')],
+      ['Actividad', d.negocio.actividad], ['Nombres de página', [d.negocio.nombrePagina1, d.negocio.nombrePagina2].filter(Boolean).join(' / ')]
+    ]));
+    body.appendChild(reviewSection('Contacto', 'contacto', [
+      ['WhatsApp', d.contacto.whatsapp], ['Teléfono fijo', d.contacto.telefonoFijo], ['Email', d.contacto.email],
+      ['Canal preferido', d.contacto.canalPreferido], ['Horario de contacto', d.contacto.horarioContacto], ['Redes', d.contacto.redes]
+    ]));
+    body.appendChild(reviewSection('Sedes y horarios', 'sedes', d.sedes.map(function (s, i) {
+      return [s.nombre || (i === 0 ? 'Sede principal' : 'Sede ' + (i + 1)),
+        [s.direccion, s.barrio, s.municipio].filter(Boolean).join(', ') + (s.horarioSemana ? '\nEntre semana: ' + s.horarioSemana : '') + (s.horarioFinSemana ? '\nFin de semana: ' + s.horarioFinSemana : '')];
+    })));
+    body.appendChild(reviewSection('Mensaje y marca', 'marca', [
+      ['Qué quiere transmitir', d.marca.mensaje], ['Clientes', d.marca.publicoObjetivo], ['Diferencial', d.marca.diferenciales],
+      ['Colores', d.marca.colores], ['Página actual', d.marca.dominioActual], ['Referencias', d.marca.referencias]
+    ]));
+    body.appendChild(reviewSection('Servicios (' + d.servicios.length + ')', 'servicios', d.servicios.map(function (s) { return [s.nombre || '(sin nombre)', [s.precio, s.descripcion].filter(Boolean).join(' · ')]; })));
+    body.appendChild(reviewSection('Productos (' + d.productos.length + ')', 'productos', d.productos.map(function (p) { return [p.nombre || '(sin nombre)', [p.precio, p.categoria].filter(Boolean).join(' · ')]; })
+      .concat([['Domicilios', yesNo(d.domicilios.ofrece) + (d.domicilios.costo ? ' · ' + d.domicilios.costo : '')]])));
+    body.appendChild(reviewSection('Imágenes y archivos', 'archivos', [
+      ['Logo', countFiles('LOGO') ? 'Cargado' : ''], ['Fotos del negocio', countFiles('FOTO_NEGOCIO') || ''],
+      ['Fotos del equipo', countFiles('FOTO_EQUIPO') || ''], ['Documentos', countFiles('DOCUMENTO') || '']
+    ]));
+    body.appendChild(reviewSection('Testimonios (' + d.testimonios.length + ')', 'testimonios', d.testimonios.map(function (t) { return [t.autor || 'Cliente', t.texto]; })));
+    body.appendChild(reviewSection('Servicios adicionales', 'adicionales', [
+      ['Agenda de citas', yesNo(d.adicionales.agendaCitas)], ['Agenda versión de pago', yesNo(d.adicionales.agendaVersionPago)],
+      ['Base de datos de clientes', yesNo(d.adicionales.bdClientes)], ['Base de datos versión de pago', yesNo(d.adicionales.bdVersionPago)]
+    ]));
+    body.appendChild(reviewSection('Autorizaciones', 'autorizaciones', S.boot.autorizaciones.map(function (a) {
+      return [a.titulo, d.autorizaciones[a.tipo] ? 'Otorgada' : 'No otorgada'];
+    }).concat([['Firmante', d.autorizaciones.firmanteNombre]])));
+    renderReviewErrors(validateAll());
+  }
+
+  function renderReviewErrors(errors) {
+    var box = $('#reviewErrors');
+    box.textContent = '';
+    STEPS.forEach(function (s) { S.stepErrors[s.id] = false; });
+    errors.forEach(function (e) { S.stepErrors[e.step] = true; });
+    renderStepper();
+    if (!errors.length) return;
+    var list = h('ul', null, errors.map(function (e) {
+      return h('li', null, h('a', { href: '#', text: e.message, onclick: function (ev) { ev.preventDefault(); goTo(stepIndex(e.step)); setTimeout(function () { showFieldErrors(e.step, errors.filter(function (x) { return x.step === e.step; })); }, 50); } }));
+    }));
+    box.appendChild(h('div', { class: 'notice error', role: 'alert' }, h('strong', { text: 'Antes de enviar, complete o corrija:' }), list));
+  }
+
+  function submit() {
+    if (S.submitting) return;
+    var errors = validateAll();
+    if (errors.length) { renderReviewErrors(errors); toast('Hay datos por completar.', 'error'); $('#reviewErrors').scrollIntoView(); return; }
+    if (S.files.some(function (f) { return f.loading; })) { toast('Espere a que terminen de subir los archivos.', 'error'); return; }
+    S.submitting = true;
+    $('#btnNext').disabled = true;
+    overlay(true, 'Enviando su información…');
+    clearTimeout(saveTimer);
+    rpc('pub_submit', S.token, S.data, { ua: navigator.userAgent }).then(function (r) {
+      S.submitted = true;
+      store.del('wp_backup_' + S.radicado);
+      showConfirmation(r.radicado, r.enviadaEn);
+    }).catch(function (err) {
+      if (err.code === 'VALIDATION' && Array.isArray(err.details)) {
+        renderReviewErrors(err.details);
+        toast(err.message, 'error');
+      } else if (err.code === 'NETWORK') {
+        toast('No pudimos enviar por falta de conexión. Sus datos están guardados; intente de nuevo.', 'error');
+      } else {
+        toast(err.message, 'error');
+      }
+    }).then(function () {
+      S.submitting = false;
+      $('#btnNext').disabled = false;
+      overlay(false);
+    });
+  }
+
+  function showConfirmation(radicado, fecha) {
+    $('#okRadicado').textContent = radicado;
+    $('#okFecha').textContent = fecha ? 'Enviado el ' + String(fecha).replace('T', ' a las ') : '';
+    setSaveState('', 'Enviado');
+    showStep(stepIndex('confirmacion'));
+  }
+
+  function newForm() {
+    if (!window.confirm('¿Iniciar un formulario nuevo? El anterior ya fue enviado.')) return;
+    store.del(TOKEN_KEY);
+    window.location.reload();
+  }
+
+  // ============================================================ Arranque
+  function applyBoot(b) {
+    S.boot = b;
+    $('#appName').textContent = 'Webpaya';
+    $('#privacyText').textContent = 'Sus datos serán tratados por ' + b.responsable + ' para elaborar y gestionar su página web, conforme a la Ley 1581 de 2012. ' +
+      (b.contactoPrivacidad ? 'Consultas y reclamos: ' + b.contactoPrivacidad + '.' : '');
+    var dl = $('#tiposList');
+    b.tiposEstablecimiento.forEach(function (t) { dl.appendChild(h('option', { value: t })); });
+    var sm = $('#searchMunicipio');
+    b.municipios.forEach(function (m) { sm.appendChild(h('option', { value: m, text: m.charAt(0) + m.slice(1).toLowerCase() })); });
+    $$('[data-req]').forEach(function (el) { el.hidden = !required(el.getAttribute('data-req')); });
+    $$('.maxMb').forEach(function (el) { el.textContent = b.maxFileMb; });
+    $$('.maxWords').forEach(function (el) { el.textContent = b.limits.testimonioPalabras; });
+  }
+
+  function bindEvents() {
+    $('#main').addEventListener('input', onFieldInput);
+    $('#main').addEventListener('change', onFieldInput);
+    $('#btnNext').addEventListener('click', onNext);
+    $('#btnPrev').addEventListener('click', onPrev);
+    $('#optSearch').addEventListener('click', function () {
+      $('#optSearch').setAttribute('aria-pressed', 'true');
+      $('#optNew').setAttribute('aria-pressed', 'false');
+      $('#searchBox').hidden = false;
+      setSearchType(S.searchType);
+    });
+    $('#optNew').addEventListener('click', function () {
+      $('#optNew').setAttribute('aria-pressed', 'true');
+      $('#optSearch').setAttribute('aria-pressed', 'false');
+      $('#searchBox').hidden = true;
+      goTo(stepIndex('negocio'));
+    });
+    $$('.tab').forEach(function (t) { t.addEventListener('click', function () { setSearchType(t.getAttribute('data-type')); }); });
+    $('#searchForm').addEventListener('submit', doSearch);
+    $('#btnUnlink').addEventListener('click', unlink);
+    $$('[data-add]').forEach(function (b) { b.addEventListener('click', function () { addItem(b.getAttribute('data-add')); }); });
+    $('#btnNewForm').addEventListener('click', newForm);
+    window.addEventListener('online', function () { setSaveState('', 'Conexión recuperada'); if (S.dirty) save(); });
+    window.addEventListener('offline', function () { setSaveState('offline', 'Sin conexión: guardado en este dispositivo'); });
+    window.addEventListener('beforeunload', function (e) {
+      if ((S.dirty || S.saving) && S.token && !S.submitted) { backupLocal(); e.preventDefault(); e.returnValue = ''; }
+    });
+  }
+
+  function init() {
+    bindEvents();
+    overlay(true, 'Cargando…');
+    rpc('pub_bootstrap').then(function (b) {
+      applyBoot(b);
+      var token = store.get(TOKEN_KEY);
+      return token ? resume(token) : null;
+    }).then(function () {
+      fillForm();
+      if (!S.submitted) showStep(0);
+    }).catch(function (err) {
+      $('#globalNotice').appendChild(h('div', { class: 'notice error', role: 'alert', text: err.message || 'No fue posible cargar el formulario.' }));
+      showStep(0);
+    }).then(function () { overlay(false); });
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+})();
+</script>

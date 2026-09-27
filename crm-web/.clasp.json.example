@@ -1,0 +1,8 @@
+{
+  "scriptId": "PEGUE_AQUI_EL_SCRIPT_ID",
+  "rootDir": "src",
+  "fileExtension": "gs",
+  "scriptExtensions": [".gs", ".js"],
+  "htmlExtensions": [".html"],
+  "jsonExtensions": [".json"]
+}
