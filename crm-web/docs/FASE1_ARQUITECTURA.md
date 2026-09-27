@@ -1,4 +1,4 @@
-# FASE 1 — Arquitectura y diseño (v3)
+# FASE 1 — Arquitectura y diseño (v4)
 ### Formulario público de captura + Super Admin / CRM (Google Apps Script · Sheets · Drive · clasp)
 
 > Estado: **diseño aprobado con ajustes del cliente**. No contiene código de implementación. Pendiente de la instrucción para pasar a FASE 2.
@@ -312,8 +312,8 @@ Es una SPA en `HtmlService` con pasos, guardado automático y un **token de soli
 |---|---|---|---|
 | 0 | Bienvenida | Qué es, tiempo estimado, aviso de privacidad de **Equipo Webpaya** y enlace a la política | Aceptar el aviso para continuar |
 | 1 | Datos del negocio | Razón social o nombre del establecimiento\*, nombre del propietario, nombre comercial (opcional), tipo de establecimiento (opciones 1 y 2), nombre de página deseado (opciones 1 y 2) | Al guardar este paso se crea el borrador y el token |
-| 2 | Contacto | Email (solo como dato, D12), teléfono fijo, WhatsApp\*, canal preferido | Fijo de 7 dígitos → se antepone 608 automáticamente. Celular de 10 dígitos. |
-| 3 | Ubicación y horarios | Municipio\* (**solo los 4**), dirección\*, barrio. Sede 1 y opcional Sede 2+. Horario entre semana, fin de semana, especiales. Atiende en sitio. | |
+| 2 | Contacto | Email (solo como dato, D12), teléfono fijo, WhatsApp (\* al menos uno de los dos), canal preferido | Fijo de 7 dígitos → se antepone 608 automáticamente. Celular de 10 dígitos. |
+| 3 | Ubicación y horarios | Municipio (**solo los 4**), dirección, barrio. Sede 1 y opcional Sede 2+. Horario entre semana, fin de semana, especiales. Atiende en sitio. | |
 | 4 | Mensaje | ¿Qué le gustaría transmitir en su página web? | Texto |
 | 5 | Imágenes | Logo, fotos del negocio y del equipo | §6.4 |
 | 6 | Servicios | Lista repetible (Servicio 1, 2, …) | |
@@ -330,22 +330,37 @@ Es una SPA en `HtmlService` con pasos, guardado automático y un **token de soli
 
 ### 4.1 Reporte editable por cliente (D13)
 
-**Formato: Google Doc** en la carpeta `12_REPORTE` del cliente. El admin lo edita directamente en Google Docs (texto, orden, imágenes) y puede descargarlo como PDF o Word desde el propio Docs.
+**Propósito:** llevar la información del cliente **al software de diseño con el que se construye su página web**. Por eso el reporte está pensado para **copiar y pegar sección por sección**. No es un informe para leer.
 
-**Contenido** (se genera desde `03_PLANTILLAS/PLANTILLA_REPORTE_CLIENTE`, que el admin puede rediseñar):
+**Formato: Google Doc** en la carpeta `12_REPORTE` del cliente. El admin lo edita directamente en Google Docs y puede descargarlo como PDF, Word o texto.
 
-1. Encabezado: razón social, nombre comercial, radicado, fecha y logo.
-2. Datos del negocio: propietario, tipo de establecimiento (opciones 1 y 2) y nombres de página deseados (opciones 1 y 2).
-3. Contacto: teléfono fijo, WhatsApp, email y canal preferido.
-4. Ubicación y horarios, por sede.
-5. Qué quiere transmitir.
-6. Servicios (tabla).
-7. Catálogo de productos con costo, y domicilios (sí/no + costo).
-8. Testimonios: texto, foto y permiso.
-9. Servicios adicionales: agenda de citas y base de datos de clientes (sí/no, versión de pago).
-10. Autorizaciones otorgadas.
-11. Galería: fotos del negocio y del equipo, en miniatura.
-12. **Sección "Notas de Webpaya"** vacía, para que el admin complete.
+**Reglas de diseño para facilitar el copiado:**
+
+- Está **ordenado como las secciones de una página web**, no como el formulario.
+- Cada dato va en un bloque `ETIQUETA` + valor en texto plano, sin tablas anidadas ni formato que se pierda al pegar.
+- Los textos largos van completos y sin cortes. Los precios van ya formateados (`$ 25.000`).
+- Las imágenes aparecen en miniatura para ubicarlas, **con el enlace a la carpeta de Drive donde está el archivo original en resolución completa** (logo, fotos por sección). Así el diseñador descarga los originales y no una copia reducida.
+- Se omiten los campos vacíos, para no pegar huecos. El admin puede añadir texto donde quiera.
+
+**Estructura (sección de página → contenido):**
+
+| # | Sección web | Contenido del reporte |
+|---|---|---|
+| 0 | Ficha de trabajo | Radicado, fecha, CLIENTE_ID, enlace a la carpeta Drive y nombres de página deseados (opciones 1 y 2) |
+| 1 | Encabezado / menú | Logo (enlace al original), nombre comercial o razón social |
+| 2 | Portada (hero) | "¿Qué le gustaría transmitir?", tipo de establecimiento y botón de WhatsApp (número listo con formato `wa.me/57…`) |
+| 3 | Quiénes somos | Propietario, tipo de establecimiento, actividad y fotos del equipo |
+| 4 | Servicios | Un bloque por servicio: nombre, descripción, precio (si se muestra) e imagen |
+| 5 | Catálogo / productos | Un bloque por producto: nombre, descripción, costo, categoría e imagen. Domicilios (sí/no + costo). |
+| 6 | Testimonios | Solo los que tienen permiso: autor, texto (≤30 palabras) y foto |
+| 7 | Galería | Fotos del negocio (enlace a la carpeta) |
+| 8 | Ubicación y horarios | Por sede: dirección, barrio, municipio, enlace a Google Maps, horario entre semana, fin de semana y especiales |
+| 9 | Contacto / pie de página | Teléfono fijo, WhatsApp, email y redes |
+| 10 | Funciones adicionales | Agenda de citas y base de datos de clientes (sí/no, versión de pago), para saber qué módulos activar |
+| 11 | Permisos | Autorizaciones otorgadas, sobre todo uso de imágenes y publicación de contenido: **qué se puede publicar y qué no** |
+| 12 | Notas de Webpaya | Espacio libre para el diseñador o el admin |
+
+**Exportación opcional:** junto al Doc se puede generar `DATOS_<CLIENTE_ID>.json` con la misma estructura. Sirve si el software de diseño importa datos o si más adelante se automatiza la creación de la página (§9).
 
 **Cuándo se genera:**
 
@@ -570,8 +585,9 @@ crm-web/
 ## 11. Pendiente antes de la Fase 2
 
 1. **Precios de `PRODUCTOS_WEB`:** la respuesta fue "sí" a incluir el catálogo, pero faltan los valores de página básica, catálogo, agenda de citas, base de datos de clientes y "versión de pago". Se pueden cargar después desde Configuración sin afectar al desarrollo.
-2. **Reporte:** el mensaje quedó cortado en *"se genera un reporte editable por cada cliente para poner…"*. Se diseñó como Google Doc con todos los datos, imágenes y una sección de notas (§4.1). **Falta confirmar el destino del reporte** (¿para poner en la construcción de la página?, ¿para enviar al cliente?, ¿como propuesta?), porque eso define su orden y su diseño.
-3. **Campos obligatorios del formulario:** con "todos los campos son editables" se propone dejar como obligatorios solo razón social o nombre del establecimiento, WhatsApp, municipio, dirección y la autorización de tratamiento de datos. El resto es opcional. Es ajustable en `FORM_CAMPOS`.
+2. ~~Destino del reporte~~ → **Resuelto:** es para pasar la información al software de diseño de la página web (§4.1).
+3. ~~Campos obligatorios~~ → **Resuelto:** no todos son obligatorios. Solo lo son la razón social o nombre del establecimiento, **un medio de contacto** (WhatsApp o teléfono fijo) y la autorización de tratamiento de datos (exigida por la Ley 1581). **Todo lo demás es opcional.** Se ajusta en `FORM_CAMPOS` sin tocar código.
+4. *(Opcional)* **Nombre del software de diseño** (WordPress/Elementor, Wix, Webflow, etc.). Si se conoce, el orden del reporte y el JSON se ajustan exactamente a sus bloques. Si no, se usa la estructura genérica de §4.1.
 ---
 
 *Fin de la FASE 1. En espera de la instrucción para implementar.*
