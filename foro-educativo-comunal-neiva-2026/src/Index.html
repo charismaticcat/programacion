@@ -68,8 +68,12 @@
 </header>
 
 <main>
-  <div class="fila-botones" style="justify-content:center;">
+  <div class="fila-botones" style="justify-content:center;align-items:center;">
     <button type="button" class="btn btn-secundario" id="btnIrInicio" title="Volver al inicio">🏠 Inicio</button>
+    <!-- Grupo y responsable de envío, visibles todo el recorrido, junto al
+         botón Inicio (spec del usuario) — se llenan en JS.html apenas se
+         conocen (validación de acceso / rpcListarResponsables). -->
+    <span class="etiqueta-grupo-responsable oculto" id="etiquetaGrupoResponsable"></span>
   </div>
   <!-- Barra de progreso navegable: cada paso lleva el nombre de su
        sesión y es clicable — pero solo hacia pantallas ya alcanzadas en
@@ -421,7 +425,7 @@
           <label for="campoNombreResponsableOtroCE">Nombre completo</label>
           <input type="text" lang="es" spellcheck="true" id="campoNombreResponsableOtroCE">
         </div>
-        <label for="campoIEResponsableCE">Institución educativa</label>
+        <label for="campoIEResponsableCE">Institución Educativa/Entidad</label>
         <select id="campoIEResponsableCE"></select>
         <label for="campoRolForoResponsableCE">Rol en el foro</label>
         <select id="campoRolForoResponsableCE"></select>
@@ -441,7 +445,7 @@
       <div id="formularioAsistenteEnvioCE" class="oculto" style="margin-top:12px;">
         <label for="campoNombreAsistenteCE">Nombre completo</label>
         <input type="text" lang="es" spellcheck="true" id="campoNombreAsistenteCE">
-        <label for="campoIEAsistenteCE">Institución educativa</label>
+        <label for="campoIEAsistenteCE">Institución Educativa/Entidad</label>
         <select id="campoIEAsistenteCE"></select>
         <label for="campoRolForoAsistenteCE">Rol en el foro</label>
         <select id="campoRolForoAsistenteCE"></select>
@@ -552,7 +556,7 @@
           <label for="campoNombreResponsableOtro">Nombre completo</label>
           <input type="text" lang="es" spellcheck="true" id="campoNombreResponsableOtro">
         </div>
-        <label for="campoIEResponsable">Institución educativa</label>
+        <label for="campoIEResponsable">Institución Educativa/Entidad</label>
         <select id="campoIEResponsable"></select>
         <label for="campoRolForoResponsable">Rol en el foro</label>
         <select id="campoRolForoResponsable"></select>
@@ -572,7 +576,7 @@
       <div id="formularioAsistenteEnvio" class="oculto" style="margin-top:12px;">
         <label for="campoNombreAsistente">Nombre completo</label>
         <input type="text" lang="es" spellcheck="true" id="campoNombreAsistente">
-        <label for="campoIEAsistente">Institución educativa</label>
+        <label for="campoIEAsistente">Institución Educativa/Entidad</label>
         <select id="campoIEAsistente"></select>
         <label for="campoRolForoAsistente">Rol en el foro</label>
         <select id="campoRolForoAsistente"></select>
@@ -604,29 +608,20 @@
         <input type="file" id="campoArchivoListado" accept="application/pdf">
         <div class="fila-botones">
           <button class="btn btn-secundario" id="btnSubirListado">Subir listado</button>
-          <button class="btn btn-secundario" id="btnListadoMasTarde">Subir más tarde</button>
         </div>
         <div id="mensajeMetodoAsistencia"></div>
-
-        <div id="panelCantidadListado" class="oculto" style="margin-top:14px;">
-          <label for="campoCantidadListado">Cantidad de personas registradas en el listado de asistencia</label>
-          <input type="number" min="0" step="1" inputmode="numeric" id="campoCantidadListado">
-          <div id="mensajeCantidadListado"></div>
-        </div>
       </div>
     </div>
 
     <div class="tarjeta">
       <h3 class="subtitulo-campo">Fotografía general del grupo</h3>
       <p class="ayuda">Una foto representativa del encuentro de este grupo, independiente del método de
-        asistencia elegido. <strong>Es obligatoria para poder finalizar el Foro</strong> — si no la tienes
-        a mano ahora, puedes subirla más tarde, al final, cuando se descargue el informe.</p>
+        asistencia elegido. <strong>Es obligatoria para poder finalizar el Foro.</strong></p>
       <div id="previaFotoGrupo"></div>
       <div id="formularioFotoGrupo">
         <input type="file" id="campoFotoGrupo" accept="image/*">
         <div class="fila-botones">
           <button class="btn btn-secundario" id="btnSubirFotoGrupo">Subir fotografía del grupo</button>
-          <button class="btn btn-secundario" id="btnFotoGrupoMasTarde">Subir más tarde</button>
         </div>
       </div>
       <div id="mensajeFotoGrupo"></div>
@@ -827,19 +822,11 @@
            spreadsheets"). -->
       <div id="enlaceConsolidadoSocializacion"></div>
 
-      <!-- Bloque de referencia por pregunta (spec del usuario: reinstalado,
-           con las etiquetas "Pregunta N" reales del Informe de Síntesis —
-           ver PREGUNTAS_SINTESIS_GRUPO_, SintesisGrupos.gs). "Consolidado
-           de socialización" es un encabezado fijo, no viene del servidor. -->
-      <div class="tarjeta-socializacion" id="tarjetaSocializacionPreparacion">
-        <h3 class="subtitulo-campo">Consolidado de socialización</h3>
-        <p class="ayuda">Las respuestas de referencia de abajo se nutren desde las conclusiones del Foro
-          Educativo Institucional de cada institución, según el Informe de Síntesis de este grupo.</p>
-        <p class="ayuda">💡 Al seleccionar una parte del texto de cualquier pregunta, queda copiada y
-          puede pegarse en la pregunta correspondiente de "Construcción colectiva del grupo", más abajo.</p>
-        <div id="listaSocializacionPreparacion"></div>
-      </div>
-
+      <!-- El bloque de referencia por pregunta (con las etiquetas "Pregunta N"
+           del Informe de Síntesis) se eliminó de aquí (spec del usuario) — sus
+           respuestas ahora se precargan directamente en los cuadros editables
+           de "Construcción colectiva del grupo", más abajo (ver
+           cargarSocializacionPreparacion en JS.html). -->
     </div>
 
     <div class="tarjeta">
@@ -850,11 +837,9 @@
       <div id="vistaSoloLecturaSesion1" class="oculto">
         <div class="mensaje-envio-definitivo">
           <div class="icono-envio-definitivo">✅</div>
-          <h3>Sesión 1 enviada de forma definitiva</h3>
-          <p>No se permiten más envíos ni cambios. A continuación, las respuestas registradas por el
-            grupo.</p>
+          <h3>Sesión 1 ya se envió de forma definitiva</h3>
+          <p>Puedes seguir modificando las respuestas de abajo y volver a enviarlas cuando quieras.</p>
         </div>
-        <div id="respuestasSoloLecturaSesion1"></div>
       </div>
 
       <div id="camposEditablesSesion1">
@@ -949,11 +934,9 @@
         <div id="vistaSoloLecturaSesion2" class="oculto">
           <div class="mensaje-envio-definitivo">
             <div class="icono-envio-definitivo">✅</div>
-            <h3>Sesión 2 (ConectaEduca) enviada de forma definitiva</h3>
-            <p>No se permiten más envíos ni cambios. A continuación, las respuestas registradas por el
-              grupo.</p>
+            <h3>Sesión 2 (ConectaEduca) ya se envió de forma definitiva</h3>
+            <p>Puedes seguir modificando las respuestas de abajo y volver a enviarlas cuando quieras.</p>
           </div>
-          <div id="respuestasSoloLecturaSesion2"></div>
         </div>
 
         <h3 class="subtitulo-campo">Registrar actor o entidad</h3>
@@ -1283,6 +1266,11 @@
      de 10:00 a 7:00, amarillo de 6:59 a 3:00, rojo de 2:59 a 0:00 (ver
      _actualizarRelojSocializacion_, JS.html). -->
 <div id="pantallaCompletaTemporizadorSocializacion" class="oculto pantalla-completa-temporizador">
+  <div class="fila-botones-esquina">
+    <button type="button" class="btn btn-secundario" id="btnMinimizarSocializacion" title="Minimizar">−</button>
+    <button type="button" class="btn btn-secundario" id="btnCerrarSocializacion" title="Cerrar">✕</button>
+  </div>
+  <img id="escudoIESocializando" class="oculto" alt="">
   <h3 id="nombreIESocializando"></h3>
   <p class="aviso-socializacion oculto" id="avisoMomentoSocializacion"></p>
   <p class="temporizador-socializacion" id="relojSocializacion">10:00</p>
@@ -1291,8 +1279,12 @@
   </div>
   <div class="fila-botones" style="justify-content:center;">
     <button type="button" class="btn btn-secundario" id="btnMas2MinSocializacion">+2 minutos</button>
-    <button type="button" class="btn btn-secundario" id="btnMinimizarSocializacion">➖ Minimizar</button>
+    <button type="button" class="btn btn-secundario" id="btnPausarSocializacion">⏸ Pausar</button>
     <button type="button" class="btn btn-primario" id="btnFinalizarSocializacionIE">Finalizar</button>
+  </div>
+  <div class="pie-logos-temporizador">
+    <img src="" alt="Alcaldía de Neiva" id="logoAlcaldiaTemporizador">
+    <img src="" alt="Foro Educativo Municipal" id="logoForoTemporizador">
   </div>
 </div>
 
@@ -1369,13 +1361,11 @@
       <div id="camposRevisarSesion1"></div>
     </div>
 
-    <div class="revisar-todo-seccion">
-      <h3 class="subtitulo-campo">🤝 ConectaEduca (Sesión 2)</h3>
+    <!-- "ConectaEduca (Sesión 2)" se quitó de este panel (spec del usuario:
+         "en Revisar todo antes de enviar no incluir conecta educa"). -->
+    <div class="oculto">
       <div id="camposRevisarSesion2"></div>
       <p class="ayuda" id="resumenActoresCERevisar"></p>
-      <div class="fila-botones">
-        <button type="button" class="btn btn-secundario" data-ir-revisar="pantallaSesion2">✏️ Editar actores en Sesión 2</button>
-      </div>
     </div>
 
     <div class="fila-botones" style="justify-content:center;">

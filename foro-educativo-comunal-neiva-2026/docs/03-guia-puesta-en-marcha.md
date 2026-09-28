@@ -2988,6 +2988,75 @@ tag de plantilla GAS), cero ids duplicados, y el conjunto de referencias `getEle
 coincide con la lista ya aceptada de 10 más una nueva intencional (`relojSocializacionMini`, guardada con
 guarda nula porque solo existe en el DOM cuando el checklist está pintando la IE en curso).
 
+## 4.80 Sexagésimo tercer lote: temporizador con escudo/logos/pausa/ESC, habilitar IE optimista, respuestas de referencia precargadas en Construcción colectiva, responsable de envío con auto-selección, badge de grupo, "Ausente", reenvío tras definitivo
+
+Lote grande de 19 pedidos del usuario, resuelto así (uno quedó pendiente, ver el cierre de esta sección):
+
+- **Ruta del Encuentro en pantalla completa: texto más grande** — `.ruta-encuentro-completa` (CSS.html)
+  amplía ancho y tipografía de la tabla dentro del overlay genérico `pantallaCompletaTexto`; la clase se
+  agrega/quita al abrir/cerrar para no afectar el otro uso de ese mismo overlay (aportes de socialización).
+- **Temporizador de socialización, rediseño completo** (spec del usuario, ajuste sobre el lote 4.78):
+  escudo de la IE (`#escudoIESocializando`, logoId de `obtenerSocializacionGrupo`, Socializacion.gs, ahora
+  incluye `logoId`) encima del nombre; logos de Alcaldía (`LOGO_PIE_ID`) y Foro (`LOGO_ENCABEZADO_ID`) fijos
+  abajo a cada lado; tecla ESC minimiza (mismo efecto que el botón "−", que reemplaza al antiguo
+  "➖ Minimizar" con texto); nuevo botón "✕" que CANCELA la socialización en curso (detiene el conteo y
+  regresa el checklist a "▶ Iniciar temporizador" sin marcar socializada, distinto de "Finalizar"); nuevo
+  botón "⏸ Pausar"/"▶ Reanudar" que pausa el conteo sin perder el tiempo restante
+  (`estadoSocializacion.pausado`, el `setInterval` no decrementa mientras está en true).
+- **"Habilitar IE" optimista** (spec del usuario: "debe activar inmediatamente... sin necesidad de que otra
+  IE inicie su contabilización"): antes esperaba dos viajes secuenciales al servidor
+  (`cargarSocializacionIE` encadenaba `rpcObtenerParticipacionEstamento` + `rpcObtenerSocializacionGrupo`)
+  antes de repintar — ahora `habilitarIESocializacion_` marca `presente=true` y repinta de una vez en el
+  cliente, guarda en segundo plano, y revierte si falla (mismo patrón que las casillas de IE presentes).
+- **"Ausente" en gris** para las IE no presentes del checklist de socialización (`renderChecklistSocializacionIE`).
+- **Cantidad de personas del listado de asistencia**: campo eliminado de Participación (`panelCantidadListado`,
+  `campoCantidadListado`) — `cargarCantidadListado_` solo sigue refrescando `estado.cantidadListado` por
+  compatibilidad con datos ya guardados de grupos en curso, sin volver a pedirlo.
+- **"Subir más tarde" eliminado** en fotografía general y listado PDF (`btnFotoGrupoMasTarde`/
+  `btnListadoMasTarde` y sus flags `fotoGrupoMasTardeConfirmado`/`listadoAsistenciaMasTardeConfirmado`,
+  todos quitados): la fotografía pasa a ser requisito para continuar desde Participación, no algo diferible
+  (el modal de confirmación "¿ahora o más adelante?" del lote de "Participación: anuncio si no se decide
+  sobre la foto" se reemplazó por un mensaje de error simple).
+- **Consolidado de socialización: el bloque de referencia por pregunta desaparece y sus respuestas se
+  precargan directo en los cuadros editables** de "Construcción colectiva del grupo" (spec del usuario,
+  reversión del lote 4.78): cada `codigo` de `PREGUNTAS_SINTESIS_GRUPO_` (SintesisGrupos.gs) coincide 1:1
+  con el id real `campo_<codigo>` de un textarea de Sesión 1 — `cargarSocializacionPreparacion()` ahora
+  rellena esos campos solo si están vacíos, y se llama SIEMPRE DESPUÉS de aplicar el valor real guardado
+  (encadenada dentro del callback de `cargarSesion1`, no en paralelo) para no arriesgar una carrera donde
+  la respuesta de referencia "gane" y el valor real ya no se aplique después.
+- **Responsable de envío: auto-selección al elegir un funcionario predeterminado** (spec del usuario):
+  además de autocompletar el correo (lote 4.79), ahora también autoselecciona el Rol ("Funcionario
+  Secretaría de Educación Municipal") y una nueva entidad seleccionable "Secretaría de Educación - Área de
+  Calidad Educativa" en "Institución Educativa/Entidad" (renombrada de "Institución educativa" — solo en
+  los 4 selects de responsable/asistente, no en el de invitados) — id `SEM_CALIDAD`
+  (`ID_ENTIDAD_SEM_CALIDAD_` en JS.html, `NOMBRES_ENTIDADES_RESPONSABLE_ENVIO_` en Responsables.gs para que
+  la ficha muestre el nombre aunque no exista como fila de IE real). Si el grupo tiene exactamente otro
+  funcionario predeterminado, se precarga también como asistente de envío (nombre, correo, rol y entidad),
+  listo para confirmar con "Agregar asistente" — no se agrega solo, sigue exigiendo ese clic explícito.
+- **Badge de grupo y responsable de envío** junto al botón Inicio, visible todo el recorrido
+  (`#etiquetaGrupoResponsable`, `actualizarEtiquetaGrupoResponsable_`) — se actualiza apenas se conoce cada
+  dato (acceso validado / responsables cargados), sin esperar a que ambos lleguen a la vez.
+- **"Revisar todo antes de enviar" ya no incluye ConectaEduca** (spec del usuario): la sección "🤝
+  ConectaEduca (Sesión 2)" se ocultó (hide, don't delete — sus contenedores siguen en el DOM ocultos, sin
+  tocar la lógica de JS.html que los alimenta, por si se necesita reactivar).
+- **Reenvío permitido tras "envío definitivo"** (spec del usuario: "Asi se haya enviado de manera
+  definitiva, se debe permitir la modificación y reenvío de nuevas entradas" — reversión de una regla
+  establecida en los lotes de Sesión 1/2): `enviarSesion1Definitiva`/`enviarSesion2Definitiva`
+  (Sesion1.gs/ConectaEduca.gs) ya no rechazan un segundo envío con `YA_ENVIADO`, solo revalidan y vuelven a
+  marcar el estado. En el cliente, `actualizarEstadoEnvioSesion1_`/`_2_` ya no ocultan los campos editables
+  ni deshabilitan "Enviar" — solo muestran un aviso informativo ("ya se envió antes, puedes seguir
+  modificando y reenviando") sin bloquear nada.
+- **Pendiente, no implementado en este lote**: el botón "👁 ojito" para ver TODAS las respuestas de
+  "Revisar todo antes de enviar" en pantalla completa (spec del usuario, último punto de la lista) — quedó
+  fuera por el tamaño del lote; queda para el próximo.
+
+Verificado: `node --check` sobre todos los `.gs` (limpio), extracción y `node --check` de cada bloque
+`<script>` de Index.html/JS.html/Components.html/Modal.html (limpio, salvo el falso positivo esperado del
+tag de plantilla GAS), cero ids duplicados, y el conjunto de referencias `getElementById` colgantes
+coincide con la lista ya aceptada (11) más una nueva intencional (`listaSocializacionPreparacion`, guardada
+con guarda nula en los 3 sitios que la referencian — el bloque de referencia por pregunta que la usaba se
+quitó del HTML, pero su función/copiar-al-seleccionar quedaron sin invocarse, no rotas).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

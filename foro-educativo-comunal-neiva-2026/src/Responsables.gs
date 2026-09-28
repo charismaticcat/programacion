@@ -99,6 +99,16 @@ function guardarResponsableEnvio(idGrupo, tokenSesion, dispositivoId, tipo, dato
   }, 15000);
 }
 
+/**
+ * Entidades no-IE seleccionables en "Institución Educativa/Entidad" del
+ * Responsable de envío y sus asistentes (spec del usuario) — mismo id
+ * ("SEM_CALIDAD") que ID_ENTIDAD_SEM_CALIDAD_ en JS.html, para que la
+ * ficha muestre el nombre aunque no exista como fila de IE real.
+ */
+var NOMBRES_ENTIDADES_RESPONSABLE_ENVIO_ = {
+  SEM_CALIDAD: "Secretaría de Educación - Área de Calidad Educativa"
+};
+
 /** Responsable principal + asistentes de envío ya registrados para el grupo. */
 function listarResponsablesEnvio(idGrupo) {
   var hoja = obtenerHoja_(HOJA_RESPONSABLES_COMUNAL_, cabecerasResponsablesComunal_());
@@ -107,6 +117,9 @@ function listarResponsablesEnvio(idGrupo) {
   var deIE = {};
   obtenerInstitucionesDelGrupo(objetivo).forEach(function (ie) {
     deIE[ie.idIE] = ie.institucion;
+  });
+  Object.keys(NOMBRES_ENTIDADES_RESPONSABLE_ENVIO_).forEach(function (id) {
+    deIE[id] = NOMBRES_ENTIDADES_RESPONSABLE_ENVIO_[id];
   });
   var deGrupo = filas.filter(function (f) {
     return String(f.ID_GRUPO || "").trim() === objetivo;

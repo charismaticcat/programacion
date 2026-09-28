@@ -591,7 +591,7 @@ function renderChecklistSocializacionIE(datos) {
     var presente = ie.presente !== false;
     if (!presente) {
       html += "<div class='fila-socializacion-ie socializacion-ie-inhabilitada'>";
-      html += "<span class='nombre-ie-socializacion'>⬛ " + escapeHtml(ie.institucion) + "</span>";
+      html += "<span class='nombre-ie-socializacion'>⬛ " + escapeHtml(ie.institucion) + " — <span class='etiqueta-ausente'>Ausente</span></span>";
       html += "<div class='fila-botones'>";
       html += "<button type='button' class='btn btn-secundario' data-habilitar-ie-socializacion='" + escapeHtml(ie.idIE) + "'>Habilitar IE</button>";
       html += "</div></div>";

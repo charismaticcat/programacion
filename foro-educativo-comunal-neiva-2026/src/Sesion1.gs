@@ -141,10 +141,10 @@ function enviarSesion1Definitiva(idGrupo, tokenSesion, dispositivoId) {
   if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
     return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión ya no está activa en este dispositivo." };
   }
-  if (obtenerEstadoGrupo(idGrupo).sesion1Enviada) {
-    return { ok: false, codigo: "YA_ENVIADO", mensaje: "Sesión 1 ya fue enviada de forma definitiva. No se permiten más envíos." };
-  }
-
+  // Se permite reenviar (spec del usuario: "Asi se haya enviado de manera
+  // definitiva, se debe permitir la modificación y reenvío de nuevas
+  // entradas") — ya no bloquea un segundo envío, solo revalida y vuelve a
+  // marcar el estado con los datos actuales.
   var datos = obtenerSesion1(idGrupo);
   var vacios = CAMPOS_SESION1_OBLIGATORIOS_.filter(function (c) {
     return !datos || !String(datos[c] || "").trim();

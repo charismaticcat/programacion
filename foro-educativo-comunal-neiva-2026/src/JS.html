@@ -33,8 +33,6 @@ var estado = {
   prepResponsable: "",
   socializacionPreparacion: [],
   explicacionConectaEducaVista: false,
-  fotoGrupoMasTardeConfirmado: false,
-  listadoAsistenciaMasTardeConfirmado: false,
   avisoColaboradoresMostrado: false,
   enlacesInvitados: null,
   seccion: "",
@@ -381,10 +379,6 @@ function cambiarPantalla(idPantalla) {
     // usuario) — reemplaza a cargarRecursosSesion1() ("Archivos de
     // apoyo"), que ya no se muestra aquí; ver cargarEnlaceConsolidadoSocializacion.
     cargarEnlaceConsolidadoSocializacion();
-    // Respuestas de referencia del grupo (Informe de Síntesis), por
-    // pregunta — spec del usuario: reinstalado con etiquetas "Pregunta N"
-    // reales del informe.
-    cargarSocializacionPreparacion();
     // "Continuar a Revisión y cierre" no se habilita hasta que Sesión 1 se
     // envió de forma definitiva (spec del usuario) — se refresca cada vez
     // que se entra a esta pantalla, no solo tras hacer clic en Enviar,
@@ -1368,6 +1362,16 @@ var estadoSocializacion = {
 };
 var SEGUNDOS_INICIALES_SOCIALIZACION_ = 600;
 
+// Logos de Alcaldía (LOGO_PIE_ID) y Foro (LOGO_ENCABEZADO_ID) al pie del
+// temporizador en pantalla completa (spec del usuario) — mismos archivos
+// ya usados en el splash/informe, se fijan una sola vez.
+(function () {
+  var logoAlcaldia = document.getElementById("logoAlcaldiaTemporizador");
+  var logoForo = document.getElementById("logoForoTemporizador");
+  if (logoAlcaldia && LOGO_PIE_ID) logoAlcaldia.src = urlImagenDrive(LOGO_PIE_ID, 160);
+  if (logoForo && LOGO_ENCABEZADO_ID) logoForo.src = urlImagenDrive(LOGO_ENCABEZADO_ID, 160);
+})();
+
 /**
  * Cruza el checklist con "Instituciones educativas presentes" (Bienvenida,
  * spec del usuario) para saber cuáles se marcan en verde y cuáles en gris
@@ -1392,15 +1396,34 @@ function cargarSocializacionIE() {
   }, true);
 }
 
-/** "Habilitar IE" (checklist de socialización) — la marca presente y refresca el checklist. */
+/**
+ * "Habilitar IE" (checklist de socialización) — optimista (spec del
+ * usuario: "debe activar inmediatamente la IE sin necesidad de que otra
+ * IE inicie su contabilización"): antes esperaba dos viajes secuenciales
+ * al servidor (cargarSocializacionIE encadena rpcObtenerParticipacionEstamento
+ * y rpcObtenerSocializacionGrupo) antes de repintar, así que no se veía
+ * ningún cambio hasta ese momento — ahora la fila pasa a verde de una
+ * vez en el cliente y el guardado real viaja en segundo plano; si falla,
+ * se revierte y se avisa.
+ */
 function habilitarIESocializacion_(idIE) {
+  var registro = estadoSocializacion.datos.find(function (ie) { return ie.idIE === idIE; });
+  if (registro) registro.presente = true;
+  renderChecklistSocializacionIE(estadoSocializacion.datos);
   llamarServidor("rpcGuardarPresenciaIE", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, idIE, true], function (r) {
     if (!r.ok) {
+      if (registro) registro.presente = false;
+      renderChecklistSocializacionIE(estadoSocializacion.datos);
       mostrarMensaje("mensajeGlobal", r.mensaje || "No fue posible habilitar la institución.", "error");
       return;
     }
-    cargarSocializacionIE();
+    // Refresca en segundo plano la matriz de participación (depende de
+    // qué IE están presentes), sin repintar de nuevo el checklist (ya
+    // está correcto desde la actualización optimista de arriba).
+    cargarParticipacionEstamento(null, true);
   }, function () {
+    if (registro) registro.presente = false;
+    renderChecklistSocializacionIE(estadoSocializacion.datos);
     mostrarMensaje("mensajeGlobal", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
   });
 }
@@ -1492,12 +1515,22 @@ function mostrarAvisoMomentoSocializacion_(texto) {
   el.classList.add("aviso-socializacion-flash");
 }
 
-function iniciarTemporizadorSocializacionIE_(idIE, nombreIE) {
+function iniciarTemporizadorSocializacionIE_(idIE, nombreIE, logoId) {
   clearInterval(estadoSocializacion.temporizadorId);
   estadoSocializacion.ieActivaId = idIE;
   estadoSocializacion.ieActivaNombre = nombreIE;
   estadoSocializacion.segundosRestantes = SEGUNDOS_INICIALES_SOCIALIZACION_;
+  estadoSocializacion.pausado = false;
   document.getElementById("nombreIESocializando").textContent = nombreIE;
+  var escudo = document.getElementById("escudoIESocializando");
+  if (logoId) {
+    escudo.src = urlImagenDrive(logoId, 200);
+    escudo.alt = nombreIE;
+    escudo.classList.remove("oculto");
+  } else {
+    escudo.classList.add("oculto");
+  }
+  document.getElementById("btnPausarSocializacion").textContent = "⏸ Pausar";
   document.getElementById("pantallaCompletaTemporizadorSocializacion").classList.remove("oculto");
   // El checklist pasa a mostrar la IE en curso con su reloj en miniatura y
   // el botón "👁 Ver pantalla completa" (ver renderChecklistSocializacionIE) —
@@ -1508,6 +1541,7 @@ function iniciarTemporizadorSocializacionIE_(idIE, nombreIE) {
   mostrarAvisoMomentoSocializacion_("🟢 Socialización de " + nombreIE + " iniciada.");
   reproducirSonidoSocializacion_("inicio");
   estadoSocializacion.temporizadorId = setInterval(function () {
+    if (estadoSocializacion.pausado) return;
     estadoSocializacion.segundosRestantes--;
     _actualizarRelojSocializacion_();
     if (estadoSocializacion.segundosRestantes === 300) {
@@ -1527,6 +1561,13 @@ document.getElementById("btnMas2MinSocializacion").addEventListener("click", fun
   estadoSocializacion.segundosRestantes += 120;
   _actualizarRelojSocializacion_();
   mostrarAvisoMomentoSocializacion_("➕ Se añadieron 2 minutos a la presentación de " + estadoSocializacion.ieActivaNombre + ".");
+});
+
+/** Pausa/reanuda el conteo sin perder el tiempo restante (spec del usuario). */
+document.getElementById("btnPausarSocializacion").addEventListener("click", function () {
+  estadoSocializacion.pausado = !estadoSocializacion.pausado;
+  this.textContent = estadoSocializacion.pausado ? "▶ Reanudar" : "⏸ Pausar";
+  mostrarAvisoMomentoSocializacion_(estadoSocializacion.pausado ? "⏸ Socialización en pausa." : "▶ Socialización reanudada.");
 });
 
 /**
@@ -1549,13 +1590,34 @@ document.getElementById("btnFinalizarSocializacionIE").addEventListener("click",
   finalizarSocializacionIE_();
 });
 
-// "Minimizar" (spec del usuario: "debe aparecer ojo para visualizar el
-// temporizador en pantalla completa") — oculta el overlay sin detener el
-// conteo ni la socialización en curso; el checklist muestra mientras tanto
-// la IE en curso con reloj en miniatura y el botón "👁 Ver pantalla
-// completa" (data-ver-pantalla-completa-socializacion, más abajo) para
-// volver a abrirlo cuando se necesite.
-document.getElementById("btnMinimizarSocializacion").addEventListener("click", function () {
+/**
+ * "−" Minimizar (spec del usuario) — oculta el overlay sin detener el
+ * conteo ni la socialización en curso; el checklist muestra mientras tanto
+ * la IE en curso con reloj en miniatura y el botón "👁 Ver pantalla
+ * completa" (data-ver-pantalla-completa-socializacion, más abajo) para
+ * volver a abrirlo cuando se necesite. La tecla ESC hace lo mismo (spec
+ * del usuario: "Debe responder a la tecla escape para cerrar").
+ */
+function minimizarSocializacion_() {
+  document.getElementById("pantallaCompletaTemporizadorSocializacion").classList.add("oculto");
+  renderChecklistSocializacionIE(estadoSocializacion.datos);
+}
+document.getElementById("btnMinimizarSocializacion").addEventListener("click", minimizarSocializacion_);
+document.addEventListener("keydown", function (evento) {
+  if (evento.key === "Escape" && !document.getElementById("pantallaCompletaTemporizadorSocializacion").classList.contains("oculto")) {
+    minimizarSocializacion_();
+  }
+});
+
+/**
+ * "✕" Cerrar (spec del usuario, distinto de minimizar) — cancela por
+ * completo la socialización en curso de esta IE: detiene el conteo y
+ * regresa el checklist a "▶ Iniciar temporizador" para esa IE, sin
+ * marcarla como socializada (a diferencia de "Finalizar").
+ */
+document.getElementById("btnCerrarSocializacion").addEventListener("click", function () {
+  clearInterval(estadoSocializacion.temporizadorId);
+  estadoSocializacion.ieActivaId = "";
   document.getElementById("pantallaCompletaTemporizadorSocializacion").classList.add("oculto");
   renderChecklistSocializacionIE(estadoSocializacion.datos);
 });
@@ -1565,7 +1627,7 @@ document.addEventListener("click", function (evento) {
   if (iniciar) {
     var idIE = iniciar.getAttribute("data-iniciar-socializacion-ie");
     var registro = estadoSocializacion.datos.find(function (ie) { return ie.idIE === idIE; });
-    iniciarTemporizadorSocializacionIE_(idIE, registro ? registro.institucion : "");
+    iniciarTemporizadorSocializacionIE_(idIE, registro ? registro.institucion : "", registro ? registro.logoId : "");
   }
   var habilitar = evento.target.closest("[data-habilitar-ie-socializacion]");
   if (habilitar) habilitarIESocializacion_(habilitar.getAttribute("data-habilitar-ie-socializacion"));
@@ -1627,6 +1689,7 @@ function _procesarRespuestaAccesoGrupo_(r, idMensaje, reintentarForzado) {
   estado.consentimientoConectaEduca = !!r.consentimientoConectaEduca;
   estado.fotoGrupoId = r.fotoGrupoId || "";
   estado.funcionariosResponsables = r.funcionariosResponsables || [];
+  actualizarEtiquetaGrupoResponsable_();
 
   // La barra de progreso navegable debe poder usarse apenas se valida el
   // acceso (spec del usuario), sin tener que pasar primero por Inicio/
@@ -2537,19 +2600,11 @@ document.getElementById("btnContinuarAParticipacion").addEventListener("click", 
     document.getElementById("mensajeSeleccionMetodo").scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }
-  // Ni se subió la foto ni se confirmó "más tarde" — antes de dejar
-  // avanzar, se pregunta explícitamente qué se quiere hacer (spec: "debe
-  // aparecer anuncio diciendo que si desea subir foto ahora o más adelante").
-  if (!estado.fotoGrupoId && !estado.fotoGrupoMasTardeConfirmado) {
-    confirmarAccion(
-      "Todavía no has subido la fotografía general del grupo. ¿Deseas subirla ahora o continuar y subirla más adelante?",
-      function () {
-        estado.fotoGrupoMasTardeConfirmado = true;
-        document.getElementById("btnContinuarAParticipacion").click();
-      },
-      "Fotografía del grupo",
-      { textoConfirmar: "Continuar, subirla más adelante", textoCancelar: "Subir ahora" }
-    );
+  // La fotografía general del grupo ya no se puede diferir (spec del
+  // usuario: "Eliminar Subir mas adelante en fotografía") — es requisito
+  // para continuar, no solo para generar el informe al final.
+  if (!estado.fotoGrupoId) {
+    mostrarMensaje("mensajeFotoGrupo", "Debes subir la fotografía general del grupo antes de continuar.", "error");
     document.getElementById("formularioFotoGrupo").scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }
@@ -2863,12 +2918,6 @@ document.getElementById("btnSubirListado").addEventListener("click", function ()
         mostrarMensaje("mensajeMetodoAsistencia", r.ok ? "PDF subido correctamente." : (r.mensaje || "No fue posible subir el listado."), r.ok ? "exito" : "error");
         if (r.ok) {
           input.value = "";
-          // Apenas se sube el PDF, se despliega de inmediato la casilla
-          // para declarar cuántas personas quedaron registradas en el
-          // listado (spec del usuario) — reutiliza el mismo mecanismo de
-          // Revisión y cierre (rpcGuardarCantidadListadoAsistencia).
-          document.getElementById("panelCantidadListado").classList.remove("oculto");
-          cargarCantidadListado_();
         }
       },
       function (error) {
@@ -2880,56 +2929,26 @@ document.getElementById("btnSubirListado").addEventListener("click", function ()
   });
 });
 
-// "Subir más tarde" no sube nada: solo tranquiliza a quien diligencia de
-// que puede seguir con el resto del instrumento — el listado se puede
-// subir en cualquier momento después, desde este mismo panel (no hay
-// candado que lo exija para continuar ni para generar el informe).
-document.getElementById("btnListadoMasTarde").addEventListener("click", function () {
-  estado.listadoAsistenciaMasTardeConfirmado = true;
-  mostrarMensaje(
-    "mensajeMetodoAsistencia",
-    "De acuerdo — puedes continuar con el instrumento. Cuando lo tengas a mano, vuelve a esta pantalla para " +
-      "subir el listado firmado.",
-    "info"
-  );
-});
+// btnListadoMasTarde se eliminó (spec del usuario: "Eliminar Subir mas
+// adelante en... listado PDF") — el listado se sigue pudiendo subir en
+// cualquier momento desde este mismo panel, simplemente ya no hay un
+// botón de "más tarde" aparte.
 
 /**
- * Cantidad declarada del listado de asistencia (método PDF), en
- * Participación — misma fuente/RPC que "panelListadoCierre" en Revisión y
- * cierre (rpcObtenerInfoListadoAsistencia / rpcGuardarCantidadListadoAsistencia),
- * para que ambas pantallas queden siempre sincronizadas.
+ * Cantidad declarada del listado de asistencia (método PDF) — el campo
+ * para digitarla en Participación se eliminó (spec del usuario: "eliminar
+ * Cantidad de personas registradas en el listado de asistencia"); esto
+ * solo refresca estado.cantidadListado con lo que ya hubiera quedado
+ * guardado de antes (compatibilidad con grupos ya en curso), para que
+ * renderResumenParticipacionEstamentoTodo lo siga mostrando si existe.
  */
 function cargarCantidadListado_() {
   if (!estado.idGrupo) return;
   llamarServidor("rpcObtenerInfoListadoAsistencia", [estado.idGrupo], function (info) {
     estado.cantidadListado = (info && info.cantidad) || 0;
-    var campo = document.getElementById("campoCantidadListado");
-    if (campo && document.activeElement !== campo) campo.value = estado.cantidadListado || "";
-    var panel = document.getElementById("panelCantidadListado");
-    if (panel && info && info.idListado) panel.classList.remove("oculto");
     renderResumenParticipacionEstamentoTodo();
   }, function () {});
 }
-
-document.getElementById("campoCantidadListado").addEventListener("change", function () {
-  var valor = Math.max(0, parseInt(this.value, 10) || 0);
-  llamarServidor(
-    "rpcGuardarCantidadListadoAsistencia",
-    [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, valor],
-    function (r) {
-      if (!r.ok) {
-        mostrarMensaje("mensajeCantidadListado", r.mensaje || "No fue posible guardar.", "error");
-        return;
-      }
-      estado.cantidadListado = valor;
-      var campoCierre = document.getElementById("campoCantidadListadoCierre");
-      if (campoCierre) campoCierre.value = valor || "";
-      renderResumenParticipacionEstamentoTodo();
-      mostrarMensaje("mensajeCantidadListado", "Guardado.", "exito");
-    }
-  );
-});
 
 /* ------------------------------------------------------------------ *
  * Fotografía general del grupo — independiente del método de asistencia
@@ -3034,19 +3053,9 @@ document.getElementById("btnSubirFotoGrupoCierre").addEventListener("click", fun
   subirFotoGrupoDesde_("campoFotoGrupoCierre", "mensajeFotoGrupoCierre");
 });
 
-// "Subir más tarde" no sube nada: solo tranquiliza a quien diligencia de
-// que puede seguir con el resto del instrumento — la foto se volverá a
-// pedir al final, cuando se descargue el informe (obligatoria para
-// finalizar el Foro).
-document.getElementById("btnFotoGrupoMasTarde").addEventListener("click", function () {
-  estado.fotoGrupoMasTardeConfirmado = true;
-  mostrarMensaje(
-    "mensajeFotoGrupo",
-    "De acuerdo — puedes continuar con el instrumento. Se te volverá a pedir la fotografía al finalizar, " +
-      "antes de descargar el informe y enviar el consolidado del " + (estado.grupo || "grupo") + ".",
-    "info"
-  );
-});
+// btnFotoGrupoMasTarde se eliminó (spec del usuario: "Eliminar Subir mas
+// adelante en fotografía") — ahora es requisito subirla para continuar
+// desde Participación (ver btnContinuarAParticipacion), no algo diferible.
 
 /* ------------------------------------------------------------------ *
  * Roles del foro (catálogo del Documento Orientador) e instituciones
@@ -3068,6 +3077,13 @@ function cargarRolesForo() {
   });
 }
 
+// Entidad no-IE seleccionable en "Institución Educativa/Entidad" del
+// Responsable de envío y sus asistentes (spec del usuario) — mismo id en
+// Responsables.gs (NOMBRES_ENTIDADES_RESPONSABLE_ENVIO_) para poder
+// mostrar su nombre en la ficha aunque no exista como fila de IE real.
+var ID_ENTIDAD_SEM_CALIDAD_ = "SEM_CALIDAD";
+var NOMBRE_ENTIDAD_SEM_CALIDAD_ = "Secretaría de Educación - Área de Calidad Educativa";
+
 function poblarSelectInstituciones(idSelect, instituciones) {
   var select = document.getElementById(idSelect);
   if (!select) return;
@@ -3078,6 +3094,13 @@ function poblarSelectInstituciones(idSelect, instituciones) {
     opcion.textContent = ie.institucion;
     select.appendChild(opcion);
   });
+  // Solo los 4 selects de Responsable de envío/asistentes pasan por aquí
+  // (ver los 4 llamados a poblarSelectInstituciones) — todos deben poder
+  // elegir esta entidad, no solo una IE.
+  var opcionEntidad = document.createElement("option");
+  opcionEntidad.value = ID_ENTIDAD_SEM_CALIDAD_;
+  opcionEntidad.textContent = NOMBRE_ENTIDAD_SEM_CALIDAD_;
+  select.appendChild(opcionEntidad);
 }
 
 /** Número real del grupo (p.ej. "Grupo 3" -> "3"), para reemplazar los "(#)" de las etiquetas. */
@@ -3213,8 +3236,26 @@ function _inicializarResponsableEnvio_(sufijo) {
     }
     contenedorOtro.classList.add("oculto");
     var funcionario = (estado.funcionariosResponsables || []).find(function (f) { return f.nombre === valor; });
-    if (funcionario) {
-      document.getElementById("campoCorreoResponsable" + sufijo).value = funcionario.correo || "";
+    if (!funcionario) return;
+    document.getElementById("campoCorreoResponsable" + sufijo).value = funcionario.correo || "";
+    // Al elegir uno de los funcionarios predeterminados, se autoselecciona
+    // su rol y la entidad "Secretaría de Educación - Área de Calidad
+    // Educativa" (spec del usuario) — ambos siguen editables por si hace
+    // falta corregirlos.
+    document.getElementById("campoRolForoResponsable" + sufijo).value = "Funcionario Secretaría de Educación Municipal";
+    document.getElementById("campoIEResponsable" + sufijo).value = ID_ENTIDAD_SEM_CALIDAD_;
+    // Y se precarga el OTRO funcionario predeterminado del grupo (si hay
+    // exactamente otro) como asistente de envío listo para agregar (spec
+    // del usuario: "poner automáticamente a la otra persona responsable de
+    // envío predeterminada") — el usuario solo debe confirmar con
+    // "Agregar asistente".
+    var otros = (estado.funcionariosResponsables || []).filter(function (f) { return f.nombre !== valor; });
+    if (otros.length === 1) {
+      document.getElementById("campoNombreAsistente" + sufijo).value = otros[0].nombre;
+      document.getElementById("campoCorreoAsistente" + sufijo).value = otros[0].correo || "";
+      document.getElementById("campoRolForoAsistente" + sufijo).value = "Funcionario Secretaría de Educación Municipal";
+      document.getElementById("campoIEAsistente" + sufijo).value = ID_ENTIDAD_SEM_CALIDAD_;
+      document.getElementById("formularioAsistenteEnvio" + sufijo).classList.remove("oculto");
     }
   });
 
@@ -3318,10 +3359,25 @@ _inicializarResponsableEnvio_("CE");
 
 /** Ambas vistas de Responsable de envío (Participación y ConectaEduca) se refrescan a la vez, si están en el DOM. */
 var SUFIJOS_RESPONSABLE_ENVIO_ = ["", "CE"];
+/**
+ * Grupo y responsable de envío, visibles sutilmente junto al botón
+ * Inicio durante todo el recorrido (spec del usuario) — se actualiza
+ * apenas se conoce cada dato (acceso validado / responsables cargados),
+ * sin esperar a que ambos estén disponibles a la vez.
+ */
+function actualizarEtiquetaGrupoResponsable_() {
+  var etiqueta = document.getElementById("etiquetaGrupoResponsable");
+  if (!etiqueta || !estado.grupo) return;
+  var nombreResponsable = estado.responsables && estado.responsables.principal && estado.responsables.principal.nombre;
+  etiqueta.textContent = estado.grupo + (nombreResponsable ? " — " + nombreResponsable : "");
+  etiqueta.classList.remove("oculto");
+}
+
 function cargarResponsables() {
   if (!estado.idGrupo) return;
   llamarServidor("rpcListarResponsables", [estado.idGrupo], function (r) {
     estado.responsables = r;
+    actualizarEtiquetaGrupoResponsable_();
     var hayPrincipal = !!(r && r.principal);
     SUFIJOS_RESPONSABLE_ENVIO_.forEach(function (sufijo) {
       var idFicha = "fichaResponsablePrincipal" + sufijo;
@@ -3649,6 +3705,12 @@ function cargarSesion1() {
     // dos puede terminar primero.
     actualizarEstadoEnvioSesion1_();
     actualizarEstadoEnvioSesion2_();
+    // Las respuestas de referencia del grupo (Informe de Síntesis) se
+    // precargan DESPUÉS de que ya se aplicó el valor real guardado (si lo
+    // hay) — nunca antes, para no arriesgarse a que la respuesta de
+    // referencia gane la carrera y "campo.value" deje de estar vacío justo
+    // cuando llega el valor real guardado, que entonces ya no se aplicaría.
+    cargarSocializacionPreparacion();
   });
 }
 
@@ -3725,33 +3787,21 @@ function actualizarGateContinuarCierre_() {
  * enviada, no se permiten más envíos — se muestra el aviso y se
  * deshabilita el botón de envío correspondiente.
  */
+/**
+ * Aunque Sesión 1 ya se haya enviado de forma definitiva, los campos
+ * siguen editables y "Enviar" se puede volver a pulsar (spec del
+ * usuario: "Asi se haya enviado de manera definitiva, se debe permitir
+ * la modificación y reenvío de nuevas entradas") — ya no se cambia a una
+ * vista de solo lectura ni se deshabilita el botón; solo se muestra un
+ * aviso informativo de que ya se envió antes, sin bloquear nada.
+ */
 function actualizarEstadoEnvioSesion1_() {
-  var vistaSoloLectura = document.getElementById("vistaSoloLecturaSesion1");
-  var camposEditables = document.getElementById("camposEditablesSesion1");
-  var boton = document.getElementById("btnEnviarSesion1");
-  if (vistaSoloLectura) vistaSoloLectura.classList.toggle("oculto", !estado.sesion1Enviada);
-  if (camposEditables) camposEditables.classList.toggle("oculto", !!estado.sesion1Enviada);
-  if (boton) boton.disabled = !!estado.sesion1Enviada;
-  if (estado.sesion1Enviada) {
-    renderRespuestasSoloLectura_(
-      "respuestasSoloLecturaSesion1", PREGUNTAS_SOLO_LECTURA_SESION1_,
-      "APORTE_PROPIO_S1_TITULO", "APORTE_PROPIO_S1_TEXTO"
-    );
-  }
+  var aviso = document.getElementById("vistaSoloLecturaSesion1");
+  if (aviso) aviso.classList.toggle("oculto", !estado.sesion1Enviada);
 }
 function actualizarEstadoEnvioSesion2_() {
-  var vistaSoloLectura = document.getElementById("vistaSoloLecturaSesion2");
-  var camposCE = document.getElementById("camposEditablesSesion2CE");
-  var boton = document.getElementById("btnEnviarSesion2");
-  if (vistaSoloLectura) vistaSoloLectura.classList.toggle("oculto", !estado.sesion2Enviada);
-  if (camposCE) camposCE.classList.toggle("oculto", !!estado.sesion2Enviada);
-  if (boton) boton.disabled = !!estado.sesion2Enviada;
-  if (estado.sesion2Enviada) {
-    renderRespuestasSoloLectura_(
-      "respuestasSoloLecturaSesion2", PREGUNTAS_SOLO_LECTURA_SESION2_,
-      "APORTE_PROPIO_S2_TITULO", "APORTE_PROPIO_S2_TEXTO"
-    );
-  }
+  var aviso = document.getElementById("vistaSoloLecturaSesion2");
+  if (aviso) aviso.classList.toggle("oculto", !estado.sesion2Enviada);
 }
 
 /**
@@ -4254,19 +4304,25 @@ document.getElementById("btnEnviarPreparacionIE").addEventListener("click", func
 });
 
 /**
- * Respuestas de referencia del grupo (Informe de Síntesis), mostradas en
- * Sesión 1 (spec del usuario: "las respuestas arrastradas desde los
- * informes grupales deben aparecer en la sesión Construcción colectiva
- * del grupo, las respuestas deben ser las del informe del grupo, no las
- * de cada IE"): un <details> colapsado por cada pregunta, con lo que el
- * grupo ya respondió según su Informe de Síntesis — para leer/copiar
- * mientras se responden las preguntas de "Construcción colectiva".
+ * Respuestas de referencia del grupo (Informe de Síntesis) precargadas
+ * DIRECTAMENTE en los cuadros editables de "Construcción colectiva del
+ * grupo" (spec del usuario: el bloque de referencia por pregunta aparte
+ * "debe desaparecer y el consolidado de esas respuestas deben aparecer
+ * en los cuadros editables") — cada código de PREGUNTAS_SINTESIS_GRUPO_
+ * (SintesisGrupos.gs) coincide 1:1 con el id de un campo real de Sesión 1
+ * (campo_<codigo>), así que se rellena solo si el campo sigue vacío
+ * (nunca sobre una respuesta real ya guardada o en borrador — ver
+ * cargarSesion1, que llama a esta función solo después de aplicar el
+ * valor real, evitando la carrera entre ambas).
  */
 function cargarSocializacionPreparacion() {
   if (!estado.idGrupo) return;
   llamarServidor("rpcObtenerRespuestasSintesisGrupo", [estado.idGrupo], function (datos) {
     estado.socializacionPreparacion = datos || [];
-    renderSocializacionPreparacion(estado.socializacionPreparacion);
+    estado.socializacionPreparacion.forEach(function (p) {
+      var campo = document.getElementById("campo_" + p.codigo);
+      if (campo && !campo.value && p.texto) campo.value = p.texto;
+    });
   });
 }
 
@@ -4325,6 +4381,7 @@ function abrirPantallaCompletaTexto(codigo) {
 }
 document.getElementById("btnCerrarPantallaCompletaTexto").addEventListener("click", function () {
   document.getElementById("pantallaCompletaTexto").classList.add("oculto");
+  document.querySelector("#pantallaCompletaTexto .contenido-pantalla-completa-texto").classList.remove("ruta-encuentro-completa");
 });
 
 // Ruta del Encuentro (Metodología) — botón "👁 Ver en pantalla completa"
@@ -4335,6 +4392,7 @@ document.getElementById("btnCerrarPantallaCompletaTexto").addEventListener("clic
 document.getElementById("btnPantallaCompletaRutaEncuentro").addEventListener("click", function () {
   document.getElementById("tituloPantallaCompletaTexto").textContent = "Ruta del Encuentro de voces que construyen territorio";
   document.getElementById("cuerpoPantallaCompletaTexto").innerHTML = document.getElementById("tablaRutaEncuentro").outerHTML;
+  document.querySelector("#pantallaCompletaTexto .contenido-pantalla-completa-texto").classList.add("ruta-encuentro-completa");
   document.getElementById("pantallaCompletaTexto").classList.remove("oculto");
 });
 

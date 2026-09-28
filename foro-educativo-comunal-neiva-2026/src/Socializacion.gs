@@ -27,6 +27,6 @@ function obtenerSocializacionGrupo(idGrupo) {
   idGrupo = String(idGrupo || "").trim();
   var instituciones = obtenerInstitucionesDelGrupo(idGrupo);
   return instituciones.map(function (ie) {
-    return { idIE: ie.idIE, institucion: ie.institucion, socializo: false };
+    return { idIE: ie.idIE, institucion: ie.institucion, logoId: ie.logoId || "", socializo: false };
   });
 }

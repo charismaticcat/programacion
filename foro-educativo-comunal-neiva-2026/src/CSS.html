@@ -269,6 +269,28 @@ div.tarjeta-seccion:hover, div.tarjeta-seccion:focus-visible { transform: none; 
   font-size: min(22vw, 9rem);
   margin: 4px 0;
 }
+/* Escudo de la IE en curso, encima del nombre (spec del usuario). */
+#escudoIESocializando {
+  width: 84px;
+  height: 84px;
+  object-fit: contain;
+  background: var(--blanco);
+  border-radius: 12px;
+  padding: 6px;
+}
+/* Botones "−" (minimizar) y "✕" (cerrar) en la esquina, mismo patrón que
+   el resto de overlays de pantalla completa de la app. */
+.pantalla-completa-temporizador .fila-botones-esquina {
+  position: absolute; top: 20px; right: 20px; display: flex; gap: 8px;
+}
+.pantalla-completa-temporizador .fila-botones-esquina .btn { padding: 6px 14px; font-size: 1.2rem; line-height: 1; }
+/* Logos de la Alcaldía y del Foro, fijos abajo a cada lado (spec del usuario). */
+.pie-logos-temporizador {
+  position: absolute; bottom: 16px; left: 0; right: 0;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0 24px; pointer-events: none;
+}
+.pie-logos-temporizador img { height: 44px; width: auto; background: var(--blanco); border-radius: 8px; padding: 4px; }
 /* Barra de progreso en reversa (spec del usuario): empieza llena y se vacía
    a medida que corre el tiempo, cambiando de color — verde de 10:00 a
    7:00, amarillo de 6:59 a 3:00, rojo de 2:59 a 0:00 (el color y el ancho
@@ -915,6 +937,18 @@ details.socializacion-ie[open] summary { margin-bottom: 8px; }
 @media (max-width: 700px) {
   #pantallaCompletaEdicion .contenido-pantalla-completa-texto { max-width: 100%; }
 }
+/* Ruta del Encuentro en pantalla completa (spec del usuario: "debe ampliar
+   texto a toda la pantalla") — texto y tabla más grandes, ocupando todo el
+   ancho disponible, a diferencia del visor genérico angosto de arriba. */
+.contenido-pantalla-completa-texto.ruta-encuentro-completa {
+  max-width: 1100px;
+  font-size: 1.25rem;
+}
+.contenido-pantalla-completa-texto.ruta-encuentro-completa table.tabla-simple th,
+.contenido-pantalla-completa-texto.ruta-encuentro-completa table.tabla-simple td {
+  font-size: 1.15rem;
+  padding: 14px 16px;
+}
 
 /* ---------- "Revisar todo antes de enviar" (Revisión y cierre) ---------- */
 .pantalla-completa-revisar {
@@ -1024,6 +1058,12 @@ details.socializacion-ie[open] summary { margin-bottom: 8px; }
   margin: 0 0 14px;
 }
 .contador-participantes-tarjeta strong { font-size: 1.2rem; }
+
+/* Grupo y responsable de envío, sutiles junto al botón Inicio (spec del usuario). */
+.etiqueta-grupo-responsable {
+  font-size: 0.85rem;
+  color: var(--gris-texto);
+}
 .comparativo-firmantes-qr {
   background: var(--verde-claro);
   color: var(--verde-oscuro);
