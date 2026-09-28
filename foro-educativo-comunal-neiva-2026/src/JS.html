@@ -248,7 +248,7 @@ function llamarServidor(nombreFuncion, args, onExito, onError, _intentoReintento
 // pantalla de Confirmación de caracterización desaparece completamente").
 var PASOS_PROGRESO_ENCUENTRO_ = [
   { id: "pantallaSesionSocializacion", etiqueta: "Socialización" },
-  { id: "pantallaSesion1", etiqueta: "Sesión 1" },
+  { id: "pantallaSesion1", etiqueta: "Construcción colectiva" },
   { id: "pantallaParticipacion", etiqueta: "Participación" },
   { id: "pantallaRevisionCierre", etiqueta: "Cierre" }
 ];
@@ -1610,16 +1610,14 @@ document.addEventListener("keydown", function (evento) {
 });
 
 /**
- * "✕" Cerrar (spec del usuario, distinto de minimizar) — cancela por
- * completo la socialización en curso de esta IE: detiene el conteo y
- * regresa el checklist a "▶ Iniciar temporizador" para esa IE, sin
- * marcarla como socializada (a diferencia de "Finalizar").
+ * "✕" Cerrar (spec del usuario: "tiene la misma función de finalizar") —
+ * mismo comportamiento que "Finalizar": detiene el conteo, cierra el
+ * overlay y marca la IE como socializada.
  */
 document.getElementById("btnCerrarSocializacion").addEventListener("click", function () {
   clearInterval(estadoSocializacion.temporizadorId);
-  estadoSocializacion.ieActivaId = "";
   document.getElementById("pantallaCompletaTemporizadorSocializacion").classList.add("oculto");
-  renderChecklistSocializacionIE(estadoSocializacion.datos);
+  finalizarSocializacionIE_();
 });
 
 document.addEventListener("click", function (evento) {
@@ -3638,6 +3636,7 @@ document.getElementById("btnVerTodosFirmantes").addEventListener("click", functi
 // (preguntas de grupo + segunda parte + aporte propio) — todos comparten
 // el mismo autoguardado y el mismo UPSERT-por-grupo (Sesion1.gs).
 var CAMPOS_SESION1 = [
+  "CONCLUSIONES_SOCIALIZACION",
   // Sesión 1 — las 11 preguntas reales del FEI (item 16, Documento Orientador FEM2026).
   "FEM2025_P1", "FEM2025_P2",
   "CURRICULO_P1", "CURRICULO_P2", "CURRICULO_P3", "CURRICULO_P4", "CURRICULO_P5",
@@ -3851,12 +3850,12 @@ setInterval(function () {
 }, 30000);
 
 document.getElementById("btnEnviarSesion1").addEventListener("click", function () {
-  confirmarAccion("¿Enviar Sesión 1 de forma definitiva? Verifique que todos los campos estén completos.", function () {
+  confirmarAccion("¿Enviar Construcción Colectiva del Grupo de forma definitiva? Verifique que todos los campos estén completos.", function () {
     guardarSesion1(false);
     mostrarCargaAccion_("sesionDefinitiva");
     llamarServidor("rpcEnviarSesion1", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId], function (r) {
       ocultarCargaAccion_();
-      mostrarMensaje("mensajeSesion1", r.ok ? "Sesión 1 enviada." : (r.mensaje || "No fue posible enviar."), r.ok ? "exito" : "error");
+      mostrarMensaje("mensajeSesion1", r.ok ? "Construcción Colectiva del Grupo enviada." : (r.mensaje || "No fue posible enviar."), r.ok ? "exito" : "error");
       if (r.ok || r.codigo === "YA_ENVIADO") estado.sesion1Enviada = true;
       actualizarGateContinuarCierre_();
       actualizarEstadoEnvioSesion1_();
@@ -4600,6 +4599,7 @@ function prepararCierre() {
  * arriesgar guardar el valor equivocado.
  * ------------------------------------------------------------------ */
 var CAMPOS_REVISAR_SESION1_ = [
+  { clave: "CONCLUSIONES_SOCIALIZACION", etiqueta: "Conclusiones de la socialización" },
   { clave: "FEM2025_P1", etiqueta: "Avances en los retos y propósitos del FEM2025" },
   { clave: "FEM2025_P2", etiqueta: "Avances en la implementación de preescolar (jardín, prejardín)" },
   { clave: "CURRICULO_P1", etiqueta: "Pertinencia de los currículos con la realidad territorial" },
@@ -4611,8 +4611,8 @@ var CAMPOS_REVISAR_SESION1_ = [
   { clave: "GOBIERNO_P2", etiqueta: "Acciones para una participación más incidente" },
   { clave: "GOBIERNO_P3", etiqueta: "Equipos de trabajo institucional (gobierno)" },
   { clave: "GOBIERNO_P4", etiqueta: "Mecanismos de seguimiento (gobierno)" },
-  { clave: "APORTE_PROPIO_S1_TITULO", etiqueta: "Aporte propio del grupo — Título", tipo: "text" },
-  { clave: "APORTE_PROPIO_S1_TEXTO", etiqueta: "Aporte propio del grupo — Descripción" }
+  { clave: "APORTE_PROPIO_S1_TITULO", etiqueta: "Aporte propio del grupo — Título", tipo: "text", opcional: true },
+  { clave: "APORTE_PROPIO_S1_TEXTO", etiqueta: "Aporte propio del grupo — Descripción", opcional: true }
 ];
 var CAMPOS_REVISAR_SESION2_ = [
   { clave: "CONECTAEDUCA_P1", etiqueta: "Necesidades del sector productivo y aportes a la formación" },
@@ -4621,8 +4621,8 @@ var CAMPOS_REVISAR_SESION2_ = [
   { clave: "CONECTAEDUCA_P4", etiqueta: "Compromisos de cada parte" },
   { clave: "CONECTAEDUCA_P5", etiqueta: "Acciones de corto y mediano plazo" },
   { clave: "CONECTAEDUCA_P6", etiqueta: "Seguimiento a compromisos y acciones" },
-  { clave: "APORTE_PROPIO_S2_TITULO", etiqueta: "Aporte propio del grupo — Título", tipo: "text" },
-  { clave: "APORTE_PROPIO_S2_TEXTO", etiqueta: "Aporte propio del grupo — Descripción" }
+  { clave: "APORTE_PROPIO_S2_TITULO", etiqueta: "Aporte propio del grupo — Título", tipo: "text", opcional: true },
+  { clave: "APORTE_PROPIO_S2_TEXTO", etiqueta: "Aporte propio del grupo — Descripción", opcional: true }
 ];
 
 /**
@@ -4649,6 +4649,9 @@ function _renderCamposRevisarSesion_(idContenedor, camposMeta, datos) {
   if (!contenedor) return;
   contenedor.innerHTML = "";
   camposMeta.forEach(function (campo) {
+    // Los campos opcionales (Aporte propio del grupo) no se muestran en
+    // "Revisar todo" si no se ha escrito nada en ellos (spec del usuario).
+    if (campo.opcional && !_valorCampoParaRevisar_(campo.clave, datos)) return;
     var bloque = document.createElement("div");
     bloque.className = "revisar-todo-campo";
     var label = document.createElement("label");

@@ -309,7 +309,9 @@ function generarInformeGrupo(idGrupo) {
 
   // Sesión 1 — las 11 preguntas reales del Foro Educativo Institucional
   // (item 16, Documento Orientador FEM2026), agrupadas por sus 3 temas.
-  titulo1_(body, "Consolidado de Socialización (Sesión 1)");
+  titulo1_(body, "Construcción colectiva del grupo");
+  subtitulo_(body, "Conclusiones de la socialización");
+  parrafo_(body, sesion1.CONCLUSIONES_SOCIALIZACION);
   subtitulo_(body, "1. Avances FEM2025 y políticas públicas");
   [
     ["Avances en los retos y propósitos del FEM2025", "FEM2025_P1"],

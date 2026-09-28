@@ -3057,6 +3057,41 @@ coincide con la lista ya aceptada (11) más una nueva intencional (`listaSociali
 con guarda nula en los 3 sitios que la referencian — el bloque de referencia por pregunta que la usaba se
 quitó del HTML, pero su función/copiar-al-seleccionar quedaron sin invocarse, no rotas).
 
+## 4.81 Sexagésimo cuarto lote: correcciones sobre el lote anterior (botón ✕ = Finalizar, sin fondo en el escudo, nueva pregunta "Conclusiones de la socialización", textos y nombres renovados)
+
+Ajustes puntuales pedidos tras probar el lote 4.80:
+
+- **Habilitar IE = presente en todo el sistema**: confirmado con el usuario que es el comportamiento
+  correcto (una sola bandera `presente`, compartida entre Bienvenida, Participación y el checklist de
+  socialización) — no se cambió nada.
+- **Botón "✕" del temporizador**: ya no cancela — ahora hace exactamente lo mismo que "Finalizar" (detiene
+  el conteo, cierra el overlay y marca la IE como socializada).
+- **Escudo de la IE en el temporizador**: se quitó el fondo blanco (`#escudoIESocializando` ya no tiene
+  `background`/`padding`).
+- **Nueva pregunta "Conclusiones de la socialización"**, editable, al inicio de "Construcción colectiva del
+  grupo", con las mismas características que las demás (50-400 palabras, obligatoria): columna nueva
+  `CONCLUSIONES_SOCIALIZACION` en `Sesion1Comunal` (`cabecerasSesion1Comunal_`, `CAMPOS_SESION1_OBLIGATORIOS_`/
+  `_CON_RANGO_PALABRAS_`, Sesion1.gs), campo `campo_CONCLUSIONES_SOCIALIZACION` (Index.html), agregada a
+  `CAMPOS_SESION1`/`CAMPOS_REVISAR_SESION1_` (JS.html) y al documento generado (Informes.gs, antes de
+  "1. Avances FEM2025...").
+- **Textos eliminados/reemplazados**: el párrafo largo bajo "Consolidado de Socialización" ("Con base en lo
+  socializado... Todos los campos son obligatorios") se eliminó; el de "Construcción colectiva del grupo"
+  ("Se sugiere que, mientras se proyectan...") se reemplazó por una frase explicando que esto se construye
+  desde los aportes de los informes y las conclusiones de la socialización recién efectuada.
+- **Renombrado "Sesión 1" → "Construcción colectiva del grupo"** en todo lo visible al usuario (pestaña de
+  la barra de progreso, botones "Continuar a...", el mensaje de envío ya realizado, el botón "Enviar Sesión
+  1 definitiva" → "Enviar Construcción Colectiva del Grupo", el aviso/título de gate para continuar a
+  Participación, y el encabezado del bloque correspondiente en "Revisar todo" y en el documento generado).
+  Los comentarios de código y nombres de función/variable (`CAMPOS_SESION1`, `pantallaSesion1`,
+  `guardarSesion1`, etc.) se dejaron intactos — renombrarlos no aporta nada visible y multiplica el riesgo.
+- **"Aporte propio del grupo" en "Revisar todo"**: Título/Descripción (Sesión 1 y 2) ahora se marcan
+  `opcional: true` y `_renderCamposRevisarSesion_` los omite si están vacíos, en vez de mostrar siempre las
+  dos filas en blanco.
+
+Verificado: `node --check` sobre todos los `.gs` (limpio), extracción y `node --check` de cada bloque
+`<script>` (limpio salvo el falso positivo esperado), cero ids duplicados, y las referencias
+`getElementById` colgantes coinciden exactamente con la lista ya aceptada (12), sin hallazgos nuevos.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

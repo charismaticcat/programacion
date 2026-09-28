@@ -15,6 +15,11 @@ var HOJA_SESION1_COMUNAL_ = "Sesion1Comunal";
 function cabecerasSesion1Comunal_() {
   return [
     "ID_GRUPO",
+    // Conclusiones de la socialización — pregunta editable al inicio de
+    // "Construcción colectiva del grupo" (spec del usuario), con las
+    // mismas características (50-400 palabras, obligatoria) que las
+    // preguntas orientadoras de abajo.
+    "CONCLUSIONES_SOCIALIZACION",
     // Sesión 1 (item 16, Documento Orientador FEM2026): las 11 preguntas
     // reales del Foro Educativo Institucional (punto 3.1 del documento),
     // agrupadas por sus 3 temas — reemplazan a las 8 preguntas genéricas
@@ -60,6 +65,7 @@ function cabecerasSesion1Comunal_() {
 
 /** Campos con mínimo 50 / máximo 400 palabras (Sesión 1 + ConectaEduca). */
 var CAMPOS_SESION1_CON_RANGO_PALABRAS_ = [
+  "CONCLUSIONES_SOCIALIZACION",
   "FEM2025_P1", "FEM2025_P2",
   "CURRICULO_P1", "CURRICULO_P2", "CURRICULO_P3", "CURRICULO_P4", "CURRICULO_P5",
   "GOBIERNO_P1", "GOBIERNO_P2", "GOBIERNO_P3", "GOBIERNO_P4",
@@ -68,8 +74,9 @@ var CAMPOS_SESION1_CON_RANGO_PALABRAS_ = [
 var MIN_PALABRAS_SESION1_ = 50;
 var MAX_PALABRAS_SESION1_ = 400;
 
-/** Campos obligatorios para el envío definitivo de Sesión 1 — las 11 preguntas reales del FEI (item 16). */
+/** Campos obligatorios para el envío definitivo de Sesión 1 — CONCLUSIONES_SOCIALIZACION (spec del usuario) + las 11 preguntas reales del FEI (item 16). */
 var CAMPOS_SESION1_OBLIGATORIOS_ = [
+  "CONCLUSIONES_SOCIALIZACION",
   "FEM2025_P1", "FEM2025_P2",
   "CURRICULO_P1", "CURRICULO_P2", "CURRICULO_P3", "CURRICULO_P4", "CURRICULO_P5",
   "GOBIERNO_P1", "GOBIERNO_P2", "GOBIERNO_P3", "GOBIERNO_P4"

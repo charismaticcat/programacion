@@ -726,7 +726,7 @@
 
     <div class="fila-botones">
       <button class="btn btn-secundario" data-ir="pantallaMetodologia">Atrás</button>
-      <button class="btn btn-primario" data-ir="pantallaSesion1">Continuar a Sesión 1</button>
+      <button class="btn btn-primario" data-ir="pantallaSesion1">Continuar a Construcción colectiva del grupo</button>
     </div>
   </section>
 
@@ -735,7 +735,7 @@
   <section id="pantallaPreSocializacion" class="pantalla">
     <div class="tarjeta">
       <h2 class="titulo-seccion">Sesión de preparación</h2>
-      <p>Antes de socializar oralmente en Sesión 1, cada institución educativa del grupo prepara
+      <p>Antes de socializar oralmente en Construcción colectiva del grupo, cada institución educativa del grupo prepara
         brevemente sus aportes por escrito — <strong>en este espacio se ingresarán las respuestas</strong>
         que luego se compartirán con todo el grupo y la comunidad asistente.</p>
       <p class="ayuda">Todas las IE de este grupo ingresan con el mismo código de acceso. Cada institución
@@ -768,7 +768,7 @@
       <div id="listaInvitadosPreparacion" class="lista-ie-preparacion"></div>
       <div class="fila-botones">
         <button class="btn btn-secundario" data-ir="pantallaPreSocializacion">Atrás</button>
-        <button class="btn btn-primario oculto" id="btnContinuarASesion1DesdeSeleccion">Continuar a Sesión 1</button>
+        <button class="btn btn-primario oculto" id="btnContinuarASesion1DesdeSeleccion">Continuar a Construcción colectiva del grupo</button>
       </div>
     </div>
   </section>
@@ -780,7 +780,7 @@
       <p class="ayuda">Responsable: <strong id="responsablePreparacionIE"></strong></p>
 
       <div id="bannerPreparacionYaCompletada" class="banner-completado oculto">
-        ✅ Ya realizó la preparación de esta institución. Puede continuar con Sesión 1, o revisar/editar
+        ✅ Ya realizó la preparación de esta institución. Puede continuar con Construcción colectiva del grupo, o revisar/editar
         sus respuestas abajo si lo necesita.
       </div>
 
@@ -802,7 +802,7 @@
     </div>
     <div class="fila-botones">
       <button class="btn btn-secundario" data-ir="pantallaSeleccionIEPreparacion">Elegir otra institución</button>
-      <button class="btn btn-primario oculto" id="btnContinuarASesion1DesdePreparacionIE">Continuar a Sesión 1</button>
+      <button class="btn btn-primario oculto" id="btnContinuarASesion1DesdePreparacionIE">Continuar a Construcción colectiva del grupo</button>
     </div>
   </section>
 
@@ -810,11 +810,6 @@
   <section id="pantallaSesion1" class="pantalla">
     <div class="tarjeta">
       <h2 class="titulo-seccion">Consolidado de Socialización</h2>
-      <p class="ayuda">Con base en lo socializado por cada institución educativa (Sesión de socialización,
-        pantalla anterior), registre las respuestas colectivas del grupo a las preguntas orientadoras del
-        VOCES QUE CONSTRUYEN TERRITORIO (un consolidado por grupo, no por IE). Opcionalmente, en caso de
-        existir hallazgos, reflexiones o propuestas propias de la comunidad que no encajen en las preguntas
-        anteriores pueden escribirlos al final. Todos los campos son obligatorios.</p>
 
       <!-- Un solo enlace al documento real del grupo (spec del usuario: "solo
            deja el documento de consolidado de cada grupo" / "debe ser
@@ -831,19 +826,26 @@
 
     <div class="tarjeta">
       <h2 class="titulo-seccion">Construcción colectiva del grupo</h2>
-      <p class="ayuda">Se sugiere que, mientras se proyectan y van leyendo los aportes, en otro dispositivo
-        se vayan registrando lo más relevante de esta sesión.</p>
+      <p class="ayuda">Esto se construye desde los aportes puntuales de los informes y de las conclusiones
+        de la socialización que se acaba de efectuar.</p>
 
       <div id="vistaSoloLecturaSesion1" class="oculto">
         <div class="mensaje-envio-definitivo">
           <div class="icono-envio-definitivo">✅</div>
-          <h3>Sesión 1 ya se envió de forma definitiva</h3>
+          <h3>Construcción colectiva del grupo ya se envió de forma definitiva</h3>
           <p>Puedes seguir modificando las respuestas de abajo y volver a enviarlas cuando quieras.</p>
         </div>
       </div>
 
       <div id="camposEditablesSesion1">
-        <h3 class="subtitulo-campo" style="margin-top:0;">1. Avances FEM2025 y políticas públicas</h3>
+        <h3 class="subtitulo-campo" style="margin-top:0;">Conclusiones de la socialización</h3>
+
+        <p class="ayuda">Con base en lo socializado por cada institución educativa (Sesión de socialización,
+          pantalla anterior) y en los informes de síntesis de cada una, registren las conclusiones
+          colectivas del grupo.</p>
+        <textarea lang="es" spellcheck="true" id="campo_CONCLUSIONES_SOCIALIZACION" data-campo-sesion1="CONCLUSIONES_SOCIALIZACION" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+
+        <h3 class="subtitulo-campo">1. Avances FEM2025 y políticas públicas</h3>
 
         <p class="ayuda">¿Cómo hemos avanzado, desde nuestra institución educativa, en el logro de los retos
           y propósitos planteados en el FEM2025?</p>
@@ -908,15 +910,15 @@
 
         <div id="mensajeSesion1"></div>
         <div class="fila-botones">
-          <button class="btn btn-primario" id="btnEnviarSesion1">Enviar Sesión 1 definitiva</button>
+          <button class="btn btn-primario" id="btnEnviarSesion1">Enviar Construcción Colectiva del Grupo</button>
         </div>
       </div>
     </div>
     <div class="fila-botones">
       <button class="btn btn-secundario" data-ir="pantallaSesionSocializacion">Atrás</button>
-      <button class="btn btn-primario" id="btnContinuarACierreEncuentro" data-ir="pantallaParticipacion" disabled title="Envíe primero Sesión 1 de forma definitiva">Continuar a Participación</button>
+      <button class="btn btn-primario" id="btnContinuarACierreEncuentro" data-ir="pantallaParticipacion" disabled title="Envíe primero Construcción colectiva del grupo de forma definitiva">Continuar a Participación</button>
     </div>
-    <p class="ayuda oculto" id="avisoSesion1NoEnviada" style="text-align:center;">Envíe Sesión 1 de forma
+    <p class="ayuda oculto" id="avisoSesion1NoEnviada" style="text-align:center;">Envíe Construcción colectiva del grupo de forma
       definitiva (botón de arriba) para poder continuar.</p>
   </section>
 
@@ -1357,7 +1359,7 @@
     </div>
 
     <div class="revisar-todo-seccion">
-      <h3 class="subtitulo-campo">📝 Consolidado de Socialización (Sesión 1)</h3>
+      <h3 class="subtitulo-campo">📝 Consolidado de Socialización (Construcción colectiva del grupo)</h3>
       <div id="camposRevisarSesion1"></div>
     </div>
 
