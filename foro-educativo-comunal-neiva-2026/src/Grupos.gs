@@ -47,10 +47,6 @@ function obtenerGrupoPorId(idGrupo) {
  * SELECCIONA el responsable de envío del grupo en Participación/
  * ConectaEduca (ver obtenerFuncionariosResponsablesGrupo más abajo), de
  * ahí que cada entrada ahora traiga también su correo.
- *
- * correo de Carlos Quijano (G6) queda vacío: no fue suministrado por el
- * usuario — el selector de responsable de envío lo deja en blanco para
- * completarlo a mano en ese caso, no se inventa.
  */
 var DUENOS_GRUPO_COMUNAL_ = {
   G1: [{ nombre: "Angélica Rojas", correo: "angelica.rojas@alcaldianeiva.gov.co" }],
@@ -72,7 +68,7 @@ var DUENOS_GRUPO_COMUNAL_ = {
   ],
   G6: [
     { nombre: "Carolina Soto", correo: "carolina.soto@alcaldianeiva.gov.co" },
-    { nombre: "Carlos Quijano", correo: "" }
+    { nombre: "Carlos Quijano", correo: "inenierocarlosq@hotmail.com" }
   ]
 };
 
