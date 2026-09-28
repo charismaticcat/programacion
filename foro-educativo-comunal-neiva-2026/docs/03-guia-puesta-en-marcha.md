@@ -2865,6 +2865,57 @@ definida); cada pantalla de `ORDEN_PANTALLAS` (27 en total) tiene su `<section i
 búsqueda exhaustiva de referencias colgantes a los 8 campos viejos de ConectaEduca (ninguna, salvo
 comentarios históricos y la lista de columnas heredadas, intencional).
 
+## 4.78 Sexagésimo primer lote: casillas de IE presentes optimistas, Ruta del Encuentro antes de Presentación, checklist de socialización filtrado, temporizador en pantalla completa, y referencia por pregunta reinstalada
+
+Quinto pedido del usuario en la misma sesión, una lista de correcciones sobre lo ya desplegado.
+
+- **`JS.html` (casillas de "IE presentes") — optimistas**: el checklist de "Instituciones educativas
+  presentes" se sentía lento y las selecciones parecían "trocarse" (spec del usuario) porque cada clic
+  deshabilitaba la casilla, esperaba el viaje al servidor y luego **repintaba todo el checklist desde
+  cero** (`renderListaIEPresentes`, `innerHTML`) — si se marcaban varias IE seguidas, las respuestas del
+  servidor podían llegar desordenadas y una casilla en pleno marcado se veía interrumpida por el repintado
+  de otra. Ahora la casilla refleja el clic de inmediato (sin `disabled`, sin esperar el RPC) y, al guardar,
+  `cargarParticipacionEstamento(alTerminar, omitirListaIEPresentes)` (nuevo segundo parámetro) refresca solo
+  la matriz de estamento — que sí depende de qué IE están presentes — sin volver a pintar el checklist de
+  casillas, que ya estaba correcto.
+- **Ruta del Encuentro antes de Presentación** (spec del usuario): se intercambiaron `pantallaMetodologia`
+  y `pantallaPresentacion` en el recorrido — `btnComenzarForo` ahora lleva a Metodología primero; su
+  "Continuar" lleva a Presentación; el "Continuar" de Presentación (renombrado
+  `btnContinuarDesdePresentacion`, antes `btnContinuarDesdeMetodologia`) dispara `irTrasPresentacion_()`
+  hacia la Sesión de socialización. El texto de Presentación se reescribió como instrucciones concretas de
+  la sesión (qué va a pasar, cuántos minutos por IE, qué se construye después), en vez de la descripción
+  genérica del Encuentro que tenía antes.
+- **Checklist de Socialización filtrado por IE presentes** (spec del usuario): `cargarSocializacionIE()`
+  ahora refresca primero `cargarParticipacionEstamento()` y cruza cada IE del checklist con su `presente`
+  — las presentes se ven igual que antes (⬜/✅ + temporizador); las no marcadas como presentes se muestran
+  en gris (⬛, clase `.socializacion-ie-inhabilitada`) con un botón "Habilitar IE" en vez del de iniciar
+  temporizador, que llama a `rpcGuardarPresenciaIE(..., true)` (nuevo `habilitarIESocializacion_`) y
+  refresca el checklist.
+- **Temporizador de socialización en pantalla completa, con barra de progreso tricolor** (spec del
+  usuario): `panelTemporizadorSocializacion` (una tarjeta más dentro de la pantalla) se reemplazó por
+  `pantallaCompletaTemporizadorSocializacion`, un overlay fijo de viewport completo (mismo patrón que
+  `pantallaCompletaTexto`/`pantallaCompletaEdicion`), con una barra de progreso en reversa
+  (`rellenoProgresoTemporizador`) que `_actualizarRelojSocializacion_` (JS.html) actualiza cada segundo:
+  ancho = segundos restantes / 600 (nunca más de 100%, por si se suman minutos de más), y color verde de
+  10:00 a 7:00 (≥420s), amarillo de 6:59 a 3:00 (≥180s), rojo de 2:59 a 0:00.
+- **Referencia por pregunta (Informe de Síntesis) reinstalada, con etiquetas "Pregunta N" reales** (spec
+  del usuario, corrección de rumbo sobre el lote 4.76): el bloque `tarjetaSocializacionPreparacion` /
+  `listaSocializacionPreparacion` que se había quitado de "Consolidado de Socialización" (reemplazado por
+  un solo link) **vuelve a mostrarse, junto con ese link, no en su lugar** — `cargarSocializacionPreparacion()`
+  se llama de nuevo desde el hook de `pantallaSesion1`. Las etiquetas de `PREGUNTAS_SINTESIS_GRUPO_`
+  (SintesisGrupos.gs) se reescribieron con la numeración "Pregunta N" real que usa el Informe de Síntesis de
+  cada grupo (dada por el usuario, pregunta por pregunta) — que a veces reformula la pregunta más corta que
+  la de la app (p. ej. CURRICULO_P2, GOBIERNO_P2) y en Gobierno escolar llama a las preguntas 3 y 4
+  "Equipos de trabajo" y "Mecanismos de seguimiento" en vez de numerarlas. Se agregó además un encabezado
+  fijo "Consolidado de socialización" (no viene de ningún RPC) explicando que las respuestas se nutren de
+  las conclusiones del Foro Educativo Institucional de cada institución.
+
+Verificado: `node --check` sobre todos los `.gs` (limpio), extracción y `node --check` de cada bloque
+`<script>` de Index.html/JS.html/Components.html/Modal.html (limpio, salvo el único falso positivo esperado
+y permanente del tag de plantilla GAS `<?!= JSON.stringify(TOKEN_ACCESO || "") ?>` en Index.html), cero ids
+duplicados y el conjunto de referencias `getElementById` colgantes coincide exactamente con la lista ya
+aceptada de 10 (todas intencionales y protegidas con guarda nula). Sin hallazgos nuevos.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

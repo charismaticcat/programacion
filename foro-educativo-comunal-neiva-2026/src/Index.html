@@ -108,22 +108,8 @@
     </div>
   </section>
 
-  <!-- 2. PRESENTACIÓN -->
-  <section id="pantallaPresentacion" class="pantalla">
-    <div class="tarjeta">
-      <h2 class="titulo-seccion">Primera sesión: Socialización Reflexiones, conclusiones y Propuestas Foros
-        Educativos Institucionales</h2>
-      <p>"Encuentro de voces que construyen territorio": un espacio de encuentro entre instituciones
-        educativas agrupadas por territorio, para construir de manera colectiva insumos que
-        alimentarán el Foro Educativo Municipal FEM 2026.</p>
-      <div class="fila-botones">
-        <button class="btn btn-secundario" data-ir="pantallaInicio">Atrás</button>
-        <button class="btn btn-primario" data-ir="pantallaMetodologia">Continuar</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- 3. METODOLOGÍA -->
+  <!-- 2. METODOLOGÍA — va antes de Presentación (spec del usuario: "Ruta del
+       Encuentro... va antes de Primera sesión..."). -->
   <section id="pantallaMetodologia" class="pantalla">
     <div class="tarjeta">
       <h2 class="titulo-seccion">Ruta del Encuentro de voces que construyen territorio</h2>
@@ -146,8 +132,24 @@
         </tbody>
       </table>
       <div class="fila-botones">
-        <button class="btn btn-secundario" data-ir="pantallaPresentacion">Atrás</button>
-        <button class="btn btn-primario" id="btnContinuarDesdeMetodologia">Continuar</button>
+        <button class="btn btn-secundario" data-ir="pantallaInicio">Atrás</button>
+        <button class="btn btn-primario" data-ir="pantallaPresentacion">Continuar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. PRESENTACIÓN -->
+  <section id="pantallaPresentacion" class="pantalla">
+    <div class="tarjeta">
+      <h2 class="titulo-seccion">Primera sesión: Socialización Reflexiones, conclusiones y Propuestas Foros
+        Educativos Institucionales</h2>
+      <p>En esta sesión cada institución educativa del grupo socializará oralmente, en hasta 10 minutos, las
+        reflexiones, conclusiones y propuestas de su VOCES QUE CONSTRUYEN TERRITORIO. Con base en lo
+        socializado por todas, el grupo construirá después una respuesta colectiva a las preguntas
+        orientadoras del Foro Educativo Municipal FEM 2026 — un consolidado por grupo, no por institución.</p>
+      <div class="fila-botones">
+        <button class="btn btn-secundario" data-ir="pantallaMetodologia">Atrás</button>
+        <button class="btn btn-primario" id="btnContinuarDesdePresentacion">Continuar</button>
       </div>
     </div>
   </section>
@@ -681,20 +683,6 @@
       <div id="listaSocializacionIE"></div>
     </div>
 
-    <!-- Solo el temporizador (spec del usuario: "eliminar las respuestas de la sesion de
-         socialización, solo dejar el temporizador" — las respuestas reales del grupo,
-         extraídas de su Informe de Síntesis, ahora se muestran en Sesión 1, junto a cada
-         pregunta de "Construcción colectiva del grupo"). -->
-    <div class="tarjeta oculto" id="panelTemporizadorSocializacion">
-      <h3 class="subtitulo-campo" id="nombreIESocializando"></h3>
-      <p class="aviso-socializacion oculto" id="avisoMomentoSocializacion"></p>
-      <p class="temporizador-socializacion" id="relojSocializacion">10:00</p>
-      <div class="fila-botones" style="justify-content:center;">
-        <button type="button" class="btn btn-secundario" id="btnMas2MinSocializacion">+2 minutos</button>
-        <button type="button" class="btn btn-primario" id="btnFinalizarSocializacionIE">Finalizar</button>
-      </div>
-    </div>
-
     <div class="fila-botones">
       <button class="btn btn-secundario" data-ir="pantallaMetodologia">Atrás</button>
       <button class="btn btn-primario" data-ir="pantallaSesion1">Continuar a Sesión 1</button>
@@ -790,9 +778,21 @@
       <!-- Un solo enlace al documento real del grupo (spec del usuario: "solo
            deja el documento de consolidado de cada grupo" / "debe ser
            editable" / "un solo link, eliminar todo el registro del
-           spreadsheets") — reemplaza tanto "Archivos de apoyo" como el
-           bloque de referencia por pregunta que se mostraba antes. -->
+           spreadsheets"). -->
       <div id="enlaceConsolidadoSocializacion"></div>
+
+      <!-- Bloque de referencia por pregunta (spec del usuario: reinstalado,
+           con las etiquetas "Pregunta N" reales del Informe de Síntesis —
+           ver PREGUNTAS_SINTESIS_GRUPO_, SintesisGrupos.gs). "Consolidado
+           de socialización" es un encabezado fijo, no viene del servidor. -->
+      <div class="tarjeta-socializacion" id="tarjetaSocializacionPreparacion">
+        <h3 class="subtitulo-campo">Consolidado de socialización</h3>
+        <p class="ayuda">Las respuestas de referencia de abajo se nutren desde las conclusiones del Foro
+          Educativo Institucional de cada institución, según el Informe de Síntesis de este grupo.</p>
+        <p class="ayuda">💡 Al seleccionar una parte del texto de cualquier pregunta, queda copiada y
+          puede pegarse en la pregunta correspondiente de "Construcción colectiva del grupo", más abajo.</p>
+        <div id="listaSocializacionPreparacion"></div>
+      </div>
 
     </div>
 
@@ -1351,6 +1351,23 @@
      (mismo mecanismo visual que el carrusel de bienvenida, pero un solo ítem). -->
 <div id="pantallaTransicionLogoIE" class="oculto pantalla-carrusel-ie">
   <div id="itemTransicionLogoIE"></div>
+</div>
+
+<!-- Temporizador de la Sesión de socialización, en pantalla completa (spec
+     del usuario) — barra de progreso en reversa que cambia de color: verde
+     de 10:00 a 7:00, amarillo de 6:59 a 3:00, rojo de 2:59 a 0:00 (ver
+     _actualizarRelojSocializacion_, JS.html). -->
+<div id="pantallaCompletaTemporizadorSocializacion" class="oculto pantalla-completa-temporizador">
+  <h3 id="nombreIESocializando"></h3>
+  <p class="aviso-socializacion oculto" id="avisoMomentoSocializacion"></p>
+  <p class="temporizador-socializacion" id="relojSocializacion">10:00</p>
+  <div class="barra-progreso-temporizador">
+    <div class="barra-progreso-temporizador-relleno" id="rellenoProgresoTemporizador"></div>
+  </div>
+  <div class="fila-botones" style="justify-content:center;">
+    <button type="button" class="btn btn-secundario" id="btnMas2MinSocializacion">+2 minutos</button>
+    <button type="button" class="btn btn-primario" id="btnFinalizarSocializacionIE">Finalizar</button>
+  </div>
 </div>
 
 <!-- Vista de pantalla completa genérica, reutilizada por la sección de

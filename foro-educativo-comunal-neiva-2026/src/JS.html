@@ -113,7 +113,7 @@ var ORDEN_PANTALLAS = [
   "pantallaAccesoConversatorio", "pantallaAccesoSuperadminConversatorio", "pantallaPanelSuperadminConversatorio",
   "pantallaResponsableConversatorio",
   "pantallaResolucionConversatorio", "pantallaCaracterizacionConversatorio", "pantallaCierreConversatorio",
-  "pantallaInicio", "pantallaPresentacion", "pantallaMetodologia",
+  "pantallaInicio", "pantallaMetodologia", "pantallaPresentacion",
   "pantallaConsentimientoConectaEduca", "pantallaResponsableConectaEduca", "pantallaConsentimientoGrupo",
   "pantallaInvitadosEspeciales",
   "pantallaPreSocializacion", "pantallaSeleccionIEPreparacion", "pantallaPreparacionIE",
@@ -378,10 +378,13 @@ function cambiarPantalla(idPantalla) {
   if (idPantalla === "pantallaSesion1") {
     cargarSesion1();
     // Un solo enlace al documento de consolidado del grupo (spec del
-    // usuario) — reemplaza a cargarRecursosSesion1()/cargarSocializacionPreparacion(),
-    // que mostraban "Archivos de apoyo" y el bloque de referencia por
-    // pregunta dentro de la app; ver cargarEnlaceConsolidadoSocializacion.
+    // usuario) — reemplaza a cargarRecursosSesion1() ("Archivos de
+    // apoyo"), que ya no se muestra aquí; ver cargarEnlaceConsolidadoSocializacion.
     cargarEnlaceConsolidadoSocializacion();
+    // Respuestas de referencia del grupo (Informe de Síntesis), por
+    // pregunta — spec del usuario: reinstalado con etiquetas "Pregunta N"
+    // reales del informe.
+    cargarSocializacionPreparacion();
     // "Continuar a Revisión y cierre" no se habilita hasta que Sesión 1 se
     // envió de forma definitiva (spec del usuario) — se refresca cada vez
     // que se entra a esta pantalla, no solo tras hacer clic en Enviar,
@@ -1280,7 +1283,9 @@ function ejecutarCarruselIE(instituciones, alTerminar) {
 }
 
 document.getElementById("btnComenzarForo").addEventListener("click", function () {
-  cambiarPantalla("pantallaPresentacion");
+  // Ruta del Encuentro (Metodología) va antes de Presentación (spec del
+  // usuario), así que "Comenzar" lleva ahí primero.
+  cambiarPantalla("pantallaMetodologia");
 });
 
 /* ------------------------------------------------------------------ *
@@ -1336,9 +1341,10 @@ function cargarRecursosSesion1() {
  * de Socialización" (Sesión 1) — spec del usuario: "solo deja el
  * documento de consolidado de cada grupo" / "debe ser editable" / "un
  * solo link, eliminar todo el registro del spreadsheets". Reemplaza a
- * cargarRecursosSesion1() y cargarSocializacionPreparacion() en esta
- * pantalla (ambas se dejan definidas, sin llamarse desde aquí, por si se
- * necesitan reactivar).
+ * cargarRecursosSesion1() ("Archivos de apoyo") en esta pantalla, que se
+ * deja definida sin llamarse desde aquí, por si se necesita reactivar.
+ * cargarSocializacionPreparacion() (el bloque de referencia por pregunta)
+ * sí se sigue llamando junto con esta — ver el hook de pantallaSesion1.
  */
 function cargarEnlaceConsolidadoSocializacion() {
   llamarServidor("rpcObtenerEnlaceConsolidadoGrupo", [estado.idGrupo], function (enlace) {
@@ -1365,12 +1371,40 @@ var estadoSocializacion = {
 };
 var SEGUNDOS_INICIALES_SOCIALIZACION_ = 600;
 
+/**
+ * Cruza el checklist con "Instituciones educativas presentes" (Bienvenida,
+ * spec del usuario) para saber cuáles se marcan en verde y cuáles en gris
+ * con botón "Habilitar IE" — refresca esos datos primero (por si cambiaron
+ * desde otro dispositivo) y luego pinta el checklist.
+ */
 function cargarSocializacionIE() {
-  llamarServidor("rpcObtenerSocializacionGrupo", [estado.idGrupo], function (datos) {
-    estadoSocializacion.datos = Array.isArray(datos) ? datos : [];
-    renderChecklistSocializacionIE(estadoSocializacion.datos);
+  cargarParticipacionEstamento(function () {
+    llamarServidor("rpcObtenerSocializacionGrupo", [estado.idGrupo], function (datos) {
+      var presentesPorIE = {};
+      ((estado.participacionEstamento && estado.participacionEstamento.instituciones) || []).forEach(function (ie) {
+        presentesPorIE[ie.idIE] = !!ie.presente;
+      });
+      estadoSocializacion.datos = (Array.isArray(datos) ? datos : []).map(function (ie) {
+        ie.presente = presentesPorIE.hasOwnProperty(ie.idIE) ? presentesPorIE[ie.idIE] : true;
+        return ie;
+      });
+      renderChecklistSocializacionIE(estadoSocializacion.datos);
+    }, function () {
+      mostrarMensaje("mensajeGlobal", "No fue posible cargar el listado de instituciones. Intente de nuevo.", "error");
+    });
+  }, true);
+}
+
+/** "Habilitar IE" (checklist de socialización) — la marca presente y refresca el checklist. */
+function habilitarIESocializacion_(idIE) {
+  llamarServidor("rpcGuardarPresenciaIE", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, idIE, true], function (r) {
+    if (!r.ok) {
+      mostrarMensaje("mensajeGlobal", r.mensaje || "No fue posible habilitar la institución.", "error");
+      return;
+    }
+    cargarSocializacionIE();
   }, function () {
-    mostrarMensaje("mensajeGlobal", "No fue posible cargar el listado de instituciones. Intente de nuevo.", "error");
+    mostrarMensaje("mensajeGlobal", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
   });
 }
 
@@ -1380,8 +1414,22 @@ function _formatoRelojSocializacion_(segundos) {
   return (segundos < 0 ? "-" : "") + (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
 }
 
+/**
+ * Barra de progreso en reversa (spec del usuario): se vacía a medida que
+ * corre el tiempo y cambia de color — verde de 10:00 a 7:00 (600-420s),
+ * amarillo de 6:59 a 3:00 (419-180s), rojo de 2:59 a 0:00 (179-0s). Si se
+ * suman minutos y el reloj supera los 10:00 iniciales, la barra se queda
+ * llena (100%) en vez de desbordarse.
+ */
 function _actualizarRelojSocializacion_() {
-  document.getElementById("relojSocializacion").textContent = _formatoRelojSocializacion_(estadoSocializacion.segundosRestantes);
+  var segundos = estadoSocializacion.segundosRestantes;
+  document.getElementById("relojSocializacion").textContent = _formatoRelojSocializacion_(segundos);
+  var relleno = document.getElementById("rellenoProgresoTemporizador");
+  if (!relleno) return;
+  var porcentaje = Math.max(0, Math.min(100, (segundos / SEGUNDOS_INICIALES_SOCIALIZACION_) * 100));
+  relleno.style.width = porcentaje + "%";
+  var color = segundos >= 420 ? "var(--verde)" : segundos >= 180 ? "var(--amarillo)" : "var(--rojo)";
+  relleno.style.background = color;
 }
 
 /**
@@ -1447,8 +1495,7 @@ function iniciarTemporizadorSocializacionIE_(idIE, nombreIE) {
   estadoSocializacion.segundosRestantes = SEGUNDOS_INICIALES_SOCIALIZACION_;
   document.getElementById("nombreIESocializando").textContent = nombreIE;
   _actualizarRelojSocializacion_();
-  document.getElementById("panelTemporizadorSocializacion").classList.remove("oculto");
-  document.getElementById("panelTemporizadorSocializacion").scrollIntoView({ behavior: "smooth", block: "center" });
+  document.getElementById("pantallaCompletaTemporizadorSocializacion").classList.remove("oculto");
   mostrarAvisoMomentoSocializacion_("🟢 Socialización de " + nombreIE + " iniciada.");
   reproducirSonidoSocializacion_("inicio");
   estadoSocializacion.temporizadorId = setInterval(function () {
@@ -1489,7 +1536,7 @@ function finalizarSocializacionIE_() {
 
 document.getElementById("btnFinalizarSocializacionIE").addEventListener("click", function () {
   clearInterval(estadoSocializacion.temporizadorId);
-  document.getElementById("panelTemporizadorSocializacion").classList.add("oculto");
+  document.getElementById("pantallaCompletaTemporizadorSocializacion").classList.add("oculto");
   finalizarSocializacionIE_();
 });
 
@@ -1500,6 +1547,8 @@ document.addEventListener("click", function (evento) {
     var registro = estadoSocializacion.datos.find(function (ie) { return ie.idIE === idIE; });
     iniciarTemporizadorSocializacionIE_(idIE, registro ? registro.institucion : "");
   }
+  var habilitar = evento.target.closest("[data-habilitar-ie-socializacion]");
+  if (habilitar) habilitarIESocializacion_(habilitar.getAttribute("data-habilitar-ie-socializacion"));
 });
 
 /* ------------------------------------------------------------------ *
@@ -1642,10 +1691,10 @@ function _procesarRespuestaAccesoGrupo_(r, idMensaje, reintentarForzado) {
   }
 
   // ConectaEduca no tiene pantallas de introducción propias (Inicio/
-  // Presentación/Metodología son exclusivas de Encuentro, item 8) — va
+  // Metodología/Presentación son exclusivas de Encuentro, item 8) — va
   // directo a Consentimiento o, si ya se dio, al primer paso real
   // (Responsable de envío, "Screen 1" de ConectaEduca), igual que
-  // irTrasMetodologia_ al terminar la introducción de Encuentro.
+  // irTrasPresentacion_ al terminar la introducción de Encuentro.
   if (estado.seccion === "CONECTAEDUCA") {
     cambiarPantalla(estado.consentimientoConectaEduca ? "pantallaResponsableConectaEduca" : "pantallaConsentimientoConectaEduca");
     return;
@@ -1722,16 +1771,16 @@ document.getElementById("btnMostrarCodigoAcceso").addEventListener("click", func
 });
 
 /** A dónde ir al terminar la introducción (Inicio → Presentación → Metodología), ya con el acceso validado. */
-function irTrasMetodologia_() {
+function irTrasPresentacion_() {
   // pantallaConsentimientoGrupo ("Jornada Tarde — ConectaEduca") ya no es
   // parte del recorrido (spec del usuario: "eliminar pantalla Jornada
-  // Tarde — ConectaEduca") — de la Ruta del Encuentro se pasa directo a la
-  // Sesión de socialización. La pantalla se deja en el HTML sin borrar
-  // (mismo patrón que el resto de pantallas ya inalcanzables del proyecto),
+  // Tarde — ConectaEduca") — de Presentación se pasa directo a la Sesión
+  // de socialización. La pantalla se deja en el HTML sin borrar (mismo
+  // patrón que el resto de pantallas ya inalcanzables del proyecto),
   // simplemente ya nada navega hacia ella.
   cambiarPantalla("pantallaSesionSocializacion");
 }
-document.getElementById("btnContinuarDesdeMetodologia").addEventListener("click", irTrasMetodologia_);
+document.getElementById("btnContinuarDesdePresentacion").addEventListener("click", irTrasPresentacion_);
 
 document.getElementById("btnValidarAcceso").addEventListener("click", function () {
   intentarValidarAcceso(false);
@@ -3211,14 +3260,23 @@ var CONTENEDORES_PARTICIPACION_ESTAMENTO_ = ["contenedorParticipacionEstamento",
 var RESUMENES_PARTICIPACION_ESTAMENTO_ = ["resumenParticipacionEstamento", "resumenParticipacionEstamentoCaracterizacion", "resumenParticipacionEstamentoRevisar"];
 var temporizadoresGuardadoParticipacionEstamento_ = {};
 
-function cargarParticipacionEstamento(alTerminar) {
+/**
+ * `omitirListaIEPresentes`: no repinta el checklist de IE presentes —
+ * usado tras marcar/desmarcar una casilla (ver más abajo), porque esa
+ * casilla ya refleja el estado correcto de inmediato (optimista) y
+ * volver a pintar TODA la lista en cada clic era lo que causaba que las
+ * selecciones parecieran "trocarse" (spec del usuario) cuando se
+ * marcaban varias IE seguidas y las respuestas del servidor llegaban
+ * desordenadas.
+ */
+function cargarParticipacionEstamento(alTerminar, omitirListaIEPresentes) {
   if (!estado.idGrupo) {
     if (alTerminar) alTerminar();
     return;
   }
   llamarServidor("rpcObtenerParticipacionEstamento", [estado.idGrupo], function (datos) {
     estado.participacionEstamento = datos;
-    renderListaIEPresentes(datos.instituciones);
+    if (!omitirListaIEPresentes) renderListaIEPresentes(datos.instituciones);
     CONTENEDORES_PARTICIPACION_ESTAMENTO_.forEach(function (idContenedor) {
       if (document.getElementById(idContenedor)) renderParticipacionEstamento(datos, idContenedor);
     });
@@ -3231,24 +3289,29 @@ function cargarParticipacionEstamento(alTerminar) {
   });
 }
 
-/** Marcar/desmarcar una IE como presente (checklist junto a Responsable de envío) — refresca la matriz al guardar. */
+/**
+ * Marcar/desmarcar una IE como presente — optimista (spec del usuario:
+ * "Debe ponerse azul de una vez"): la casilla ya no se deshabilita ni
+ * espera el viaje al servidor para verse marcada, se refleja de
+ * inmediato y solo se revierte si el guardado falla. Al terminar, se
+ * refresca la matriz de estamento (depende de qué IE están presentes)
+ * SIN volver a pintar el checklist completo, para no interrumpir otras
+ * casillas que el usuario pueda estar marcando al mismo tiempo.
+ */
 document.addEventListener("change", function (evento) {
   var casilla = evento.target.closest("[data-ie-presente]");
   if (!casilla) return;
   var idIE = casilla.getAttribute("data-ie-presente");
   var presente = casilla.checked;
-  casilla.disabled = true;
   llamarServidor("rpcGuardarPresenciaIE", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, idIE, presente], function (r) {
-    casilla.disabled = false;
     if (!r.ok) {
       casilla.checked = !presente;
       mostrarMensaje("mensajeIEPresentes", r.mensaje || "No fue posible guardar.", "error");
       return;
     }
     mostrarMensaje("mensajeIEPresentes", "", "");
-    cargarParticipacionEstamento();
+    cargarParticipacionEstamento(null, true);
   }, function () {
-    casilla.disabled = false;
     casilla.checked = !presente;
     mostrarMensaje("mensajeIEPresentes", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
   });

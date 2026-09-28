@@ -96,19 +96,27 @@ var RESPUESTAS_SINTESIS_GRUPO_ = {
   },
 };
 
-/** Etiquetas de cada pregunta, en el mismo orden en que aparecen en "Construcción colectiva del grupo". */
+/**
+ * Etiquetas de cada pregunta, en el mismo orden en que aparecen en
+ * "Construcción colectiva del grupo" — "Pregunta N" es la numeración real
+ * que usa el Informe de Síntesis de cada grupo (spec del usuario), que a
+ * veces reformula la pregunta de forma más corta que la de la app; en
+ * Gobierno escolar, las preguntas 3 y 4 de la app corresponden a las
+ * secciones "Equipos de trabajo" y "Mecanismos de seguimiento" del informe
+ * (sin numerar como preguntas ahí).
+ */
 var PREGUNTAS_SINTESIS_GRUPO_ = [
-  { codigo: 'FEM2025_P1', etiqueta: '¿Cómo hemos avanzado, desde nuestra institución educativa, en el logro de los retos y propósitos planteados en el FEM2025?' },
-  { codigo: 'FEM2025_P2', etiqueta: '¿Cómo hemos avanzado, desde nuestra institución educativa, en la implementación de los nuevos grados del nivel de preescolar (jardín, prejardín)?' },
-  { codigo: 'CURRICULO_P1', etiqueta: '¿Consideran que los currículos actuales que se desarrollan en las instituciones educativas son pertinentes con sus realidades territoriales (sociales, culturales, productivas)? ¿Por qué?' },
-  { codigo: 'CURRICULO_P2', etiqueta: '¿Qué acciones se están implementando para la transformación de los currículos, haciéndolos más pertinentes y contextualizados en la Institución Educativa?' },
-  { codigo: 'CURRICULO_P3', etiqueta: '¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar estas acciones? (Currículo)' },
-  { codigo: 'CURRICULO_P4', etiqueta: '¿Cómo se están articulando estos equipos de trabajo para lograr currículos más pertinentes territorialmente?' },
-  { codigo: 'CURRICULO_P5', etiqueta: '¿Qué mecanismos de seguimiento se están implementando para que dichas acciones se cumplan? (Currículo)' },
-  { codigo: 'GOBIERNO_P1', etiqueta: '¿Consideran que la toma de decisiones en las instituciones educativas actualmente es participativa y democrática? ¿Por qué?' },
-  { codigo: 'GOBIERNO_P2', etiqueta: '¿Qué tipo de acciones se están implementando para que las comunidades y diferentes actores interesados en la educación puedan participar de manera más incidente en el desarrollo y el enfoque institucional?' },
-  { codigo: 'GOBIERNO_P3', etiqueta: '¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar estas acciones? (Gobierno escolar)' },
-  { codigo: 'GOBIERNO_P4', etiqueta: '¿Qué mecanismos de seguimiento se están implementando para garantizar las acciones encaminadas a promover gobiernos educativos democráticos?' },
+  { codigo: 'FEM2025_P1', etiqueta: 'Pregunta 1: ¿Cómo hemos avanzado, desde nuestra institución educativa, en el logro de los retos y propósitos planteados en el FEM2025?' },
+  { codigo: 'FEM2025_P2', etiqueta: 'Pregunta 2: ¿Cómo hemos avanzado, desde nuestra institución educativa, en la implementación de los nuevos grados del nivel de preescolar (jardín, prejardín)?' },
+  { codigo: 'CURRICULO_P1', etiqueta: 'Pregunta 1: ¿Consideran que los currículos actuales que se desarrollan en las instituciones educativas son pertinentes con sus realidades territoriales (sociales, culturales, productivas)? ¿Por qué?' },
+  { codigo: 'CURRICULO_P2', etiqueta: 'Pregunta 2: ¿Qué acciones se han implementado para lograr currículos más pertinentes al territorio?' },
+  { codigo: 'CURRICULO_P3', etiqueta: 'Pregunta 3: ¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar estas acciones?' },
+  { codigo: 'CURRICULO_P4', etiqueta: 'Pregunta 4: ¿Cómo se están articulando estos equipos de trabajo para lograr currículos más pertinentes territorialmente?' },
+  { codigo: 'CURRICULO_P5', etiqueta: 'Pregunta 5: ¿Qué mecanismos de seguimiento se están implementando para que dichas acciones se cumplan?' },
+  { codigo: 'GOBIERNO_P1', etiqueta: 'Pregunta 1: ¿Consideran que la toma de decisiones en las instituciones educativas actualmente es participativa y democrática? ¿Por qué?' },
+  { codigo: 'GOBIERNO_P2', etiqueta: 'Pregunta 2: ¿Qué acciones se están implementando para canalizar y fortalecer la participación de la comunidad educativa?' },
+  { codigo: 'GOBIERNO_P3', etiqueta: 'Equipos de trabajo: ¿Qué equipos de trabajo a nivel institucional se han conformado para liderar y desarrollar las estrategias y mecanismos de participación escolar?' },
+  { codigo: 'GOBIERNO_P4', etiqueta: 'Mecanismos de seguimiento: ¿Qué mecanismos de seguimiento se están implementando para garantizar las acciones encaminadas a promover gobiernos educativos democráticos?' },
 ];
 
 /** Respuestas de referencia del grupo (Informe de Síntesis) para "Construcción colectiva del grupo", o [] si el grupo no tiene informe mapeado. */

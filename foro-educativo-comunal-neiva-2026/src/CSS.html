@@ -237,6 +237,11 @@ div.tarjeta-seccion:hover, div.tarjeta-seccion:focus-visible { transform: none; 
 .fila-socializacion-ie .fila-botones { margin-top: 0; }
 .nombre-ie-socializacion { font-weight: 600; }
 .fila-socializacion-ie.socializo-hecho .nombre-ie-socializacion { color: var(--verde-oscuro); }
+/* IE no marcada como presente (spec del usuario: "deben aparecer únicamente
+   en verde las Instituciones que se seleccionaron al inicio; las que no
+   fueron seleccionadas aparecen en gris con botón de habilitar la IE"). */
+.fila-socializacion-ie.socializacion-ie-inhabilitada { opacity: 0.6; }
+.fila-socializacion-ie.socializacion-ie-inhabilitada .nombre-ie-socializacion { color: var(--gris-texto); }
 .temporizador-socializacion {
   text-align: center;
   font-size: 2.8rem;
@@ -244,6 +249,38 @@ div.tarjeta-seccion:hover, div.tarjeta-seccion:focus-visible { transform: none; 
   font-variant-numeric: tabular-nums;
   color: var(--verde-oscuro);
   margin: 8px 0;
+}
+/* Temporizador de socialización en pantalla completa (spec del usuario) —
+   mismo patrón fijo de .pantalla-completa-texto, pero centrado y sin
+   scroll: el temporizador y su barra deben verse enteros sin desplazar. */
+.pantalla-completa-temporizador {
+  position: fixed; inset: 0; z-index: 200; background: var(--verde-oscuro); color: var(--blanco);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 24px; text-align: center; gap: 10px;
+}
+.pantalla-completa-temporizador h3 { margin: 0; font-size: 1.4rem; }
+.pantalla-completa-temporizador .temporizador-socializacion {
+  color: var(--blanco);
+  font-size: min(22vw, 9rem);
+  margin: 4px 0;
+}
+/* Barra de progreso en reversa (spec del usuario): empieza llena y se vacía
+   a medida que corre el tiempo, cambiando de color — verde de 10:00 a
+   7:00, amarillo de 6:59 a 3:00, rojo de 2:59 a 0:00 (el color y el ancho
+   los calcula _actualizarRelojSocializacion_, JS.html). */
+.barra-progreso-temporizador {
+  width: 100%;
+  max-width: 480px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+  overflow: hidden;
+}
+.barra-progreso-temporizador-relleno {
+  height: 100%;
+  width: 100%;
+  background: var(--verde);
+  transition: width 1s linear, background-color 0.4s ease;
 }
 /* Pantalla partida del temporizador de socialización: una mitad para el
    reloj, la otra para consolidar en vivo lo compartido por la IE. */
