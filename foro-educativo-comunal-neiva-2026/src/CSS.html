@@ -242,6 +242,11 @@ div.tarjeta-seccion:hover, div.tarjeta-seccion:focus-visible { transform: none; 
    fueron seleccionadas aparecen en gris con botón de habilitar la IE"). */
 .fila-socializacion-ie.socializacion-ie-inhabilitada { opacity: 0.6; }
 .fila-socializacion-ie.socializacion-ie-inhabilitada .nombre-ie-socializacion { color: var(--gris-texto); }
+/* IE con el temporizador en curso, overlay minimizado (spec del usuario:
+   "debe aparecer ojo para visualizar el temporizador en pantalla completa"). */
+.fila-socializacion-ie.socializacion-ie-en-curso { background: #fdecea; border-radius: 8px; padding: 10px; }
+.fila-socializacion-ie.socializacion-ie-en-curso .nombre-ie-socializacion { color: var(--rojo); }
+#relojSocializacionMini { font-variant-numeric: tabular-nums; }
 .temporizador-socializacion {
   text-align: center;
   font-size: 2.8rem;
@@ -1019,14 +1024,6 @@ details.socializacion-ie[open] summary { margin-bottom: 8px; }
   margin: 0 0 14px;
 }
 .contador-participantes-tarjeta strong { font-size: 1.2rem; }
-
-/* ---------- Revisión y cierre: gris hasta enviar la valoración del Foro ---------- */
-#tarjetaCierrePasos.cierre-bloqueado #contenidoCierrePasos {
-  opacity: 0.45;
-  filter: grayscale(1);
-  pointer-events: none;
-  user-select: none;
-}
 .comparativo-firmantes-qr {
   background: var(--verde-claro);
   color: var(--verde-oscuro);

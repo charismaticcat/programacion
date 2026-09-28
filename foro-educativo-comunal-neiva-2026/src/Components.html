@@ -597,6 +597,21 @@ function renderChecklistSocializacionIE(datos) {
       html += "</div></div>";
       return;
     }
+    // IE con el temporizador en curso ahora mismo (estadoSocializacion,
+    // JS.html) — spec del usuario: "debe aparecer ojo para visualizar el
+    // temporizador en pantalla completa": el checklist muestra el reloj en
+    // miniatura (id fijo, solo puede haber una IE en curso a la vez) y el
+    // botón para reabrir el overlay de pantalla completa (task #199), en
+    // vez del botón "Iniciar temporizador".
+    if (!ie.socializo && typeof estadoSocializacion !== "undefined" && ie.idIE === estadoSocializacion.ieActivaId) {
+      html += "<div class='fila-socializacion-ie socializacion-ie-en-curso'>";
+      html += "<span class='nombre-ie-socializacion'>🔴 " + escapeHtml(ie.institucion) +
+        " — <span id='relojSocializacionMini'>" + _formatoRelojSocializacion_(estadoSocializacion.segundosRestantes) + "</span></span>";
+      html += "<div class='fila-botones'>";
+      html += "<button type='button' class='btn btn-secundario' data-ver-pantalla-completa-socializacion>👁 Ver pantalla completa</button>";
+      html += "</div></div>";
+      return;
+    }
     html += "<div class='fila-socializacion-ie" + (ie.socializo ? " socializo-hecho" : "") + "'>";
     html += "<span class='nombre-ie-socializacion'>" + (ie.socializo ? "✅ " : "⬜ ") + escapeHtml(ie.institucion) + "</span>";
     html += "<div class='fila-botones'>";

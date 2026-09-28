@@ -2916,6 +2916,78 @@ y permanente del tag de plantilla GAS `<?!= JSON.stringify(TOKEN_ACCESO || "") ?
 duplicados y el conjunto de referencias `getElementById` colgantes coincide exactamente con la lista ya
 aceptada de 10 (todas intencionales y protegidas con guarda nula). Sin hallazgos nuevos.
 
+## 4.79 Sexagésimo segundo lote: responsable de envío por selección de funcionario, listado de asistencia de vuelta en Participación, temporizador de socialización minimizable, pantalla completa en Ruta del Encuentro, eliminar valoración
+
+Nueva tanda de 6 pedidos del usuario, procesados así:
+
+- **IE presentes lento / Presentación antes de Ruta del Encuentro**: ambos reportes correspondían a la
+  versión desplegada ANTES del lote 4.78 (que ya los corregía) — no había nada nuevo que hacer, solo
+  desplegar. Se resuelven con este mismo lote.
+- **Responsable de envío = funcionario responsable seleccionado, con correo automático** (spec del
+  usuario: "debe sr uno de los lideres de cada grupo (funcionario respónsable) que se seleccionó al
+  inicio, Los correos deben aparecer automaticamente"): `DUENOS_GRUPO_COMUNAL_` (Grupos.gs) pasó de
+  `string[]` a `{nombre, correo}[]` — el usuario proveyó los 12 correos (uno por funcionario, G1-G6);
+  se corrigió un typo evidente de dominio en el de Nelson Herrera (`...gov.c` → `...gov.co`, mismo
+  patrón que los demás `@alcaldianeiva.gov.co`) y el de Carlos Quijano (G6) quedó vacío porque no fue
+  suministrado — el selector lo deja en blanco para completarlo a mano en ese caso, no se inventa.
+  `obtenerFuncionariosResponsablesGrupo(idGrupo)` (nueva) expone el catálogo; `validarAccesoGrupo`/
+  `elegirGrupoAccesoEncuentro` (Access.gs) lo devuelven como `funcionariosResponsables` en la respuesta
+  de acceso. En Index.html, `campoNombreResponsable`/`campoNombreResponsableCE` (el nombre del
+  responsable PRINCIPAL únicamente — los asistentes de envío siguen siendo texto libre, cualquiera
+  puede serlo) pasaron de `<input>` a `<select>` poblado por `poblarSelectFuncionariosResponsable_`
+  (JS.html), con una opción "Otro (escribir manualmente)" que revela un campo de texto de respaldo
+  (`campoNombreResponsableOtroContenedor[CE]`) — necesaria para GRUPO-PRUEBA (sin catálogo) y por si el
+  responsable real no es ninguno de los líderes listados. Al elegir un funcionario del catálogo, su
+  correo se autocompleta (campo de correo sigue editable, por si hace falta corregirlo).
+- **Listado de asistencia (PDF) de vuelta en Participación, después de Responsable de envío** (spec del
+  usuario: "subir PDF asistencia debe aparecer en participación. Despues de responsable de envio" —
+  reversión del lote 4.63/item 170, que lo había movido a Revisión y cierre): el bloque completo
+  (`panelMetodoListado`, mismos ids de siempre) se recortó de `tarjetaCierrePasos` y se reinsertó en
+  `pantallaParticipacion`, justo después de la tarjeta de Responsable de envío/asistentes y antes de la
+  de Fotografía general del grupo. Ningún cambio de JS.html: toda su lógica opera por id, no por
+  posición en el DOM.
+- **Temporizador de socialización: "ojo" para pantalla completa** (spec del usuario, ajuste sobre el
+  lote 4.78, que lo dejaba siempre en pantalla completa sin forma de minimizar): se agregó un botón
+  "➖ Minimizar" al overlay (`btnMinimizarSocializacion`) que lo oculta SIN detener el conteo ni la
+  socialización en curso. Mientras está minimizado, el checklist (`renderChecklistSocializacionIE`,
+  Components.html) muestra la IE en curso con un reloj en miniatura (`#relojSocializacionMini`, id fijo
+  porque solo puede haber una IE en curso a la vez) y el botón "👁 Ver pantalla completa"
+  (`data-ver-pantalla-completa-socializacion`) para reabrirlo. `_actualizarRelojSocializacion_`
+  (JS.html) actualiza ambos relojes (el de pantalla completa y el miniatura, si está presente en el DOM)
+  cada segundo.
+- **Ruta del Encuentro (Metodología): "ojito" para pantalla completa** (spec del usuario): botón
+  "👁 Ver en pantalla completa" (`btnPantallaCompletaRutaEncuentro`) que reutiliza el overlay genérico
+  `pantallaCompletaTexto` (mismo usado en Sesión 1), clonando el `outerHTML` de la tabla de la agenda
+  (`#tablaRutaEncuentro`) — una sola fuente de verdad, sin duplicar el contenido en dos lugares del HTML.
+- **Eliminar valoración** (spec del usuario, alcance confirmado explícitamente: "Quitar todo"): la
+  encuesta de 4 preguntas de satisfacción que bloqueaba generar/enviar el informe (tareas #51/#52/#150,
+  Valoracion.gs) se eliminó por completo — `tarjetaValoracion` y su formulario (Index.html),
+  `inicializarValoracion`/`cargarValoracion`/`actualizarBloqueoCierrePorValoracion_`/
+  `mostrarEstadoValoracion` (JS.html), las RPC `rpcGuardarValoracion`/`rpcObtenerValoracion` (Code.gs),
+  `guardarValoracionGrupo`/`obtenerValoracionGrupo`/`HOJA_VALORACION_COMUNAL_` (Valoracion.gs) y la
+  condición correspondiente en `generarInformeCompletoGrupo` (Grupos.gs) y `enviarInformeSiCorresponde`
+  (Correo.gs). La hoja `ValoracionComunal` con las respuestas ya recogidas queda intacta como registro
+  histórico, simplemente ya no se escribe ni se lee. **Se conservó** la valoración PÚBLICA y ANÓNIMA de
+  la página de asistencia QR (`AsistenciaPublica.html`, `guardarValoracionAsistentePublica`,
+  `HOJA_VALORACION_ASISTENTES_PUBLICA_`) — es una función distinta (no bloquea nada) y no fue mencionada
+  en el pedido; el CSS de corazones/escala (`.valoracion-pregunta`, `.opcion-valoracion`, etc.) se
+  conservó porque esa página pública sigue usándolo. Tests.gs se actualizó para ya no exigir/enviar
+  valoración antes de `generarInformeCompletoGrupo` en el flujo de prueba.
+- **Informe de Síntesis por grupo — carpeta de Drive**: el usuario compartió
+  `https://drive.google.com/drive/folders/1CiEY8InrLPwzohka2eRDLl_jtE_oR59q` como fuente para las
+  respuestas de Consolidado de Socialización. Se verificó con las herramientas de Drive disponibles:
+  contiene una subcarpeta por grupo (G1-G6), cada una con su "Informe de Síntesis - Grupo GX FEM 2026" —
+  el fileId de G1 (`1QGLrKTKEEzvNU6b4YWaPf5mdHURf-hL-TVIngfuhWLc`) coincide EXACTAMENTE con el ya
+  hardcodeado en `RECURSOS_POR_GRUPO_.G1.informeSintesisId` (Recursos.gs). Es la misma fuente que ya
+  alimenta `RESPUESTAS_SINTESIS_GRUPO_`/`PREGUNTAS_SINTESIS_GRUPO_` (SintesisGrupos.gs, lote 4.78) — no
+  se requirió ningún cambio.
+
+Verificado: `node --check` sobre todos los `.gs` (limpio), extracción y `node --check` de cada bloque
+`<script>` de Index.html/JS.html/Components.html/Modal.html (limpio, salvo el falso positivo esperado del
+tag de plantilla GAS), cero ids duplicados, y el conjunto de referencias `getElementById` colgantes
+coincide con la lista ya aceptada de 10 más una nueva intencional (`relojSocializacionMini`, guardada con
+guarda nula porque solo existe en el DOM cuando el checklist está pintando la IE en curso).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

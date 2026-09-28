@@ -39,18 +39,41 @@ function obtenerGrupoPorId(idGrupo) {
 /**
  * Funcionario(s) de la SEM dueño(s) de cada grupo — spec del usuario:
  * "Avoid code setting instead group schools to the following group
- * owner (all of them are Funcionario Secretaría de Educación...)". Solo
- * son etiquetas para identificar el grupo en la pantalla de acceso (ver
- * elegirGrupoAccesoEncuentro en Access.gs) — no son credenciales ni se
- * usan para autenticar, el acceso sigue siendo por ID_GRUPO.
+ * owner (all of them are Funcionario Secretaría de Educación...)". Se
+ * usan como etiquetas para identificar el grupo en la pantalla de acceso
+ * (ver elegirGrupoAccesoEncuentro en Access.gs) — no son credenciales ni
+ * se usan para autenticar, el acceso sigue siendo por ID_GRUPO — y,
+ * además (spec del usuario, lote posterior), como catálogo de donde se
+ * SELECCIONA el responsable de envío del grupo en Participación/
+ * ConectaEduca (ver obtenerFuncionariosResponsablesGrupo más abajo), de
+ * ahí que cada entrada ahora traiga también su correo.
+ *
+ * correo de Carlos Quijano (G6) queda vacío: no fue suministrado por el
+ * usuario — el selector de responsable de envío lo deja en blanco para
+ * completarlo a mano en ese caso, no se inventa.
  */
 var DUENOS_GRUPO_COMUNAL_ = {
-  G1: ["Angélica Rojas"],
-  G2: ["Adriana Cedeño", "Rosa M. González"],
-  G3: ["Nelson Herrera", "Juan José Valenzuela"],
-  G4: ["Carlos Francisco Cortés", "Edna Rivera"],
-  G5: ["Rosario Valenzuela", "John E. Sánchez"],
-  G6: ["Carolina Soto", "Carlos Quijano"]
+  G1: [{ nombre: "Angélica Rojas", correo: "angelica.rojas@alcaldianeiva.gov.co" }],
+  G2: [
+    { nombre: "Adriana Cedeño", correo: "adriana.cedeno@alcaldianeiva.gov.co" },
+    { nombre: "Rosa M. González", correo: "rosa.gonzalez@alcaldianeiva.gov.co" }
+  ],
+  G3: [
+    { nombre: "Nelson Herrera", correo: "nelson.herrera@alcaldianeiva.gov.co" },
+    { nombre: "Juan José Valenzuela", correo: "jvalenzuelam95@gmail.com" }
+  ],
+  G4: [
+    { nombre: "Carlos Francisco Cortés", correo: "francisco.cortes@alcaldianeiva.gov.co" },
+    { nombre: "Edna Rivera", correo: "edna.rivera@alcaldianeiva.gov.co" }
+  ],
+  G5: [
+    { nombre: "Rosario Valenzuela", correo: "rosario.valenzuela@alcaldianeiva.gov.co" },
+    { nombre: "John E. Sánchez", correo: "jhonefrainsanchez@gmail.com" }
+  ],
+  G6: [
+    { nombre: "Carolina Soto", correo: "carolina.soto@alcaldianeiva.gov.co" },
+    { nombre: "Carlos Quijano", correo: "" }
+  ]
 };
 
 /** Grupos del Encuentro para la pantalla de acceso sin código, con el/los dueño(s) de cada uno. */
@@ -60,9 +83,21 @@ function obtenerGruposAccesoEncuentro() {
       idGrupo: g.idGrupo,
       grupo: g.grupo,
       totalIE: g.totalIE,
-      duenos: DUENOS_GRUPO_COMUNAL_[g.idGrupo] || []
+      duenos: (DUENOS_GRUPO_COMUNAL_[g.idGrupo] || []).map(function (d) { return d.nombre; })
     };
   });
+}
+
+/**
+ * Funcionario(s) responsable(s) del grupo (nombre + correo), para poblar
+ * el selector de "Responsable de envío" en Participación/ConectaEduca
+ * (spec del usuario: "Responsable de envio debe ser uno de los lideres
+ * de cada grupo... que se seleccionó al inicio, Los correos deben
+ * aparecer automaticamente"). Mismo catálogo que obtenerGruposAccesoEncuentro,
+ * con el correo incluido.
+ */
+function obtenerFuncionariosResponsablesGrupo(idGrupo) {
+  return DUENOS_GRUPO_COMUNAL_[String(idGrupo || "").trim()] || [];
 }
 
 /**
@@ -123,19 +158,6 @@ function generarInformeCompletoGrupo(idGrupo, tokenSesion, dispositivoId, seccio
         docId: informeExistente.DOC_ID,
         pdfId: informeExistente.PDF_ID,
         url: informeExistente.URL
-      };
-    }
-    // Condición explícita de esta entrega (distinta de FEI 3.1, ver
-    // Valoracion.gs): no se genera el informe sin haber enviado antes la
-    // valoración de ESTA sección (item 20 del Documento Orientador
-    // FEM2026: valoraciones separadas por Encuentro/Conecta Educa) — la
-    // sección que intente generar primero necesita su propia valoración,
-    // aunque el informe resultante sea uno solo para todo el grupo.
-    if (!obtenerValoracionGrupo(idGrupo, seccion)) {
-      return {
-        ok: false,
-        codigo: "VALORACION_REQUERIDA",
-        mensaje: "Debe completar la valoración de esta sesión antes de generar el informe."
       };
     }
     // La fotografía ya no se pide en la pantalla de "Informe generado"

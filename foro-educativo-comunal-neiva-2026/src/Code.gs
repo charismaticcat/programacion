@@ -554,9 +554,9 @@ function rpcEnviarSesion2(idGrupo, tokenSesion, dispositivoId) {
 /**
  * Generar el informe ya NO envía el correo automáticamente (a diferencia
  * de antes): el envío es ahora una acción explícita y separada
- * (rpcEnviarInformePorCorreo), habilitada solo tras valorar y descargar
- * el informe. generarInformeCompletoGrupo ya exige la valoración antes
- * de generar (Grupos.gs).
+ * (rpcEnviarInformePorCorreo), habilitada tras descargar el informe (la
+ * valoración se eliminó del proyecto, spec del usuario: "Eliminar
+ * valoración" — ya no es condición en generarInformeCompletoGrupo, Grupos.gs).
  */
 function rpcGenerarInforme(idGrupo, tokenSesion, dispositivoId, seccion) {
   return ejecutarRpcSeguro_(function () {
@@ -577,7 +577,7 @@ function rpcMarcarInformeDescargado(idGrupo, tokenSesion, dispositivoId) {
   });
 }
 
-/** Envía el informe por correo — exige valoración enviada y descarga registrada (Correo.gs). */
+/** Envía el informe por correo — exige descarga registrada (Correo.gs). */
 function rpcEnviarInformePorCorreo(idGrupo, tokenSesion, dispositivoId) {
   return ejecutarRpcSeguro_(function () {
     return enviarInformeSiCorresponde(idGrupo, tokenSesion, dispositivoId);
@@ -591,25 +591,18 @@ function rpcEstadoGrupo(idGrupo) {
 }
 
 /* ------------------------------------------------------------------ *
- * RPC — Valoración del Foro (condición para generar el informe)
+ * RPC — Valoración pública de asistencia (AsistenciaPublica.html). La
+ * valoración del Foro dentro de la app (rpcGuardarValoracion/
+ * rpcObtenerValoracion) se eliminó del proyecto — spec del usuario:
+ * "Eliminar valoración" — junto con su condición para generar/enviar el
+ * informe (ver Grupos.gs/Correo.gs). Esta, en cambio, es anónima y no
+ * bloquea nada, así que se conserva sin cambios.
  * ------------------------------------------------------------------ */
-
-function rpcGuardarValoracion(idGrupo, tokenSesion, dispositivoId, respuestas, seccion) {
-  return ejecutarRpcSeguro_(function () {
-    return guardarValoracionGrupo(idGrupo, tokenSesion, dispositivoId, respuestas, seccion);
-  });
-}
 
 /** Valoración pública, sin código de acceso — ver comentario en Valoracion.gs. */
 function rpcGuardarValoracionAsistentePublica(idGrupo, respuestas) {
   return ejecutarRpcSeguro_(function () {
     return guardarValoracionAsistentePublica(idGrupo, respuestas);
-  });
-}
-
-function rpcObtenerValoracion(idGrupo, seccion) {
-  return ejecutarRpcSeguro_(function () {
-    return obtenerValoracionGrupo(idGrupo, seccion);
   });
 }
 

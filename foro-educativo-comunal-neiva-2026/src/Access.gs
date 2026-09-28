@@ -98,7 +98,8 @@ function validarAccesoGrupo(token, codigo, dispositivoId, forzar) {
     // Pantalla en la que se quedó el grupo la última vez (cualquier
     // dispositivo) — permite retomar ahí en vez de reiniciar la
     // introducción cada vez que alguien vuelve a validar el código.
-    ultimaPantalla: valorColumna("ULTIMA_PANTALLA")
+    ultimaPantalla: valorColumna("ULTIMA_PANTALLA"),
+    funcionariosResponsables: obtenerFuncionariosResponsablesGrupo(idGrupo)
   };
 }
 
@@ -168,7 +169,8 @@ function elegirGrupoAccesoEncuentro(idGrupo, dispositivoId, forzar) {
     consentimientoGrupo: valorColumna("CONSENTIMIENTO_GRUPO") === "SI",
     consentimientoConectaEduca: valorColumna("CONSENTIMIENTO_CONECTAEDUCA") === "SI",
     fotoGrupoId: valorColumna("FOTO_GRUPO_ID"),
-    ultimaPantalla: valorColumna("ULTIMA_PANTALLA")
+    ultimaPantalla: valorColumna("ULTIMA_PANTALLA"),
+    funcionariosResponsables: obtenerFuncionariosResponsablesGrupo(idGrupo)
   };
 }
 

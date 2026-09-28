@@ -113,7 +113,10 @@
   <section id="pantallaMetodologia" class="pantalla">
     <div class="tarjeta">
       <h2 class="titulo-seccion">Ruta del Encuentro de voces que construyen territorio</h2>
-      <table class="tabla-simple">
+      <div class="fila-botones">
+        <button type="button" class="btn btn-secundario" id="btnPantallaCompletaRutaEncuentro">👁 Ver en pantalla completa</button>
+      </div>
+      <table class="tabla-simple" id="tablaRutaEncuentro">
         <thead>
           <tr><th>Hora</th><th>Actividad</th></tr>
         </thead>
@@ -410,8 +413,14 @@
         <button type="button" class="btn btn-secundario" id="btnCambiarResponsableCE">✏️ Cambiar responsable de envío</button>
       </div>
       <div id="formularioResponsablePrincipalCE">
-        <label for="campoNombreResponsableCE">Nombre completo</label>
-        <input type="text" lang="es" spellcheck="true" id="campoNombreResponsableCE">
+        <label for="campoNombreResponsableCE">Nombre completo (funcionario responsable del grupo)</label>
+        <select id="campoNombreResponsableCE">
+          <option value="">Selecciona…</option>
+        </select>
+        <div id="campoNombreResponsableOtroContenedorCE" class="oculto">
+          <label for="campoNombreResponsableOtroCE">Nombre completo</label>
+          <input type="text" lang="es" spellcheck="true" id="campoNombreResponsableOtroCE">
+        </div>
         <label for="campoIEResponsableCE">Institución educativa</label>
         <select id="campoIEResponsableCE"></select>
         <label for="campoRolForoResponsableCE">Rol en el foro</label>
@@ -535,8 +544,14 @@
         <button type="button" class="btn btn-secundario" id="btnCambiarResponsable">✏️ Cambiar responsable de envío</button>
       </div>
       <div id="formularioResponsablePrincipal">
-        <label for="campoNombreResponsable">Nombre completo</label>
-        <input type="text" lang="es" spellcheck="true" id="campoNombreResponsable">
+        <label for="campoNombreResponsable">Nombre completo (funcionario responsable del grupo)</label>
+        <select id="campoNombreResponsable">
+          <option value="">Selecciona…</option>
+        </select>
+        <div id="campoNombreResponsableOtroContenedor" class="oculto">
+          <label for="campoNombreResponsableOtro">Nombre completo</label>
+          <input type="text" lang="es" spellcheck="true" id="campoNombreResponsableOtro">
+        </div>
         <label for="campoIEResponsable">Institución educativa</label>
         <select id="campoIEResponsable"></select>
         <label for="campoRolForoResponsable">Rol en el foro</label>
@@ -566,6 +581,37 @@
         <div id="mensajeAsistente"></div>
         <div class="fila-botones">
           <button class="btn btn-primario" id="btnGuardarAsistente">Agregar asistente</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Listado de asistencia (PDF) — spec del usuario: "subir PDF asistencia
+         debe aparecer en participación, despues de responsable de envio"
+         (antes vivía al final, en Revisión y cierre). Mismos IDs de
+         siempre, así que toda la lógica de JS.html
+         (btnSubirListado/btnListadoMasTarde/campoCantidadListado, etc.)
+         sigue igual sin tocarla. -->
+    <div class="tarjeta">
+      <h3 class="subtitulo-campo">Listado de asistencia</h3>
+      <p class="ayuda">Descarguen el formato oficial de asistencia, regístrenla en papel durante la
+        sesión y suban el listado ya firmado aquí.</p>
+      <a class="btn btn-secundario" href="https://drive.google.com/file/d/<?!= FORMATO_ASISTENCIA_ENCUENTRO_ID ?>/view" target="_blank" id="btnDescargarFormatoAsistenciaParticipacion">📥 Descargar formato de asistencia</a>
+      <div id="panelMetodoListado" style="margin-top:14px;">
+        <label for="campoArchivoListado">PDF del listado firmado en papel</label>
+        <p class="mensaje info"><strong>⚠️ Solo se acepta el formato oficial de asistencia</strong> —
+          descargado con el botón "Descargar formato de asistencia" (arriba), impreso y diligenciado tal
+          cual. No se aceptarán listados en un formato o diseño distinto al provisto.</p>
+        <input type="file" id="campoArchivoListado" accept="application/pdf">
+        <div class="fila-botones">
+          <button class="btn btn-secundario" id="btnSubirListado">Subir listado</button>
+          <button class="btn btn-secundario" id="btnListadoMasTarde">Subir más tarde</button>
+        </div>
+        <div id="mensajeMetodoAsistencia"></div>
+
+        <div id="panelCantidadListado" class="oculto" style="margin-top:14px;">
+          <label for="campoCantidadListado">Cantidad de personas registradas en el listado de asistencia</label>
+          <input type="number" min="0" step="1" inputmode="numeric" id="campoCantidadListado">
+          <div id="mensajeCantidadListado"></div>
         </div>
       </div>
     </div>
@@ -1057,138 +1103,17 @@
 
   <!-- 10. REVISIÓN Y CIERRE -->
   <section id="pantallaRevisionCierre" class="pantalla">
-    <div class="tarjeta" id="tarjetaValoracion">
-      <h2 class="titulo-seccion">💬 Valoración de la sesión de hoy</h2>
-      <p class="ayuda">Antes de generar el informe, respondan estas 4 preguntas de satisfacción sobre la
-        manera en que se desarrolló la sesión de hoy y la comunicación entre pares (más una pregunta
-        abierta opcional). Este espacio lo responde únicamente quien diligenció (o quienes diligenciaron,
-        si son más de una persona) el formulario.</p>
-
-      <div id="valoracionYaEnviada" class="oculto"></div>
-
-      <div id="valoracionFormulario">
-        <div class="valoracion-pregunta" data-pregunta="p1">
-          <p>😊 ¿Qué tan satisfecho(a) está con la forma en que se organizó y desarrolló la sesión de hoy
-            (tiempos, metodología, moderación)?</p>
-          <div class="valoracion-escala" role="radiogroup" aria-label="Pregunta 1">
-            <button type="button" class="opcion-valoracion" data-valor="1">Malo</button>
-            <button type="button" class="opcion-valoracion" data-valor="2">Deficiente</button>
-            <button type="button" class="opcion-valoracion" data-valor="3">Regular</button>
-            <button type="button" class="opcion-valoracion" data-valor="4">Bueno</button>
-            <button type="button" class="opcion-valoracion" data-valor="5">Excelente</button>
-          </div>
-          <div class="valoracion-mejora oculto" data-mejora-de="p1">
-            <label for="valoracionMejoraP1">😔 ¿Nos dice brevemente cómo podría mejorar esto para la
-              próxima sesión?</label>
-            <textarea lang="es" spellcheck="true" id="valoracionMejoraP1" rows="2" placeholder="Escriba aquí su respuesta (opcional)"></textarea>
-          </div>
-        </div>
-
-        <div class="valoracion-pregunta" data-pregunta="p2">
-          <p>🗣️ ¿Qué tan satisfecho(a) está con la comunicación y el diálogo entre las instituciones
-            educativas del grupo durante la sesión de hoy?</p>
-          <div class="valoracion-escala" role="radiogroup" aria-label="Pregunta 2">
-            <button type="button" class="opcion-valoracion" data-valor="1">Malo</button>
-            <button type="button" class="opcion-valoracion" data-valor="2">Deficiente</button>
-            <button type="button" class="opcion-valoracion" data-valor="3">Regular</button>
-            <button type="button" class="opcion-valoracion" data-valor="4">Bueno</button>
-            <button type="button" class="opcion-valoracion" data-valor="5">Excelente</button>
-          </div>
-          <div class="valoracion-mejora oculto" data-mejora-de="p2">
-            <label for="valoracionMejoraP2">😔 ¿Nos dice brevemente cómo podría mejorar esto para la
-              próxima sesión?</label>
-            <textarea lang="es" spellcheck="true" id="valoracionMejoraP2" rows="2" placeholder="Escriba aquí su respuesta (opcional)"></textarea>
-          </div>
-        </div>
-
-        <div class="valoracion-pregunta" data-pregunta="p3">
-          <p>🤝 ¿Qué tan satisfecho(a) está con el ambiente de participación y escucha entre pares
-            (docentes, estudiantes, familias) durante el desarrollo de la sesión de hoy?</p>
-          <div class="valoracion-escala" role="radiogroup" aria-label="Pregunta 3">
-            <button type="button" class="opcion-valoracion" data-valor="1">Malo</button>
-            <button type="button" class="opcion-valoracion" data-valor="2">Deficiente</button>
-            <button type="button" class="opcion-valoracion" data-valor="3">Regular</button>
-            <button type="button" class="opcion-valoracion" data-valor="4">Bueno</button>
-            <button type="button" class="opcion-valoracion" data-valor="5">Excelente</button>
-          </div>
-          <div class="valoracion-mejora oculto" data-mejora-de="p3">
-            <label for="valoracionMejoraP3">😔 ¿Nos dice brevemente cómo podría mejorar esto para la
-              próxima sesión?</label>
-            <textarea lang="es" spellcheck="true" id="valoracionMejoraP3" rows="2" placeholder="Escriba aquí su respuesta (opcional)"></textarea>
-          </div>
-        </div>
-
-        <div class="valoracion-pregunta" data-pregunta="p4">
-          <p>⭐ En general, ¿qué tan satisfecho(a) está con el desarrollo de la sesión de hoy?</p>
-          <div class="valoracion-escala" role="radiogroup" aria-label="Pregunta 4">
-            <button type="button" class="opcion-valoracion" data-valor="1">Malo</button>
-            <button type="button" class="opcion-valoracion" data-valor="2">Deficiente</button>
-            <button type="button" class="opcion-valoracion" data-valor="3">Regular</button>
-            <button type="button" class="opcion-valoracion" data-valor="4">Bueno</button>
-            <button type="button" class="opcion-valoracion" data-valor="5">Excelente</button>
-          </div>
-          <div class="valoracion-mejora oculto" data-mejora-de="p4">
-            <label for="valoracionMejoraP4">😔 ¿Nos dice brevemente cómo podría mejorar esto para la
-              próxima sesión?</label>
-            <textarea lang="es" spellcheck="true" id="valoracionMejoraP4" rows="2" placeholder="Escriba aquí su respuesta (opcional)"></textarea>
-          </div>
-        </div>
-
-        <div class="valoracion-resultado oculto" id="valoracionResultado">
-          <p class="valoracion-nota" id="valoracionNotaTexto"></p>
-        </div>
-
-        <div class="valoracion-pregunta oculto" id="valoracionAbiertaBloque">
-          <label for="valoracionP5" id="valoracionP5Label">💬 ¿Qué sugerencias, recomendaciones o
-            propuestas tiene para fortalecer la organización y desarrollo de la sesión de hoy?</label>
-          <textarea lang="es" spellcheck="true" id="valoracionP5" rows="4" placeholder="Escriba aquí su respuesta (opcional)"></textarea>
-        </div>
-
-        <div id="mensajeValoracion"></div>
-        <div class="fila-botones">
-          <button type="button" class="btn btn-primario" id="btnEnviarValoracion">Enviar valoración</button>
-        </div>
-      </div>
-    </div>
-
+    <!-- La valoración de la sesión de hoy (4 preguntas de satisfacción,
+         gate de generar informe) se eliminó del proyecto — spec del
+         usuario: "Eliminar valoración" (ver Valoracion.gs). tarjetaValoracion
+         y su formulario ya no existen; tarjetaCierrePasos ya no tiene gate. -->
     <div class="tarjeta" id="tarjetaCierrePasos">
-      <p class="mensaje info oculto" id="avisoCierreBloqueadoPorValoracion">🔒 Complete primero la valoración
-        (arriba) para habilitar esta sección.</p>
       <div id="contenidoCierrePasos">
       <h2 class="titulo-seccion">Revisión y cierre</h2>
       <p>Al generar el informe se crea el documento único del grupo, disponible para todas sus
         instituciones educativas.</p>
       <div class="fila-botones">
         <button type="button" class="btn btn-secundario" id="btnRevisarTodo">🔍 Revisar todo antes de enviar</button>
-      </div>
-
-      <!-- Listado de asistencia (PDF) — spec del usuario: "Remove asistencia
-           PDF at the beginning, just keep it at the end". Antes vivía en
-           Participación (pantallaParticipacion); se movió aquí completo,
-           con los mismos IDs, así que toda la lógica de JS.html
-           (btnSubirListado/btnListadoMasTarde/campoCantidadListado, etc.)
-           sigue igual. -->
-      <h3 class="subtitulo-campo">Listado de asistencia</h3>
-      <p class="ayuda">Descarguen el formato oficial de asistencia, regístrenla en papel durante la
-        sesión y suban el listado ya firmado aquí.</p>
-      <a class="btn btn-secundario" href="https://drive.google.com/file/d/<?!= FORMATO_ASISTENCIA_ENCUENTRO_ID ?>/view" target="_blank" id="btnDescargarFormatoAsistenciaParticipacion">📥 Descargar formato de asistencia</a>
-      <div id="panelMetodoListado" style="margin-top:14px;">
-        <label for="campoArchivoListado">PDF del listado firmado en papel</label>
-        <p class="mensaje info"><strong>⚠️ Solo se acepta el formato oficial de asistencia</strong> —
-          descargado con el botón "Descargar formato de asistencia" (arriba), impreso y diligenciado tal
-          cual. No se aceptarán listados en un formato o diseño distinto al provisto.</p>
-        <input type="file" id="campoArchivoListado" accept="application/pdf">
-        <div class="fila-botones">
-          <button class="btn btn-secundario" id="btnSubirListado">Subir listado</button>
-          <button class="btn btn-secundario" id="btnListadoMasTarde">Subir más tarde</button>
-        </div>
-        <div id="mensajeMetodoAsistencia"></div>
-
-        <div id="panelCantidadListado" class="oculto" style="margin-top:14px;">
-          <label for="campoCantidadListado">Cantidad de personas registradas en el listado de asistencia</label>
-          <input type="number" min="0" step="1" inputmode="numeric" id="campoCantidadListado">
-          <div id="mensajeCantidadListado"></div>
-        </div>
       </div>
 
       <!-- Verificación/registro de asistencia en Revisión y cierre — oculta
@@ -1366,6 +1291,7 @@
   </div>
   <div class="fila-botones" style="justify-content:center;">
     <button type="button" class="btn btn-secundario" id="btnMas2MinSocializacion">+2 minutos</button>
+    <button type="button" class="btn btn-secundario" id="btnMinimizarSocializacion">➖ Minimizar</button>
     <button type="button" class="btn btn-primario" id="btnFinalizarSocializacionIE">Finalizar</button>
   </div>
 </div>

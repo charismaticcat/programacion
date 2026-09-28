@@ -450,20 +450,16 @@ function enviarGrupoRecorridoPruebaA(destinatario) {
 }
 
 /**
- * Envía el informe por correo, pero solo si el grupo ya valoró el Foro y
- * ya descargó el informe (condiciones explícitas de esta entrega —
- * distinto de generarInformeCompletoGrupo, que solo exige la valoración:
- * aquí además hace falta haberlo descargado, spec de este pedido). Es el
- * punto de entrada del botón "Enviar informe por correo" de la pantalla
- * de informe generado.
+ * Envía el informe por correo, pero solo si el grupo ya descargó el
+ * informe (spec del usuario: la valoración se eliminó del proyecto — ver
+ * "Eliminar valoración" — así que ya no es condición aquí ni en
+ * generarInformeCompletoGrupo). Es el punto de entrada del botón "Enviar
+ * informe por correo" de la pantalla de informe generado.
  */
 function enviarInformeSiCorresponde(idGrupo, tokenSesion, dispositivoId) {
   idGrupo = String(idGrupo || "").trim();
   if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
     return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión ya no está activa en este dispositivo." };
-  }
-  if (!obtenerValoracionGrupo(idGrupo)) {
-    return { ok: false, mensaje: "Debe completar la valoración del Foro antes de enviar el informe." };
   }
   var informe = obtenerInformeGrupo(idGrupo);
   if (!informe || String(informe.DESCARGADO || "").toUpperCase() !== "SI") {

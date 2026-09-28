@@ -1090,8 +1090,6 @@ iniciarSplashInicial();
  *   - foto: al subir o cambiar la fotografía del grupo.
  *   - aportes: al enviar los aportes de Preparación (IE o invitado).
  *   - sesionDefinitiva: al enviar Sesión 1 o Sesión 2 de forma definitiva.
- *   - valoracionAsistencia: al enviar la valoración del Foro o al firmar
- *     la asistencia.
  *   - informe: al generar el informe del grupo.
  *   - responsable: al guardar el responsable de envío — sticker de Giphy
  *     "Cargando Sticker by dipielbella" (no es un gif de Drive del
@@ -1118,7 +1116,6 @@ var GIFS_CARGA_ACCION_ = {
   foto: { texto: "Subiendo fotografía…" },
   aportes: { texto: "Enviando aportes…" },
   sesionDefinitiva: { texto: "Enviando de forma definitiva…" },
-  valoracionAsistencia: { texto: "Enviando…" },
   informe: { texto: "Generando el informe… Esto puede tomar hasta dos minutos, no cierre esta ventana." },
   // Mismo sticker "Cargando" que "responsable" (spec del usuario: compartió
   // este mismo gif de nuevo, ahora como indicador de carga de la subida
@@ -1423,7 +1420,14 @@ function _formatoRelojSocializacion_(segundos) {
  */
 function _actualizarRelojSocializacion_() {
   var segundos = estadoSocializacion.segundosRestantes;
-  document.getElementById("relojSocializacion").textContent = _formatoRelojSocializacion_(segundos);
+  var texto = _formatoRelojSocializacion_(segundos);
+  document.getElementById("relojSocializacion").textContent = texto;
+  // El checklist (vista minimizada, ver btnMinimizarSocializacion) también
+  // muestra un reloj en miniatura junto a la IE en curso — se actualiza
+  // aquí solo si está presente en el DOM (depende de qué vista esté
+  // mostrando renderChecklistSocializacionIE en este momento).
+  var relojMini = document.getElementById("relojSocializacionMini");
+  if (relojMini) relojMini.textContent = texto;
   var relleno = document.getElementById("rellenoProgresoTemporizador");
   if (!relleno) return;
   var porcentaje = Math.max(0, Math.min(100, (segundos / SEGUNDOS_INICIALES_SOCIALIZACION_) * 100));
@@ -1494,8 +1498,13 @@ function iniciarTemporizadorSocializacionIE_(idIE, nombreIE) {
   estadoSocializacion.ieActivaNombre = nombreIE;
   estadoSocializacion.segundosRestantes = SEGUNDOS_INICIALES_SOCIALIZACION_;
   document.getElementById("nombreIESocializando").textContent = nombreIE;
-  _actualizarRelojSocializacion_();
   document.getElementById("pantallaCompletaTemporizadorSocializacion").classList.remove("oculto");
+  // El checklist pasa a mostrar la IE en curso con su reloj en miniatura y
+  // el botón "👁 Ver pantalla completa" (ver renderChecklistSocializacionIE) —
+  // se pinta antes de _actualizarRelojSocializacion_ para que exista
+  // #relojSocializacionMini si el overlay se minimiza enseguida.
+  renderChecklistSocializacionIE(estadoSocializacion.datos);
+  _actualizarRelojSocializacion_();
   mostrarAvisoMomentoSocializacion_("🟢 Socialización de " + nombreIE + " iniciada.");
   reproducirSonidoSocializacion_("inicio");
   estadoSocializacion.temporizadorId = setInterval(function () {
@@ -1540,6 +1549,17 @@ document.getElementById("btnFinalizarSocializacionIE").addEventListener("click",
   finalizarSocializacionIE_();
 });
 
+// "Minimizar" (spec del usuario: "debe aparecer ojo para visualizar el
+// temporizador en pantalla completa") — oculta el overlay sin detener el
+// conteo ni la socialización en curso; el checklist muestra mientras tanto
+// la IE en curso con reloj en miniatura y el botón "👁 Ver pantalla
+// completa" (data-ver-pantalla-completa-socializacion, más abajo) para
+// volver a abrirlo cuando se necesite.
+document.getElementById("btnMinimizarSocializacion").addEventListener("click", function () {
+  document.getElementById("pantallaCompletaTemporizadorSocializacion").classList.add("oculto");
+  renderChecklistSocializacionIE(estadoSocializacion.datos);
+});
+
 document.addEventListener("click", function (evento) {
   var iniciar = evento.target.closest("[data-iniciar-socializacion-ie]");
   if (iniciar) {
@@ -1549,6 +1569,11 @@ document.addEventListener("click", function (evento) {
   }
   var habilitar = evento.target.closest("[data-habilitar-ie-socializacion]");
   if (habilitar) habilitarIESocializacion_(habilitar.getAttribute("data-habilitar-ie-socializacion"));
+  var verCompleta = evento.target.closest("[data-ver-pantalla-completa-socializacion]");
+  if (verCompleta) {
+    document.getElementById("pantallaCompletaTemporizadorSocializacion").classList.remove("oculto");
+    _actualizarRelojSocializacion_();
+  }
 });
 
 /* ------------------------------------------------------------------ *
@@ -1601,6 +1626,7 @@ function _procesarRespuestaAccesoGrupo_(r, idMensaje, reintentarForzado) {
   estado.consentimientoGrupo = !!r.consentimientoGrupo;
   estado.consentimientoConectaEduca = !!r.consentimientoConectaEduca;
   estado.fotoGrupoId = r.fotoGrupoId || "";
+  estado.funcionariosResponsables = r.funcionariosResponsables || [];
 
   // La barra de progreso navegable debe poder usarse apenas se valida el
   // acceso (spec del usuario), sin tener que pasar primero por Inicio/
@@ -1648,6 +1674,8 @@ function _procesarRespuestaAccesoGrupo_(r, idMensaje, reintentarForzado) {
   iniciarHeartbeat();
   iniciarPollingFirmantes();
   cargarRolesForo();
+  poblarSelectFuncionariosResponsable_("");
+  poblarSelectFuncionariosResponsable_("CE");
   llamarServidor("rpcEstadoGrupo", [estado.idGrupo], function (estadoGrupo) {
     estado.asistenciaCerrada = !!(estadoGrupo && estadoGrupo.informeGenerado);
     estado.informeGenerado = !!(estadoGrupo && estadoGrupo.informeGenerado);
@@ -3125,6 +3153,37 @@ function correoValido_(idCampo, idMensaje) {
   if (campo) campo.focus();
   return false;
 }
+/**
+ * Selector de "funcionario responsable" del grupo (uno de los líderes que
+ * ya aparecían en la pantalla de acceso, DUENOS_GRUPO_COMUNAL_ en
+ * Grupos.gs) para el campo de nombre del responsable de envío — spec del
+ * usuario: "Responsable de envio debe ser uno de los lideres de cada
+ * grupo (funcionario responsable) que se seleccionó al inicio". Incluye
+ * siempre una opción "Otro" al final (value="__otro__") que revela un
+ * campo de texto libre, para no bloquear grupos de prueba u otros casos
+ * sin catálogo, o cuando el responsable real no es ninguno de los dos
+ * líderes listados.
+ */
+function poblarSelectFuncionariosResponsable_(sufijo) {
+  var select = document.getElementById("campoNombreResponsable" + sufijo);
+  if (!select) return;
+  select.innerHTML = "";
+  var opcionVacia = document.createElement("option");
+  opcionVacia.value = "";
+  opcionVacia.textContent = "Selecciona…";
+  select.appendChild(opcionVacia);
+  (estado.funcionariosResponsables || []).forEach(function (f) {
+    var opcion = document.createElement("option");
+    opcion.value = f.nombre;
+    opcion.textContent = f.nombre;
+    select.appendChild(opcion);
+  });
+  var opcionOtro = document.createElement("option");
+  opcionOtro.value = "__otro__";
+  opcionOtro.textContent = "Otro (escribir manualmente)";
+  select.appendChild(opcionOtro);
+}
+
 /* ------------------------------------------------------------------ *
  * Responsable de envío y asistentes de envío — mismo formulario en dos
  * pantallas: Participación (Encuentro, sin sufijo) y "Screen 1" de
@@ -3140,9 +3199,32 @@ function _inicializarResponsableEnvio_(sufijo) {
   activarAutocompletadoCorreo_("campoCorreoResponsable" + sufijo);
   activarAutocompletadoCorreo_("campoCorreoAsistente" + sufijo);
 
+  // Al elegir un funcionario del catálogo, su correo se rellena solo
+  // (spec del usuario: "Los correos deben aparecer automaticamente con
+  // la informacion de emails de cada funcionario registrada") — el campo
+  // de correo sigue editable por si hace falta corregirlo. "Otro" revela
+  // el campo de nombre libre y deja el correo en blanco para digitarlo.
+  document.getElementById("campoNombreResponsable" + sufijo).addEventListener("change", function () {
+    var valor = this.value;
+    var contenedorOtro = document.getElementById("campoNombreResponsableOtroContenedor" + sufijo);
+    if (valor === "__otro__") {
+      contenedorOtro.classList.remove("oculto");
+      return;
+    }
+    contenedorOtro.classList.add("oculto");
+    var funcionario = (estado.funcionariosResponsables || []).find(function (f) { return f.nombre === valor; });
+    if (funcionario) {
+      document.getElementById("campoCorreoResponsable" + sufijo).value = funcionario.correo || "";
+    }
+  });
+
   btnGuardar.addEventListener("click", function () {
+    var seleccion = document.getElementById("campoNombreResponsable" + sufijo).value;
+    var nombre = seleccion === "__otro__"
+      ? document.getElementById("campoNombreResponsableOtro" + sufijo).value.trim()
+      : seleccion;
     var datos = {
-      nombre: document.getElementById("campoNombreResponsable" + sufijo).value.trim(),
+      nombre: nombre,
       idIE: document.getElementById("campoIEResponsable" + sufijo).value,
       rolForo: document.getElementById("campoRolForoResponsable" + sufijo).value,
       correo: document.getElementById("campoCorreoResponsable" + sufijo).value.trim()
@@ -3175,7 +3257,20 @@ function _inicializarResponsableEnvio_(sufijo) {
   // (solo puede haber uno) y deja claro cómo editarlo si hace falta.
   document.getElementById("btnCambiarResponsable" + sufijo).addEventListener("click", function () {
     var p = (estado.responsables && estado.responsables.principal) || null;
-    document.getElementById("campoNombreResponsable" + sufijo).value = p ? p.nombre || "" : "";
+    var selectNombre = document.getElementById("campoNombreResponsable" + sufijo);
+    var contenedorOtro = document.getElementById("campoNombreResponsableOtroContenedor" + sufijo);
+    var esDelCatalogo = p && (estado.funcionariosResponsables || []).some(function (f) { return f.nombre === p.nombre; });
+    if (p && esDelCatalogo) {
+      selectNombre.value = p.nombre;
+      contenedorOtro.classList.add("oculto");
+    } else if (p) {
+      selectNombre.value = "__otro__";
+      document.getElementById("campoNombreResponsableOtro" + sufijo).value = p.nombre || "";
+      contenedorOtro.classList.remove("oculto");
+    } else {
+      selectNombre.value = "";
+      contenedorOtro.classList.add("oculto");
+    }
     document.getElementById("campoCorreoResponsable" + sufijo).value = p ? p.correo || "" : "";
     if (p && p.rolForo) document.getElementById("campoRolForoResponsable" + sufijo).value = p.rolForo;
     if (p && p.institucion) {
@@ -4232,6 +4327,17 @@ document.getElementById("btnCerrarPantallaCompletaTexto").addEventListener("clic
   document.getElementById("pantallaCompletaTexto").classList.add("oculto");
 });
 
+// Ruta del Encuentro (Metodología) — botón "👁 Ver en pantalla completa"
+// (spec del usuario: "la pagina ruta del encuentro debe permitir ojito
+// para pantalla completa"), reutiliza el mismo overlay genérico de arriba
+// clonando la tabla de la agenda (una sola fuente de verdad, sin duplicar
+// el contenido en dos lugares del HTML).
+document.getElementById("btnPantallaCompletaRutaEncuentro").addEventListener("click", function () {
+  document.getElementById("tituloPantallaCompletaTexto").textContent = "Ruta del Encuentro de voces que construyen territorio";
+  document.getElementById("cuerpoPantallaCompletaTexto").innerHTML = document.getElementById("tablaRutaEncuentro").outerHTML;
+  document.getElementById("pantallaCompletaTexto").classList.remove("oculto");
+});
+
 /* ------------------------------------------------------------------ *
  * Pantalla completa EDITABLE (👁️) + guardado inline (💾) para cualquier
  * pregunta de texto largo (Sesión 1, Sesión 2, Preparación IE, invitado):
@@ -4391,16 +4497,13 @@ function alternarTodosDesplegablesSocializacion() {
 /* ------------------------------------------------------------------ *
  * Revisión, cierre y generación del informe
  * ------------------------------------------------------------------ */
-estado.valoracionCompletada = false;
-
 function prepararCierre() {
-  // Por defecto, gris hasta confirmar (con cargarValoracion) que la
-  // valoración ya fue enviada — spec del usuario: "Revisión y cierre y
-  // todo lo posterior deben aparecer en gris hasta que no se haya
-  // enviado la valoración". Evita también un parpadeo de contenido
-  // habilitado mientras llega la respuesta del servidor.
-  actualizarBloqueoCierrePorValoracion_();
-  cargarValoracion();
+  // La valoración del Foro (que antes se cargaba aquí y gateaba esta
+  // tarjeta) se eliminó del proyecto — spec del usuario: "Eliminar
+  // valoración". Se conserva solo el refresco de si el informe ya fue
+  // generado (por este u otro dispositivo), para decidir si el botón
+  // "Generar informe" debe estar habilitado.
+  refrescarEstadoInformeGrupo_();
   refrescarVistasFotoGrupo_();
 
   // Listado de asistencia (PDF) — spec del usuario: "Remove asistencia PDF
@@ -4719,170 +4822,30 @@ document.getElementById("btnCambiarAQRCierre").addEventListener("click", functio
   );
 });
 
-function cargarValoracion() {
-  llamarServidor("rpcObtenerValoracion", [estado.idGrupo, estado.seccion], function (v) {
-    estado.valoracionCompletada = !!v;
-    mostrarEstadoValoracion(v);
-    actualizarBotonGenerarInforme();
-  });
-  // Refresca si el informe ya fue generado (por este u otro dispositivo)
-  // antes de decidir si el botón "Generar informe" debe estar habilitado.
+/** Refresca si el informe ya fue generado (por este u otro dispositivo) antes de decidir si el botón "Generar informe" debe estar habilitado. */
+function refrescarEstadoInformeGrupo_() {
   llamarServidor("rpcEstadoGrupo", [estado.idGrupo], function (estadoGrupo) {
     estado.informeGenerado = !!(estadoGrupo && estadoGrupo.informeGenerado);
     actualizarBotonGenerarInforme();
   }, function () {});
 }
 
-function mostrarEstadoValoracion(valoracion) {
-  var formulario = document.getElementById("valoracionFormulario");
-  var yaEnviada = document.getElementById("valoracionYaEnviada");
-  if (valoracion) {
-    formulario.classList.add("oculto");
-    var nota = Number(valoracion.NOTA_PROMEDIO || 0).toFixed(1);
-    yaEnviada.innerHTML = "<p class='valoracion-ya-enviada'>✅ Valoración enviada — nota promedio: " + nota + " / 5.0</p>";
-    yaEnviada.classList.remove("oculto");
-  } else {
-    formulario.classList.remove("oculto");
-    yaEnviada.classList.add("oculto");
-  }
-}
-
-/**
- * "Revisión y cierre" y todo lo posterior de esa tarjeta (verificar
- * firmantes, fotografía, generar informe) deben verse en gris hasta que
- * la valoración del Foro (arriba, misma pantalla) ya se haya enviado —
- * spec del usuario. El botón "Generar informe" YA estaba gateado por
- * separado (actualizarBotonGenerarInforme); esto solo agrega el bloqueo
- * VISUAL de toda la sección, para que quede claro desde el primer
- * vistazo que hay que valorar primero.
- */
-function actualizarBloqueoCierrePorValoracion_() {
-  var tarjeta = document.getElementById("tarjetaCierrePasos");
-  if (!tarjeta) return;
-  tarjeta.classList.toggle("cierre-bloqueado", !estado.valoracionCompletada);
-  var aviso = document.getElementById("avisoCierreBloqueadoPorValoracion");
-  if (aviso) aviso.classList.toggle("oculto", !!estado.valoracionCompletada);
-}
-
 function actualizarBotonGenerarInforme() {
   var boton = document.getElementById("btnGenerarInforme");
   var aviso = document.getElementById("avisoResponsablePrincipal");
-  actualizarBloqueoCierrePorValoracion_();
   // Cualquier integrante del grupo con sesión activa puede generar el
   // informe (spec del usuario: revierte la restricción de "solo el
   // responsable principal"); pero solo se genera UNA vez en total —
   // Grupos.gs (generarInformeCompletoGrupo) es idempotente y devuelve el
-  // mismo informe si ya existe, así que aquí basta con exigir la
-  // valoración antes de habilitar el botón.
+  // mismo informe si ya existe.
   if (estado.informeGenerado) {
     aviso.textContent = "El informe definitivo ya fue generado para este grupo.";
-    boton.disabled = true;
-  } else if (!estado.valoracionCompletada) {
-    aviso.textContent = "Complete la valoración (arriba) antes de generar el informe.";
     boton.disabled = true;
   } else {
     aviso.textContent = "";
     boton.disabled = false;
   }
 }
-
-/* ---- Valoración de la sesión — 4 preguntas de satisfacción + 1 abierta
- * (copiado de FEI 3.1). Item 21 (Documento Orientador FEM2026, Sección F):
- * la escala de corazones se reemplazó por 5 opciones nombradas
- * (MALO=1..EXCELENTE=5) — selección única por pregunta, no un "relleno
- * acumulado" como los corazones. Item 22: el texto ya no nombra "el foro"
- * ni "Conecta Educa" (ver actualizarResultadoValoracion más abajo y las
- * preguntas en Index.html) — usa "la sesión de hoy" para servir a ambas
- * secciones con el mismo texto genérico. ---- */
-(function inicializarValoracion() {
-  var contenedor = document.getElementById("tarjetaValoracion");
-  if (!contenedor) return;
-  var puntajes = { p1: 0, p2: 0, p3: 0, p4: 0 };
-
-  function actualizarResultadoValoracion() {
-    var bloqueAbierto = document.getElementById("valoracionAbiertaBloque");
-    var bloqueResultado = document.getElementById("valoracionResultado");
-    var notaTexto = document.getElementById("valoracionNotaTexto");
-    var labelAbierto = document.getElementById("valoracionP5Label");
-
-    if (!puntajes.p1 || !puntajes.p2 || !puntajes.p3 || !puntajes.p4) {
-      bloqueAbierto.classList.add("oculto");
-      bloqueResultado.classList.add("oculto");
-      return;
-    }
-
-    var nota = (puntajes.p1 + puntajes.p2 + puntajes.p3 + puntajes.p4) / 4;
-    var emoji, pregunta;
-    if (nota < 3) {
-      emoji = "😭";
-      pregunta = "😭 ¡Debemos hacerlo mejor! ¿Qué sugerencias, recomendaciones o propuestas tienen para fortalecer la organización y desarrollo de la sesión de hoy?";
-    } else if (nota <= 4) {
-      emoji = "😬";
-      pregunta = "😬 ¡Pasamos raspados! ¿Quieren decirnos qué funcionó bien para " + (estado.grupo || "el grupo") + " y qué pudo haber sido mejor para fortalecer la organización y desarrollo de la sesión de hoy?";
-    } else {
-      emoji = "🎉";
-      pregunta = "🎉 ¡Bravo, gracias por el reconocimiento! ¿Quieren decirnos qué hicimos bien para " + (estado.grupo || "el grupo") + " para merecer el reconocimiento de ustedes? Y de paso también pueden decirnos cómo mejorar para fortalecer la organización y desarrollo de la sesión de hoy.";
-    }
-
-    notaTexto.textContent = emoji + " Nuestra nota fue de: " + nota.toFixed(1) + " / 5.0 " + emoji;
-    bloqueResultado.classList.remove("oculto");
-    labelAbierto.textContent = pregunta;
-    bloqueAbierto.classList.remove("oculto");
-  }
-
-  contenedor.querySelectorAll(".valoracion-pregunta[data-pregunta]").forEach(function (bloque) {
-    var pregunta = bloque.dataset.pregunta;
-    var opciones = Array.prototype.slice.call(bloque.querySelectorAll(".opcion-valoracion"));
-    var bloqueMejora = contenedor.querySelector('.valoracion-mejora[data-mejora-de="' + pregunta + '"]');
-
-    opciones.forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var valor = Number(this.dataset.valor);
-        puntajes[pregunta] = valor;
-        opciones.forEach(function (b) {
-          b.classList.toggle("opcion-valoracion-seleccionada", Number(b.dataset.valor) === valor);
-        });
-        if (bloqueMejora) bloqueMejora.classList.toggle("oculto", valor > 2);
-        actualizarResultadoValoracion();
-      });
-    });
-  });
-
-  document.getElementById("btnEnviarValoracion").addEventListener("click", function () {
-    if (!puntajes.p1 || !puntajes.p2 || !puntajes.p3 || !puntajes.p4) {
-      mostrarMensaje("mensajeValoracion", "Seleccione una opción en las cuatro preguntas antes de enviar.", "error");
-      return;
-    }
-    var boton = document.getElementById("btnEnviarValoracion");
-    boton.disabled = true;
-    var respuestas = {
-      p1: puntajes.p1, p2: puntajes.p2, p3: puntajes.p3, p4: puntajes.p4,
-      p5: document.getElementById("valoracionP5").value,
-      mejoraP1: document.getElementById("valoracionMejoraP1").value,
-      mejoraP2: document.getElementById("valoracionMejoraP2").value,
-      mejoraP3: document.getElementById("valoracionMejoraP3").value,
-      mejoraP4: document.getElementById("valoracionMejoraP4").value
-    };
-    mostrarCargaAccion_("valoracionAsistencia", "Enviando valoración…");
-    llamarServidor("rpcGuardarValoracion", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, respuestas, estado.seccion], function (r) {
-      ocultarCargaAccion_();
-      boton.disabled = false;
-      if (!r.ok) {
-        mostrarMensaje("mensajeValoracion", r.mensaje || "No fue posible guardar la valoración.", "error");
-        return;
-      }
-      mostrarMensaje("mensajeValoracion", "", "");
-      estado.valoracionCompletada = true;
-      mostrarEstadoValoracion({ NOTA_PROMEDIO: r.notaPromedio });
-      actualizarBotonGenerarInforme();
-    }, function (error) {
-      ocultarCargaAccion_();
-      boton.disabled = false;
-      console.error("rpcGuardarValoracion", error);
-      mostrarMensaje("mensajeValoracion", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
-    });
-  });
-})();
 
 document.getElementById("btnGenerarInforme").addEventListener("click", function () {
   // La fotografía ya no se pide en la pantalla de "Informe generado"
