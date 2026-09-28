@@ -636,8 +636,6 @@
            mostrarPanelMetodoAsistencia, JS.html, que ya lo ocultaba para LISTADO). -->
       <p class="contador-participantes-tarjeta oculto" id="filaContadorParticipantesTarjeta">👥 Total de participantes registrados:
         <strong id="contadorParticipantesTarjeta">0</strong></p>
-      <p class="ayuda">Instituciones educativas de <strong id="nombreGrupoParticipacion"></strong>:</p>
-      <div class="lista-instituciones" id="listaInstituciones"></div>
     </div>
 
     <div class="tarjeta">
@@ -756,6 +754,11 @@
   <!-- 7quater. SELECCIÓN DE IE PARA PREPARACIÓN -->
   <section id="pantallaSeleccionIEPreparacion" class="pantalla">
     <div class="tarjeta">
+      <!-- Movido aquí desde Participación (spec del usuario: "debe aparecer
+           al inicio, al seleccionar IE") — mismo id (nombreGrupoParticipacion),
+           lo sigue llenando _procesarRespuestaAccesoGrupo_ (JS.html). -->
+      <p class="ayuda">Instituciones educativas de <strong id="nombreGrupoParticipacion"></strong>:</p>
+      <div class="lista-instituciones" id="listaInstituciones"></div>
       <h2 class="titulo-seccion">¿Qué institución o participante va a preparar sus aportes?</h2>
       <p class="ayuda">Selecciona la institución educativa. Luego se te pedirá el nombre de quien va a
         diligenciar las respuestas. <strong>✅ = ya envió sus aportes.</strong></p>
@@ -809,25 +812,7 @@
   <!-- 8. SESIÓN 1 -->
   <section id="pantallaSesion1" class="pantalla">
     <div class="tarjeta">
-      <h2 class="titulo-seccion">Consolidado de Socialización</h2>
-
-      <!-- Un solo enlace al documento real del grupo (spec del usuario: "solo
-           deja el documento de consolidado de cada grupo" / "debe ser
-           editable" / "un solo link, eliminar todo el registro del
-           spreadsheets"). -->
-      <div id="enlaceConsolidadoSocializacion"></div>
-
-      <!-- El bloque de referencia por pregunta (con las etiquetas "Pregunta N"
-           del Informe de Síntesis) se eliminó de aquí (spec del usuario) — sus
-           respuestas ahora se precargan directamente en los cuadros editables
-           de "Construcción colectiva del grupo", más abajo (ver
-           cargarSocializacionPreparacion en JS.html). -->
-    </div>
-
-    <div class="tarjeta">
       <h2 class="titulo-seccion">Construcción colectiva del grupo</h2>
-      <p class="ayuda">Esto se construye desde los aportes puntuales de los informes y de las conclusiones
-        de la socialización que se acaba de efectuar.</p>
 
       <div id="vistaSoloLecturaSesion1" class="oculto">
         <div class="mensaje-envio-definitivo">
@@ -838,12 +823,25 @@
       </div>
 
       <div id="camposEditablesSesion1">
-        <h3 class="subtitulo-campo" style="margin-top:0;">Conclusiones de la socialización</h3>
+        <h3 class="subtitulo-campo" style="margin-top:0;">1. Conclusiones de la socialización</h3>
 
-        <p class="ayuda">Con base en lo socializado por cada institución educativa (Sesión de socialización,
-          pantalla anterior) y en los informes de síntesis de cada una, registren las conclusiones
-          colectivas del grupo.</p>
+        <p class="ayuda">Aquí ya aparece, a modo de borrador, la conclusión del Foro redactada a partir del
+          Informe de Síntesis de su grupo y de lo compartido en la sesión de socialización con las seis
+          instituciones educativas. Revísenla, ajústenla si hace falta y déjenla lista como la conclusión
+          colectiva definitiva del grupo.</p>
+
+        <!-- Un solo enlace al documento real del grupo (spec del usuario: "solo
+             deja el documento de consolidado de cada grupo" / "debe ser
+             editable" / "un solo link, eliminar todo el registro del
+             spreadsheets"). -->
+        <div id="enlaceConsolidadoSocializacion"></div>
+
         <textarea lang="es" spellcheck="true" id="campo_CONCLUSIONES_SOCIALIZACION" data-campo-sesion1="CONCLUSIONES_SOCIALIZACION" data-min-palabras="50" data-max-palabras="400" rows="6"></textarea>
+
+        <h3 class="subtitulo-campo">2. Construcción colectiva del grupo</h3>
+        <p class="ayuda">Las respuestas de esta sección se construyen de manera colectiva: partan de los
+          aportes puntuales que cada institución dejó en su informe y de las conclusiones de la
+          socialización que acaban de registrar arriba.</p>
 
         <h3 class="subtitulo-campo">1. Avances FEM2025 y políticas públicas</h3>
 

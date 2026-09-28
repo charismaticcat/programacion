@@ -130,6 +130,7 @@ function renderListaIEPresentes(instituciones) {
   instituciones.forEach(function (ie) {
     html += "<label class='opcion-ie-presente'>" +
       "<input type='checkbox' data-ie-presente='" + escapeHtml(ie.idIE) + "'" + (ie.presente ? " checked" : "") + "> " +
+      (ie.logoId ? "<img class='escudo-ie-presente' src='" + urlImagenDrive(ie.logoId, 80) + "' alt=''>" : "") +
       escapeHtml(ie.institucion) +
       "</label>";
   });

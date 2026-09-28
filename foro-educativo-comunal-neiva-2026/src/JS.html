@@ -4491,7 +4491,7 @@ function configGuardadoParaTextarea_(ta) {
  */
 function agregarAccionesTextareas_(raiz) {
   var root = raiz || document;
-  var selector = "textarea[data-campo-sesion1], textarea[data-prep-pregunta], textarea[data-inv-prep-pregunta]";
+  var selector = "textarea[data-campo-sesion1], textarea[data-prep-pregunta], textarea[data-inv-prep-pregunta], textarea[data-campo-revisar]";
   root.querySelectorAll(selector).forEach(function (ta) {
     if (ta.dataset.accionesListas) return;
     ta.dataset.accionesListas = "1";
@@ -4710,6 +4710,12 @@ function abrirRevisarTodo_() {
   llamarServidor("rpcObtenerSesion1", [estado.idGrupo], function (datos) {
     _renderCamposRevisarSesion_("camposRevisarSesion1", CAMPOS_REVISAR_SESION1_, datos);
     _renderCamposRevisarSesion_("camposRevisarSesion2", CAMPOS_REVISAR_SESION2_, datos);
+    // Ojito de pantalla completa en cada pregunta, igual que en las
+    // pantallas originales (spec del usuario) — los textareas de "Revisar
+    // todo" se generan de nuevo cada vez que se abre esta pantalla, así
+    // que la barra de acciones se agrega aquí después de cada render.
+    agregarAccionesTextareas_(document.getElementById("camposRevisarSesion1"));
+    agregarAccionesTextareas_(document.getElementById("camposRevisarSesion2"));
   }, function () {});
 
   llamarServidor("rpcListarConectaEduca", [estado.idGrupo], function (actores) {

@@ -3092,6 +3092,45 @@ Verificado: `node --check` sobre todos los `.gs` (limpio), extracción y `node -
 `<script>` (limpio salvo el falso positivo esperado), cero ids duplicados, y las referencias
 `getElementById` colgantes coinciden exactamente con la lista ya aceptada (12), sin hallazgos nuevos.
 
+## 4.82 Sexagésimo quinto lote: escudos de IE en el checklist, reorganización de "Construcción colectiva del grupo" con conclusiones reales del Informe de Síntesis, textos reescritos, ojito en "Revisar todo", y el bloque de IE del grupo movido a Selección de IE
+
+- **Escudos en "Instituciones educativas presentes"**: `obtenerParticipacionEstamentoGrupo`
+  (ParticipacionEstamento.gs) ahora devuelve `logoId` por institución; `renderListaIEPresentes`
+  (Components.html) pinta el escudo (`urlImagenDrive`) junto al nombre cuando existe, con nuevo estilo
+  `.escudo-ie-presente` (CSS.html).
+- **"Conclusiones de la socialización" con texto real por grupo**: se extrajo la sección "Conclusiones del
+  Foro" de los 6 documentos "Informe de Síntesis - Grupo GX FEM 2026" en Drive (carpeta
+  `1CiEY8InrLPwzohka2eRDLl_jtE_oR59q`, mismos `informeSintesisId` ya registrados en
+  `Recursos.gs → RECURSOS_POR_GRUPO_`) y se agregó como código `CONCLUSIONES_SOCIALIZACION` en
+  `PREGUNTAS_SINTESIS_GRUPO_`/`RESPUESTAS_SINTESIS_GRUPO_` (SintesisGrupos.gs, uno por grupo G1-G6) — reutiliza
+  el mecanismo ya existente de precarga (`cargarSocializacionPreparacion` en JS.html rellena
+  `campo_CONCLUSIONES_SOCIALIZACION` solo si está vacío), sin código cliente nuevo.
+- **Reorganización de "Construcción colectiva del grupo" (Index.html)**: las dos tarjetas ("Consolidado de
+  Socialización" + "Construcción colectiva del grupo") se fusionaron en una sola; el encabezado "Consolidado
+  de Socialización" se eliminó; ahora la tarjeta única numera "1. Conclusiones de la socialización" (con el
+  enlace al documento del grupo y el campo `CONCLUSIONES_SOCIALIZACION`, ya autorrellenado) y "2. Construcción
+  colectiva del grupo" (el bloque de 11 preguntas FEM2025/Currículo/Gobierno, sin cambios internos). El
+  contador de palabras en vivo (`#pantallaSesion1 textarea`, JS.html) ya cubría por selector genérico
+  cualquier textarea dentro de la sección, así que el campo de conclusiones ya lo tenía — no hizo falta
+  código nuevo.
+- **Textos reescritos**: el texto de apoyo de "1. Conclusiones de la socialización" ahora explica que el
+  campo ya trae un borrador de la conclusión del Foro (extraído del Informe de Síntesis del grupo y de la
+  socialización) para revisar y ajustar; el de "2. Construcción colectiva del grupo" explica que esas
+  respuestas se construyen a partir de los aportes puntuales de los informes y de las conclusiones recién
+  registradas arriba.
+- **Ojito (👁️) en "Revisar todo antes de enviar"**: el selector de `agregarAccionesTextareas_` (JS.html) ahora
+  incluye `textarea[data-campo-revisar]`; como esos textareas se generan de nuevo cada vez que se abre
+  "Revisar todo" (`_renderCamposRevisarSesion_`), `abrirRevisarTodo_` llama a `agregarAccionesTextareas_`
+  sobre `camposRevisarSesion1`/`camposRevisarSesion2` justo después de renderizarlos.
+- **"Instituciones educativas de Grupo X:" movido**: el bloque (`#nombreGrupoParticipacion` +
+  `#listaInstituciones`) se quitó de Participación y se agregó al inicio de "¿Qué institución o participante
+  va a preparar sus aportes?" (`pantallaSeleccionIEPreparacion`), mismos ids — sigue llenándolo
+  `_procesarRespuestaAccesoGrupo_` (JS.html) sin cambios.
+
+Verificado: `node --check` sobre todos los `.gs` (limpio), extracción y `node --check` de cada bloque
+`<script>` (limpio salvo el falso positivo esperado), cero ids duplicados, y las referencias
+`getElementById` colgantes coinciden exactamente con la lista ya aceptada (12), sin hallazgos nuevos.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

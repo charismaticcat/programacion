@@ -92,7 +92,7 @@ function obtenerParticipacionEstamentoGrupo(idGrupo) {
       if (presente) totalesPorEstamento[e.clave] += valor;
     });
     if (presente) totalGeneral += totalIE;
-    return { idIE: ie.idIE, institucion: ie.institucion, valores: valores, total: totalIE, presente: presente };
+    return { idIE: ie.idIE, institucion: ie.institucion, logoId: ie.logoId || "", valores: valores, total: totalIE, presente: presente };
   });
 
   return {
