@@ -3682,7 +3682,14 @@ function poblarDesdeBorradorLocalSesion1_() {
     if (!el || el.value) return;
     try {
       var borrador = localStorage.getItem(claveBorradorLocalSesion1_(nombre));
-      if (borrador) el.value = borrador;
+      if (borrador) {
+        el.value = borrador;
+        // Dispara "input" para que el contador de palabras (que solo
+        // escucha ese evento) se actualice — asignar .value por código no
+        // lo dispara solo (bug reportado por el usuario: "el contador no
+        // funciona aun cuando se han trasladado las respuestas").
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+      }
     } catch (e) {}
   });
 }
@@ -3694,7 +3701,10 @@ function cargarSesion1() {
     if (datos) {
       CAMPOS_SESION1.forEach(function (nombre) {
         var el = document.getElementById("campo_" + nombre);
-        if (el && !el.value && datos[nombre]) el.value = datos[nombre];
+        if (el && !el.value && datos[nombre]) {
+          el.value = datos[nombre];
+          el.dispatchEvent(new Event("input", { bubbles: true }));
+        }
       });
     }
     // Refresca también la vista de solo lectura (si Sesión 1/2 ya se
@@ -4320,7 +4330,14 @@ function cargarSocializacionPreparacion() {
     estado.socializacionPreparacion = datos || [];
     estado.socializacionPreparacion.forEach(function (p) {
       var campo = document.getElementById("campo_" + p.codigo);
-      if (campo && !campo.value && p.texto) campo.value = p.texto;
+      if (campo && !campo.value && p.texto) {
+        campo.value = p.texto;
+        // Dispara "input" para que el contador de palabras se actualice
+        // de inmediato (bug reportado por el usuario: el contador se
+        // quedaba en "0 palabras" aunque el campo ya tuviera el texto
+        // del Informe de Síntesis precargado).
+        campo.dispatchEvent(new Event("input", { bubbles: true }));
+      }
     });
   });
 }

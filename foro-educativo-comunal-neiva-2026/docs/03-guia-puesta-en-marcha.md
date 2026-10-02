@@ -3192,6 +3192,27 @@ las ejecuciones concurrentes corran el mismo bucle a la vez o se bloqueen espera
 
 Verificado: `node --check` sobre todos los `.gs` (limpio, sin cambios de HTML en este lote).
 
+## 4.85 Bug real: el contador de palabras no se actualizaba con texto precargado por código
+
+El usuario reportó (con captura) que, en "Construcción colectiva del grupo", los campos ya traían el texto
+precargado (borrador local, respuesta guardada en la nube, o la conclusión del Informe de Síntesis) pero el
+contador debajo seguía mostrando "0 palabras (mínimo 50, máximo 400)" en rojo.
+
+Causa: `inicializarContadoresPalabras()` (JS.html) solo recalcula el conteo cuando el textarea dispara su
+evento nativo `"input"` — el que se dispara al teclear. En tres lugares del código el valor del campo se
+asigna por JavaScript (`el.value = ...`), lo cual NUNCA dispara ese evento por sí solo:
+`poblarDesdeBorradorLocalSesion1_` (borrador local), el callback de `rpcObtenerSesion1` dentro de
+`cargarSesion1()` (respuesta ya guardada en la nube), y `cargarSocializacionPreparacion()` (conclusión del
+Informe de Síntesis precargada, lote 4.82). El contador se quedaba "congcongelado" en su valor inicial (0)
+hasta que la persona tecleaba algo en ese campo.
+
+**Fix**: después de cada asignación `el.value = ...` en esos tres lugares, se dispara
+`el.dispatchEvent(new Event("input", { bubbles: true }))`, reutilizando el mismo listener que ya actualiza
+el contador al teclear — sin duplicar lógica de conteo en ningún lado nuevo.
+
+Verificado: `node --check` sobre todos los `.gs` (sin cambios), extracción y `node --check` de cada bloque
+`<script>` (limpio salvo el falso positivo esperado).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:
