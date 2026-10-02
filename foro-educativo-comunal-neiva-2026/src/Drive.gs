@@ -39,6 +39,45 @@ function hacerPublicoSiEsPosible_(file) {
 }
 
 /**
+ * Ejecuta `fn` una sola vez por instalación, marcada por `bandera` en
+ * ConfiguracionComunal — usada por las funciones `asegurarXPublicos_` de
+ * abajo, que se llaman en CADA doGet (Code.gs) para no depender de que
+ * alguien las ejecute a mano, pero solo deben hacer el trabajo real
+ * (llamadas a Drive) la primera vez.
+ *
+ * BUG REAL corregido aquí (reportado por el usuario como "la página tarda
+ * casi un minuto en cargar"): como `getConfig()` solo se memoiza DENTRO de
+ * una misma ejecución de doGet, no entre ejecuciones, y en un evento en
+ * vivo llegan muchas peticiones simultáneas (varios grupos/dispositivos
+ * cargando la página casi al mismo tiempo), TODAS esas ejecuciones
+ * concurrentes veían la bandera todavía vacía a la vez y corrían el mismo
+ * bucle de llamadas a Drive en paralelo — con `asegurarLogosIEPublicos_`
+ * (36 archivos) eso significa cientos de llamadas a la API de Drive
+ * disparadas a la vez desde el mismo script, lo que agota la cuota por
+ * minuto y hace que Apps Script reintente con back-off exponencial
+ * (varios segundos por reintento) en cada llamada — de ahí los ~60
+ * segundos. La corrección: un `LockService.getScriptLock().tryLock(0)` NO
+ * bloqueante — si otra ejecución ya está haciendo el trabajo, esta
+ * simplemente no hace nada y sigue de inmediato (la bandera quedará en
+ * "SI" en unos segundos gracias a la que sí obtuvo el lock), en vez de
+ * que todas esperen o, peor, que todas corran el bucle en paralelo.
+ */
+function ejecutarUnaSolaVezConLock_(bandera, fn) {
+  var config = getConfig();
+  if (String(config[bandera] || "") === "SI") return;
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(0)) return;
+  try {
+    invalidarCacheConfig_();
+    if (String(getConfig()[bandera] || "") === "SI") return;
+    fn();
+    escribirConfig_(bandera, "SI");
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
  * Asegura que los logos del splash inicial (Foro y SEM Neiva) sean
  * visibles para cualquier persona con el enlace — si el archivo de Drive
  * solo era visible para quien lo cargó, la miniatura (urlImagenDrive en
@@ -47,17 +86,17 @@ function hacerPublicoSiEsPosible_(file) {
  * ConfiguracionComunal), no en cada carga de página.
  */
 function asegurarLogosSplashPublicos_() {
-  var config = getConfig();
-  if (String(config.LOGOS_SPLASH_PUBLICOS || "") === "SI") return;
-  [config.LOGO_ENCABEZADO_ID, config.LOGO_PIE_ID].forEach(function (fileId) {
-    if (!fileId) return;
-    try {
-      hacerPublicoSiEsPosible_(DriveApp.getFileById(fileId));
-    } catch (e) {
-      Logger.log("No se pudo asegurar el logo público " + fileId + ": " + e.message);
-    }
+  ejecutarUnaSolaVezConLock_("LOGOS_SPLASH_PUBLICOS", function () {
+    var config = getConfig();
+    [config.LOGO_ENCABEZADO_ID, config.LOGO_PIE_ID].forEach(function (fileId) {
+      if (!fileId) return;
+      try {
+        hacerPublicoSiEsPosible_(DriveApp.getFileById(fileId));
+      } catch (e) {
+        Logger.log("No se pudo asegurar el logo público " + fileId + ": " + e.message);
+      }
+    });
   });
-  escribirConfig_("LOGOS_SPLASH_PUBLICOS", "SI");
 }
 
 /**
@@ -68,16 +107,15 @@ function asegurarLogosSplashPublicos_() {
  * logo se agregara.
  */
 function asegurarLogoDesarrolladorPublico_() {
-  var config = getConfig();
-  if (String(config.LOGO_DESARROLLADOR_PUBLICO || "") === "SI") return;
-  if (config.LOGO_DESARROLLADOR_ID) {
+  ejecutarUnaSolaVezConLock_("LOGO_DESARROLLADOR_PUBLICO", function () {
+    var fileId = getConfig().LOGO_DESARROLLADOR_ID;
+    if (!fileId) return;
     try {
-      hacerPublicoSiEsPosible_(DriveApp.getFileById(config.LOGO_DESARROLLADOR_ID));
+      hacerPublicoSiEsPosible_(DriveApp.getFileById(fileId));
     } catch (e) {
       Logger.log("No se pudo asegurar el logo del desarrollador público: " + e.message);
     }
-  }
-  escribirConfig_("LOGO_DESARROLLADOR_PUBLICO", "SI");
+  });
 }
 
 /**
@@ -88,17 +126,17 @@ function asegurarLogoDesarrolladorPublico_() {
  * estos dos logos se agregaran.
  */
 function asegurarLogosSeccionPublicos_() {
-  var config = getConfig();
-  if (String(config.LOGOS_SECCION_PUBLICOS || "") === "SI") return;
-  [config.LOGO_ENCUENTRO_ID, config.LOGO_CONECTAEDUCA_ID].forEach(function (fileId) {
-    if (!fileId) return;
-    try {
-      hacerPublicoSiEsPosible_(DriveApp.getFileById(fileId));
-    } catch (e) {
-      Logger.log("No se pudo asegurar el logo de sección público " + fileId + ": " + e.message);
-    }
+  ejecutarUnaSolaVezConLock_("LOGOS_SECCION_PUBLICOS", function () {
+    var config = getConfig();
+    [config.LOGO_ENCUENTRO_ID, config.LOGO_CONECTAEDUCA_ID].forEach(function (fileId) {
+      if (!fileId) return;
+      try {
+        hacerPublicoSiEsPosible_(DriveApp.getFileById(fileId));
+      } catch (e) {
+        Logger.log("No se pudo asegurar el logo de sección público " + fileId + ": " + e.message);
+      }
+    });
   });
-  escribirConfig_("LOGOS_SECCION_PUBLICOS", "SI");
 }
 
 /**
@@ -108,17 +146,17 @@ function asegurarLogosSeccionPublicos_() {
  * que deben ser visibles para cualquiera con el enlace.
  */
 function asegurarFormatosAsistenciaPublicos_() {
-  var config = getConfig();
-  if (String(config.FORMATOS_ASISTENCIA_PUBLICOS || "") === "SI") return;
-  [config.FORMATO_ASISTENCIA_ENCUENTRO_ID, config.FORMATO_ASISTENCIA_CONECTAEDUCA_ID].forEach(function (fileId) {
-    if (!fileId) return;
-    try {
-      hacerPublicoSiEsPosible_(DriveApp.getFileById(fileId));
-    } catch (e) {
-      Logger.log("No se pudo asegurar el formato de asistencia público " + fileId + ": " + e.message);
-    }
+  ejecutarUnaSolaVezConLock_("FORMATOS_ASISTENCIA_PUBLICOS", function () {
+    var config = getConfig();
+    [config.FORMATO_ASISTENCIA_ENCUENTRO_ID, config.FORMATO_ASISTENCIA_CONECTAEDUCA_ID].forEach(function (fileId) {
+      if (!fileId) return;
+      try {
+        hacerPublicoSiEsPosible_(DriveApp.getFileById(fileId));
+      } catch (e) {
+        Logger.log("No se pudo asegurar el formato de asistencia público " + fileId + ": " + e.message);
+      }
+    });
   });
-  escribirConfig_("FORMATOS_ASISTENCIA_PUBLICOS", "SI");
 }
 
 /**
@@ -127,27 +165,21 @@ function asegurarFormatosAsistenciaPublicos_() {
  * estos se importaron desde otra fuente (Importacion.gs) y nunca se
  * les ajustó el permiso de compartir, así que `urlImagenDrive` (JS.html)
  * falla en silencio para cualquiera que no sea el propietario del
- * archivo: el usuario lo reporta como "los escudos no cargan" y, al ser
- * ahora varias decenas de miniaturas fallando a la vez en una sola
- * pantalla (carrusel, checklist de IE presentes, temporizador de
- * socialización), también se percibe como que "todo el flujo se puso
- * lento" (cada miniatura con permiso denegado tarda varios segundos en
- * fallar antes de que el navegador se rinda). Bandera propia
- * (LOGOS_IE_PUBLICOS) porque estos 36 archivos son independientes de los
- * logos institucionales del Foro.
+ * archivo: el usuario lo reporta como "los escudos no cargan". Bandera
+ * propia (LOGOS_IE_PUBLICOS) porque estos 36 archivos son independientes
+ * de los logos institucionales del Foro.
  */
 function asegurarLogosIEPublicos_() {
-  var config = getConfig();
-  if (String(config.LOGOS_IE_PUBLICOS || "") === "SI") return;
-  obtenerTodasLasInstitucionesActivas().forEach(function (ie) {
-    if (!ie.logoId) return;
-    try {
-      hacerPublicoSiEsPosible_(DriveApp.getFileById(ie.logoId));
-    } catch (e) {
-      Logger.log("No se pudo asegurar el escudo público de " + ie.institucion + " (" + ie.logoId + "): " + e.message);
-    }
+  ejecutarUnaSolaVezConLock_("LOGOS_IE_PUBLICOS", function () {
+    obtenerTodasLasInstitucionesActivas().forEach(function (ie) {
+      if (!ie.logoId) return;
+      try {
+        hacerPublicoSiEsPosible_(DriveApp.getFileById(ie.logoId));
+      } catch (e) {
+        Logger.log("No se pudo asegurar el escudo público de " + ie.institucion + " (" + ie.logoId + "): " + e.message);
+      }
+    });
   });
-  escribirConfig_("LOGOS_IE_PUBLICOS", "SI");
 }
 
 /** Carpeta raíz del proyecto: la autoprovisiona si ConfiguracionComunal.CARPETA_DRIVE_ID está vacío. */

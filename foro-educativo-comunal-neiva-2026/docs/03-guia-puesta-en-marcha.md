@@ -3166,6 +3166,32 @@ Verificado: `node --check` sobre todos los `.gs` (limpio), extracción y `node -
 `<script>` (limpio, sin cambios de HTML en este lote), cero ids duplicados, y las referencias
 `getElementById` colgantes coinciden exactamente con la lista ya aceptada (12).
 
+## 4.84 Bug real encontrado: la página tardaba ~1 minuto en cargar (condición de carrera en `asegurarXPublicos_`)
+
+El usuario reportó que, tras 4.83, el home tardaba casi un minuto en cargar. La causa no era el lote 4.82
+(contador de palabras, reorganización de "Construcción colectiva del grupo") ni los textos de
+`CONCLUSIONES_SOCIALIZACION`: se contaron las 72 respuestas precargadas (6 grupos × 12 preguntas) y todas
+caen dentro del rango exigido de 50-400 palabras (entre 88 y 238 cada una), así que el contador de palabras
+nunca fue el problema.
+
+La causa real: `getConfig()` solo memoiza su resultado DENTRO de una misma ejecución de `doGet`, nunca
+entre ejecuciones distintas. En un evento en vivo, con varios grupos/dispositivos cargando el home casi al
+mismo tiempo, TODAS esas ejecuciones concurrentes de `doGet` veían la bandera `LOGOS_IE_PUBLICOS` (4.83)
+todavía vacía a la vez, y cada una corría el bucle completo de 36 llamadas a `DriveApp...setSharing()` en
+paralelo con las demás — cientos de llamadas simultáneas a la API de Drive desde el mismo script, que
+agotan la cuota por minuto y disparan los reintentos con back-off exponencial de Apps Script (varios
+segundos por reintento), de ahí los ~60 segundos. La misma condición de carrera existía, en menor escala
+(2-6 archivos), en las otras cuatro funciones `asegurarXPublicos_` ya existentes desde antes.
+
+**Fix**: nuevo helper `ejecutarUnaSolaVezConLock_(bandera, fn)` (Drive.gs) — antes de hacer el trabajo real,
+intenta un `LockService.getScriptLock().tryLock(0)` NO bloqueante; si otra ejecución ya tiene el lock (ya
+está haciendo el trabajo), esta simplemente no hace nada y `doGet` sigue de inmediato, en vez de que todas
+las ejecuciones concurrentes corran el mismo bucle a la vez o se bloqueen esperando. Las cinco funciones
+(`asegurarLogosSplashPublicos_`, `asegurarLogoDesarrolladorPublico_`, `asegurarLogosSeccionPublicos_`,
+`asegurarFormatosAsistenciaPublicos_`, `asegurarLogosIEPublicos_`) se refactorizaron para usar este helper.
+
+Verificado: `node --check` sobre todos los `.gs` (limpio, sin cambios de HTML en este lote).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:
