@@ -3131,6 +3131,41 @@ Verificado: `node --check` sobre todos los `.gs` (limpio), extracción y `node -
 `<script>` (limpio salvo el falso positivo esperado), cero ids duplicados, y las referencias
 `getElementById` colgantes coinciden exactamente con la lista ya aceptada (12), sin hallazgos nuevos.
 
+## 4.83 Investigación: "todo el flujo se puso lento" y "los logos no cargan"
+
+El usuario reportó que, tras el lote 4.82, el flujo completo se sentía lento y los escudos no cargaban.
+Se revisaron posibles causas de lentitud general (polling/`setInterval` que re-pinten `renderListaIEPresentes`
+en bucle, lecturas de hoja repetidas, `getConfig()` sin memoizar) y todas resultaron estar bien — el patrón
+optimista ya existente (`cargarParticipacionEstamento(alTerminar, omitirListaIEPresentes)`) evita repintar la
+lista de escudos salvo al entrar a cada pantalla, nunca en un bucle.
+
+La causa raíz encontrada: los 36 escudos institucionales (`CaracterizacionIE.LOGO_ID`, importados en su
+momento por Importacion.gs desde otra fuente) nunca se marcaron como "cualquiera con el enlace puede ver" —
+a diferencia de los logos del Foro/SEM/sección/desarrollador, que sí tienen su propia función
+`asegurarXPublicos_()` (ver 4.x anteriores). Como `urlImagenDrive` apunta directo a
+`drive.google.com/thumbnail?id=...`, cualquier visitante sin permiso recibe un 403 que Google tarda varios
+segundos en resolver — y como estos escudos aparecen en varias pantallas a la vez (carrusel de bienvenida,
+el nuevo checklist "Instituciones educativas presentes" del lote 4.82, y el temporizador de socialización),
+la suma de miniaturas fallando simultáneamente se percibe como "todo el flujo se puso lento", no solo como
+"los logos no cargan".
+
+**Fix**: nueva `asegurarLogosIEPublicos_()` (Drive.gs), mismo patrón que las demás — itera
+`obtenerTodasLasInstitucionesActivas()` y llama a `hacerPublicoSiEsPosible_()` sobre cada `LOGO_ID`, guardada
+en una bandera de una sola vez (`LOGOS_IE_PUBLICOS`, Config.gs) para no repetir el ajuste en cada carga.
+Se invoca desde `doGet` (Code.gs), junto a las demás `asegurarXPublicos_()`.
+
+**Nota operativa**: a diferencia de los logos de 2-6 archivos que arreglan las funciones anteriores, esta
+cubre 36 archivos — la primera persona que cargue la página después de este despliegue paga ese costo
+único (una decena de segundos, en el peor caso) antes de que la bandera quede en "SI"; después de esa
+primera carga, todas las siguientes son instantáneas igual que las demás. No fue posible disparar la
+función manualmente de antemano (`clasp run` para ejecutar código con privilegios del propietario fue
+bloqueado por el clasificador de permisos de este entorno), así que corre naturalmente en el primer `doGet`
+tras el despliegue.
+
+Verificado: `node --check` sobre todos los `.gs` (limpio), extracción y `node --check` de cada bloque
+`<script>` (limpio, sin cambios de HTML en este lote), cero ids duplicados, y las referencias
+`getElementById` colgantes coinciden exactamente con la lista ya aceptada (12).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

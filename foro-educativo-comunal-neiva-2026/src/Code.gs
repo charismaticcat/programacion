@@ -76,6 +76,11 @@ function doGet(e) {
     Logger.log("doGet: no fue posible asegurar los formatos de asistencia públicos: " + err.message);
   }
   try {
+    asegurarLogosIEPublicos_();
+  } catch (err) {
+    Logger.log("doGet: no fue posible asegurar los escudos institucionales públicos: " + err.message);
+  }
+  try {
     asegurarLimiteSesionesGrupoRazonable_();
   } catch (err) {
     Logger.log("doGet: no fue posible ajustar el límite de sesiones por grupo: " + err.message);

@@ -121,6 +121,35 @@ function asegurarFormatosAsistenciaPublicos_() {
   escribirConfig_("FORMATOS_ASISTENCIA_PUBLICOS", "SI");
 }
 
+/**
+ * Igual que las anteriores, pero para los 36 escudos institucionales
+ * (CaracterizacionIE.LOGO_ID) — a diferencia de los logos del Foro/SEM,
+ * estos se importaron desde otra fuente (Importacion.gs) y nunca se
+ * les ajustó el permiso de compartir, así que `urlImagenDrive` (JS.html)
+ * falla en silencio para cualquiera que no sea el propietario del
+ * archivo: el usuario lo reporta como "los escudos no cargan" y, al ser
+ * ahora varias decenas de miniaturas fallando a la vez en una sola
+ * pantalla (carrusel, checklist de IE presentes, temporizador de
+ * socialización), también se percibe como que "todo el flujo se puso
+ * lento" (cada miniatura con permiso denegado tarda varios segundos en
+ * fallar antes de que el navegador se rinda). Bandera propia
+ * (LOGOS_IE_PUBLICOS) porque estos 36 archivos son independientes de los
+ * logos institucionales del Foro.
+ */
+function asegurarLogosIEPublicos_() {
+  var config = getConfig();
+  if (String(config.LOGOS_IE_PUBLICOS || "") === "SI") return;
+  obtenerTodasLasInstitucionesActivas().forEach(function (ie) {
+    if (!ie.logoId) return;
+    try {
+      hacerPublicoSiEsPosible_(DriveApp.getFileById(ie.logoId));
+    } catch (e) {
+      Logger.log("No se pudo asegurar el escudo público de " + ie.institucion + " (" + ie.logoId + "): " + e.message);
+    }
+  });
+  escribirConfig_("LOGOS_IE_PUBLICOS", "SI");
+}
+
 /** Carpeta raíz del proyecto: la autoprovisiona si ConfiguracionComunal.CARPETA_DRIVE_ID está vacío. */
 function obtenerCarpetaRaiz_() {
   var config = getConfig();

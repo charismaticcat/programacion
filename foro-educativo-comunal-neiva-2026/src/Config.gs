@@ -75,6 +75,9 @@ var CONFIG_POR_DEFECTO_ = {
   // (Encuentro y Conecta Educa) — ver asegurarFormatosAsistenciaPublicos_
   // en Drive.gs.
   FORMATOS_ASISTENCIA_PUBLICOS: "",
+  // Bandera de una sola vez para los 36 escudos institucionales
+  // (CaracterizacionIE.LOGO_ID) — ver asegurarLogosIEPublicos_ en Drive.gs.
+  LOGOS_IE_PUBLICOS: "",
   // Código único de administrador para el panel de superadministración del
   // Conversatorio (Conversatorio.gs) — pedido del usuario: "haz un login de
   // superadmin con el codigo que ya me habias dado antes". Permite a un
