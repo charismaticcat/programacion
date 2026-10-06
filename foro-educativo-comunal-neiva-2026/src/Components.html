@@ -264,6 +264,39 @@ function renderResumenInstitucionesAsistieron(datos) {
   contenedor.innerHTML = html;
 }
 
+/**
+ * Tarjeta "Valoración del evento" (Participación) — digitalización del
+ * formato oficial D02.02.F03: 11 aspectos en escala 1-5 (Excelente…Malo)
+ * más "Recomendaciones y sugerencias" de texto libre. `datos.aspectos`
+ * viene del servidor (ASPECTOS_VALORACION_EVENTO_, Valoracion.gs) para que
+ * las etiquetas vivan en un solo lugar; `datos.valores`/`datos.recomendaciones`
+ * son lo ya guardado (o vacío). Cada control guarda su propio atributo
+ * data-* para el autoguardado delegado (ver JS.html).
+ */
+function renderValoracionEvento(datos) {
+  var contenedor = document.getElementById("contenedorValoracionEvento");
+  if (!contenedor || !datos) return;
+  var valores = datos.valores || {};
+  var html = "";
+  (datos.aspectos || []).forEach(function (aspecto) {
+    var actual = valores[aspecto.clave] || "";
+    html += "<div class='fila-aspecto-valoracion'>";
+    html += "<label for='valoracionEvento_" + escapeHtml(aspecto.clave) + "'>" + escapeHtml(aspecto.etiqueta) + "</label>";
+    html += "<select id='valoracionEvento_" + escapeHtml(aspecto.clave) + "' data-aspecto-valoracion-evento='" + escapeHtml(aspecto.clave) + "'>";
+    html += "<option value=''" + (actual ? "" : " selected") + ">Selecciona…</option>";
+    [["5", "5 — Excelente"], ["4", "4 — Bueno"], ["3", "3 — Regular"], ["2", "2 — Deficiente"], ["1", "1 — Malo"]].forEach(function (op) {
+      html += "<option value='" + op[0] + "'" + (String(actual) === op[0] ? " selected" : "") + ">" + op[1] + "</option>";
+    });
+    html += "</select></div>";
+  });
+  html += "<div class='fila-aspecto-valoracion'>";
+  html += "<label for='valoracionEventoRecomendaciones'>Recomendaciones y sugerencias</label>";
+  html += "<textarea id='valoracionEventoRecomendaciones' data-aspecto-valoracion-evento='RECOMENDACIONES' rows='4'>" +
+    escapeHtml(datos.recomendaciones || "") + "</textarea>";
+  html += "</div>";
+  contenedor.innerHTML = html;
+}
+
 /** Ficha de caracterización del grupo: instituciones + resumen de participación, para confirmar antes de continuar. */
 /**
  * grupo/instituciones/responsables como antes; `estadoFirmantes` es el

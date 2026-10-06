@@ -1,19 +1,21 @@
 /**
  * Valoracion.gs — Foro Educativo Comunal Neiva 2026
  *
- * La valoración del Foro DENTRO de la app (4 preguntas de satisfacción
- * que respondía quien diligenciaba el formulario, una vez por
- * grupo/sección, condición para generar el informe) se eliminó por
- * completo del proyecto — spec del usuario: "Eliminar valoración". Ya no
- * gatea generarInformeCompletoGrupo (Grupos.gs) ni enviarInformeSiCorresponde
- * (Correo.gs); tampoco existe en el HTML (tarjetaValoracion) ni en el
- * cliente (JS.html). La hoja ValoracionComunal con las respuestas ya
- * recogidas antes de este cambio queda intacta como registro histórico,
- * simplemente ya no se escribe ni se lee desde la app.
+ * La valoración del Foro DENTRO de la app que gateaba el informe (4
+ * preguntas de satisfacción, condición para generar el informe) se
+ * eliminó por completo del proyecto en su momento — spec del usuario:
+ * "Eliminar valoración". La hoja ValoracionComunal de esa época queda
+ * intacta como registro histórico, sin relación con lo de abajo.
  *
- * Lo único que queda aquí es la valoración PÚBLICA y ANÓNIMA de la
- * página de asistencia QR (AsistenciaPublica.html) — distinta, no
- * bloquea nada y no se pidió eliminarla.
+ * También queda aquí, sin cambios, la valoración PÚBLICA y ANÓNIMA de la
+ * página de asistencia QR (AsistenciaPublica.html).
+ *
+ * Lo nuevo (tarjeta "Valoración del evento", Participación): digitalización
+ * del formato oficial D02.02.F03 ("Evaluación de Encuentro Voces que
+ * construyen territorio" / "...Conecta Educa") — ver
+ * obtenerValoracionEvento/guardarValoracionEvento más abajo. No gatea nada
+ * (igual que el resto de Participación), es independiente de la
+ * valoración pública del QR y de la antigua ValoracionComunal.
  */
 
 /**
@@ -59,6 +61,105 @@ function guardarValoracionAsistentePublica(idGrupo, respuestas) {
       String(respuestas.mejoraP4 || "").trim(),
       new Date()
     ]);
+    return { ok: true };
+  }, 10000);
+}
+
+/**
+ * Valoración del evento (Participación, tarjeta "Valoración del evento",
+ * lote del formato oficial D02.02.F03) — el funcionario digitaliza, una
+ * vez por grupo y por sección (ENCUENTRO/CONECTAEDUCA, puede haber una de
+ * cada una), el resultado representativo de la muestra de encuestas en
+ * papel que ya escaneó y subió como PDF (ver subirEncuestaSatisfaccion,
+ * Asistencia.gs). Mismos 11 aspectos del formato oficial, idénticos en
+ * ambos documentos de origen:
+ *   - "D02.02_F03_v3 EVALUACION DE VOCES QUE CONSTRUYEN TERRITORIO.docx"
+ *   - "D02.02_F03_v3 EVALUACION DE CONECTA EDUCA.docx"
+ * (el documento trae una fila duplicada de "Se llegó a conclusiones o
+ * acuerdos concretos." — se dejó una sola vez aquí). Escala 1-5
+ * (Malo=1 … Excelente=5), más "Recomendaciones y sugerencias" de texto
+ * libre, tal como aparece al final de ambos formatos.
+ */
+var HOJA_VALORACION_EVENTO_ = "ValoracionEventoComunal";
+var ASPECTOS_VALORACION_EVENTO_ = [
+  { clave: "AGENDA_TIEMPOS", etiqueta: "La agenda se cumplió en los tiempos previstos." },
+  { clave: "PARTICIPACION_ACTIVA", etiqueta: "Hubo participación activa con preguntas, aportes y propuestas." },
+  { clave: "TEMAS_NECESIDADES_REALES", etiqueta: "Los temas tratados respondían a necesidades reales de la comunidad." },
+  { clave: "METODOLOGIA_DIALOGO", etiqueta: "La metodología favoreció el diálogo (mesas de trabajo, preguntas abiertas, plenaria)." },
+  { clave: "AMBIENTE_RESPETO", etiqueta: "El ambiente fue de respeto, escucha y convivencia." },
+  { clave: "CONCLUSIONES_ACUERDOS", etiqueta: "Se llegó a conclusiones o acuerdos concretos." },
+  { clave: "PLAN_SOCIALIZAR", etiqueta: "Hay un plan para socializar los resultados con la comunidad." },
+  { clave: "HORARIO_UBICACION", etiqueta: "El horario y la ubicación facilitaron que la comunidad asistiera." },
+  { clave: "RESULTADOS_VISIBLES", etiqueta: "Los resultados de la discusión eran visibles y compartidos para todos los asistentes." },
+  { clave: "RELACION_PEI_PLAN", etiqueta: "El foro se relacionó con el PEI, el Plan de Desarrollo Municipal u otros proyectos en curso." },
+  { clave: "PROPUESTAS_VIABLES", etiqueta: "Hubo propuestas viables que nacieron desde las realidades institucionales." }
+];
+
+function cabecerasValoracionEventoComunal_() {
+  return ["CLAVE", "ID_GRUPO", "SECCION"]
+    .concat(ASPECTOS_VALORACION_EVENTO_.map(function (a) { return a.clave; }))
+    .concat(["RECOMENDACIONES", "ULTIMA_ACTUALIZACION"]);
+}
+
+function _claveValoracionEvento_(idGrupo, seccion) {
+  return String(idGrupo || "").trim() + "|" + String(seccion || "").trim();
+}
+
+/** Valores ya guardados (si los hay) de la valoración del evento de este grupo y sección, listos para pintar el formulario. */
+function obtenerValoracionEvento(idGrupo, seccion) {
+  var hoja = obtenerHoja_(HOJA_VALORACION_EVENTO_, cabecerasValoracionEventoComunal_());
+  var mapa = obtenerMapaCabeceras_(hoja);
+  var fila = buscarFilaPorColumna_(hoja, mapa, "CLAVE", _claveValoracionEvento_(idGrupo, seccion));
+  var valores = {};
+  ASPECTOS_VALORACION_EVENTO_.forEach(function (a) {
+    valores[a.clave] = fila === -1 ? "" : String(hoja.getRange(fila, mapa[a.clave]).getValue() || "");
+  });
+  return {
+    aspectos: ASPECTOS_VALORACION_EVENTO_,
+    valores: valores,
+    recomendaciones: fila === -1 ? "" : String(hoja.getRange(fila, mapa["RECOMENDACIONES"]).getValue() || "")
+  };
+}
+
+/**
+ * Guarda (autoguardado, UPSERT) la valoración del evento — `valores` trae
+ * cualquier subconjunto de los aspectos (1-5, o vacío para "sin
+ * responder todavía") más, opcionalmente, RECOMENDACIONES; se fusiona
+ * con lo ya guardado, igual que el resto de autoguardados de la app.
+ */
+function guardarValoracionEvento(idGrupo, tokenSesion, dispositivoId, seccion, valores) {
+  idGrupo = String(idGrupo || "").trim();
+  if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
+    return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión ya no está activa en este dispositivo." };
+  }
+  seccion = String(seccion || "").toUpperCase();
+  if (seccion !== "ENCUENTRO" && seccion !== "CONECTAEDUCA") {
+    return { ok: false, mensaje: "Sección no reconocida." };
+  }
+  valores = valores || {};
+  var datos = { ID_GRUPO: idGrupo, SECCION: seccion, ULTIMA_ACTUALIZACION: new Date() };
+  var clavesValidas = {};
+  ASPECTOS_VALORACION_EVENTO_.forEach(function (a) { clavesValidas[a.clave] = true; });
+  Object.keys(valores).forEach(function (clave) {
+    if (clave === "RECOMENDACIONES") {
+      datos.RECOMENDACIONES = String(valores.RECOMENDACIONES || "").trim();
+      return;
+    }
+    if (!clavesValidas[clave]) return;
+    var valor = Number(valores[clave]);
+    if (!valor) return;
+    if (valor < 1 || valor > 5) return;
+    datos[clave] = Math.round(valor);
+  });
+
+  return conLock_(function () {
+    upsertFila_(
+      HOJA_VALORACION_EVENTO_,
+      cabecerasValoracionEventoComunal_(),
+      "CLAVE",
+      _claveValoracionEvento_(idGrupo, seccion),
+      datos
+    );
     return { ok: true };
   }, 10000);
 }

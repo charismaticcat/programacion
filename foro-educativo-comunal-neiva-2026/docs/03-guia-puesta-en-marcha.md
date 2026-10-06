@@ -3268,6 +3268,47 @@ Verificado: `node --check` sobre todos los `.gs` (sin cambios), extracción y `n
 `<script>` (limpio salvo el falso positivo esperado), cero ids duplicados, y las referencias
 `getElementById` colgantes coinciden exactamente con la lista ya aceptada (12).
 
+## 4.88 Decimoctavo lote: formato oficial D02.02.F03 reemplaza el puntaje 1-5 de "Valoración del evento"
+
+- **Qué cambia**: la tarjeta "Valoración del evento" (posición 4 de Participación, fijada en 4.87) tenía un
+  único `<select>` "Satisfacción con la actividad" (1 a 5) como placeholder. Spec del usuario: usar el
+  formato oficial real, un documento por sección —
+  "D02.02_F03_v3 EVALUACION DE VOCES QUE CONSTRUYEN TERRITORIO.docx" para Encuentro y
+  "D02.02_F03_v3 EVALUACION DE CONECTA EDUCA.docx" para Conecta Educa—, con la misma estructura en ambos:
+  11 aspectos únicos en escala 1-5 (Excelente=5…Malo=1; el documento trae una fila duplicada de "Se llegó a
+  conclusiones o acuerdos concretos." que se dejó una sola vez) más "Recomendaciones y sugerencias" de
+  texto libre al final.
+- **Valoracion.gs**: nueva hoja `ValoracionEventoComunal` (UPSERT por `CLAVE = ID_GRUPO|SECCION`, igual
+  patrón que `ParticipacionEstamento.gs`) — `ASPECTOS_VALORACION_EVENTO_` trae las 11 etiquetas oficiales,
+  `obtenerValoracionEvento(idGrupo, seccion)` devuelve aspectos + valores guardados + recomendaciones, y
+  `guardarValoracionEvento(idGrupo, tokenSesion, dispositivoId, seccion, valores)` valida sesión activa,
+  sección (`ENCUENTRO`/`CONECTAEDUCA`) y rango 1-5 antes de fusionar con lo ya guardado. Es independiente
+  de la antigua `ValoracionComunal` (eliminada del gate del informe, registro histórico intacto) y de la
+  valoración pública anónima del QR (`ValoracionAsistentesPublica`, sin cambios).
+- **Asistencia.gs/Code.gs**: `obtenerInfoEncuestaSatisfaccion` dejó de devolver `puntaje` (ya no existe esa
+  columna de uso); se eliminaron `guardarPuntajeSatisfaccion`/`rpcGuardarPuntajeSatisfaccion` y se agregaron
+  `rpcObtenerValoracionEvento`/`rpcGuardarValoracionEvento`. La subida del PDF de la encuesta
+  (`subirEncuestaSatisfaccion`/`rpcSubirEncuestaSatisfaccion`) no cambia.
+- **Components.html**: `renderValoracionEvento(datos)` pinta los 11 `<select>` (uno por aspecto, opciones
+  5-Excelente…1-Malo) más el `<textarea>` de recomendaciones, usando las etiquetas que manda el servidor
+  (un solo lugar de verdad) y precargando lo ya guardado.
+- **Index.html**: el `<select id="campoPuntajeSatisfaccion">` se reemplazó por un título dinámico
+  (`#tituloValoracionEvento`) y un contenedor (`#contenedorValoracionEvento`) que `renderValoracionEvento`
+  llena; el PDF de la encuesta (`campoArchivoEncuestaSatisfaccion`/`btnSubirEncuestaSatisfaccion`) queda
+  igual, arriba de las 11 preguntas.
+- **JS.html**: `cargarValoracionEvento_()` (llamada al entrar a Participación, junto con
+  `cargarParticipacionEstamento()`) pone el título según `estado.seccion`
+  ("Valoración de Voces que construyen territorio" / "Valoración de Conecta Educa") y pide
+  `rpcObtenerValoracionEvento`. Autoguardado delegado sobre `[data-aspecto-valoracion-evento]` (mismo
+  patrón que `data-inv-prep-pregunta`): `change` en cada `<select>` guarda de inmediato, `input` en el
+  `<textarea>` de recomendaciones con debounce de 1.5s; ambos llaman `rpcGuardarValoracionEvento` con el
+  estado completo de los 11 aspectos + recomendaciones.
+- **CSS.html**: `.fila-aspecto-valoracion` (label + control a ancho completo, separación entre preguntas).
+
+Verificado: `node --check` sobre `Valoracion.gs`/`Asistencia.gs`/`Code.gs`, extracción y `node --check` de
+cada bloque `<script>` (limpio salvo el falso positivo esperado), cero ids duplicados, y las referencias
+`getElementById` colgantes coinciden con la lista ya aceptada (12, sin `campoPuntajeSatisfaccion`).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

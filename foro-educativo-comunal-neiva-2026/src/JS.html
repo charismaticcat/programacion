@@ -363,7 +363,7 @@ function cambiarPantalla(idPantalla) {
     actualizarFirmantes();
     cargarResponsables();
     cargarParticipacionEstamento();
-    cargarEncuestaSatisfaccion_();
+    cargarValoracionEvento_();
   }
   if (idPantalla === "pantallaConfirmacionCaracterizacion") cargarConfirmacionCaracterizacion();
   if (idPantalla === "pantallaResponsableConectaEduca") cargarResponsables();
@@ -3033,23 +3033,53 @@ document.getElementById("btnSubirEncuestaSatisfaccion").addEventListener("click"
   });
 });
 
-/** Carga el puntaje 1-5 ya guardado (si lo hay) al entrar a Participación. */
-function cargarEncuestaSatisfaccion_() {
+/**
+ * "Valoración del evento" (Participación) — digitalización del formato
+ * oficial D02.02.F03, 11 aspectos 1-5 + recomendaciones, independiente
+ * por sección (ENCUENTRO/CONECTAEDUCA). Título dinámico igual al nombre
+ * del documento de origen de cada sección (spec del usuario).
+ */
+var TITULOS_VALORACION_EVENTO_ = {
+  ENCUENTRO: "Valoración de Voces que construyen territorio",
+  CONECTAEDUCA: "Valoración de Conecta Educa"
+};
+
+function cargarValoracionEvento_() {
   if (!estado.idGrupo) return;
-  llamarServidor("rpcObtenerInfoEncuestaSatisfaccion", [estado.idGrupo], function (info) {
-    var campo = document.getElementById("campoPuntajeSatisfaccion");
-    if (campo && info && info.puntaje) campo.value = String(info.puntaje);
+  var titulo = document.getElementById("tituloValoracionEvento");
+  if (titulo) titulo.textContent = TITULOS_VALORACION_EVENTO_[estado.seccion] || "Valoración del evento";
+  llamarServidor("rpcObtenerValoracionEvento", [estado.idGrupo, estado.seccion], function (datos) {
+    renderValoracionEvento(datos);
   }, function () {});
 }
 
-document.getElementById("campoPuntajeSatisfaccion").addEventListener("change", function () {
-  var valor = Number(this.value);
-  if (!valor) return;
-  llamarServidor("rpcGuardarPuntajeSatisfaccion", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, valor], function (r) {
-    mostrarMensaje("mensajeEncuestaSatisfaccion", r.ok ? "Puntaje guardado." : (r.mensaje || "No fue posible guardar el puntaje."), r.ok ? "exito" : "error");
-  }, function () {
-    mostrarMensaje("mensajeEncuestaSatisfaccion", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+var temporizadorGuardadoValoracionEvento_ = null;
+function guardarValoracionEvento_() {
+  var valores = {};
+  document.querySelectorAll("#contenedorValoracionEvento [data-aspecto-valoracion-evento]").forEach(function (campo) {
+    valores[campo.getAttribute("data-aspecto-valoracion-evento")] = campo.value;
   });
+  llamarServidor(
+    "rpcGuardarValoracionEvento",
+    [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, estado.seccion, valores],
+    function (r) {
+      if (!r.ok) mostrarMensaje("mensajeEncuestaSatisfaccion", r.mensaje || "No fue posible guardar la valoración.", "error");
+    },
+    function () {
+      mostrarMensaje("mensajeEncuestaSatisfaccion", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+    }
+  );
+}
+
+document.addEventListener("input", function (evento) {
+  if (!evento.target.closest("#contenedorValoracionEvento [data-aspecto-valoracion-evento]")) return;
+  clearTimeout(temporizadorGuardadoValoracionEvento_);
+  temporizadorGuardadoValoracionEvento_ = setTimeout(guardarValoracionEvento_, 1500);
+});
+document.addEventListener("change", function (evento) {
+  if (!evento.target.closest("#contenedorValoracionEvento [data-aspecto-valoracion-evento]")) return;
+  clearTimeout(temporizadorGuardadoValoracionEvento_);
+  guardarValoracionEvento_();
 });
 
 /**

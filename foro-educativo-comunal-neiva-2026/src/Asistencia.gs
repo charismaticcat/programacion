@@ -175,42 +175,23 @@ function subirEncuestaSatisfaccion(idGrupo, tokenSesion, dispositivoId, datosBas
 }
 
 /**
- * Info de la encuesta de satisfacción (PDF + puntaje 1-5 digitado) para la
- * pantalla de Participación — mismo patrón que obtenerInfoListadoAsistencia.
+ * Info de la encuesta de satisfacción (solo el PDF de la muestra escaneada)
+ * para la pantalla de Participación — mismo patrón que
+ * obtenerInfoListadoAsistencia. El puntaje único 1-5 que vivía aquí se
+ * reemplazó por los 11 aspectos del formato oficial D02.02.F03 (tarjeta
+ * "Valoración del evento" — ver obtenerValoracionEvento/guardarValoracionEvento,
+ * Valoracion.gs).
  */
 function obtenerInfoEncuestaSatisfaccion(idGrupo) {
   var hoja = obtenerHoja_(HOJA_ACCESOS_GRUPO_, cabecerasAccesosGrupo_());
   var mapa = obtenerMapaCabeceras_(hoja);
   var fila = buscarFilaPorColumna_(hoja, mapa, "ID_GRUPO", String(idGrupo || "").trim());
-  if (fila === -1) return { idEncuesta: "", urlEncuesta: "", puntaje: 0 };
+  if (fila === -1) return { idEncuesta: "", urlEncuesta: "" };
   var idEncuesta = String(hoja.getRange(fila, mapa["ID_ENCUESTA_SATISFACCION"]).getValue() || "").trim();
-  var puntaje = Number(hoja.getRange(fila, mapa["PUNTAJE_SATISFACCION"]).getValue() || 0);
   return {
     idEncuesta: idEncuesta,
-    urlEncuesta: idEncuesta ? "https://drive.google.com/file/d/" + idEncuesta + "/view" : "",
-    puntaje: puntaje
+    urlEncuesta: idEncuesta ? "https://drive.google.com/file/d/" + idEncuesta + "/view" : ""
   };
-}
-
-/**
- * Guarda (autoguardado) el puntaje de satisfacción con la actividad,
- * digitado por el grupo a partir de la muestra de la encuesta en papel —
- * escala 1 a 5 (spec del usuario: "Satisfacción con actividad poner
- * escala de 1 a 5").
- */
-function guardarPuntajeSatisfaccion(idGrupo, tokenSesion, dispositivoId, puntaje) {
-  idGrupo = String(idGrupo || "").trim();
-  if (!sesionActivaPorIdGrupo_(idGrupo, dispositivoId, tokenSesion)) {
-    return { ok: false, codigo: "SESION_NO_AUTORIZADA", mensaje: "Esta sesión ya no está activa en este dispositivo." };
-  }
-  var valor = Math.round(Number(puntaje) || 0);
-  if (valor < 1 || valor > 5) return { ok: false, mensaje: "El puntaje debe estar entre 1 y 5." };
-  var hoja = obtenerHoja_(HOJA_ACCESOS_GRUPO_, cabecerasAccesosGrupo_());
-  var mapa = obtenerMapaCabeceras_(hoja);
-  var fila = buscarFilaPorColumna_(hoja, mapa, "ID_GRUPO", idGrupo);
-  if (fila === -1) return { ok: false, mensaje: "No existe acceso para este grupo." };
-  hoja.getRange(fila, mapa["PUNTAJE_SATISFACCION"]).setValue(valor);
-  return { ok: true, puntaje: valor };
 }
 
 /** Sube la fotografía de evidencia del encuentro a 06_EVIDENCIAS/GRUPO N. */

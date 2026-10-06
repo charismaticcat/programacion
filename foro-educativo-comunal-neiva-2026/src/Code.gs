@@ -481,9 +481,15 @@ function rpcObtenerInfoEncuestaSatisfaccion(idGrupo) {
   });
 }
 
-function rpcGuardarPuntajeSatisfaccion(idGrupo, tokenSesion, dispositivoId, puntaje) {
+function rpcObtenerValoracionEvento(idGrupo, seccion) {
   return ejecutarRpcSeguro_(function () {
-    return guardarPuntajeSatisfaccion(idGrupo, tokenSesion, dispositivoId, puntaje);
+    return obtenerValoracionEvento(idGrupo, seccion);
+  });
+}
+
+function rpcGuardarValoracionEvento(idGrupo, tokenSesion, dispositivoId, seccion, valores) {
+  return ejecutarRpcSeguro_(function () {
+    return guardarValoracionEvento(idGrupo, tokenSesion, dispositivoId, seccion, valores);
   });
 }
 
