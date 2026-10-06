@@ -755,6 +755,21 @@ table.tabla-participacion-horizontal .th-ie {
 }
 .nombre-ie-columna { display: block; font-size: 0.72rem; line-height: 1.2; }
 .comuna-ie-columna { display: block; font-size: 0.68rem; font-weight: 400; color: var(--gris-texto); margin-top: 2px; }
+table.tabla-participacion-horizontal .th-ie-ausente { background: var(--gris-fondo); opacity: 0.75; }
+table.tabla-participacion-horizontal .th-ie-ausente .nombre-ie-columna { color: var(--gris-texto); }
+table.tabla-participacion-horizontal .th-ie-ausente .etiqueta-ausente { display: block; font-size: 0.68rem; font-weight: 400; color: var(--gris-texto); margin: 2px 0 4px; }
+.btn-habilitar-ie-matriz { font-size: 0.68rem; padding: 2px 6px; }
+table.tabla-participacion-horizontal .celda-ie-ausente { background: var(--gris-fondo); color: var(--gris-texto); text-align: center; }
+.lista-instituciones-asistieron { list-style: none; margin: 0; padding: 0; }
+.lista-instituciones-asistieron li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--gris-borde);
+}
+.lista-instituciones-asistieron li:last-child { border-bottom: none; }
+.total-ie-asistio { font-weight: 600; color: var(--verde-oscuro); }
 table.tabla-participacion-horizontal .th-total,
 table.tabla-participacion-horizontal .total-fila-estamento {
   background: var(--gris-fondo);

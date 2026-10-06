@@ -611,20 +611,27 @@
         </div>
         <div id="mensajeMetodoAsistencia"></div>
       </div>
-    </div>
 
-    <div class="tarjeta">
-      <h3 class="subtitulo-campo">Fotografía general del grupo</h3>
-      <p class="ayuda">Una foto representativa del encuentro de este grupo, independiente del método de
-        asistencia elegido. <strong>Es obligatoria para poder finalizar el Foro.</strong></p>
-      <div id="previaFotoGrupo"></div>
-      <div id="formularioFotoGrupo">
-        <input type="file" id="campoFotoGrupo" accept="image/*">
+      <!-- Encuesta de satisfacción (spec del usuario: "debajo de el PDF de
+           asistencia debe aparecer la opción: subir PDF de encuesta de
+           satisfacción"), más el puntaje digitado a partir de esa muestra. -->
+      <div style="margin-top:20px;">
+        <label for="campoArchivoEncuestaSatisfaccion">PDF de la encuesta de satisfacción (muestra escaneada)</label>
+        <input type="file" id="campoArchivoEncuestaSatisfaccion" accept="application/pdf">
         <div class="fila-botones">
-          <button class="btn btn-secundario" id="btnSubirFotoGrupo">Subir fotografía del grupo</button>
+          <button class="btn btn-secundario" id="btnSubirEncuestaSatisfaccion">Subir PDF de encuesta de satisfacción</button>
         </div>
+        <label for="campoPuntajeSatisfaccion" style="margin-top:12px;">Satisfacción con la actividad</label>
+        <select id="campoPuntajeSatisfaccion">
+          <option value="">Selecciona…</option>
+          <option value="1">1 — Muy insatisfecho</option>
+          <option value="2">2 — Insatisfecho</option>
+          <option value="3">3 — Neutral</option>
+          <option value="4">4 — Satisfecho</option>
+          <option value="5">5 — Muy satisfecho</option>
+        </select>
+        <div id="mensajeEncuestaSatisfaccion"></div>
       </div>
-      <div id="mensajeFotoGrupo"></div>
     </div>
 
     <div class="tarjeta">
@@ -645,6 +652,29 @@
         automáticamente.</p>
       <div id="resumenParticipacionEstamento" class="resumen-participacion-estamento"></div>
       <div id="contenedorParticipacionEstamento" class="tabla-horizontal-desplazable"></div>
+    </div>
+
+    <!-- Fotografía general del grupo — movida después de Participación (spec
+         del usuario: "Fotografía general del grupo debe aparecer luego de
+         participación"), con el resumen de instituciones que asistieron
+         justo encima (spec del usuario). -->
+    <div class="tarjeta">
+      <h3 class="subtitulo-campo">Instituciones Educativas invitadas que asistieron</h3>
+      <div id="resumenInstitucionesAsistieron"></div>
+    </div>
+
+    <div class="tarjeta">
+      <h3 class="subtitulo-campo">Fotografía general del grupo</h3>
+      <p class="ayuda">Una foto representativa del encuentro de este grupo, independiente del método de
+        asistencia elegido. <strong>Es obligatoria para poder finalizar el Foro.</strong></p>
+      <div id="previaFotoGrupo"></div>
+      <div id="formularioFotoGrupo">
+        <input type="file" id="campoFotoGrupo" accept="image/*">
+        <div class="fila-botones">
+          <button class="btn btn-secundario" id="btnSubirFotoGrupo">Subir fotografía del grupo</button>
+        </div>
+      </div>
+      <div id="mensajeFotoGrupo"></div>
     </div>
 
     <div class="fila-botones">

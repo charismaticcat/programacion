@@ -146,13 +146,21 @@ function renderListaIEPresentes(instituciones) {
  * firmantes en vivo. `idContenedor` permite pintar la misma tabla tanto
  * en Participación como en Confirmación de caracterización.
  */
+/**
+ * Todas las IE del grupo entran a la tabla, presentes y ausentes (spec del
+ * usuario: "Cantidad de asistentes por estamento e institución debe
+ * mostrar también a las otras instituciones que fueron marcadas como
+ * ausentes, (mostrar en gris) con texto de apoyo que diga (ausente) que se
+ * puedan habilitar") — una IE ausente se ve como columna gris, sin campos
+ * editables (no tiene sentido declarar su conteo antes de confirmarla), con
+ * un botón "Habilitar" en el encabezado que usa el mismo mecanismo que
+ * "Instituciones educativas presentes" (rpcGuardarPresenciaIE, ver
+ * data-habilitar-ie-matriz en JS.html).
+ */
 function renderParticipacionEstamento(datos, idContenedor) {
   var contenedor = document.getElementById(idContenedor);
   if (!contenedor) return;
-  // Solo las IE marcadas como presentes entran a la matriz (spec del
-  // usuario: "Responsable de envio debe seleccionar qué instituciones
-  // educativas están presentes"; ver listaIEPresentes/renderListaIEPresentes).
-  var instituciones = (datos ? datos.instituciones : []).filter(function (ie) { return ie.presente; });
+  var instituciones = datos ? datos.instituciones : [];
   if (!instituciones.length) {
     contenedor.innerHTML = "<p class='ayuda'>Marque arriba qué instituciones educativas están presentes para que aparezcan aquí.</p>";
     return;
@@ -161,6 +169,14 @@ function renderParticipacionEstamento(datos, idContenedor) {
   var html = "<table id='tabla_" + idContenedor + "' class='tabla-participacion-horizontal'>";
   html += "<thead><tr><th class='th-estamento'>Estamento</th>";
   instituciones.forEach(function (ie) {
+    if (!ie.presente) {
+      html += "<th class='th-ie th-ie-ausente' title='" + escapeHtml(ie.institucion) + "'>" +
+        "<span class='nombre-ie-columna'>" + escapeHtml(ie.institucion) + "</span>" +
+        "<span class='etiqueta-ausente'>(ausente)</span>" +
+        "<button type='button' class='btn btn-secundario btn-habilitar-ie-matriz' data-habilitar-ie-matriz='" + escapeHtml(ie.idIE) + "'>Habilitar</button>" +
+        "</th>";
+      return;
+    }
     html += "<th class='th-ie' title='" + escapeHtml(ie.institucion) + "'>" +
       "<span class='nombre-ie-columna'>" + escapeHtml(ie.institucion) + "</span>" +
       "<span class='comuna-ie-columna'>" + escapeHtml(formatearComuna(ie.comuna)) + "</span>" +
@@ -173,6 +189,10 @@ function renderParticipacionEstamento(datos, idContenedor) {
     html += "<tr data-estamento='" + escapeHtml(e.clave) + "'>";
     html += "<td class='td-estamento'>" + escapeHtml(e.etiqueta) + "</td>";
     instituciones.forEach(function (ie) {
+      if (!ie.presente) {
+        html += "<td class='celda-ie-ausente'>—</td>";
+        return;
+      }
       html +=
         "<td><input type='number' min='0' step='1' inputmode='numeric' class='input-participantes-h' " +
         "data-ie='" + escapeHtml(ie.idIE) + "' data-estamento='" + escapeHtml(e.clave) + "' " +
@@ -185,6 +205,10 @@ function renderParticipacionEstamento(datos, idContenedor) {
 
   html += "<tfoot><tr class='fila-total-ie'><td class='td-estamento'>Total</td>";
   instituciones.forEach(function (ie) {
+    if (!ie.presente) {
+      html += "<td class='celda-ie-ausente'>—</td>";
+      return;
+    }
     html += "<td data-total-ie='" + escapeHtml(ie.idIE) + "'>" + ie.total + "</td>";
   });
   html += "<td class='gran-total'>" + (datos.totalGeneral || 0) + "</td></tr></tfoot>";
@@ -208,12 +232,36 @@ function renderResumenParticipacionEstamento(idResumen, datos, metodoAsistencia,
   if (metodoAsistencia === "QR") {
     contenedor.textContent = "👥 Firmantes / participantes declarados: " + (totalFirmantes || 0) + " / " + (datos.totalGeneral || 0);
   } else {
-    var html = "👥 Total de participantes declarados: " + (datos.totalGeneral || 0);
+    var html = "👥 Total de participantes asistentes: " + (datos.totalGeneral || 0);
     if (metodoAsistencia === "LISTADO" && cantidadListado) {
       html += "<br>Total de participantes en Listado de asistencia: " + cantidadListado;
     }
     contenedor.innerHTML = html;
   }
+}
+
+/**
+ * "Instituciones Educativas invitadas que asistieron" (Participación, spec
+ * del usuario: "mencionar cuales instituciones participaron y cuantos
+ * participantes participaron por IE") — encima de la fotografía general
+ * del grupo. Solo lista las IE marcadas como presentes, con su total real
+ * ya calculado en `datos.instituciones[].total` (ParticipacionEstamento.gs).
+ */
+function renderResumenInstitucionesAsistieron(datos) {
+  var contenedor = document.getElementById("resumenInstitucionesAsistieron");
+  if (!contenedor) return;
+  var instituciones = (datos ? datos.instituciones : []).filter(function (ie) { return ie.presente; });
+  if (!instituciones.length) {
+    contenedor.innerHTML = "<p class='ayuda'>Todavía no hay instituciones educativas marcadas como presentes.</p>";
+    return;
+  }
+  var html = "<ul class='lista-instituciones-asistieron'>";
+  instituciones.forEach(function (ie) {
+    html += "<li><span>" + escapeHtml(ie.institucion) + "</span>" +
+      "<span class='total-ie-asistio'>" + (ie.total || 0) + (ie.total === 1 ? " participante" : " participantes") + "</span></li>";
+  });
+  html += "</ul>";
+  contenedor.innerHTML = html;
 }
 
 /** Ficha de caracterización del grupo: instituciones + resumen de participación, para confirmar antes de continuar. */

@@ -74,6 +74,23 @@
   </div>
 </div>
 
+<!-- Aviso genérico al funcionario (spec del usuario) — reutilizado en dos
+     momentos distintos: antes de "Sesión de socialización" (recordar
+     formato de asistencia + fotografía) y al iniciar el temporizador de la
+     2ª IE en esa misma sesión (recordar la encuesta de satisfacción) — el
+     texto se fija por código (ver abrirAvisoFuncionario_, JS.html) justo
+     antes de abrir el modal, así que basta un solo marcado para ambos. -->
+<div class="modal-fondo oculto" id="modalAvisoFuncionario">
+  <div class="modal-caja">
+    <button type="button" class="modal-cerrar" data-cerrar-modal="modalAvisoFuncionario">&times;</button>
+    <h3>📋 Aviso</h3>
+    <p id="textoAvisoFuncionario"></p>
+    <div class="fila-botones">
+      <button class="btn btn-primario" data-cerrar-modal="modalAvisoFuncionario">Entendido</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-fondo oculto" id="modalTomaSesion">
   <div class="modal-caja">
     <button type="button" class="modal-cerrar" data-cerrar-modal="modalTomaSesion">&times;</button>

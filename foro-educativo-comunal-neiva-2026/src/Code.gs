@@ -469,6 +469,24 @@ function rpcGuardarCantidadListadoAsistencia(idGrupo, tokenSesion, dispositivoId
   });
 }
 
+function rpcSubirEncuestaSatisfaccion(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType) {
+  return ejecutarRpcSeguro_(function () {
+    return subirEncuestaSatisfaccion(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType);
+  });
+}
+
+function rpcObtenerInfoEncuestaSatisfaccion(idGrupo) {
+  return ejecutarRpcSeguro_(function () {
+    return obtenerInfoEncuestaSatisfaccion(idGrupo);
+  });
+}
+
+function rpcGuardarPuntajeSatisfaccion(idGrupo, tokenSesion, dispositivoId, puntaje) {
+  return ejecutarRpcSeguro_(function () {
+    return guardarPuntajeSatisfaccion(idGrupo, tokenSesion, dispositivoId, puntaje);
+  });
+}
+
 function rpcSubirFotoEvidencia(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType) {
   return ejecutarRpcSeguro_(function () {
     return subirFotoEvidencia(idGrupo, tokenSesion, dispositivoId, datosBase64, nombreArchivo, mimeType);

@@ -3213,6 +3213,41 @@ el contador al teclear — sin duplicar lógica de conteo en ningún lado nuevo.
 Verificado: `node --check` sobre todos los `.gs` (sin cambios), extracción y `node --check` de cada bloque
 `<script>` (limpio salvo el falso positivo esperado).
 
+## 4.86 Decimosexto lote: aviso al funcionario antes de socialización y al iniciar la 2ª IE, encuesta de satisfacción (PDF + puntaje 1-5), IE ausentes en la matriz (gris + habilitar), reordenar foto, resumen de IE asistieron, gif de carga en Continuar
+
+- **Aviso al funcionario — antes de "Sesión de socialización"**: nuevo modal genérico `modalAvisoFuncionario`
+  (Modal.html, botón "Entendido" + X, mismo patrón que `modalRecursosSesion1`) abierto por
+  `abrirAvisoFuncionario_(texto)` (JS.html) — se dispara una sola vez por sesión (`estado.avisoAntesSocializacionVisto`)
+  al entrar a `pantallaSesionSocializacion`, con el texto pedido por el usuario (formato de asistencia +
+  fotografía del grupo).
+- **Aviso al funcionario — al iniciar el temporizador de la 2ª IE**: mismo modal, reutilizado con el texto de
+  la encuesta de satisfacción — se dispara dentro de `iniciarTemporizadorSocializacionIE_` cuando
+  `estadoSocializacion.conteoTemporizadoresIniciados` llega a 2 (confirmado con el usuario: "segundo
+  temporizador" = el de la 2ª institución, no uno nuevo en Construcción colectiva), una sola vez por sesión.
+- **Encuesta de satisfacción**: nuevas columnas `ID_ENCUESTA_SATISFACCION`/`PUNTAJE_SATISFACCION`
+  (Access.gs), funciones `subirEncuestaSatisfaccion`/`obtenerInfoEncuestaSatisfaccion`/`guardarPuntajeSatisfaccion`
+  (Asistencia.gs, mismo patrón que el listado de asistencia — mismo folder 02_ASISTENCIA/GRUPO N), RPCs nuevas
+  (Code.gs) y UI nueva en Participación, debajo del PDF de asistencia: subir PDF de la encuesta + select de
+  puntaje 1-5 ("Satisfacción con la actividad").
+- **Matriz de participación — IE ausentes visibles**: `renderParticipacionEstamento` (Components.html) ya no
+  filtra solo las presentes — una IE ausente aparece como columna gris con "(ausente)" y un botón "Habilitar"
+  en el encabezado (mismo patrón visual que el checklist de socialización), sin celdas editables (solo "—").
+  El botón usa el mismo `rpcGuardarPresenciaIE` de siempre (`data-habilitar-ie-matriz`, JS.html), así que queda
+  sincronizado con el checklist "Instituciones educativas presentes" y con el de Socialización.
+- **Reordenamiento en Participación**: "Fotografía general del grupo" se movió a después de "Cantidad de
+  asistentes por estamento e institución"; justo encima de la foto se agregó "Instituciones Educativas
+  invitadas que asistieron" (`renderResumenInstitucionesAsistieron`, Components.html) — lista las IE presentes
+  con su total de participantes ya calculado por la matriz.
+- **Texto renombrado**: "👥 Total de participantes declarados" → "👥 Total de participantes asistentes"
+  (`renderResumenParticipacionEstamento`, Components.html).
+- **Gif de carga en "Continuar" (Participación)**: nuevo tipo `participacion` en `GIFS_CARGA_ACCION_` (JS.html),
+  con barra de progreso (igual que "informe"/"invitado") — `verificarYContinuarParticipacion_` ahora envuelve
+  todo el flujo (flush de guardados pendientes + refresco de la matriz) con `mostrarCargaAccion_`/`ocultarCargaAccion_`.
+
+Verificado: `node --check` sobre todos los `.gs` (limpio), extracción y `node --check` de cada bloque
+`<script>` (limpio salvo el falso positivo esperado), cero ids duplicados, y las referencias
+`getElementById` colgantes coinciden exactamente con la lista ya aceptada (12), sin hallazgos nuevos.
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

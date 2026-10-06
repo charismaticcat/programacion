@@ -34,6 +34,12 @@ var estado = {
   socializacionPreparacion: [],
   explicacionConectaEducaVista: false,
   avisoColaboradoresMostrado: false,
+  // Avisos al funcionario (spec del usuario) — cada uno se muestra una sola
+  // vez por sesión: antes de "Sesión de socialización" y al iniciar el
+  // temporizador de la 2ª IE en esa misma pantalla (ver estadoSocializacion
+  // más abajo para el segundo, que vive aparte por estar ligado al
+  // temporizador en curso).
+  avisoAntesSocializacionVisto: false,
   enlacesInvitados: null,
   seccion: "",
   // Conversatorio (Conecta Educa, pedido del usuario) — mini-herramienta
@@ -357,6 +363,7 @@ function cambiarPantalla(idPantalla) {
     actualizarFirmantes();
     cargarResponsables();
     cargarParticipacionEstamento();
+    cargarEncuestaSatisfaccion_();
   }
   if (idPantalla === "pantallaConfirmacionCaracterizacion") cargarConfirmacionCaracterizacion();
   if (idPantalla === "pantallaResponsableConectaEduca") cargarResponsables();
@@ -372,7 +379,17 @@ function cambiarPantalla(idPantalla) {
   }
   if (idPantalla === "pantallaSeleccionIEPreparacion") cargarListaIEPreparacion();
   if (idPantalla === "pantallaPreparacionIE") cargarPreparacionIE();
-  if (idPantalla === "pantallaSesionSocializacion") cargarSocializacionIE();
+  if (idPantalla === "pantallaSesionSocializacion") {
+    cargarSocializacionIE();
+    if (!estado.avisoAntesSocializacionVisto) {
+      estado.avisoAntesSocializacionVisto = true;
+      abrirAvisoFuncionario_(
+        "Estimado funcionario. Por favor diligenciar el formato de asistencia y escanee todas las hojas " +
+          "firmadas en un solo PDF para diligenciar la cantidad de participantes de manera manual cuando se " +
+          "le solicite. Prepare también una fotografía de la mayor cantidad de participantes de su grupo."
+      );
+    }
+  }
   if (idPantalla === "pantallaSesion1") {
     cargarSesion1();
     // Un solo enlace al documento de consolidado del grupo (spec del
@@ -961,6 +978,12 @@ function cerrarModal(id) {
   document.getElementById(id).classList.add("oculto");
 }
 
+/** Abre el aviso genérico al funcionario (modalAvisoFuncionario, Modal.html) con el texto dado. */
+function abrirAvisoFuncionario_(texto) {
+  document.getElementById("textoAvisoFuncionario").textContent = texto;
+  abrirModal("modalAvisoFuncionario");
+}
+
 /**
  * Reemplazo de window.confirm() (nativo): dentro del iframe con sandbox
  * de HtmlService, confirm() puede verse feo (diálogo nativo del
@@ -1115,6 +1138,12 @@ var GIFS_CARGA_ACCION_ = {
   // este mismo gif de nuevo, ahora como indicador de carga de la subida
   // del listado de asistencia en PDF) — ver rama especial más abajo.
   listado: { texto: "Subiendo listado de asistencia…" },
+  // Verificar y continuar desde Participación encadena varias llamadas al
+  // servidor (flushGuardadosPendientesParticipacionEstamento_ +
+  // cargarParticipacionEstamento) antes de poder avanzar — spec del
+  // usuario: "al presionar continuar en participación, toma mucho tiempo.
+  // Poner un gif de carga con barra de progreso".
+  participacion: { texto: "Guardando participación…" },
   // Mismo sticker "Cargando" para TODAS las cargas y cambios de pantalla
   // del flujo de invitados (estudiantes, egresados(as) y acudientes) —
   // spec del usuario: "usa este gif para todas las cargas y cambios de
@@ -1139,7 +1168,7 @@ function mostrarCargaAccion_(tipo, texto) {
   // se agrega aquí por el mismo motivo: genera un Doc y lo exporta a PDF
   // (Socializacion.gs), una operación de varios segundos que con el
   // ⏳ estático se sentía "trabada" aunque estuviera avanzando.
-  var usaBarraProgreso = tipo === "informe" || tipo === "invitado" || tipo === "aportesRelevantesSocializacion";
+  var usaBarraProgreso = tipo === "informe" || tipo === "invitado" || tipo === "aportesRelevantesSocializacion" || tipo === "participacion";
   if (usaBarraProgreso) {
     img.classList.add("oculto");
     emoji.classList.add("oculto");
@@ -1358,7 +1387,12 @@ var estadoSocializacion = {
   ieActivaId: "",
   ieActivaNombre: "",
   segundosRestantes: 0,
-  temporizadorId: null
+  temporizadorId: null,
+  // Cuenta cuántas veces se ha iniciado el temporizador en esta sesión —
+  // al llegar a 2 (temporizador de la 2ª IE) se muestra, una sola vez, el
+  // aviso para preparar la encuesta de satisfacción (spec del usuario).
+  conteoTemporizadoresIniciados: 0,
+  avisoSegundaIEMostrado: false
 };
 var SEGUNDOS_INICIALES_SOCIALIZACION_ = 600;
 
@@ -1540,6 +1574,15 @@ function iniciarTemporizadorSocializacionIE_(idIE, nombreIE, logoId) {
   _actualizarRelojSocializacion_();
   mostrarAvisoMomentoSocializacion_("🟢 Socialización de " + nombreIE + " iniciada.");
   reproducirSonidoSocializacion_("inicio");
+  estadoSocializacion.conteoTemporizadoresIniciados++;
+  if (estadoSocializacion.conteoTemporizadoresIniciados === 2 && !estadoSocializacion.avisoSegundaIEMostrado) {
+    estadoSocializacion.avisoSegundaIEMostrado = true;
+    abrirAvisoFuncionario_(
+      "Estimado funcionario. Por favor solicite a los participantes diligenciar la encuesta de satisfacción " +
+        "con la actividad que se está realizando. Una vez se tenga el registro de la muestra seleccionada, " +
+        "escanéela, suba en un solo PDF y digitalice los resultados en la pantalla participación."
+    );
+  }
   estadoSocializacion.temporizadorId = setInterval(function () {
     if (estadoSocializacion.pausado) return;
     estadoSocializacion.segundosRestantes--;
@@ -1629,6 +1672,23 @@ document.addEventListener("click", function (evento) {
   }
   var habilitar = evento.target.closest("[data-habilitar-ie-socializacion]");
   if (habilitar) habilitarIESocializacion_(habilitar.getAttribute("data-habilitar-ie-socializacion"));
+  // "Habilitar" en el encabezado gris de una IE ausente, dentro de la
+  // matriz de participación (spec del usuario) — mismo RPC que la casilla
+  // de "Instituciones educativas presentes" (Bienvenida), así que ambas
+  // vistas quedan siempre sincronizadas.
+  var habilitarMatriz = evento.target.closest("[data-habilitar-ie-matriz]");
+  if (habilitarMatriz) {
+    var idIEMatriz = habilitarMatriz.getAttribute("data-habilitar-ie-matriz");
+    llamarServidor("rpcGuardarPresenciaIE", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, idIEMatriz, true], function (r) {
+      if (!r.ok) {
+        mostrarMensaje("mensajeIEPresentes", r.mensaje || "No fue posible habilitar la institución.", "error");
+        return;
+      }
+      cargarParticipacionEstamento();
+    }, function () {
+      mostrarMensaje("mensajeIEPresentes", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+    });
+  }
   var verCompleta = evento.target.closest("[data-ver-pantalla-completa-socializacion]");
   if (verCompleta) {
     document.getElementById("pantallaCompletaTemporizadorSocializacion").classList.remove("oculto");
@@ -2665,8 +2725,10 @@ function irTrasParticipacion_() {
  * Confirmación de caracterización).
  */
 function verificarYContinuarParticipacion_() {
+  mostrarCargaAccion_("participacion");
   flushGuardadosPendientesParticipacionEstamento_(function () {
     cargarParticipacionEstamento(function () {
+      ocultarCargaAccion_();
       var institucionesSinMarcar = institucionesSinParticipacionMarcada_();
       if (institucionesSinMarcar.length) {
         confirmarAccion(
@@ -2931,6 +2993,61 @@ document.getElementById("btnSubirListado").addEventListener("click", function ()
 // adelante en... listado PDF") — el listado se sigue pudiendo subir en
 // cualquier momento desde este mismo panel, simplemente ya no hay un
 // botón de "más tarde" aparte.
+
+/**
+ * Encuesta de satisfacción con la actividad (Participación, spec del
+ * usuario): PDF de la muestra escaneada, debajo del listado de asistencia
+ * — mismo patrón que btnSubirListado — más el puntaje 1-5 digitado por el
+ * grupo a partir de esa muestra.
+ */
+document.getElementById("btnSubirEncuestaSatisfaccion").addEventListener("click", function () {
+  var input = document.getElementById("campoArchivoEncuestaSatisfaccion");
+  var archivo = input.files[0];
+  if (!archivo) {
+    mostrarMensaje("mensajeEncuestaSatisfaccion", "Selecciona primero un archivo.", "error");
+    return;
+  }
+  if (archivo.type !== "application/pdf") {
+    mostrarMensaje("mensajeEncuestaSatisfaccion", "Solo se admiten archivos PDF para la encuesta de satisfacción.", "error");
+    return;
+  }
+  leerArchivoComoBase64_(archivo, function (base64) {
+    mostrarCargaAccion_("listado", "Subiendo encuesta de satisfacción…");
+    llamarServidor(
+      "rpcSubirEncuestaSatisfaccion",
+      [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, base64, archivo.name, archivo.type],
+      function (r) {
+        ocultarCargaAccion_();
+        mostrarMensaje("mensajeEncuestaSatisfaccion", r.ok ? "PDF subido correctamente." : (r.mensaje || "No fue posible subir la encuesta."), r.ok ? "exito" : "error");
+        if (r.ok) input.value = "";
+      },
+      function (error) {
+        ocultarCargaAccion_();
+        console.error("rpcSubirEncuestaSatisfaccion", error);
+        mostrarMensaje("mensajeEncuestaSatisfaccion", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+      }
+    );
+  });
+});
+
+/** Carga el puntaje 1-5 ya guardado (si lo hay) al entrar a Participación. */
+function cargarEncuestaSatisfaccion_() {
+  if (!estado.idGrupo) return;
+  llamarServidor("rpcObtenerInfoEncuestaSatisfaccion", [estado.idGrupo], function (info) {
+    var campo = document.getElementById("campoPuntajeSatisfaccion");
+    if (campo && info && info.puntaje) campo.value = String(info.puntaje);
+  }, function () {});
+}
+
+document.getElementById("campoPuntajeSatisfaccion").addEventListener("change", function () {
+  var valor = Number(this.value);
+  if (!valor) return;
+  llamarServidor("rpcGuardarPuntajeSatisfaccion", [estado.idGrupo, estado.tokenSesion, estado.dispositivoId, valor], function (r) {
+    mostrarMensaje("mensajeEncuestaSatisfaccion", r.ok ? "Puntaje guardado." : (r.mensaje || "No fue posible guardar el puntaje."), r.ok ? "exito" : "error");
+  }, function () {
+    mostrarMensaje("mensajeEncuestaSatisfaccion", "Ocurrió un error de comunicación con el servidor. Intente de nuevo.", "error");
+  });
+});
 
 /**
  * Cantidad declarada del listado de asistencia (método PDF) — el campo
@@ -3429,6 +3546,7 @@ function cargarParticipacionEstamento(alTerminar, omitirListaIEPresentes) {
     CONTENEDORES_PARTICIPACION_ESTAMENTO_.forEach(function (idContenedor) {
       if (document.getElementById(idContenedor)) renderParticipacionEstamento(datos, idContenedor);
     });
+    renderResumenInstitucionesAsistieron(datos);
     renderResumenParticipacionEstamentoTodo();
     actualizarComparativoFirmantesQR_();
     if (alTerminar) alTerminar();

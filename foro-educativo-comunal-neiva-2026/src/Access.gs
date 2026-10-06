@@ -292,7 +292,12 @@ function cabecerasAccesosGrupo_() {
     // usuario: "si se cae la señal o se cambia de dispositivo, solo pedir
     // código de ingreso y retomar desde la última parte que se dejó") —
     // ver guardarUltimaPantallaGrupo más abajo.
-    "ULTIMA_PANTALLA"
+    "ULTIMA_PANTALLA",
+    // Encuesta de satisfacción con la actividad (Participación, spec del
+    // usuario): PDF escaneado de la muestra diligenciada en papel + puntaje
+    // 1-5 digitado por el grupo — ver subirEncuestaSatisfaccion /
+    // guardarPuntajeSatisfaccion (Asistencia.gs).
+    "ID_ENCUESTA_SATISFACCION", "PUNTAJE_SATISFACCION"
   ];
 }
 
