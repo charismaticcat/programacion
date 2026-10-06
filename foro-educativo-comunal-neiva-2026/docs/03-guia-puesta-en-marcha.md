@@ -3309,6 +3309,41 @@ Verificado: `node --check` sobre `Valoracion.gs`/`Asistencia.gs`/`Code.gs`, extr
 cada bloque `<script>` (limpio salvo el falso positivo esperado), cero ids duplicados, y las referencias
 `getElementById` colgantes coinciden con la lista ya aceptada (12, sin `campoPuntajeSatisfaccion`).
 
+## 4.89 Decimonoveno lote: turno de "Funcionario SEM" en Socialización + calificación promedio (0.5) en Valoración del evento
+
+- **Turno extra en el checklist de Socialización** (spec del usuario): además de cada IE, el funcionario
+  de la Secretaría de Educación Municipal puede tomar su propio temporizador de 10 minutos en "Sesión de
+  socialización". `cargarSocializacionIE()` (JS.html) agrega una fila sintética
+  (`ID_FUNCIONARIO_SEM_SOCIALIZACION_ = "FUNCIONARIO_SEM"`, institución "Funcionario SEM") al final del
+  checklist que llega del servidor — no es una IE real, no pasa por "presente/habilitar" (siempre
+  presente) ni se guarda en `obtenerSocializacionGrupo` (Socializacion.gs, que sigue siendo solo de las
+  IE del grupo); usa exactamente el mismo botón "▶ Iniciar temporizador"/reloj/finalizar que cualquier IE
+  (`renderChecklistSocializacionIE`, `iniciarTemporizadorSocializacionIE_`, `finalizarSocializacionIE_`,
+  sin cambios), porque ese checklist entero es puramente visual en el cliente (spec ya vigente desde el
+  lote 62: "eliminar todo el registro del spreadsheets"). Su estado `socializo` se conserva si se vuelve a
+  entrar a la pantalla (no se reinicia en cada `cargarSocializacionIE()`), igual que para las IE reales.
+- **"Valoración del evento" vuelve a un solo campo** (spec del usuario: "la selección de calificación en
+  valoración debe ir en escala de 0.5 desde 1.0, 1.5 hasta llegar a 5.0 y se debe poner una sola casilla
+  de calificación promedio de acuerdo a la hoja que se subirá y que manualmente el responsable de envío
+  escribirá") — se reemplazan los 11 aspectos individuales del lote 4.88 (que exigían transcribir cada
+  pregunta del formato D02.02.F03 una por una) por un único campo "Calificación promedio" con escala de
+  0.5 en 0.5, de 1.0 a 5.0 (`OPCIONES_PROMEDIO_VALORACION_EVENTO_`, Valoracion.gs), que el responsable de
+  envío llena a mano con el promedio real que sale de la muestra de encuestas en papel ya escaneada y
+  subida en PDF. `cabecerasValoracionEventoComunal_` pasa de `CLAVE/ID_GRUPO/SECCION/<11 columnas>/
+  RECOMENDACIONES/ULTIMA_ACTUALIZACION` a `CLAVE/ID_GRUPO/SECCION/PROMEDIO/RECOMENDACIONES/
+  ULTIMA_ACTUALIZACION` — las 11 columnas viejas de la hoja `ValoracionEventoComunal` ya creada quedan sin
+  usar (mismo criterio que `PUNTAJE_SATISFACCION` en Access.gs: columna huérfana inofensiva, no se borra
+  del esquema en vivo); `obtenerHoja_` agrega `PROMEDIO` al final sin tocar lo existente.
+  `guardarValoracionEvento` valida que el promedio esté entre 1 y 5 y que su doble sea entero (pasos de
+  0.5 exactos). `renderValoracionEvento` (Components.html) ahora pinta un solo `<select>` con las 9
+  opciones del servidor más el `<textarea>` de recomendaciones — mismo atributo genérico
+  `data-aspecto-valoracion-evento` (con valores `PROMEDIO`/`RECOMENDACIONES`), así que el autoguardado
+  delegado de JS.html (`guardarValoracionEvento_`, sin cambios) sigue funcionando exactamente igual.
+
+Verificado: `node --check` sobre `Valoracion.gs`, extracción y `node --check` de cada bloque `<script>`
+(limpio salvo el falso positivo esperado), cero ids duplicados, y las referencias `getElementById`
+colgantes coinciden con la lista ya aceptada (12).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:

@@ -265,30 +265,29 @@ function renderResumenInstitucionesAsistieron(datos) {
 }
 
 /**
- * Tarjeta "Valoración del evento" (Participación) — digitalización del
- * formato oficial D02.02.F03: 11 aspectos en escala 1-5 (Excelente…Malo)
- * más "Recomendaciones y sugerencias" de texto libre. `datos.aspectos`
- * viene del servidor (ASPECTOS_VALORACION_EVENTO_, Valoracion.gs) para que
- * las etiquetas vivan en un solo lugar; `datos.valores`/`datos.recomendaciones`
+ * Tarjeta "Valoración del evento" (Participación) — spec del usuario:
+ * "una sola casilla de calificación promedio de acuerdo a la hoja que se
+ * subirá y que manualmente el responsable de envío escribirá", escala de
+ * 0.5 en 0.5 de 1.0 a 5.0 (no las 11 preguntas individuales del formato
+ * oficial D02.02.F03 una por una). `datos.opciones` viene del servidor
+ * (OPCIONES_PROMEDIO_VALORACION_EVENTO_, Valoracion.gs) para que la
+ * escala viva en un solo lugar; `datos.promedio`/`datos.recomendaciones`
  * son lo ya guardado (o vacío). Cada control guarda su propio atributo
  * data-* para el autoguardado delegado (ver JS.html).
  */
 function renderValoracionEvento(datos) {
   var contenedor = document.getElementById("contenedorValoracionEvento");
   if (!contenedor || !datos) return;
-  var valores = datos.valores || {};
+  var actual = datos.promedio || "";
   var html = "";
-  (datos.aspectos || []).forEach(function (aspecto) {
-    var actual = valores[aspecto.clave] || "";
-    html += "<div class='fila-aspecto-valoracion'>";
-    html += "<label for='valoracionEvento_" + escapeHtml(aspecto.clave) + "'>" + escapeHtml(aspecto.etiqueta) + "</label>";
-    html += "<select id='valoracionEvento_" + escapeHtml(aspecto.clave) + "' data-aspecto-valoracion-evento='" + escapeHtml(aspecto.clave) + "'>";
-    html += "<option value=''" + (actual ? "" : " selected") + ">Selecciona…</option>";
-    [["5", "5 — Excelente"], ["4", "4 — Bueno"], ["3", "3 — Regular"], ["2", "2 — Deficiente"], ["1", "1 — Malo"]].forEach(function (op) {
-      html += "<option value='" + op[0] + "'" + (String(actual) === op[0] ? " selected" : "") + ">" + op[1] + "</option>";
-    });
-    html += "</select></div>";
+  html += "<div class='fila-aspecto-valoracion'>";
+  html += "<label for='valoracionEventoPromedio'>Calificación promedio (según la hoja de encuestas subida)</label>";
+  html += "<select id='valoracionEventoPromedio' data-aspecto-valoracion-evento='PROMEDIO'>";
+  html += "<option value=''" + (actual ? "" : " selected") + ">Selecciona…</option>";
+  (datos.opciones || []).forEach(function (op) {
+    html += "<option value='" + escapeHtml(op) + "'" + (String(actual) === op ? " selected" : "") + ">" + escapeHtml(op) + "</option>";
   });
+  html += "</select></div>";
   html += "<div class='fila-aspecto-valoracion'>";
   html += "<label for='valoracionEventoRecomendaciones'>Recomendaciones y sugerencias</label>";
   html += "<textarea id='valoracionEventoRecomendaciones' data-aspecto-valoracion-evento='RECOMENDACIONES' rows='4'>" +

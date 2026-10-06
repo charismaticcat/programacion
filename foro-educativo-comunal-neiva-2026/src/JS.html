@@ -1398,6 +1398,17 @@ var estadoSocializacion = {
 };
 var SEGUNDOS_INICIALES_SOCIALIZACION_ = 600;
 
+/**
+ * Turno extra en el checklist de socialización, además de cada IE (spec
+ * del usuario): el funcionario de la Secretaría de Educación Municipal
+ * también puede tomar su propio temporizador de 10 minutos. No es una IE
+ * real — no pasa por "presente/habilitar" ni por obtenerSocializacionGrupo_
+ * (Socializacion.gs) — es una fila sintética que se agrega siempre al
+ * final del checklist, con el mismo comportamiento de inicio/fin de
+ * temporizador que cualquier IE (ver cargarSocializacionIE más abajo).
+ */
+var ID_FUNCIONARIO_SEM_SOCIALIZACION_ = "FUNCIONARIO_SEM";
+
 // Logos de Alcaldía (LOGO_PIE_ID) y Foro (LOGO_ENCABEZADO_ID) al pie del
 // temporizador en pantalla completa (spec del usuario) — mismos archivos
 // ya usados en el splash/informe, se fijan una sola vez.
@@ -1421,9 +1432,19 @@ function cargarSocializacionIE() {
       ((estado.participacionEstamento && estado.participacionEstamento.instituciones) || []).forEach(function (ie) {
         presentesPorIE[ie.idIE] = !!ie.presente;
       });
+      var funcionarioSEMPrevio = (estadoSocializacion.datos || []).find(function (ie) {
+        return ie.idIE === ID_FUNCIONARIO_SEM_SOCIALIZACION_;
+      });
       estadoSocializacion.datos = (Array.isArray(datos) ? datos : []).map(function (ie) {
         ie.presente = presentesPorIE.hasOwnProperty(ie.idIE) ? presentesPorIE[ie.idIE] : true;
         return ie;
+      });
+      estadoSocializacion.datos.push({
+        idIE: ID_FUNCIONARIO_SEM_SOCIALIZACION_,
+        institucion: "Funcionario SEM",
+        logoId: "",
+        presente: true,
+        socializo: funcionarioSEMPrevio ? !!funcionarioSEMPrevio.socializo : false
       });
       renderChecklistSocializacionIE(estadoSocializacion.datos);
     }, function () {

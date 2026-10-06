@@ -66,39 +66,24 @@ function guardarValoracionAsistentePublica(idGrupo, respuestas) {
 }
 
 /**
- * Valoración del evento (Participación, tarjeta "Valoración del evento",
- * lote del formato oficial D02.02.F03) — el funcionario digitaliza, una
- * vez por grupo y por sección (ENCUENTRO/CONECTAEDUCA, puede haber una de
- * cada una), el resultado representativo de la muestra de encuestas en
- * papel que ya escaneó y subió como PDF (ver subirEncuestaSatisfaccion,
- * Asistencia.gs). Mismos 11 aspectos del formato oficial, idénticos en
- * ambos documentos de origen:
- *   - "D02.02_F03_v3 EVALUACION DE VOCES QUE CONSTRUYEN TERRITORIO.docx"
- *   - "D02.02_F03_v3 EVALUACION DE CONECTA EDUCA.docx"
- * (el documento trae una fila duplicada de "Se llegó a conclusiones o
- * acuerdos concretos." — se dejó una sola vez aquí). Escala 1-5
- * (Malo=1 … Excelente=5), más "Recomendaciones y sugerencias" de texto
- * libre, tal como aparece al final de ambos formatos.
+ * Valoración del evento (Participación, tarjeta "Valoración del evento") —
+ * el responsable de envío digitaliza, una vez por grupo y por sección
+ * (ENCUENTRO/CONECTAEDUCA, puede haber una de cada una), la calificación
+ * PROMEDIO que resulta de la muestra de encuestas en papel del formato
+ * oficial D02.02.F03 (ambos documentos, "...VOCES QUE CONSTRUYEN
+ * TERRITORIO" y "...CONECTA EDUCA") que ya escaneó y subió como PDF (ver
+ * subirEncuestaSatisfaccion, Asistencia.gs) — spec del usuario: "una sola
+ * casilla de calificación promedio de acuerdo a la hoja que se subirá y
+ * que manualmente el responsable de envío escribirá". Escala de 0.5 en
+ * 0.5, de 1.0 a 5.0 (no el 1-5 entero de las 11 preguntas individuales del
+ * formato, que no se digitalizan una por una). Más "Recomendaciones y
+ * sugerencias" de texto libre, igual que al final de ambos formatos.
  */
 var HOJA_VALORACION_EVENTO_ = "ValoracionEventoComunal";
-var ASPECTOS_VALORACION_EVENTO_ = [
-  { clave: "AGENDA_TIEMPOS", etiqueta: "La agenda se cumplió en los tiempos previstos." },
-  { clave: "PARTICIPACION_ACTIVA", etiqueta: "Hubo participación activa con preguntas, aportes y propuestas." },
-  { clave: "TEMAS_NECESIDADES_REALES", etiqueta: "Los temas tratados respondían a necesidades reales de la comunidad." },
-  { clave: "METODOLOGIA_DIALOGO", etiqueta: "La metodología favoreció el diálogo (mesas de trabajo, preguntas abiertas, plenaria)." },
-  { clave: "AMBIENTE_RESPETO", etiqueta: "El ambiente fue de respeto, escucha y convivencia." },
-  { clave: "CONCLUSIONES_ACUERDOS", etiqueta: "Se llegó a conclusiones o acuerdos concretos." },
-  { clave: "PLAN_SOCIALIZAR", etiqueta: "Hay un plan para socializar los resultados con la comunidad." },
-  { clave: "HORARIO_UBICACION", etiqueta: "El horario y la ubicación facilitaron que la comunidad asistiera." },
-  { clave: "RESULTADOS_VISIBLES", etiqueta: "Los resultados de la discusión eran visibles y compartidos para todos los asistentes." },
-  { clave: "RELACION_PEI_PLAN", etiqueta: "El foro se relacionó con el PEI, el Plan de Desarrollo Municipal u otros proyectos en curso." },
-  { clave: "PROPUESTAS_VIABLES", etiqueta: "Hubo propuestas viables que nacieron desde las realidades institucionales." }
-];
+var OPCIONES_PROMEDIO_VALORACION_EVENTO_ = ["1.0", "1.5", "2.0", "2.5", "3.0", "3.5", "4.0", "4.5", "5.0"];
 
 function cabecerasValoracionEventoComunal_() {
-  return ["CLAVE", "ID_GRUPO", "SECCION"]
-    .concat(ASPECTOS_VALORACION_EVENTO_.map(function (a) { return a.clave; }))
-    .concat(["RECOMENDACIONES", "ULTIMA_ACTUALIZACION"]);
+  return ["CLAVE", "ID_GRUPO", "SECCION", "PROMEDIO", "RECOMENDACIONES", "ULTIMA_ACTUALIZACION"];
 }
 
 function _claveValoracionEvento_(idGrupo, seccion) {
@@ -110,22 +95,18 @@ function obtenerValoracionEvento(idGrupo, seccion) {
   var hoja = obtenerHoja_(HOJA_VALORACION_EVENTO_, cabecerasValoracionEventoComunal_());
   var mapa = obtenerMapaCabeceras_(hoja);
   var fila = buscarFilaPorColumna_(hoja, mapa, "CLAVE", _claveValoracionEvento_(idGrupo, seccion));
-  var valores = {};
-  ASPECTOS_VALORACION_EVENTO_.forEach(function (a) {
-    valores[a.clave] = fila === -1 ? "" : String(hoja.getRange(fila, mapa[a.clave]).getValue() || "");
-  });
   return {
-    aspectos: ASPECTOS_VALORACION_EVENTO_,
-    valores: valores,
+    opciones: OPCIONES_PROMEDIO_VALORACION_EVENTO_,
+    promedio: fila === -1 ? "" : String(hoja.getRange(fila, mapa["PROMEDIO"]).getValue() || ""),
     recomendaciones: fila === -1 ? "" : String(hoja.getRange(fila, mapa["RECOMENDACIONES"]).getValue() || "")
   };
 }
 
 /**
  * Guarda (autoguardado, UPSERT) la valoración del evento — `valores` trae
- * cualquier subconjunto de los aspectos (1-5, o vacío para "sin
- * responder todavía") más, opcionalmente, RECOMENDACIONES; se fusiona
- * con lo ya guardado, igual que el resto de autoguardados de la app.
+ * PROMEDIO (opcional, 1.0-5.0 en pasos de 0.5) y/o RECOMENDACIONES
+ * (opcional, texto libre); se fusiona con lo ya guardado, igual que el
+ * resto de autoguardados de la app.
  */
 function guardarValoracionEvento(idGrupo, tokenSesion, dispositivoId, seccion, valores) {
   idGrupo = String(idGrupo || "").trim();
@@ -138,19 +119,16 @@ function guardarValoracionEvento(idGrupo, tokenSesion, dispositivoId, seccion, v
   }
   valores = valores || {};
   var datos = { ID_GRUPO: idGrupo, SECCION: seccion, ULTIMA_ACTUALIZACION: new Date() };
-  var clavesValidas = {};
-  ASPECTOS_VALORACION_EVENTO_.forEach(function (a) { clavesValidas[a.clave] = true; });
-  Object.keys(valores).forEach(function (clave) {
-    if (clave === "RECOMENDACIONES") {
-      datos.RECOMENDACIONES = String(valores.RECOMENDACIONES || "").trim();
-      return;
+  if (Object.prototype.hasOwnProperty.call(valores, "PROMEDIO")) {
+    var promedio = Number(valores.PROMEDIO);
+    // Pasos de 0.5: el doble debe ser un entero (1.0->2, 1.5->3, ...).
+    if (promedio && promedio >= 1 && promedio <= 5 && Math.round(promedio * 2) === promedio * 2) {
+      datos.PROMEDIO = promedio;
     }
-    if (!clavesValidas[clave]) return;
-    var valor = Number(valores[clave]);
-    if (!valor) return;
-    if (valor < 1 || valor > 5) return;
-    datos[clave] = Math.round(valor);
-  });
+  }
+  if (Object.prototype.hasOwnProperty.call(valores, "RECOMENDACIONES")) {
+    datos.RECOMENDACIONES = String(valores.RECOMENDACIONES || "").trim();
+  }
 
   return conLock_(function () {
     upsertFila_(
