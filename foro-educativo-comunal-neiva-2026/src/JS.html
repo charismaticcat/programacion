@@ -384,6 +384,7 @@ function cambiarPantalla(idPantalla) {
     if (!estado.avisoAntesSocializacionVisto) {
       estado.avisoAntesSocializacionVisto = true;
       abrirAvisoFuncionario_(
+        "✍️ FIRMAR Y SUBIR ASISTENCIA",
         "Estimado funcionario. Por favor diligenciar el formato de asistencia y escanee todas las hojas " +
           "firmadas en un solo PDF para diligenciar la cantidad de participantes de manera manual cuando se " +
           "le solicite. Prepare también una fotografía de la mayor cantidad de participantes de su grupo."
@@ -978,8 +979,9 @@ function cerrarModal(id) {
   document.getElementById(id).classList.add("oculto");
 }
 
-/** Abre el aviso genérico al funcionario (modalAvisoFuncionario, Modal.html) con el texto dado. */
-function abrirAvisoFuncionario_(texto) {
+/** Abre el aviso genérico al funcionario (modalAvisoFuncionario, Modal.html) con el título y texto dados. */
+function abrirAvisoFuncionario_(titulo, texto) {
+  document.getElementById("tituloAvisoFuncionario").textContent = titulo;
   document.getElementById("textoAvisoFuncionario").textContent = texto;
   abrirModal("modalAvisoFuncionario");
 }
@@ -1578,6 +1580,7 @@ function iniciarTemporizadorSocializacionIE_(idIE, nombreIE, logoId) {
   if (estadoSocializacion.conteoTemporizadoresIniciados === 2 && !estadoSocializacion.avisoSegundaIEMostrado) {
     estadoSocializacion.avisoSegundaIEMostrado = true;
     abrirAvisoFuncionario_(
+      "⭐ VALORAR EL ENCUENTRO",
       "Estimado funcionario. Por favor solicite a los participantes diligenciar la encuesta de satisfacción " +
         "con la actividad que se está realizando. Una vez se tenga el registro de la muestra seleccionada, " +
         "escanéela, suba en un solo PDF y digitalice los resultados en la pantalla participación."

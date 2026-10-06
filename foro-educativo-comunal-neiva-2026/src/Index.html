@@ -611,27 +611,6 @@
         </div>
         <div id="mensajeMetodoAsistencia"></div>
       </div>
-
-      <!-- Encuesta de satisfacción (spec del usuario: "debajo de el PDF de
-           asistencia debe aparecer la opción: subir PDF de encuesta de
-           satisfacción"), más el puntaje digitado a partir de esa muestra. -->
-      <div style="margin-top:20px;">
-        <label for="campoArchivoEncuestaSatisfaccion">PDF de la encuesta de satisfacción (muestra escaneada)</label>
-        <input type="file" id="campoArchivoEncuestaSatisfaccion" accept="application/pdf">
-        <div class="fila-botones">
-          <button class="btn btn-secundario" id="btnSubirEncuestaSatisfaccion">Subir PDF de encuesta de satisfacción</button>
-        </div>
-        <label for="campoPuntajeSatisfaccion" style="margin-top:12px;">Satisfacción con la actividad</label>
-        <select id="campoPuntajeSatisfaccion">
-          <option value="">Selecciona…</option>
-          <option value="1">1 — Muy insatisfecho</option>
-          <option value="2">2 — Insatisfecho</option>
-          <option value="3">3 — Neutral</option>
-          <option value="4">4 — Satisfecho</option>
-          <option value="5">5 — Muy satisfecho</option>
-        </select>
-        <div id="mensajeEncuestaSatisfaccion"></div>
-      </div>
     </div>
 
     <div class="tarjeta">
@@ -652,6 +631,29 @@
         automáticamente.</p>
       <div id="resumenParticipacionEstamento" class="resumen-participacion-estamento"></div>
       <div id="contenedorParticipacionEstamento" class="tabla-horizontal-desplazable"></div>
+    </div>
+
+    <!-- Valoración del evento (spec del usuario: "debajo de el PDF de
+         asistencia debe aparecer la opción: subir PDF de encuesta de
+         satisfacción" + orden "4. VALORACION DEL EVENTO") — PDF de la
+         muestra escaneada + puntaje 1-5 digitado a partir de ella. -->
+    <div class="tarjeta">
+      <h3 class="subtitulo-campo">Valoración del evento</h3>
+      <label for="campoArchivoEncuestaSatisfaccion">PDF de la encuesta de satisfacción (muestra escaneada)</label>
+      <input type="file" id="campoArchivoEncuestaSatisfaccion" accept="application/pdf">
+      <div class="fila-botones">
+        <button class="btn btn-secundario" id="btnSubirEncuestaSatisfaccion">Subir PDF de encuesta de satisfacción</button>
+      </div>
+      <label for="campoPuntajeSatisfaccion" style="margin-top:12px;">Satisfacción con la actividad</label>
+      <select id="campoPuntajeSatisfaccion">
+        <option value="">Selecciona…</option>
+        <option value="1">1 — Muy insatisfecho</option>
+        <option value="2">2 — Insatisfecho</option>
+        <option value="3">3 — Neutral</option>
+        <option value="4">4 — Satisfecho</option>
+        <option value="5">5 — Muy satisfecho</option>
+      </select>
+      <div id="mensajeEncuestaSatisfaccion"></div>
     </div>
 
     <!-- Fotografía general del grupo — movida después de Participación (spec

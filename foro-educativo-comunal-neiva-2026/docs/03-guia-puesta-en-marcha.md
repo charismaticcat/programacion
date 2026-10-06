@@ -3248,6 +3248,26 @@ Verificado: `node --check` sobre todos los `.gs` (limpio), extracción y `node -
 `<script>` (limpio salvo el falso positivo esperado), cero ids duplicados, y las referencias
 `getElementById` colgantes coinciden exactamente con la lista ya aceptada (12), sin hallazgos nuevos.
 
+## 4.87 Decimoséptimo lote: títulos de los avisos al funcionario + reorden de Participación
+
+- **Títulos en los avisos al funcionario**: `modalAvisoFuncionario` (Modal.html) ya no tiene un título fijo
+  ("📋 Aviso") — el `<h3 id="tituloAvisoFuncionario">` ahora se llena por código, igual que el cuerpo.
+  `abrirAvisoFuncionario_(titulo, texto)` (JS.html) recibe el título como primer argumento; el aviso de antes
+  de "Sesión de socialización" usa "✍️ FIRMAR Y SUBIR ASISTENCIA" y el de la 2ª IE usa "⭐ VALORAR EL ENCUENTRO"
+  (spec del usuario).
+- **Orden de Participación**: 1. Responsable de envío, 2. Listado de asistencia, 3. Cantidad de asistentes por
+  estamento e institución, 4. Valoración del evento, 5. Instituciones Educativas invitadas que asistieron,
+  6. Fotografía general del grupo. El bloque de la encuesta de satisfacción (PDF + puntaje 1-5, agregado en
+  4.86 dentro de "Listado de asistencia") se separó en su propia tarjeta "Valoración del evento" y se movió a
+  la posición 4, entre la matriz de participación y el resumen de instituciones que asistieron — mismos ids,
+  solo cambia el HTML de Index.html, sin tocar JS.html/Components.html. La tarjeta "Participación y
+  asistencia" (recordatorio de firma + contador oculto) no estaba en la lista del usuario, así que se dejó
+  donde ya estaba, entre "Listado de asistencia" y "Cantidad de asistentes…", sin afectar el orden pedido.
+
+Verificado: `node --check` sobre todos los `.gs` (sin cambios), extracción y `node --check` de cada bloque
+`<script>` (limpio salvo el falso positivo esperado), cero ids duplicados, y las referencias
+`getElementById` colgantes coinciden exactamente con la lista ya aceptada (12).
+
 ## 5. Pruebas antes de producción (Fase 15 de la spec)
 
 Usar `GRUPO-PRUEBA` (nunca datos reales) para validar el flujo sin afectar la carga real:
