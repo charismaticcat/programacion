@@ -5,9 +5,8 @@
  * estado en localStorage para no repetir el token en cada visita, y
  * autoguardado por fila con debounce.
  */
-var CLAVE_SESION_IE_ = 'saber11_sesion_ie';
 var CLAVE_SESION_ADMIN_ = 'saber11_sesion_admin';
-var estado = { nombreIE: '', tokenIE: '', tokenAdmin: '', ieElegidaPendiente: '' };
+var estado = { nombreIE: '', tokenIE: '', tokenAdmin: '' };
 
 function llamarServidor(nombreFn, args, exito, error) {
   google.script.run
@@ -51,39 +50,11 @@ function cargarDistribucion_() {
   });
 }
 
+/** Acceso automático (spec del usuario): clic en el logo entra directo, sin token ni correo. */
 document.getElementById('rejillaInstituciones').addEventListener('click', function (evento) {
   var tarjeta = evento.target.closest('[data-elegir-ie]');
   if (!tarjeta) return;
-  document.querySelectorAll('.tarjeta-ie').forEach(function (t) { t.classList.remove('seleccionada'); });
-  tarjeta.classList.add('seleccionada');
-  estado.ieElegidaPendiente = tarjeta.getAttribute('data-elegir-ie');
-  document.getElementById('nombreIEElegida').textContent = estado.ieElegidaPendiente;
-  document.getElementById('bloqueEmail').classList.remove('oculto');
-  document.getElementById('campoEmailIE').focus();
-});
-document.getElementById('btnCambiarIE').addEventListener('click', function () {
-  estado.ieElegidaPendiente = '';
-  document.getElementById('bloqueEmail').classList.add('oculto');
-  document.querySelectorAll('.tarjeta-ie').forEach(function (t) { t.classList.remove('seleccionada'); });
-});
-
-/**
- * El acceso de autoservicio por token está pausado (spec del usuario):
- * esto solo registra una solicitud de acceso por correo, nunca abre la
- * puerta — el único acceso real que funciona es el de administrador.
- */
-document.getElementById('btnSolicitarAccesoIE').addEventListener('click', function () {
-  var email = document.getElementById('campoEmailIE').value.trim();
-  if (!estado.ieElegidaPendiente || !email) {
-    mostrarMensaje('mensajeAccesoIE', 'Elija su institución y escriba su correo.', 'error');
-    return;
-  }
-  llamarServidor('rpcSolicitarAccesoIE', [estado.ieElegidaPendiente, email], function () {
-    mostrarMensaje('mensajeAccesoIE', '✅ Solicitud registrada. La Coordinación de Bilingüismo Municipal de Neiva se pondrá en contacto.', 'exito');
-    document.getElementById('campoEmailIE').value = '';
-  }, function (e) {
-    mostrarMensaje('mensajeAccesoIE', e.mensaje || 'No fue posible registrar la solicitud.', 'error');
-  });
+  entrarPantallaIE_(tarjeta.getAttribute('data-elegir-ie'), '');
 });
 
 document.getElementById('enlaceSoyAdmin').addEventListener('click', function (evento) {
@@ -134,7 +105,6 @@ document.getElementById('btnSalirIE').addEventListener('click', function () {
     document.getElementById('pantallaAdmin').classList.remove('oculto');
     return;
   }
-  try { localStorage.removeItem(CLAVE_SESION_IE_); } catch (e) {}
   location.reload();
 });
 
@@ -578,27 +548,10 @@ function entrarPantallaAdmin_(token) {
   document.getElementById('pantallaIE').classList.add('oculto');
   document.getElementById('pantallaAdmin').classList.remove('oculto');
   cargarTablaAdmin_();
-  cargarTablaSolicitudes_();
   llamarServidor('rpcAdminUrlHojaReal', [token], function (r) {
     document.getElementById('enlaceHojaReal').href = r.url;
   }, function () {});
 }
-function cargarTablaSolicitudes_() {
-  var cuerpo = document.getElementById('cuerpoTablaSolicitudes');
-  cuerpo.innerHTML = "<tr><td colspan='3'>Cargando… <span class='spinner'></span></td></tr>";
-  llamarServidor('rpcAdminListarSolicitudesAcceso', [estado.tokenAdmin], function (lista) {
-    if (!lista || !lista.length) {
-      cuerpo.innerHTML = "<tr><td colspan='3'>Todavía no hay solicitudes.</td></tr>";
-      return;
-    }
-    cuerpo.innerHTML = lista.map(function (s) {
-      return '<tr><td>' + escapeHtml(s.fecha) + '</td><td>' + escapeHtml(s.nombreIE) + '</td><td>' + escapeHtml(s.correo) + '</td></tr>';
-    }).join('');
-  }, function (e) {
-    cuerpo.innerHTML = "<tr><td colspan='3' class='mensaje error'>" + escapeHtml(e.mensaje || 'Error al cargar.') + '</td></tr>';
-  });
-}
-document.getElementById('btnRecargarSolicitudes').addEventListener('click', cargarTablaSolicitudes_);
 document.getElementById('btnSalirAdmin').addEventListener('click', function () {
   try { localStorage.removeItem(CLAVE_SESION_ADMIN_); } catch (e) {}
   location.reload();
@@ -731,17 +684,9 @@ document.getElementById('btnDescargarReporteB1BMas').addEventListener('click', f
 
 /* ============================== ARRANQUE ============================== */
 (function iniciar_() {
-  var sesionIE = null, tokenAdminGuardado = null;
-  try { sesionIE = JSON.parse(localStorage.getItem(CLAVE_SESION_IE_) || 'null'); } catch (e) {}
+  var tokenAdminGuardado = null;
   try { tokenAdminGuardado = localStorage.getItem(CLAVE_SESION_ADMIN_); } catch (e) {}
-  if (sesionIE && sesionIE.nombreIE && sesionIE.token) {
-    llamarServidor('rpcValidarAccesoIE', [sesionIE.nombreIE, sesionIE.token], function (r) {
-      entrarPantallaIE_(r.nombreIE, sesionIE.token);
-    }, function () {
-      try { localStorage.removeItem(CLAVE_SESION_IE_); } catch (e) {}
-      cargarDistribucion_();
-    });
-  } else if (tokenAdminGuardado) {
+  if (tokenAdminGuardado) {
     llamarServidor('rpcValidarAccesoAdmin', [tokenAdminGuardado], function () {
       entrarPantallaAdmin_(tokenAdminGuardado);
     }, function () {

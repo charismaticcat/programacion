@@ -80,56 +80,20 @@ function exigirAccesoIE_(nombreIE, token) {
 
 /**
  * Para funciones que dan acceso de lectura/escritura a UNA IE concreta
- * (Datos.gs, Graficos.gs): acepta el token de esa IE o el de
- * administrador — spec del usuario: "desde admin debe permitirme
- * ingresar a las IE sin necesidad de salir y ponerles el código de
- * acceso". Devuelve el nombre real de la IE (con el mismo
- * capitalización que CFG.IES).
+ * (Datos.gs, Graficos.gs). Spec del usuario: acceso automático — con
+ * solo existir la IE, entra; el token de IE queda sin usarse (revisar
+ * ACCESO_IE_AUTOMATICO en Config.gs). El token de administrador sigue
+ * dando acceso igual, por si ese valor se vuelve a poner en falso.
+ * Devuelve el nombre real de la IE (con la misma capitalización que
+ * CFG.IES).
  */
 function exigirAccesoIEoAdminComoIE_(nombreIE, token) {
   const clave = norm_(nombreIE);
   const idx = CFG.IES.map(norm_).indexOf(clave);
   if (idx < 0) throw new Error('Institución no reconocida.');
+  if (CFG.ACCESO_IE_AUTOMATICO) return CFG.IES[idx];
   if (validarAccesoAdmin(token).ok) return CFG.IES[idx];
   return exigirAccesoIE_(nombreIE, token);
-}
-
-/**
- * Mientras el acceso por token está pausado (spec del usuario): la IE
- * pide acceso con su correo en vez de un token. Esto NO abre la puerta
- * — solo registra la solicitud (hoja oculta) para que el administrador
- * la revise y se ponga en contacto; el único acceso real sigue siendo
- * el de administrador.
- */
-function solicitarAccesoIE(nombreIE, email) {
-  const clave = norm_(nombreIE);
-  const idx = CFG.IES.map(norm_).indexOf(clave);
-  if (idx < 0) throw new Error('Institución no reconocida.');
-  const correo = texto_(email).toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
-    throw new Error('Escriba un correo válido.');
-  }
-  const ss = abrirSpreadsheet_();
-  let hoja = ss.getSheetByName(CFG.HOJA_SOLICITUDES_ACCESO);
-  if (!hoja) {
-    hoja = ss.insertSheet(CFG.HOJA_SOLICITUDES_ACCESO);
-    hoja.getRange(1, 1, 1, 3).setValues([['FECHA/HORA', 'INSTITUCIÓN', 'CORREO']]);
-    hoja.setFrozenRows(1);
-    hoja.hideSheet();
-  }
-  const fechaHora = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
-  hoja.appendRow([fechaHora, CFG.IES[idx], correo]);
-  return { ok: true };
-}
-
-/** Admin: últimas solicitudes de acceso recibidas (más reciente primero). */
-function adminListarSolicitudesAcceso(token) {
-  exigirAccesoAdmin_(token);
-  const ss = abrirSpreadsheet_();
-  const hoja = ss.getSheetByName(CFG.HOJA_SOLICITUDES_ACCESO);
-  if (!hoja || hoja.getLastRow() < 2) return [];
-  const datos = hoja.getRange(2, 1, hoja.getLastRow() - 1, 3).getValues();
-  return datos.reverse().map(fila => ({ fecha: texto_(fila[0]), nombreIE: texto_(fila[1]), correo: texto_(fila[2]) }));
 }
 
 function obtenerTokenAdmin_() {

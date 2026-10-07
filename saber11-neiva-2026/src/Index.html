@@ -13,22 +13,11 @@
   <section id="pantallaDistribucion">
     <div class="tarjeta">
       <h2>Elija su institución educativa</h2>
-      <p>El acceso de autoservicio está <strong>temporalmente pausado</strong>. Seleccione el logo de su IE y
-        escriba su correo institucional para solicitar acceso — la Coordinación de Bilingüismo Municipal de
-        Neiva revisará su solicitud y se pondrá en contacto.</p>
+      <p>Seleccione el logo de su IE para ingresar.</p>
       <div id="rejillaInstituciones" class="grid-instituciones">
         <p class="mensaje info">Cargando instituciones… <span class="spinner"></span></p>
       </div>
-      <div id="bloqueEmail" class="oculto">
-        <p><strong>Institución elegida:</strong> <span id="nombreIEElegida"></span>
-          <button type="button" class="btn btn-secundario" id="btnCambiarIE" style="margin-left:10px;">Cambiar</button></p>
-        <label for="campoEmailIE">Correo institucional</label>
-        <input type="email" id="campoEmailIE" autocomplete="off" placeholder="nombre@ejemplo.edu.co">
-        <div id="mensajeAccesoIE"></div>
-        <div class="fila-botones">
-          <button type="button" class="btn btn-primario" id="btnSolicitarAccesoIE">Solicitar acceso</button>
-        </div>
-      </div>
+      <div id="mensajeAccesoIE"></div>
       <a href="#" id="enlaceSoyAdmin" class="enlace-admin">Soy administrador</a>
       <div id="bloqueTokenAdmin" class="oculto">
         <label for="campoTokenAdmin">Token de administrador</label>
@@ -119,9 +108,8 @@
         botones de arriba (Actualizar REPORTE DIARIO / REPORTE B1 Y B+), reconstruyen por completo RESUMEN DE
         ENVÍOS (colores de pestaña y tabla de estado) — eso borra esta lista de tokens; después de usar
         cualquiera de los tres, vuelva a dar clic en "Escribir todos los tokens…" para reponerla.</p>
-      <p class="ayuda"><strong>El acceso de las IE por token está pausado temporalmente</strong> (solo entra el
-        administrador, con el botón "Entrar" de la tabla de abajo). Las IE ven en su lugar un formulario para
-        solicitar acceso por correo — esas solicitudes quedan registradas más abajo.</p>
+      <p class="ayuda">El acceso de las IE es automático: cualquiera que entre al Portal y elija una institución
+        ingresa directamente a su información, sin token ni correo.</p>
       <div id="mensajeAdmin"></div>
     </div>
     <div class="tarjeta">
@@ -130,16 +118,6 @@
         <table class="tabla-generica">
           <thead><tr><th>Institución</th><th>Estado</th><th>Token</th><th></th></tr></thead>
           <tbody id="cuerpoTablaAdmin"></tbody>
-        </table>
-      </div>
-    </div>
-    <div class="tarjeta">
-      <h3>Solicitudes de acceso recibidas (correo)</h3>
-      <button type="button" class="btn btn-secundario" id="btnRecargarSolicitudes">Actualizar listado</button>
-      <div class="tabla-desplazable">
-        <table class="tabla-generica">
-          <thead><tr><th>Fecha / hora</th><th>Institución</th><th>Correo</th></tr></thead>
-          <tbody id="cuerpoTablaSolicitudes"></tbody>
         </table>
       </div>
     </div>
