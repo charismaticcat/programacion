@@ -58,26 +58,31 @@ document.getElementById('rejillaInstituciones').addEventListener('click', functi
   tarjeta.classList.add('seleccionada');
   estado.ieElegidaPendiente = tarjeta.getAttribute('data-elegir-ie');
   document.getElementById('nombreIEElegida').textContent = estado.ieElegidaPendiente;
-  document.getElementById('bloqueToken').classList.remove('oculto');
-  document.getElementById('campoTokenIE').focus();
+  document.getElementById('bloqueEmail').classList.remove('oculto');
+  document.getElementById('campoEmailIE').focus();
 });
 document.getElementById('btnCambiarIE').addEventListener('click', function () {
   estado.ieElegidaPendiente = '';
-  document.getElementById('bloqueToken').classList.add('oculto');
+  document.getElementById('bloqueEmail').classList.add('oculto');
   document.querySelectorAll('.tarjeta-ie').forEach(function (t) { t.classList.remove('seleccionada'); });
 });
 
-document.getElementById('btnEntrarIE').addEventListener('click', function () {
-  var token = document.getElementById('campoTokenIE').value.trim();
-  if (!estado.ieElegidaPendiente || !token) {
-    mostrarMensaje('mensajeAccesoIE', 'Elija su institución y escriba el token.', 'error');
+/**
+ * El acceso de autoservicio por token está pausado (spec del usuario):
+ * esto solo registra una solicitud de acceso por correo, nunca abre la
+ * puerta — el único acceso real que funciona es el de administrador.
+ */
+document.getElementById('btnSolicitarAccesoIE').addEventListener('click', function () {
+  var email = document.getElementById('campoEmailIE').value.trim();
+  if (!estado.ieElegidaPendiente || !email) {
+    mostrarMensaje('mensajeAccesoIE', 'Elija su institución y escriba su correo.', 'error');
     return;
   }
-  llamarServidor('rpcValidarAccesoIE', [estado.ieElegidaPendiente, token], function (r) {
-    try { localStorage.setItem(CLAVE_SESION_IE_, JSON.stringify({ nombreIE: r.nombreIE, token: token })); } catch (e) {}
-    entrarPantallaIE_(r.nombreIE, token);
+  llamarServidor('rpcSolicitarAccesoIE', [estado.ieElegidaPendiente, email], function () {
+    mostrarMensaje('mensajeAccesoIE', '✅ Solicitud registrada. La Coordinación de Bilingüismo Municipal de Neiva se pondrá en contacto.', 'exito');
+    document.getElementById('campoEmailIE').value = '';
   }, function (e) {
-    mostrarMensaje('mensajeAccesoIE', e.mensaje || 'No fue posible validar el acceso.', 'error');
+    mostrarMensaje('mensajeAccesoIE', e.mensaje || 'No fue posible registrar la solicitud.', 'error');
   });
 });
 
@@ -256,6 +261,7 @@ function filaIEHtml_(f) {
   return "<tr data-fila-ie='" + f.fila + "'>" +
     '<td>' + f.fila + '</td>' +
     "<td><input data-campo-ie='docente' value=\"" + escapeHtml(f.docente) + '"></td>' +
+    "<td><input data-campo-ie='correoRegistro' type='email' placeholder='correo@ejemplo.edu.co' value=\"" + escapeHtml(f.correoRegistro) + '"></td>' +
     "<td><input data-campo-ie='nombre' value=\"" + escapeHtml(f.nombre) + '"></td>' +
     '<td>' + campoTextoOLista_('jornada', f.jornada) + '</td>' +
     '<td>' + campoTextoOLista_('genero', f.genero) + '</td>' +
@@ -271,7 +277,7 @@ function filaIEHtml_(f) {
 }
 
 /** Orden visual de las columnas editables (sin "#" ni "Nivel", que es de solo lectura) — para el pegado estilo Excel. */
-var ORDEN_CAMPOS_IE_ = ['docente', 'nombre', 'jornada', 'genero', 'curso', 'tipoDoc', 'numDoc', 'puntaje', 'intensificacion', 'sena', 'academico'];
+var ORDEN_CAMPOS_IE_ = ['docente', 'correoRegistro', 'nombre', 'jornada', 'genero', 'curso', 'tipoDoc', 'numDoc', 'puntaje', 'intensificacion', 'sena', 'academico'];
 
 var temporizadorGuardadoFilaIE_ = {};
 function recolectarFilaIE_(tr) {
@@ -352,7 +358,7 @@ function agregarFilaIE_() {
   var filas = document.querySelectorAll('[data-fila-ie]');
   var ultima = filas.length ? Number(filas[filas.length - 1].getAttribute('data-fila-ie')) : 4;
   document.getElementById('cuerpoTablaIE').insertAdjacentHTML('beforeend', filaIEHtml_({
-    fila: ultima + 1, docente: '', nombre: '', jornada: '', genero: '', curso: '', tipoDoc: '', numDoc: '',
+    fila: ultima + 1, docente: '', correoRegistro: '', nombre: '', jornada: '', genero: '', curso: '', tipoDoc: '', numDoc: '',
     puntaje: '', nivel: '', intensificacion: 'NO', sena: 'NO', academico: 'NO'
   }));
   return document.getElementById('cuerpoTablaIE').lastElementChild;
@@ -480,10 +486,27 @@ function entrarPantallaAdmin_(token) {
   document.getElementById('pantallaIE').classList.add('oculto');
   document.getElementById('pantallaAdmin').classList.remove('oculto');
   cargarTablaAdmin_();
+  cargarTablaSolicitudes_();
   llamarServidor('rpcAdminUrlHojaReal', [token], function (r) {
     document.getElementById('enlaceHojaReal').href = r.url;
   }, function () {});
 }
+function cargarTablaSolicitudes_() {
+  var cuerpo = document.getElementById('cuerpoTablaSolicitudes');
+  cuerpo.innerHTML = "<tr><td colspan='3'>Cargando… <span class='spinner'></span></td></tr>";
+  llamarServidor('rpcAdminListarSolicitudesAcceso', [estado.tokenAdmin], function (lista) {
+    if (!lista || !lista.length) {
+      cuerpo.innerHTML = "<tr><td colspan='3'>Todavía no hay solicitudes.</td></tr>";
+      return;
+    }
+    cuerpo.innerHTML = lista.map(function (s) {
+      return '<tr><td>' + escapeHtml(s.fecha) + '</td><td>' + escapeHtml(s.nombreIE) + '</td><td>' + escapeHtml(s.correo) + '</td></tr>';
+    }).join('');
+  }, function (e) {
+    cuerpo.innerHTML = "<tr><td colspan='3' class='mensaje error'>" + escapeHtml(e.mensaje || 'Error al cargar.') + '</td></tr>';
+  });
+}
+document.getElementById('btnRecargarSolicitudes').addEventListener('click', cargarTablaSolicitudes_);
 document.getElementById('btnSalirAdmin').addEventListener('click', function () {
   try { localStorage.removeItem(CLAVE_SESION_ADMIN_); } catch (e) {}
   location.reload();
@@ -601,6 +624,16 @@ document.getElementById('btnActualizarReporteB1BMas').addEventListener('click', 
       Math.round(r.porcentajeGeneral * 1000) / 10 + '%).', 'exito');
   }, function (e) {
     mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible actualizar el REPORTE B1 Y B+.', 'error');
+  });
+});
+document.getElementById('btnDescargarReporteB1BMas').addEventListener('click', function () {
+  var formato = document.getElementById('selectFormatoInformeB1BMas').value;
+  mostrarMensaje('mensajeAdmin', 'Generando REPORTE B1 Y B+ (' + formato.toUpperCase() + ')… <span class="spinner"></span>', 'info');
+  llamarServidor('rpcAdminDescargarReporteB1BMas', [estado.tokenAdmin, formato], function (r) {
+    descargarArchivoBase64_(r.archivoBase64, r.mimeType, r.nombreArchivo);
+    mostrarMensaje('mensajeAdmin', 'REPORTE B1 Y B+ descargado.', 'exito');
+  }, function (e) {
+    mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible descargar el reporte.', 'error');
   });
 });
 

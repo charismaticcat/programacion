@@ -20,7 +20,14 @@ function filaVacia_(fila) {
   return !texto_(fila[C.docente - 1]) && !texto_(fila[C.nombre - 1]);
 }
 
-function filaARegistro_(numeroFila, fila, niveles) {
+/**
+ * `correoRegistro` no vive en ninguna columna de la hoja (el diseño de
+ * columnas es compartido con el script atado a la hoja; agregar una
+ * columna lo rompería) — se guarda como NOTA de la celda del docente
+ * (spec del usuario: "frente a nombre de docente"), así es visible
+ * también si alguien abre la hoja de cálculo real.
+ */
+function filaARegistro_(numeroFila, fila, correoRegistro) {
   const C = CFG.COL;
   return {
     fila: numeroFila,
@@ -36,7 +43,8 @@ function filaARegistro_(numeroFila, fila, niveles) {
     nivel: texto_(fila[C.nivel - 1]),
     intensificacion: texto_(fila[C.intensificacion - 1]) || 'NO',
     sena: texto_(fila[C.sena - 1]) || 'NO',
-    academico: texto_(fila[C.academico - 1]) || 'NO'
+    academico: texto_(fila[C.academico - 1]) || 'NO',
+    correoRegistro: texto_(correoRegistro)
   };
 }
 
@@ -78,11 +86,12 @@ function obtenerDatosIE(nombreIE, token) {
   if (!sh) throw new Error('No se encontró la hoja de "' + nombreReal + '". Avise al administrador.');
   const F = CFG.PRIMERA_FILA, L = CFG.ULTIMA_FILA, N = L - F + 1;
   const valores = sh.getRange(F, 1, N, CFG.COL.academico).getValues();
+  const notas = sh.getRange(F, CFG.COL.docente, N, 1).getNotes();
   let ultimaConDatos = -1;
   valores.forEach((fila, i) => { if (!filaVacia_(fila)) ultimaConDatos = i; });
   const limite = Math.min(N - 1, ultimaConDatos + 15);
   const filas = [];
-  for (let i = 0; i <= limite; i++) filas.push(filaARegistro_(F + i, valores[i]));
+  for (let i = 0; i <= limite; i++) filas.push(filaARegistro_(F + i, valores[i], notas[i][0]));
   return {
     nombreIE: nombreReal,
     colorEstado: sh.getTabColor() || '#9E9E9E',
@@ -138,6 +147,15 @@ function guardarFilaIE(nombreIE, token, fila, datos) {
   lock.waitLock(20000);
   try {
     sh.getRange(fila, C.docente).setValue(mayus(datos.docente));
+    // Registro de quién hizo el cambio (spec del usuario) — se guarda como
+    // nota de la celda del docente, nunca como columna nueva. Solo se
+    // sobrescribe cuando viene un correo nuevo, para no borrar el registro
+    // anterior si esta vez se deja en blanco.
+    const correoRegistro = texto_(datos.correoRegistro);
+    if (correoRegistro) {
+      const fechaHora = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
+      sh.getRange(fila, C.docente).setNote('Editado por: ' + correoRegistro + ' (' + fechaHora + ')');
+    }
     sh.getRange(fila, C.nombre).setValue(mayus(datos.nombre));
     sh.getRange(fila, C.jornada).setValue(jornada);
     sh.getRange(fila, C.genero).setValue(genero);
@@ -150,7 +168,8 @@ function guardarFilaIE(nombreIE, token, fila, datos) {
     sh.getRange(fila, C.academico).setValue(academico);
     SpreadsheetApp.flush();
     const actualizada = sh.getRange(fila, 1, 1, C.academico).getValues()[0];
-    return { ok: true, registro: filaARegistro_(fila, actualizada) };
+    const notaActual = sh.getRange(fila, C.docente).getNote();
+    return { ok: true, registro: filaARegistro_(fila, actualizada, notaActual) };
   } finally {
     lock.releaseLock();
   }

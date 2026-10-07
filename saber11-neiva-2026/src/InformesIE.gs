@@ -67,3 +67,22 @@ function adminDescargarInformeIE(token, nombreIE, formato) {
     nombreArchivo: nombreBase + (esExcel ? '.xlsx' : '.pdf')
   };
 }
+
+/** Admin: descarga el REPORTE B1 Y B+ completo (las 36 IE) — exige que ya se haya generado/actualizado. */
+function adminDescargarReporteB1BMas(token, formato) {
+  exigirAccesoAdmin_(token);
+  const ss = abrirSpreadsheet_();
+  const sh = ss.getSheetByName(CFG.HOJA_REPORTE_B1_MAS);
+  if (!sh) {
+    throw new Error('Todavía no existe "' + CFG.HOJA_REPORTE_B1_MAS + '". Use primero "Actualizar REPORTE B1 Y B+".');
+  }
+  const nombreBase = 'REPORTE B1 Y B+ - SABER 11 ' + CFG.ANIO;
+  const esExcel = formato === 'xlsx';
+  const blob = esExcel ? exportarHojaComoXLSX_(sh, nombreBase) : exportarHojaComoPDF_(sh);
+  return {
+    ok: true,
+    archivoBase64: Utilities.base64Encode(blob.getBytes()),
+    mimeType: esExcel ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'application/pdf',
+    nombreArchivo: nombreBase + (esExcel ? '.xlsx' : '.pdf')
+  };
+}

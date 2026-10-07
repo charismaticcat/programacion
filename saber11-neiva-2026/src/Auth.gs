@@ -56,6 +56,9 @@ function asegurarTokensIE_(ss) {
 
 /** {ok, mensaje} — nunca dice si la IE existe o no cuando el token falla, para no ayudar a adivinar. */
 function validarAccesoIE(nombreIE, token) {
+  if (!CFG.ACCESO_TOKENS_IE_HABILITADO) {
+    return { ok: false, mensaje: 'El acceso de autoservicio está temporalmente pausado. Use el formulario de solicitud de acceso.' };
+  }
   const ss = abrirSpreadsheet_();
   const mapa = asegurarTokensIE_(ss);
   const clave = norm_(nombreIE);
@@ -89,6 +92,44 @@ function exigirAccesoIEoAdminComoIE_(nombreIE, token) {
   if (idx < 0) throw new Error('Institución no reconocida.');
   if (validarAccesoAdmin(token).ok) return CFG.IES[idx];
   return exigirAccesoIE_(nombreIE, token);
+}
+
+/**
+ * Mientras el acceso por token está pausado (spec del usuario): la IE
+ * pide acceso con su correo en vez de un token. Esto NO abre la puerta
+ * — solo registra la solicitud (hoja oculta) para que el administrador
+ * la revise y se ponga en contacto; el único acceso real sigue siendo
+ * el de administrador.
+ */
+function solicitarAccesoIE(nombreIE, email) {
+  const clave = norm_(nombreIE);
+  const idx = CFG.IES.map(norm_).indexOf(clave);
+  if (idx < 0) throw new Error('Institución no reconocida.');
+  const correo = texto_(email).toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+    throw new Error('Escriba un correo válido.');
+  }
+  const ss = abrirSpreadsheet_();
+  let hoja = ss.getSheetByName(CFG.HOJA_SOLICITUDES_ACCESO);
+  if (!hoja) {
+    hoja = ss.insertSheet(CFG.HOJA_SOLICITUDES_ACCESO);
+    hoja.getRange(1, 1, 1, 3).setValues([['FECHA/HORA', 'INSTITUCIÓN', 'CORREO']]);
+    hoja.setFrozenRows(1);
+    hoja.hideSheet();
+  }
+  const fechaHora = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
+  hoja.appendRow([fechaHora, CFG.IES[idx], correo]);
+  return { ok: true };
+}
+
+/** Admin: últimas solicitudes de acceso recibidas (más reciente primero). */
+function adminListarSolicitudesAcceso(token) {
+  exigirAccesoAdmin_(token);
+  const ss = abrirSpreadsheet_();
+  const hoja = ss.getSheetByName(CFG.HOJA_SOLICITUDES_ACCESO);
+  if (!hoja || hoja.getLastRow() < 2) return [];
+  const datos = hoja.getRange(2, 1, hoja.getLastRow() - 1, 3).getValues();
+  return datos.reverse().map(fila => ({ fecha: texto_(fila[0]), nombreIE: texto_(fila[1]), correo: texto_(fila[2]) }));
 }
 
 function obtenerTokenAdmin_() {

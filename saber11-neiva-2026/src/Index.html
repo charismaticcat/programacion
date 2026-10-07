@@ -13,19 +13,20 @@
   <section id="pantallaDistribucion">
     <div class="tarjeta">
       <h2>Elija su institución educativa</h2>
-      <p>Seleccione el logo de su IE y escriba el token de ingreso que le fue asignado. En caso de no tener el
-        token solicítelo a Coordinación de Bilinguismo Municipal de Neiva.</p>
+      <p>El acceso de autoservicio está <strong>temporalmente pausado</strong>. Seleccione el logo de su IE y
+        escriba su correo institucional para solicitar acceso — la Coordinación de Bilingüismo Municipal de
+        Neiva revisará su solicitud y se pondrá en contacto.</p>
       <div id="rejillaInstituciones" class="grid-instituciones">
         <p class="mensaje info">Cargando instituciones… <span class="spinner"></span></p>
       </div>
-      <div id="bloqueToken" class="oculto">
+      <div id="bloqueEmail" class="oculto">
         <p><strong>Institución elegida:</strong> <span id="nombreIEElegida"></span>
           <button type="button" class="btn btn-secundario" id="btnCambiarIE" style="margin-left:10px;">Cambiar</button></p>
-        <label for="campoTokenIE">Token de ingreso</label>
-        <input type="text" id="campoTokenIE" autocomplete="off" placeholder="Ej: 7K4P9XQ2">
+        <label for="campoEmailIE">Correo institucional</label>
+        <input type="email" id="campoEmailIE" autocomplete="off" placeholder="nombre@ejemplo.edu.co">
         <div id="mensajeAccesoIE"></div>
         <div class="fila-botones">
-          <button type="button" class="btn btn-primario" id="btnEntrarIE">Entrar</button>
+          <button type="button" class="btn btn-primario" id="btnSolicitarAccesoIE">Solicitar acceso</button>
         </div>
       </div>
       <a href="#" id="enlaceSoyAdmin" class="enlace-admin">Soy administrador</a>
@@ -62,7 +63,7 @@
           <table class="tabla-generica tabla-ie">
             <thead>
               <tr>
-                <th>#</th><th>Docente</th><th>Nombre completo</th><th>Jornada</th><th>Género</th><th>Curso</th>
+                <th>#</th><th>Docente</th><th>Correo (quien reportó)</th><th>Nombre completo</th><th>Jornada</th><th>Género</th><th>Curso</th>
                 <th>Tipo doc.</th><th>Núm. doc.</th><th>Puntaje</th><th>Nivel</th>
                 <th>Intensif.</th><th>SENA</th><th>Académico</th>
               </tr>
@@ -105,10 +106,17 @@
         <button type="button" class="btn btn-secundario" id="btnActualizarReporteDiario">Actualizar REPORTE DIARIO</button>
         <button type="button" class="btn btn-secundario" id="btnActualizarReporteB1BMas">Actualizar REPORTE B1 Y B+</button>
       </div>
+      <div class="fila-descarga-informe">
+        <select id="selectFormatoInformeB1BMas"><option value="pdf">PDF</option><option value="xlsx">Excel</option></select>
+        <button type="button" class="btn btn-secundario" id="btnDescargarReporteB1BMas">Descargar REPORTE B1 Y B+ (todas las IE)</button>
+      </div>
       <p class="ayuda">Nota: "Actualizar resumen de envíos" (menú REPORTES de la hoja de cálculo), y también los dos
         botones de arriba (Actualizar REPORTE DIARIO / REPORTE B1 Y B+), reconstruyen por completo RESUMEN DE
         ENVÍOS (colores de pestaña y tabla de estado) — eso borra esta lista de tokens; después de usar
         cualquiera de los tres, vuelva a dar clic en "Escribir todos los tokens…" para reponerla.</p>
+      <p class="ayuda"><strong>El acceso de las IE por token está pausado temporalmente</strong> (solo entra el
+        administrador, con el botón "Entrar" de la tabla de abajo). Las IE ven en su lugar un formulario para
+        solicitar acceso por correo — esas solicitudes quedan registradas más abajo.</p>
       <div id="mensajeAdmin"></div>
     </div>
     <div class="tarjeta">
@@ -117,6 +125,16 @@
         <table class="tabla-generica">
           <thead><tr><th>Institución</th><th>Estado</th><th>Token</th><th></th></tr></thead>
           <tbody id="cuerpoTablaAdmin"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="tarjeta">
+      <h3>Solicitudes de acceso recibidas (correo)</h3>
+      <button type="button" class="btn btn-secundario" id="btnRecargarSolicitudes">Actualizar listado</button>
+      <div class="tabla-desplazable">
+        <table class="tabla-generica">
+          <thead><tr><th>Fecha / hora</th><th>Institución</th><th>Correo</th></tr></thead>
+          <tbody id="cuerpoTablaSolicitudes"></tbody>
         </table>
       </div>
     </div>

@@ -22,6 +22,14 @@
 const CFG = {
   SPREADSHEET_ID: '1xYaRpD6VxA6fz628zuPQaB5vJj0JCHuWjZtns4Gpz14',
   ANIO: 2026, // para los títulos de los gráficos ("EN LA IE <nombre>, 2026")
+
+  // Spec del usuario: pausar temporalmente el acceso por token de cada IE
+  // (solo queda funcionando el acceso de administrador). En falso,
+  // validarAccesoIE (Auth.gs) rechaza cualquier token sin siquiera
+  // revisarlo — los tokens guardados en TOKENS_PORTAL_IE no se borran,
+  // así que basta con volver a poner esto en true para reactivarlo.
+  ACCESO_TOKENS_IE_HABILITADO: false,
+  HOJA_SOLICITUDES_ACCESO: 'SOLICITUDES_ACCESO_IE', // hoja oculta: registro de quién pidió acceso por correo
   CARPETA_LOGOS: '1QVfDyYjhjX5H60U7SyeLtikodQbhGu1B',
   // IE cuyo logo no se detectó bien por nombre — ID del archivo de Drive puesto a mano (spec del usuario).
   LOGOS_MANUALES: {
