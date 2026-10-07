@@ -113,10 +113,12 @@ function cargarResumenGeneralIE_() {
       "<div class='barra-progreso-general'><div class='relleno-barra-progreso' style='width:" + r.porcentaje + "%'></div></div>" +
       '<p>' + r.totalReportadas + ' de ' + r.totalIE + ' instituciones han reportado (' + r.porcentaje + '%).</p>';
     document.getElementById('cuerpoResumenGeneral').innerHTML = r.instituciones.map(function (ie) {
+      // Reporte completo, sin nada que corregir (spec del usuario: "en los reportes
+      // completos no poner ver correcciones, dejar en blanco").
       var observacionesHtml = ie.observaciones.length
         ? ie.observaciones.map(escapeHtml).join('<br>') +
           " <button type='button' class='btn-ver-correcciones-ie' data-ir-correcciones-ie=\"" + escapeHtml(ie.nombreIE) + "\">Ver correcciones aquí →</button>"
-        : 'Sin observaciones.';
+        : '';
       return '<tr><td>' + escapeHtml(ie.nombreIE) + '</td>' +
         "<td><span class='badge-color' style='background:" + ie.colorEstado + "'></span></td>" +
         '<td>' + (ie.docentes.length ? ie.docentes.map(escapeHtml).join(', ') : '—') + '</td>' +

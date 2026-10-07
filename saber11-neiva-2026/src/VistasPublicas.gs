@@ -22,22 +22,27 @@
  */
 function obtenerResumenEnvioTodasLasIE() {
   const ss = abrirSpreadsheet_();
-  const detalleRevision = obtenerDetalleRevisionPorIE_(ss);
   const instituciones = CFG.IES.map(nombreIE => {
     const sh = resolverHojaIE_(ss, nombreIE);
     if (!sh) return { nombreIE: nombreIE, colorEstado: '#9E9E9E', docentes: [], totalEstudiantes: 0, reportada: false, observaciones: ['No se encontró la hoja de esta institución.'] };
     const { docentes, totalEstudiantesIE, esTecnicoIpc } = calcularDocentesIE_(sh, nombreIE);
     const nombresDocentes = Object.keys(docentes).filter(n => norm_(n) !== 'DOCENTE NO REGISTRADO');
-    const revision = detalleRevision.get(norm_(nombreIE));
-    // Mismo cálculo que fija el color de la pestaña (actualizarMarcasRevisionIE_, vía
-    // "Actualizar REPORTE DIARIO/B1 Y B+"); si todavía no se ha generado, se usa el chequeo
-    // en vivo de datos faltantes por docente como mejor aproximación disponible.
-    const observaciones = revision
-      ? observacionesDesdeDetalleRevision_(revision.detalle)
-      : construirObservacionesIE_(docentes, esTecnicoIpc);
+    const colorEstado = sh.getTabColor() || '#9E9E9E';
+    // Detallada y con el nombre de cada docente (spec del usuario: "las
+    // observaciones estaban más detalladas... decías el nombre del
+    // docente y las correcciones que le correspondían a cada docente").
+    const observaciones = construirObservacionesIE_(docentes, esTecnicoIpc);
+    // El color de la pestaña también depende de "Actualizar REPORTE
+    // DIARIO/B1 Y B+" (admin), algo que este chequeo por docente no ve;
+    // si ese color dice naranja/rojo y aun así no hay nada que corregir
+    // por docente, se avisa en vez de dejarlo sin explicación.
+    if (!observaciones.length && colorEstado === '#EA4335') observaciones.push('Todavía no ha reportado información.');
+    else if (!observaciones.length && colorEstado === '#F9AB00') {
+      observaciones.push('Pendiente de confirmar: actualice "REPORTE DIARIO" y "REPORTE B1 Y B+" para reflejar el estado real.');
+    }
     return {
       nombreIE: nombreIE,
-      colorEstado: sh.getTabColor() || '#9E9E9E',
+      colorEstado: colorEstado,
       docentes: nombresDocentes,
       totalEstudiantes: totalEstudiantesIE,
       reportada: totalEstudiantesIE > 0,

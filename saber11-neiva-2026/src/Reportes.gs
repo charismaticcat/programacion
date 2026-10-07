@@ -287,38 +287,6 @@ function actualizarHojaResumenEnvios_(ss, estados, fechaHora) {
 }
 
 /**
- * Lee "RESUMEN DE ENVÍOS" (columnas A/B/C desde la fila 10) — es la
- * ÚNICA fuente que calcula a la vez el color de pestaña (mismo
- * colorEstado que escribe actualizarMarcasRevisionIE_) y el detalle de
- * observaciones/pendientes real; reportado por el usuario: una IE en
- * naranja o rojo aparecía con "Sin observaciones" porque el resumen
- * público mostraba un cálculo distinto (solo datos faltantes por
- * docente), no el mismo que decide el color. Devuelve un mapa vacío si
- * todavía no se ha generado (antes del primer "Actualizar REPORTE
- * DIARIO/B1 Y B+").
- */
-function obtenerDetalleRevisionPorIE_(ss) {
-  const hoja = ss.getSheetByName(CFG.HOJA_RESUMEN_ENVIOS);
-  const mapa = new Map();
-  if (!hoja) return mapa;
-  const ultimaFila = hoja.getLastRow();
-  if (ultimaFila < 10) return mapa;
-  hoja.getRange(10, 1, ultimaFila - 9, 3).getDisplayValues().forEach(fila => {
-    const nombre = texto_(fila[0]);
-    if (!nombre) return;
-    mapa.set(norm_(nombre), { estado: texto_(fila[1]), detalle: texto_(fila[2]) });
-  });
-  return mapa;
-}
-/** El texto de "detalle" de RESUMEN DE ENVÍOS en líneas de observación para mostrar, o [] si está realmente completo. */
-function observacionesDesdeDetalleRevision_(detalle) {
-  const texto = texto_(detalle);
-  if (!texto || texto === 'SIN OBSERVACIONES') return [];
-  if (texto === 'PENDIENTE DE ENVÍO') return ['Todavía no ha reportado información.'];
-  return texto.split(' | ').map(parte => parte.trim()).filter(Boolean);
-}
-
-/**
  * Lee docente..académico de UNA IE — el mismo rango que leen las tres
  * vistas públicas (resumen general, reporte B1/B+ y listado) más el
  * resumen en vivo de una sola IE. Se cachea unos segundos en
