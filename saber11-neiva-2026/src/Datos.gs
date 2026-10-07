@@ -41,6 +41,32 @@ function filaARegistro_(numeroFila, fila, niveles) {
 }
 
 /**
+ * Lista de valores permitidos para una columna (lista desplegable que ya
+ * tenía la hoja, puesta por el script de CONFIGURAR_TODO o a mano) — null
+ * si la columna es de texto libre. Se lee de PRIMERA_FILA, asumiendo que
+ * la validación es uniforme en toda la columna (así la aplica
+ * aplicarFormato_ del script de la hoja).
+ */
+function opcionesColumna_(sh, columna) {
+  const dv = sh.getRange(CFG.PRIMERA_FILA, columna).getDataValidation();
+  if (!dv || dv.getCriteriaType() !== SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST) return null;
+  const valores = (dv.getCriteriaValues()[0] || []).map(v => texto_(v).toUpperCase()).filter(Boolean);
+  return valores.length ? valores : null;
+}
+
+/** Listas desplegables reales de la hoja para las columnas de texto — por si el docente debe escoger de una lista exacta. */
+function opcionesColumnasIE_(sh) {
+  const C = CFG.COL;
+  return {
+    jornada: opcionesColumna_(sh, C.jornada),
+    genero: opcionesColumna_(sh, C.genero),
+    curso: opcionesColumna_(sh, C.grupo),
+    tipoDoc: opcionesColumna_(sh, C.tipoDoc),
+    numDoc: opcionesColumna_(sh, C.numDoc)
+  };
+}
+
+/**
  * Filas de la IE: todas las que ya tienen algo escrito, más hasta 15
  * filas vacías a continuación para seguir agregando estudiantes sin
  * tener que traer las 500 filas completas en cada carga.
@@ -60,6 +86,7 @@ function obtenerDatosIE(nombreIE, token) {
   return {
     nombreIE: nombreReal,
     colorEstado: sh.getTabColor() || '#9E9E9E',
+    opciones: opcionesColumnasIE_(sh),
     filas: filas
   };
 }
@@ -92,16 +119,31 @@ function guardarFilaIE(nombreIE, token, fila, datos) {
   const [intensificacion, sena, academico] = normalizarTiposGrupo_(datos.intensificacion, datos.sena, datos.academico);
   const puntaje = datos.puntaje === '' || datos.puntaje == null ? '' : Math.max(0, Math.min(100, Number(datos.puntaje) || 0));
 
+  // Si la columna tiene una lista desplegable real en la hoja, el valor
+  // debe estar en esa lista exacta — nunca se escribe texto libre ahí,
+  // porque Sheets deja la celda con un valor "inválido" en silencio (la
+  // API no respeta la validación al escribir) y el admin solo lo nota
+  // después, al abrir la hoja y ver el aviso rojo en esa celda.
+  const opciones = opcionesColumnasIE_(sh);
+  const jornada = mayus(datos.jornada), genero = mayus(datos.genero), curso = mayus(datos.curso);
+  const tipoDoc = mayus(datos.tipoDoc), numDoc = mayus(datos.numDoc);
+  [['jornada', jornada], ['genero', genero], ['curso', curso], ['tipoDoc', tipoDoc], ['numDoc', numDoc]].forEach(([campo, valor]) => {
+    const lista = opciones[campo];
+    if (valor && lista && lista.indexOf(valor) < 0) {
+      throw new Error('"' + valor + '" no es un valor válido. Use uno de: ' + lista.join(', ') + '.');
+    }
+  });
+
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
     sh.getRange(fila, C.docente).setValue(mayus(datos.docente));
     sh.getRange(fila, C.nombre).setValue(mayus(datos.nombre));
-    sh.getRange(fila, C.jornada).setValue(mayus(datos.jornada));
-    sh.getRange(fila, C.genero).setValue(mayus(datos.genero));
-    sh.getRange(fila, C.grupo).setValue(mayus(datos.curso));
-    sh.getRange(fila, C.tipoDoc).setValue(mayus(datos.tipoDoc));
-    sh.getRange(fila, C.numDoc).setValue(mayus(datos.numDoc));
+    sh.getRange(fila, C.jornada).setValue(jornada);
+    sh.getRange(fila, C.genero).setValue(genero);
+    sh.getRange(fila, C.grupo).setValue(curso);
+    sh.getRange(fila, C.tipoDoc).setValue(tipoDoc);
+    sh.getRange(fila, C.numDoc).setValue(numDoc);
     sh.getRange(fila, C.puntaje).setValue(puntaje);
     sh.getRange(fila, C.intensificacion).setValue(intensificacion);
     sh.getRange(fila, C.sena).setValue(sena);

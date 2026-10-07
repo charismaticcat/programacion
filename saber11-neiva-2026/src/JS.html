@@ -163,6 +163,7 @@ function cargarDatosIE_() {
   llamarServidor('rpcObtenerDatosIE', [estado.nombreIE, estado.tokenIE], function (datos) {
     document.getElementById('badgeColorIE').style.background = datos.colorEstado;
     mostrarMensaje('mensajeDatosIE', '', '');
+    estado.opcionesColumnasIE = datos.opciones || {};
     pintarTablaIE_(datos.filas);
   }, function (e) {
     mostrarMensaje('mensajeDatosIE', e.mensaje || 'Error al cargar los datos.', 'error');
@@ -182,16 +183,37 @@ function selectSiNo_(fila, campo) {
     "<option value='NO'" + (v !== 'SI' ? ' selected' : '') + '>NO</option>' +
     "<option value='SI'" + (v === 'SI' ? ' selected' : '') + '>SI</option></select>';
 }
+/**
+ * Campo de texto o lista desplegable, según lo que haya devuelto el
+ * servidor para esta columna (opcionesColumnasIE, Datos.gs): si la hoja
+ * real ya tiene una validación de lista ahí, se respeta esa lista exacta
+ * — nunca texto libre — porque escribir algo fuera de lista deja la
+ * celda marcada como inválida en la hoja (Sheets no bloquea la escritura
+ * por API, solo la marca en rojo cuando alguien la abre).
+ */
+function campoTextoOLista_(campo, valor) {
+  var opciones = (estado.opcionesColumnasIE || {})[campo];
+  if (!opciones) {
+    return "<input data-campo-ie='" + campo + "' value=\"" + escapeHtml(valor) + '">';
+  }
+  var html = "<select data-campo-ie='" + campo + "'>";
+  html += "<option value=''" + (valor ? '' : ' selected') + '>Selecciona…</option>';
+  opciones.forEach(function (op) {
+    html += "<option value='" + escapeHtml(op) + "'" + (op === valor ? ' selected' : '') + '>' + escapeHtml(op) + '</option>';
+  });
+  html += '</select>';
+  return html;
+}
 function filaIEHtml_(f) {
   return "<tr data-fila-ie='" + f.fila + "'>" +
     '<td>' + f.fila + '</td>' +
     "<td><input data-campo-ie='docente' value=\"" + escapeHtml(f.docente) + '"></td>' +
     "<td><input data-campo-ie='nombre' value=\"" + escapeHtml(f.nombre) + '"></td>' +
-    "<td><input data-campo-ie='jornada' value=\"" + escapeHtml(f.jornada) + '"></td>' +
-    "<td><input data-campo-ie='genero' value=\"" + escapeHtml(f.genero) + '"></td>' +
-    "<td><input data-campo-ie='curso' value=\"" + escapeHtml(f.curso) + '"></td>' +
-    "<td><input data-campo-ie='tipoDoc' value=\"" + escapeHtml(f.tipoDoc) + '"></td>' +
-    "<td><input data-campo-ie='numDoc' value=\"" + escapeHtml(f.numDoc) + '"></td>' +
+    '<td>' + campoTextoOLista_('jornada', f.jornada) + '</td>' +
+    '<td>' + campoTextoOLista_('genero', f.genero) + '</td>' +
+    '<td>' + campoTextoOLista_('curso', f.curso) + '</td>' +
+    '<td>' + campoTextoOLista_('tipoDoc', f.tipoDoc) + '</td>' +
+    '<td>' + campoTextoOLista_('numDoc', f.numDoc) + '</td>' +
     "<td><input data-campo-ie='puntaje' type='number' min='0' max='100' value=\"" + escapeHtml(f.puntaje) + '"></td>' +
     "<td class='celda-nivel-ie'>" + escapeHtml(f.nivel) + '</td>' +
     '<td>' + selectSiNo_(f, 'intensificacion') + '</td>' +
@@ -249,16 +271,20 @@ document.getElementById('btnGenerarGraficos').addEventListener('click', function
   mostrarMensaje('mensajeGraficosIE', 'Generando gráficos… puede tardar unos segundos. <span class="spinner"></span>', 'info');
   document.getElementById('galeriaGraficosIE').innerHTML = '';
   llamarServidor('rpcGenerarGraficosIE', [estado.nombreIE, estado.tokenIE], function (r) {
-    if (!r.ok) {
-      mostrarMensaje('mensajeGraficosIE',
-        'Falta completar información antes de generar los gráficos:<br>' + (r.faltantes || []).map(escapeHtml).join('<br>'), 'error');
-      return;
-    }
     mostrarMensaje('mensajeGraficosIE', 'Gráficos generados correctamente.', 'exito');
     document.getElementById('galeriaGraficosIE').innerHTML = (r.imagenes || []).map(function (img) {
       return "<div><h4>" + escapeHtml(img.titulo) + "</h4><img src='data:image/png;base64," + img.imagenBase64 + "'></div>";
     }).join('');
   }, function (e) {
+    // generarGraficosIE devuelve {ok:false, faltantes:[...]} cuando la
+    // información está incompleta (sin .mensaje) — distinto de un error
+    // real, que sí trae .mensaje. Aquí llegan ambos casos (llamarServidor
+    // enruta todo {ok:false} al callback de error, nunca al de éxito).
+    if (e.faltantes && e.faltantes.length) {
+      mostrarMensaje('mensajeGraficosIE',
+        'Falta completar información antes de generar los gráficos:<br>' + e.faltantes.map(escapeHtml).join('<br>'), 'error');
+      return;
+    }
     mostrarMensaje('mensajeGraficosIE', e.mensaje || 'No fue posible generar los gráficos.', 'error');
   });
 });
