@@ -313,20 +313,46 @@ document.getElementById('btnGenerarYDescargarInformeIE').addEventListener('click
 function pintarTablaIE_(filas) {
   var cuerpo = document.getElementById('cuerpoTablaIE');
   var listaDocentes = document.getElementById('listaDocentesIE');
-  var htmlEstudiantes = '';
-  var htmlDocentes = '';
-  var docenteGrupoActual = null;
-  var indiceGrupo = -1;
+
+  // 1) Agrupa por docente consecutivo.
+  var gruposCrudos = [];
   filas.forEach(function (f) {
     var clave = texto_(f.docente).toUpperCase();
-    if (docenteGrupoActual === null || clave !== docenteGrupoActual) {
-      indiceGrupo++;
-      htmlDocentes += filaGrupoDocenteHtml_(indiceGrupo, f.docente, f.correoRegistro);
-      docenteGrupoActual = clave;
+    var ultimo = gruposCrudos[gruposCrudos.length - 1];
+    if (!ultimo || ultimo.clave !== clave) {
+      gruposCrudos.push({ clave: clave, docente: f.docente, correoRegistro: f.correoRegistro, filas: [f] });
+    } else {
+      ultimo.filas.push(f);
     }
-    htmlEstudiantes += filaIEHtml_(f, indiceGrupo);
   });
-  if (indiceGrupo < 0) htmlDocentes = filaGrupoDocenteHtml_(0, '', ''); // todavía sin estudiantes: un grupo en blanco para empezar
+
+  /**
+   * 2) Un hueco en blanco a mitad de la hoja (filas sin docente entre
+   * dos docentes con nombre) no merece su propia casilla vacía — spec
+   * del usuario: "dejar un solo espacio para agregar docente luego del
+   * último docente que aparezca registrado". Esas filas se absorben en
+   * el grupo anterior (siguen siendo estudiantes editables, solo que ya
+   * no tienen una casilla de docente propia); el único grupo en blanco
+   * que queda visible es el último — el que sirve para agregar el
+   * siguiente docente.
+   */
+  var grupos = [];
+  gruposCrudos.forEach(function (g, i) {
+    var esUltimo = i === gruposCrudos.length - 1;
+    if (!g.clave && grupos.length && !esUltimo) {
+      grupos[grupos.length - 1].filas = grupos[grupos.length - 1].filas.concat(g.filas);
+    } else {
+      grupos.push(g);
+    }
+  });
+  if (!grupos.length) grupos.push({ clave: '', docente: '', correoRegistro: '', filas: [] }); // todavía sin estudiantes: un grupo en blanco para empezar
+
+  var htmlEstudiantes = '';
+  var htmlDocentes = '';
+  grupos.forEach(function (g, indiceGrupo) {
+    htmlDocentes += filaGrupoDocenteHtml_(indiceGrupo, g.docente, g.correoRegistro);
+    g.filas.forEach(function (f) { htmlEstudiantes += filaIEHtml_(f, indiceGrupo); });
+  });
   cuerpo.innerHTML = htmlEstudiantes;
   listaDocentes.innerHTML = htmlDocentes;
   filasSeleccionadasIE_.clear();
