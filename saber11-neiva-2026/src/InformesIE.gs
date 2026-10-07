@@ -94,6 +94,38 @@ function adminDescargarInformeIE(token, nombreIE, formato) {
   };
 }
 
+/**
+ * Admin: genera el informe de una IE en PDF y Excel y los envía por
+ * correo, ambos adjuntos en un solo mensaje — spec del usuario: "haz
+ * botón de enviar reporte por email y que se adjunten ambos archivos
+ * PDF y Excel al correo que se ingresa manualmente".
+ */
+function adminEnviarInformeIEPorCorreo(token, nombreIE, correoDestino) {
+  exigirAccesoAdmin_(token);
+  const correo = String(correoDestino || '').trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) throw new Error('El correo no es válido.');
+  const clave = norm_(nombreIE);
+  const idx = CFG.IES.map(norm_).indexOf(clave);
+  if (idx < 0) throw new Error('Institución no reconocida.');
+  const nombreReal = CFG.IES[idx];
+  const ss = abrirSpreadsheet_();
+  const sh = resolverHojaIE_(ss, nombreReal);
+  if (!sh) throw new Error('No se encontró la hoja de "' + nombreReal + '".');
+  if (!sh.getCharts().length) {
+    throw new Error('"' + nombreReal + '" todavía no tiene gráficos generados. Genere los gráficos primero (botón "Generar gráficos").');
+  }
+  const nombreBase = 'Informe ' + nombreSinPrefijoIE_(nombreReal) + ' - SABER 11 ' + CFG.ANIO;
+  const blobPdf = exportarHojaComoPDF_(sh).setName(nombreBase + '.pdf');
+  const blobXlsx = exportarHojaComoXLSX_(sh, nombreBase).setName(nombreBase + '.xlsx');
+  MailApp.sendEmail({
+    to: correo,
+    subject: 'Informe SABER 11 ' + CFG.ANIO + ' — ' + nombreReal,
+    body: 'Se adjunta el informe de ' + nombreReal + ' (PRUEBA SABER 11º · Neiva ' + CFG.ANIO + ') en formato PDF y Excel.',
+    attachments: [blobPdf, blobXlsx]
+  });
+  return { ok: true };
+}
+
 /** Admin: descarga el REPORTE B1 Y B+ completo (las 36 IE) — exige que ya se haya generado/actualizado. */
 function adminDescargarReporteB1BMas(token, formato) {
   exigirAccesoAdmin_(token);

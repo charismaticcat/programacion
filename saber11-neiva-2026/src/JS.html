@@ -1315,7 +1315,7 @@ document.getElementById('btnSalirAdmin').addEventListener('click', function () {
 });
 function cargarTablaAdmin_() {
   var cuerpo = document.getElementById('cuerpoTablaAdmin');
-  cuerpo.innerHTML = "<tr><td colspan='4'>Cargando… <span class='spinner'></span></td></tr>";
+  cuerpo.innerHTML = "<tr><td colspan='3'>Cargando… <span class='spinner'></span></td></tr>";
   llamarServidor('rpcAdminListarTokens', [estado.tokenAdmin], function (lista) {
     var selectIE = document.getElementById('selectIELimpiezaCurso');
     if (selectIE) {
@@ -1325,37 +1325,48 @@ function cargarTablaAdmin_() {
     }
     cuerpo.innerHTML = (lista || []).map(function (ie) {
       return '<tr>' +
-        '<td>' + escapeHtml(ie.nombreIE) +
+        "<td><button type='button' class='enlace-nombre-ie' data-entrar-ie='" + escapeHtml(ie.nombreIE) + "'>" + escapeHtml(ie.nombreIE) + '</button>' +
         (ie.existeHoja ? '' : " <span class='mensaje error' style='display:inline;'>sin hoja</span>") +
         (ie.nombreHojaReal ? " <span class='mensaje info' style='display:inline;'>vinculada a pestaña similar: \"" + escapeHtml(ie.nombreHojaReal) + "\" — revisar nombre</span>" : '') + '</td>' +
         "<td><span class='badge-color' style='background:" + ie.colorEstado + "'></span></td>" +
-        "<td><code>" + escapeHtml(ie.token) + '</code></td>' +
-        "<td><button type='button' class='btn btn-secundario' data-regenerar-token='" + escapeHtml(ie.nombreIE) + "'>Regenerar</button> " +
-        "<button type='button' class='btn btn-secundario' data-entrar-ie='" + escapeHtml(ie.nombreIE) + "'>Entrar</button> " +
-        "<button type='button' class='btn btn-secundario' data-graficos-ie='" + escapeHtml(ie.nombreIE) + "'>Generar gráficos</button>" +
+        '<td>' +
+        "<div class='fila-botones'><button type='button' class='btn btn-secundario' data-graficos-ie='" + escapeHtml(ie.nombreIE) + "'>Generar gráficos</button></div>" +
         "<div class='fila-descarga-informe'>" +
         "<select data-formato-informe><option value='pdf'>PDF</option><option value='xlsx'>Excel</option></select>" +
         "<button type='button' class='btn btn-secundario' data-descargar-informe='" + escapeHtml(ie.nombreIE) + "'>Descargar informe</button>" +
-        '</div></td>' +
+        '</div>' +
+        "<div class='fila-envio-informe'>" +
+        "<input type='email' data-correo-informe placeholder='correo@ejemplo.edu.co'>" +
+        "<button type='button' class='btn btn-secundario' data-enviar-informe='" + escapeHtml(ie.nombreIE) + "'>✉️ Enviar informe por correo</button>" +
+        '</div>' +
+        '</td>' +
         '</tr>';
     }).join('');
   }, function (e) {
-    cuerpo.innerHTML = "<tr><td colspan='4' class='mensaje error'>" + escapeHtml(e.mensaje || 'Error al cargar.') + '</td></tr>';
+    cuerpo.innerHTML = "<tr><td colspan='3' class='mensaje error'>" + escapeHtml(e.mensaje || 'Error al cargar.') + '</td></tr>';
   });
 }
 document.getElementById('cuerpoTablaAdmin').addEventListener('click', function (evento) {
-  var botonRegenerar = evento.target.closest('[data-regenerar-token]');
-  if (botonRegenerar) {
-    llamarServidor('rpcAdminRegenerarTokenIE', [estado.tokenAdmin, botonRegenerar.getAttribute('data-regenerar-token')], function () {
-      cargarTablaAdmin_();
-    }, function (e) {
-      mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible regenerar el token.', 'error');
-    });
-    return;
-  }
   var botonEntrar = evento.target.closest('[data-entrar-ie]');
   if (botonEntrar) {
     entrarIEDesdeAdmin_(botonEntrar.getAttribute('data-entrar-ie'));
+    return;
+  }
+  var botonEnviar = evento.target.closest('[data-enviar-informe]');
+  if (botonEnviar) {
+    var nombreIEEnviar = botonEnviar.getAttribute('data-enviar-informe');
+    var campoCorreo = botonEnviar.closest('tr').querySelector('[data-correo-informe]');
+    var correo = campoCorreo ? campoCorreo.value.trim() : '';
+    if (!correo || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+      mostrarMensaje('mensajeAdmin', 'Escriba un correo válido para enviar el informe de ' + escapeHtml(nombreIEEnviar) + '.', 'error');
+      return;
+    }
+    mostrarMensaje('mensajeAdmin', 'Generando y enviando informe de ' + escapeHtml(nombreIEEnviar) + ' a ' + escapeHtml(correo) + '… <span class="spinner"></span>', 'info');
+    llamarServidor('rpcAdminEnviarInformeIEPorCorreo', [estado.tokenAdmin, nombreIEEnviar, correo], function () {
+      mostrarMensaje('mensajeAdmin', '✅ Informe de ' + escapeHtml(nombreIEEnviar) + ' enviado a ' + escapeHtml(correo) + ' (PDF y Excel adjuntos).', 'exito');
+    }, function (e) {
+      mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible enviar el informe.', 'error');
+    });
     return;
   }
   var botonGraficos = evento.target.closest('[data-graficos-ie]');
