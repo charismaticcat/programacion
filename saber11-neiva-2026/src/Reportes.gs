@@ -319,6 +319,34 @@ function observacionesDesdeDetalleRevision_(detalle) {
 }
 
 /**
+ * Lee docente..académico de UNA IE — el mismo rango que leen las tres
+ * vistas públicas (resumen general, reporte B1/B+ y listado) más el
+ * resumen en vivo de una sola IE. Se cachea unos segundos en
+ * CacheService (compartida entre TODAS las ejecuciones del script, no
+ * solo la actual) porque con 36 IE y hasta 500 filas cada una, leer la
+ * hoja real por separado para cada una de esas 4 vistas — y de nuevo
+ * cada vez que el auto-refresco de 30s de las vistas públicas se
+ * dispara, o si varias personas las tienen abiertas a la vez — era la
+ * causa de que los informes públicos tardaran mucho en cargar (reporte
+ * del usuario). Si una hoja es tan grande que no cabe en la caché
+ * (límite de 100 KB por clave), simplemente no se cachea esa IE; el
+ * resto sigue funcionando igual.
+ */
+function leerFilasIE_(sh) {
+  const cache = CacheService.getScriptCache();
+  const clave = 'filasIE_' + sh.getSheetId();
+  const cacheado = cache.get(clave);
+  if (cacheado) return JSON.parse(cacheado);
+  const ultimaFila = Math.min(CFG.ULTIMA_FILA, sh.getLastRow());
+  const cantidadFilas = Math.max(0, ultimaFila - CFG.PRIMERA_FILA + 1);
+  const filas = cantidadFilas > 0
+    ? sh.getRange(CFG.PRIMERA_FILA, CFG.COL.docente, cantidadFilas, CFG.COL.academico - CFG.COL.docente + 1).getDisplayValues()
+    : [];
+  try { cache.put(clave, JSON.stringify(filas), 20); } catch (e) { /* hoja muy grande para la caché: se sigue leyendo en vivo */ }
+  return filas;
+}
+
+/**
  * Agrupa por docente las filas de UNA IE (grupos reportados, cantidad de
  * estudiantes, qué le falta a cada registro, combinaciones de tipo de
  * grupo inválidas) — aislado de generarReporteDiarioSaber11_ para
@@ -326,15 +354,12 @@ function observacionesDesdeDetalleRevision_(detalle) {
  * (obtenerResumenEnvioIE), sin tener que leer REPORTE DIARIO.
  */
 function calcularDocentesIE_(sh, nombreIE) {
-  const primeraFila = CFG.PRIMERA_FILA;
-  const ultimaFila = Math.min(CFG.ULTIMA_FILA, sh.getLastRow());
   const docentes = {};
   let totalEstudiantesIE = 0;
   const nivelesIE = new Set();
   const esTecnicoIpc = norm_(nombreIE) === norm_('INSTITUTO TECNICO IPC ANDRES ROSA');
-  if (ultimaFila < primeraFila) return { docentes, totalEstudiantesIE, nivelesIE, esTecnicoIpc };
-  const datos = sh.getRange(primeraFila, CFG.COL.docente, ultimaFila - primeraFila + 1,
-    CFG.COL.academico - CFG.COL.docente + 1).getDisplayValues();
+  const datos = leerFilasIE_(sh);
+  if (!datos.length) return { docentes, totalEstudiantesIE, nivelesIE, esTecnicoIpc };
   let docenteActual = '';
   datos.forEach(fila => {
     const docenteCelda = String(fila[0] || '').trim();
@@ -376,11 +401,9 @@ function calcularDocentesIE_(sh, nombreIE) {
  * reusarlo en el resumen en vivo de una sola IE.
  */
 function calcularCursosIE_(sh) {
-  const ultimaFila = Math.min(CFG.ULTIMA_FILA, sh.getLastRow());
   const totalesPorCurso = new Map();
-  if (ultimaFila < CFG.PRIMERA_FILA) return totalesPorCurso;
-  const datos = sh.getRange(CFG.PRIMERA_FILA, CFG.COL.docente, ultimaFila - CFG.PRIMERA_FILA + 1,
-    CFG.COL.academico - CFG.COL.docente + 1).getDisplayValues();
+  const datos = leerFilasIE_(sh);
+  if (!datos.length) return totalesPorCurso;
   datos.forEach(fila => {
     const tieneRegistroEstudiante = fila.slice(1, 4).concat(fila.slice(5, 9)).some(valor => String(valor || '').trim() !== '');
     if (!tieneRegistroEstudiante) return;

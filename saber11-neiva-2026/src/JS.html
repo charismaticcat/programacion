@@ -191,6 +191,23 @@ document.getElementById('listaInstitucionesB1BMasPublico').addEventListener('cli
   }
 });
 /**
+ * html2canvas no resuelve variables CSS (var(--azul-oscuro) etc. — las
+ * usa casi todo el texto de CSS.html), así que el título, el texto y
+ * los encabezados de la tabla salían invisibles y solo se veía el logo
+ * (reporte del usuario). Copia el color ya resuelto por el navegador
+ * (getComputedStyle, que sí entiende las variables) como estilo en
+ * línea sobre el DUPLICADO que html2canvas captura (onclone) — nunca
+ * toca el bloque real en pantalla.
+ */
+function resolverVariablesCssParaCaptura_(original, clon) {
+  var estilo = window.getComputedStyle(original);
+  clon.style.color = estilo.color;
+  clon.style.backgroundColor = estilo.backgroundColor;
+  for (var i = 0; i < original.children.length; i++) {
+    if (clon.children[i]) resolverVariablesCssParaCaptura_(original.children[i], clon.children[i]);
+  }
+}
+/**
  * Descarga una imagen de TODO el resumen de la IE (logo + texto + tabla
  * de cursos), no solo el logo (spec del usuario: "no se permite
  * descargar la imagen de todo el resumen de cada IE"), usando
@@ -204,7 +221,13 @@ function descargarImagenBloqueIEB1BMas_(bloque) {
   }
   var acciones = bloque.querySelector('.acciones-ie-b1bmas');
   if (acciones) acciones.style.visibility = 'hidden';
-  html2canvas(bloque, { backgroundColor: '#ffffff', scale: 2 }).then(function (canvas) {
+  html2canvas(bloque, {
+    backgroundColor: '#ffffff',
+    scale: 2,
+    onclone: function (documentoClonado, elementoClonado) {
+      resolverVariablesCssParaCaptura_(bloque, elementoClonado);
+    }
+  }).then(function (canvas) {
     if (acciones) acciones.style.visibility = '';
     var enlace = document.createElement('a');
     enlace.href = canvas.toDataURL('image/png');

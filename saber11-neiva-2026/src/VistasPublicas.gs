@@ -62,10 +62,8 @@ function obtenerReporteB1BMasPublico_() {
   CFG.IES.forEach(nombreIE => {
     const sh = resolverHojaIE_(ss, nombreIE);
     if (!sh || !esHojaIE_(sh)) return;
-    const ultimaFila = Math.min(CFG.ULTIMA_FILA, sh.getLastRow());
-    const cantidadFilas = Math.max(0, ultimaFila - CFG.PRIMERA_FILA + 1);
-    if (!cantidadFilas) return;
-    const datos = sh.getRange(CFG.PRIMERA_FILA, CFG.COL.docente, cantidadFilas, CFG.COL.academico - CFG.COL.docente + 1).getDisplayValues();
+    const datos = leerFilasIE_(sh);
+    if (!datos.length) return;
     let totalEvaluados = 0, totalB1BMas = 0;
     const porCurso = new Map();
     datos.forEach(fila => {
@@ -125,10 +123,8 @@ function obtenerListadoEstudiantesB1BMasPublico_() {
   CFG.IES.forEach(nombreIE => {
     const sh = resolverHojaIE_(ss, nombreIE);
     if (!sh || !esHojaIE_(sh)) return;
-    const ultimaFila = Math.min(CFG.ULTIMA_FILA, sh.getLastRow());
-    const cantidadFilas = Math.max(0, ultimaFila - CFG.PRIMERA_FILA + 1);
-    if (!cantidadFilas) return;
-    const datos = sh.getRange(CFG.PRIMERA_FILA, CFG.COL.docente, cantidadFilas, CFG.COL.academico - CFG.COL.docente + 1).getDisplayValues();
+    const datos = leerFilasIE_(sh);
+    if (!datos.length) return;
     datos.forEach(fila => {
       const nivel = norm_(fila[8] || '');
       if (nivel !== 'B1' && nivel !== 'B+') return;
