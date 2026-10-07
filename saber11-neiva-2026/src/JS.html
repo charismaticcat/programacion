@@ -201,6 +201,11 @@ function pintarTablaIE_(filas) {
   filasSeleccionadasIE_.clear();
   ultimaFilaClicIE_ = null;
   actualizarResaltadoSeleccionIE_();
+  // Deshacer (spec del usuario): punto de partida para cada fila, y se
+  // olvida cualquier historial de una carga anterior.
+  ultimoEstadoFilaIE_ = {};
+  pilaDeshacerIE_ = [];
+  filas.forEach(function (f) { ultimoEstadoFilaIE_[f.fila] = f; });
 }
 
 function selectSiNo_(fila, campo) {
@@ -253,6 +258,16 @@ function filaIEHtml_(f) {
 var ORDEN_CAMPOS_IE_ = ['docente', 'correoRegistro', 'nombre', 'jornada', 'genero', 'curso', 'tipoDoc', 'numDoc', 'puntaje', 'intensificacion', 'sena', 'academico'];
 
 var temporizadorGuardadoFilaIE_ = {};
+/**
+ * Deshacer propio (spec del usuario): Ctrl/Cmd+Z no debe sacar del
+ * aplicativo (el navegador a veces interpreta ese atajo como "atrás")
+ * sino deshacer el último cambio guardado. ultimoEstadoFilaIE_ guarda,
+ * por fila, el último registro confirmado por el servidor;
+ * pilaDeshacerIE_ guarda, en orden, el estado ANTERIOR a cada guardado
+ * para poder volver a él.
+ */
+var ultimoEstadoFilaIE_ = {};
+var pilaDeshacerIE_ = [];
 function recolectarFilaIE_(tr) {
   var datos = {};
   tr.querySelectorAll('[data-campo-ie]').forEach(function (campo) {
@@ -279,14 +294,58 @@ function aplicarRegistroEnFila_(tr, registro) {
   tr.querySelector('.celda-nivel-ie').textContent = registro.nivel;
 }
 function guardarFilaIE_(tr) {
-  var fila = tr.getAttribute('data-fila-ie');
+  var fila = Number(tr.getAttribute('data-fila-ie'));
+  var estadoAntesDeEsteCambio = ultimoEstadoFilaIE_[fila];
   llamarServidor('rpcGuardarFilaIE', [estado.nombreIE, estado.tokenIE, fila, recolectarFilaIE_(tr)], function (r) {
+    if (estadoAntesDeEsteCambio) pilaDeshacerIE_.push({ fila: fila, anterior: estadoAntesDeEsteCambio });
+    ultimoEstadoFilaIE_[fila] = r.registro;
     aplicarRegistroEnFila_(tr, r.registro);
     actualizarCompletitudGraficos_();
+    mostrarConfirmacionGuardadoIE_();
   }, function (e) {
     mostrarMensaje('mensajeDatosIE', e.mensaje || 'No fue posible guardar.', 'error');
   });
 }
+/** Aviso breve de que el cambio ya quedó guardado en la hoja de cálculo real (spec del usuario). */
+var temporizadorConfirmacionGuardadoIE_ = null;
+function mostrarConfirmacionGuardadoIE_() {
+  mostrarMensaje('mensajeDatosIE', '💾 Guardado en la hoja original.', 'exito');
+  clearTimeout(temporizadorConfirmacionGuardadoIE_);
+  temporizadorConfirmacionGuardadoIE_ = setTimeout(function () { mostrarMensaje('mensajeDatosIE', '', ''); }, 1800);
+}
+/**
+ * Deshace el último cambio guardado (Ctrl/Cmd+Z) — vuelve esa fila al
+ * estado que tenía antes y lo guarda de inmediato, para que quede
+ * igual en la hoja de cálculo real.
+ */
+function deshacerUltimoCambioIE_() {
+  if (!pilaDeshacerIE_.length) {
+    mostrarMensaje('mensajeDatosIE', 'No hay cambios para deshacer.', 'info');
+    return;
+  }
+  var cambio = pilaDeshacerIE_.pop();
+  var tr = document.querySelector('[data-fila-ie="' + cambio.fila + '"]');
+  if (!tr) return;
+  aplicarRegistroEnFila_(tr, cambio.anterior);
+  llamarServidor('rpcGuardarFilaIE', [estado.nombreIE, estado.tokenIE, cambio.fila, recolectarFilaIE_(tr)], function (r) {
+    ultimoEstadoFilaIE_[cambio.fila] = r.registro;
+    aplicarRegistroEnFila_(tr, r.registro);
+    actualizarCompletitudGraficos_();
+    mostrarMensaje('mensajeDatosIE', '↩️ Último cambio deshecho (fila ' + cambio.fila + ').', 'exito');
+  }, function (e) {
+    mostrarMensaje('mensajeDatosIE', e.mensaje || 'No fue posible deshacer.', 'error');
+  });
+}
+document.addEventListener('keydown', function (evento) {
+  var esAtajoDeshacer = (evento.ctrlKey || evento.metaKey) && !evento.shiftKey && !evento.altKey &&
+    (evento.key === 'z' || evento.key === 'Z');
+  if (!esAtajoDeshacer) return;
+  var pantallaIE = document.getElementById('pantallaIE');
+  if (!pantallaIE || pantallaIE.classList.contains('oculto')) return;
+  // Nunca dejar que el navegador interprete esto como "atrás" y saque del aplicativo.
+  evento.preventDefault();
+  deshacerUltimoCambioIE_();
+});
 document.getElementById('cuerpoTablaIE').addEventListener('change', function (evento) {
   var campo = evento.target.closest('[data-campo-ie]');
   if (!campo) return;
@@ -345,10 +404,12 @@ function agregarFilaIE_(heredarDocente) {
     if (campoDocente) docentePrevio = campoDocente.value;
     if (campoCorreo) correoPrevio = campoCorreo.value;
   }
-  document.getElementById('cuerpoTablaIE').insertAdjacentHTML('beforeend', filaIEHtml_({
+  var datosIniciales = {
     fila: ultima + 1, docente: docentePrevio, correoRegistro: correoPrevio, nombre: '', jornada: '', genero: '', curso: '', tipoDoc: '', numDoc: '',
     puntaje: '', nivel: '', intensificacion: 'NO', sena: 'NO', academico: 'NO'
-  }));
+  };
+  document.getElementById('cuerpoTablaIE').insertAdjacentHTML('beforeend', filaIEHtml_(datosIniciales));
+  ultimoEstadoFilaIE_[datosIniciales.fila] = datosIniciales; // punto de partida para poder deshacer el primer cambio de esta fila
   return document.getElementById('cuerpoTablaIE').lastElementChild;
 }
 document.getElementById('btnAgregarFilaIE').addEventListener('click', function () { agregarFilaIE_(true); });
