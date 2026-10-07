@@ -12,6 +12,14 @@
   <!-- 1. PANTALLA DE DISTRIBUCIÓN DE LINKS -->
   <section id="pantallaDistribucion">
     <div class="tarjeta">
+      <h2>Reportes públicos</h2>
+      <div class="fila-botones">
+        <button type="button" class="btn btn-secundario" id="btnVerResumenGeneral">📊 Ver resumen de envío de todas las IE</button>
+        <button type="button" class="btn btn-secundario" id="btnVerReporteB1BMasPublico">📈 Ver reporte estadístico de nivel B1 y B+ en Neiva</button>
+        <button type="button" class="btn btn-secundario" id="btnVerListadoB1BMas">📋 Ver listado de estudiantes B1 y B+ (prueba de inglés)</button>
+      </div>
+    </div>
+    <div class="tarjeta">
       <h2>Elija su institución educativa</h2>
       <p>Seleccione el logo de su IE para ingresar.</p>
       <div id="rejillaInstituciones" class="grid-instituciones">
@@ -26,6 +34,54 @@
         <div class="fila-botones">
           <button type="button" class="btn btn-primario" id="btnEntrarAdmin">Entrar como administrador</button>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1.1 RESUMEN DE ENVÍO — TODAS LAS IE (público) -->
+  <section id="pantallaResumenGeneral" class="oculto">
+    <div class="tarjeta">
+      <h2>📊 Resumen de envío — todas las IE</h2>
+      <button type="button" class="btn btn-secundario" id="btnSalirResumenGeneral">Salir</button>
+    </div>
+    <div class="tarjeta">
+      <div id="mensajeResumenGeneral"></div>
+      <div id="barraProgresoGeneralIE"></div>
+      <div class="tabla-desplazable">
+        <table class="tabla-generica">
+          <thead><tr><th>Institución</th><th>Estado</th><th>Docentes que han reportado</th><th>Estudiantes reportados</th></tr></thead>
+          <tbody id="cuerpoResumenGeneral"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1.2 REPORTE ESTADÍSTICO B1 Y B+ EN NEIVA (público) -->
+  <section id="pantallaReporteB1BMasPublico" class="oculto">
+    <div class="tarjeta">
+      <h2>📈 Reporte estadístico — Nivel B1 y B+ en Neiva</h2>
+      <button type="button" class="btn btn-secundario" id="btnSalirReporteB1BMasPublico">Salir</button>
+    </div>
+    <div class="tarjeta">
+      <div id="mensajeReporteB1BMasPublico"></div>
+      <p id="totalGeneralB1BMasPublico"></p>
+      <div id="listaInstitucionesB1BMasPublico"></div>
+    </div>
+  </section>
+
+  <!-- 1.3 LISTADO DE ESTUDIANTES B1 Y B+ (público) -->
+  <section id="pantallaListadoB1BMas" class="oculto">
+    <div class="tarjeta">
+      <h2>📋 Estudiantes con nivel B1 y B+ — Prueba de Inglés <span id="anioListadoB1BMas"></span></h2>
+      <button type="button" class="btn btn-secundario" id="btnSalirListadoB1BMas">Salir</button>
+    </div>
+    <div class="tarjeta">
+      <div id="mensajeListadoB1BMas"></div>
+      <div class="tabla-desplazable">
+        <table class="tabla-generica">
+          <thead><tr><th>#</th><th>Institución educativa</th><th>Nombre del estudiante</th><th>Curso</th><th>Tipo de grupo</th><th>Nivel</th></tr></thead>
+          <tbody id="cuerpoListadoB1BMas"></tbody>
+        </table>
       </div>
     </div>
   </section>

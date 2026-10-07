@@ -107,3 +107,12 @@ function rpcAdminEliminarEstudiantesPorCurso(token, nombreIE, curso) {
 function rpcAdminAutocompletarGenero(token) {
   return ejecutarRpcSeguro_(() => adminAutocompletarGenero(token));
 }
+function rpcObtenerResumenEnvioTodasLasIE() {
+  return ejecutarRpcSeguro_(() => obtenerResumenEnvioTodasLasIE());
+}
+function rpcObtenerReporteB1BMasPublico() {
+  return ejecutarRpcSeguro_(() => obtenerReporteB1BMasPublico_());
+}
+function rpcObtenerListadoEstudiantesB1BMasPublico() {
+  return ejecutarRpcSeguro_(() => obtenerListadoEstudiantesB1BMasPublico_());
+}

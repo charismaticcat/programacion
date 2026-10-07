@@ -71,6 +71,100 @@ document.getElementById('btnEntrarAdmin').addEventListener('click', function () 
   });
 });
 
+/**
+ * Tres vistas públicas (spec del usuario), accesibles antes de elegir
+ * una IE y sin ningún token: resumen de envío de todas las IE, reporte
+ * estadístico B1/B+ y listado de estudiantes B1/B+.
+ */
+function volverAPantallaDistribucionDesde_(idSeccion) {
+  document.getElementById(idSeccion).classList.add('oculto');
+  document.getElementById('pantallaDistribucion').classList.remove('oculto');
+}
+
+document.getElementById('btnVerResumenGeneral').addEventListener('click', function () {
+  document.getElementById('pantallaDistribucion').classList.add('oculto');
+  document.getElementById('pantallaResumenGeneral').classList.remove('oculto');
+  cargarResumenGeneralIE_();
+});
+document.getElementById('btnSalirResumenGeneral').addEventListener('click', function () {
+  volverAPantallaDistribucionDesde_('pantallaResumenGeneral');
+});
+function cargarResumenGeneralIE_() {
+  mostrarMensaje('mensajeResumenGeneral', 'Cargando… <span class="spinner"></span>', 'info');
+  document.getElementById('barraProgresoGeneralIE').innerHTML = '';
+  document.getElementById('cuerpoResumenGeneral').innerHTML = '';
+  llamarServidor('rpcObtenerResumenEnvioTodasLasIE', [], function (r) {
+    mostrarMensaje('mensajeResumenGeneral', '', '');
+    document.getElementById('barraProgresoGeneralIE').innerHTML =
+      "<div class='barra-progreso-general'><div class='relleno-barra-progreso' style='width:" + r.porcentaje + "%'></div></div>" +
+      '<p>' + r.totalReportadas + ' de ' + r.totalIE + ' instituciones han reportado (' + r.porcentaje + '%).</p>';
+    document.getElementById('cuerpoResumenGeneral').innerHTML = r.instituciones.map(function (ie) {
+      return '<tr><td>' + escapeHtml(ie.nombreIE) + '</td>' +
+        "<td><span class='badge-color' style='background:" + ie.colorEstado + "'></span></td>" +
+        '<td>' + (ie.docentes.length ? ie.docentes.map(escapeHtml).join(', ') : '—') + '</td>' +
+        '<td>' + ie.totalEstudiantes + '</td></tr>';
+    }).join('');
+  }, function (e) {
+    mostrarMensaje('mensajeResumenGeneral', e.mensaje || 'Error al cargar.', 'error');
+  });
+}
+
+document.getElementById('btnVerReporteB1BMasPublico').addEventListener('click', function () {
+  document.getElementById('pantallaDistribucion').classList.add('oculto');
+  document.getElementById('pantallaReporteB1BMasPublico').classList.remove('oculto');
+  cargarReporteB1BMasPublico_();
+});
+document.getElementById('btnSalirReporteB1BMasPublico').addEventListener('click', function () {
+  volverAPantallaDistribucionDesde_('pantallaReporteB1BMasPublico');
+});
+function cargarReporteB1BMasPublico_() {
+  mostrarMensaje('mensajeReporteB1BMasPublico', 'Cargando… <span class="spinner"></span>', 'info');
+  document.getElementById('totalGeneralB1BMasPublico').textContent = '';
+  document.getElementById('listaInstitucionesB1BMasPublico').innerHTML = '';
+  llamarServidor('rpcObtenerReporteB1BMasPublico', [], function (r) {
+    mostrarMensaje('mensajeReporteB1BMasPublico', '', '');
+    document.getElementById('totalGeneralB1BMasPublico').textContent =
+      'Total general: ' + r.totalB1BMas + ' estudiantes en B1/B+ de ' + r.totalEvaluados + ' evaluados (' + r.porcentajeGeneral + '%).';
+    document.getElementById('listaInstitucionesB1BMasPublico').innerHTML = r.instituciones.map(function (ie) {
+      var imgSrc = ie.logoBase64 ? 'data:' + (ie.logoMime || 'image/png') + ';base64,' + ie.logoBase64 : '';
+      var filasCursos = ie.cursos.map(function (c) {
+        return '<tr><td>' + escapeHtml(c.curso) + '</td><td>' + escapeHtml(c.tipo) + '</td><td>' + c.totalReportados + '</td><td>' + c.b1BMas + '</td><td>' + c.porcentaje + '%</td></tr>';
+      }).join('');
+      return "<div class='bloque-ie-b1bmas'>" +
+        "<div class='encabezado-ie-b1bmas'>" + (imgSrc ? "<img src='" + imgSrc + "' alt=''>" : '') +
+        '<div><h3>' + escapeHtml(ie.nombreIE) + '</h3>' +
+        '<p>' + ie.totalB1BMas + ' de ' + ie.totalEvaluados + ' evaluados en B1/B+ (' + ie.porcentaje + '%)</p></div></div>' +
+        (filasCursos ? "<table class='tabla-generica'><thead><tr><th>Curso</th><th>Tipo</th><th>Reportados</th><th>B1/B+</th><th>%</th></tr></thead><tbody>" + filasCursos + '</tbody></table>' : '') +
+        '</div>';
+    }).join('') || "<p class='mensaje info'>Todavía no hay información reportada.</p>";
+  }, function (e) {
+    mostrarMensaje('mensajeReporteB1BMasPublico', e.mensaje || 'Error al cargar.', 'error');
+  });
+}
+
+document.getElementById('btnVerListadoB1BMas').addEventListener('click', function () {
+  document.getElementById('pantallaDistribucion').classList.add('oculto');
+  document.getElementById('pantallaListadoB1BMas').classList.remove('oculto');
+  cargarListadoB1BMasPublico_();
+});
+document.getElementById('btnSalirListadoB1BMas').addEventListener('click', function () {
+  volverAPantallaDistribucionDesde_('pantallaListadoB1BMas');
+});
+function cargarListadoB1BMasPublico_() {
+  mostrarMensaje('mensajeListadoB1BMas', 'Cargando… <span class="spinner"></span>', 'info');
+  document.getElementById('cuerpoListadoB1BMas').innerHTML = '';
+  llamarServidor('rpcObtenerListadoEstudiantesB1BMasPublico', [], function (r) {
+    document.getElementById('anioListadoB1BMas').textContent = r.anio;
+    mostrarMensaje('mensajeListadoB1BMas', r.total + ' estudiante(s) en nivel B1 o B+.', 'info');
+    document.getElementById('cuerpoListadoB1BMas').innerHTML = r.estudiantes.map(function (est, i) {
+      return '<tr><td>' + (i + 1) + '</td><td>' + escapeHtml(est.nombreIE) + '</td><td>' + escapeHtml(est.nombreEstudiante) + '</td>' +
+        '<td>' + escapeHtml(est.curso) + '</td><td>' + escapeHtml(est.tipoGrupo) + '</td><td>' + escapeHtml(est.nivel) + '</td></tr>';
+    }).join('') || "<tr><td colspan='6'>Sin estudiantes en B1/B+ todavía.</td></tr>";
+  }, function (e) {
+    mostrarMensaje('mensajeListadoB1BMas', e.mensaje || 'Error al cargar.', 'error');
+  });
+}
+
 /* ============================== VISTA DE IE ============================== */
 var TEXTO_LETRERO_GRAFICOS_CLIENTE_ =
   'Se generarán los gráficos de la IE {IE} de acuerdo a la información ingresada. Para generar el gráfico ' +

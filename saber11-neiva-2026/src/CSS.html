@@ -113,6 +113,17 @@
 
   .enlace-admin { display: block; text-align: center; margin-top: 24px; font-size: .8rem; color: var(--gris-texto); }
 
+  /* Barra de progreso del resumen general de envíos (spec del usuario). */
+  .barra-progreso-general { background: var(--gris-borde); border-radius: 8px; height: 16px; overflow: hidden; margin: 10px 0 4px; }
+  .relleno-barra-progreso { background: var(--verde); height: 100%; transition: width .3s; }
+
+  /* Bloques por IE del reporte estadístico B1/B+ público (spec del usuario: "incluye toda la info de IE+logo"). */
+  .bloque-ie-b1bmas { border: 1px solid var(--gris-borde); border-radius: 8px; padding: 14px; margin-bottom: 14px; }
+  .encabezado-ie-b1bmas { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+  .encabezado-ie-b1bmas img { max-width: 56px; max-height: 56px; object-fit: contain; }
+  .encabezado-ie-b1bmas h3 { margin: 0; }
+  .encabezado-ie-b1bmas p { margin: 4px 0 0; color: var(--gris-texto); }
+
   .spinner { border: 3px solid var(--gris-borde); border-top-color: var(--azul); border-radius: 50%; width: 22px; height: 22px; animation: girar 0.8s linear infinite; display: inline-block; vertical-align: middle; }
   @keyframes girar { to { transform: rotate(360deg); } }
 </style>
