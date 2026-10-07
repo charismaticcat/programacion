@@ -55,9 +55,14 @@
 
   /* Un solo bloque de Docente/Correo por grupo de estudiantes (spec del usuario), en vez de repetirlo en cada fila. */
   tr.fila-grupo-docente td { background: #EEF3FC; padding: 10px; border-top: 2px solid var(--azul); }
-  .caja-grupo-docente { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
-  .caja-grupo-docente label { margin: 0; flex: 1 1 220px; }
+  /* Apilado en vertical (spec del usuario: "Cursos que reporta" no aparecía porque
+     quedaba empujado fuera de la pantalla en un solo renglón horizontal) — así
+     siempre queda visible debajo de Docente/Correo, sin depender del scroll. */
+  .caja-grupo-docente { display: flex; flex-direction: column; gap: 10px; }
+  .caja-grupo-docente label { margin: 0; }
   .caja-grupo-docente input { margin-top: 4px; }
+  .fila-docente-correo { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
+  .fila-docente-correo label { flex: 1 1 220px; }
 
   /* "Cursos que reporta" por docente (spec del usuario): lista de 1101-1109 con "+" para agregar otro. */
   .lista-cursos-docente { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }

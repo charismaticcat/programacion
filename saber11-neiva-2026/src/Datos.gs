@@ -29,10 +29,19 @@ function filaVacia_(fila) {
  */
 function filaARegistro_(numeroFila, fila, correoRegistro) {
   const C = CFG.COL;
+  // El texto guía (CFG.MARCADOR) que el script de la hoja deja en la
+  // celda del docente mientras nadie ha escrito su nombre NO es un
+  // docente real — igual que ya lo trata calcularDocentesIE_
+  // (Reportes.gs). Mostrarlo tal cual rompía el agrupamiento de "una
+  // sola vez por docente" del Portal: dos filas vacías con ese mismo
+  // texto guía (o una con el texto guía y otra en blanco) se veían
+  // como dos docentes distintos en vez de uno solo.
+  const docenteCelda = texto_(fila[C.docente - 1]);
+  const docente = norm_(docenteCelda) === norm_(CFG.MARCADOR) ? '' : docenteCelda;
   return {
     fila: numeroFila,
     cantidad: fila[C.cantidad - 1],
-    docente: texto_(fila[C.docente - 1]),
+    docente: docente,
     nombre: texto_(fila[C.nombre - 1]),
     jornada: texto_(fila[C.jornada - 1]),
     genero: texto_(fila[C.genero - 1]),
