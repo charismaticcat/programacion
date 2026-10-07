@@ -100,12 +100,15 @@ function leerRegistrosParaGraficos_(sh) {
   return registros;
 }
 
-/** {completo, faltantes} — exige docente/jornada/género/curso/puntaje/un solo tipo de grupo en cada fila con nombre. */
+/**
+ * {completo, faltantes} — exige jornada/género/curso/puntaje/un solo tipo
+ * de grupo en cada fila con nombre. El docente NO se exige: es el dato de
+ * quién reporta, no algo que los gráficos usen (spec del usuario).
+ */
 function verificarInformacionCompleta_(registros) {
   const faltantes = [];
   registros.forEach((r, i) => {
     const falta = [];
-    if (!r.docente) falta.push('docente');
     if (!r.jornada) falta.push('jornada');
     if (!r.genero) falta.push('género');
     if (!r.curso) falta.push('curso');
