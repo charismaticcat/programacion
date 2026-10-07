@@ -32,6 +32,34 @@ function adminListarTokens(token) {
   });
 }
 
+/**
+ * Escribe, en la columna B de RESUMEN DE ENVÍOS, el token de
+ * administrador y el de las 36 IE (spec del usuario) — empezando bien
+ * debajo del tablero que arma actualizarHojaResumenEnvios_ del script
+ * atado a la hoja (título, conteos, listado de IE llega hasta la fila
+ * ~46), para no pisarlo. Esa misma función hace `hoja.clear()` sobre
+ * TODA la hoja cada vez que el administrador usa "Actualizar resumen de
+ * envíos" (menú REPORTES) — eso también borra esta lista, así que hay
+ * que volver a escribirla después (de ahí el botón, no una escritura
+ * automática que se quedaría desactualizada sin avisar).
+ */
+function adminEscribirTokensEnResumenEnvios(token) {
+  exigirAccesoAdmin_(token);
+  const ss = abrirSpreadsheet_();
+  const hoja = ss.getSheetByName(CFG.HOJA_RESUMEN_ENVIOS);
+  if (!hoja) {
+    throw new Error('No existe la hoja "' + CFG.HOJA_RESUMEN_ENVIOS + '" todavía — ejecute primero ' +
+      '"Actualizar resumen de envíos" desde el menú REPORTES de la hoja de cálculo.');
+  }
+  const mapa = asegurarTokensIE_(ss);
+  const FILA_INICIO = 50; // debajo del tablero + listado de las 36 IE (termina alrededor de la fila 46)
+  const lineas = [['TOKENS DE ACCESO'], ['ADMINISTRADOR: ' + obtenerTokenAdmin_()]];
+  CFG.IES.forEach(ie => lineas.push([ie + ': ' + (mapa[norm_(ie)] || '')]));
+  hoja.getRange(FILA_INICIO, 2, lineas.length, 1).setValues(lineas);
+  hoja.getRange(FILA_INICIO, 2).setFontWeight('bold');
+  return { ok: true, fila: FILA_INICIO, total: lineas.length - 2 };
+}
+
 function adminRegenerarTokenIE(token, nombreIE) {
   exigirAccesoAdmin_(token);
   const clave = norm_(nombreIE);

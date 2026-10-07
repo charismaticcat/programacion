@@ -126,10 +126,9 @@ function cambiarPestanaIE_(nombre) {
   document.querySelectorAll('[data-pestana-ie]').forEach(function (p) {
     p.classList.toggle('activa', p.getAttribute('data-pestana-ie') === nombre);
   });
-  ['misDatos', 'resumenEnvios', 'reporteDiario'].forEach(function (v) {
+  ['misDatos', 'reporteDiario'].forEach(function (v) {
     document.getElementById('vista' + v.charAt(0).toUpperCase() + v.slice(1)).classList.toggle('oculto', v !== nombre);
   });
-  if (nombre === 'resumenEnvios') cargarTablaGenerica_('rpcObtenerResumenEnvios', 'contenedorResumenEnvios');
   if (nombre === 'reporteDiario') cargarTablaGenerica_('rpcObtenerReporteDiario', 'contenedorReporteDiario');
 }
 
@@ -362,6 +361,14 @@ document.getElementById('btnAplicarLetreroTodas').addEventListener('click', func
       (r.problemas.length ? '<br>Problemas: ' + r.problemas.map(escapeHtml).join('; ') : ''), 'exito');
   }, function (e) {
     mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible aplicar el letrero.', 'error');
+  });
+});
+document.getElementById('btnEscribirTokensResumen').addEventListener('click', function () {
+  mostrarMensaje('mensajeAdmin', 'Escribiendo tokens en Resumen de envíos… <span class="spinner"></span>', 'info');
+  llamarServidor('rpcAdminEscribirTokensEnResumenEnvios', [estado.tokenAdmin], function (r) {
+    mostrarMensaje('mensajeAdmin', 'Listo: ' + r.total + ' tokens de IE + el de administrador, en la columna B desde la fila ' + r.fila + '.', 'exito');
+  }, function (e) {
+    mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible escribir los tokens.', 'error');
   });
 });
 

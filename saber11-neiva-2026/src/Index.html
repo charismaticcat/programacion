@@ -48,7 +48,6 @@
 
     <div class="pestanas">
       <div class="pestana activa" data-pestana-ie="misDatos">Mi institución</div>
-      <div class="pestana" data-pestana-ie="resumenEnvios">Resumen de envíos</div>
       <div class="pestana" data-pestana-ie="reporteDiario">Reporte diario</div>
     </div>
 
@@ -84,11 +83,6 @@
       </div>
     </div>
 
-    <div id="vistaResumenEnvios" class="oculto tarjeta">
-      <h3>Resumen de envíos (todas las IE)</h3>
-      <div id="contenedorResumenEnvios" class="tabla-desplazable"></div>
-    </div>
-
     <div id="vistaReporteDiario" class="oculto tarjeta">
       <h3>Reporte diario (todas las IE)</h3>
       <div id="contenedorReporteDiario" class="tabla-desplazable"></div>
@@ -102,8 +96,12 @@
       <button type="button" class="btn btn-secundario" id="btnSalirAdmin">Salir</button>
       <div class="fila-botones">
         <button type="button" class="btn btn-secundario" id="btnAplicarLetreroTodas">Aplicar letrero de gráficos a todas las IE</button>
+        <button type="button" class="btn btn-secundario" id="btnEscribirTokensResumen">Escribir todos los tokens en Resumen de envíos (columna B)</button>
         <a id="enlaceHojaReal" href="#" target="_blank" class="btn btn-secundario">Abrir hoja de cálculo original</a>
       </div>
+      <p class="ayuda">Nota: "Actualizar resumen de envíos" (menú REPORTES de la hoja de cálculo) borra toda la hoja y la
+        vuelve a construir, incluida esta lista de tokens — después de usarlo, vuelva a dar clic aquí para
+        reponerla.</p>
       <div id="mensajeAdmin"></div>
     </div>
     <div class="tarjeta">

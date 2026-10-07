@@ -168,9 +168,13 @@ function leerHojaComoTabla_(nombreHoja) {
   return { encontrada: true, filas: valores, fondos: fondos };
 }
 
-/** De solo lectura para cualquier IE o el administrador — no hay dato de estudiante aquí, solo estado agregado. */
-function obtenerResumenEnvios(nombreIE, token) {
-  exigirAccesoIEoAdmin_(nombreIE, token);
+/**
+ * Solo administrador — spec del usuario: "no muestres resumen de envío a
+ * los usuarios" (esa hoja guarda, en la columna B, el listado de todos
+ * los tokens de acceso, así que una IE nunca debe poder leerla).
+ */
+function obtenerResumenEnvios(token) {
+  exigirAccesoAdmin_(token);
   return leerHojaComoTabla_(CFG.HOJA_RESUMEN_ENVIOS);
 }
 function obtenerReporteDiario(nombreIE, token) {

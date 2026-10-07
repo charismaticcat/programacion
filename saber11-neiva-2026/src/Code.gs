@@ -50,8 +50,11 @@ function rpcVerificarCompletitudIE(nombreIE, token) {
 function rpcGuardarFilaIE(nombreIE, token, fila, datos) {
   return ejecutarRpcSeguro_(() => guardarFilaIE(nombreIE, token, fila, datos));
 }
-function rpcObtenerResumenEnvios(nombreIE, token) {
-  return ejecutarRpcSeguro_(() => obtenerResumenEnvios(nombreIE, token));
+function rpcObtenerResumenEnvios(token) {
+  return ejecutarRpcSeguro_(() => obtenerResumenEnvios(token));
+}
+function rpcAdminEscribirTokensEnResumenEnvios(token) {
+  return ejecutarRpcSeguro_(() => adminEscribirTokensEnResumenEnvios(token));
 }
 function rpcObtenerReporteDiario(nombreIE, token) {
   return ejecutarRpcSeguro_(() => obtenerReporteDiario(nombreIE, token));
