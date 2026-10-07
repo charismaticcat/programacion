@@ -177,12 +177,3 @@ function obtenerResumenEnvios(token) {
   exigirAccesoAdmin_(token);
   return leerHojaComoTabla_(CFG.HOJA_RESUMEN_ENVIOS);
 }
-function obtenerReporteDiario(nombreIE, token) {
-  exigirAccesoIEoAdmin_(nombreIE, token);
-  return leerHojaComoTabla_(CFG.HOJA_REPORTE_DIARIO);
-}
-function exigirAccesoIEoAdmin_(nombreIE, token) {
-  const comoAdmin = validarAccesoAdmin(token);
-  if (comoAdmin.ok) return;
-  exigirAccesoIE_(nombreIE, token);
-}

@@ -287,6 +287,137 @@ function actualizarHojaResumenEnvios_(ss, estados, fechaHora) {
 }
 
 /**
+ * Agrupa por docente las filas de UNA IE (grupos reportados, cantidad de
+ * estudiantes, qué le falta a cada registro, combinaciones de tipo de
+ * grupo inválidas) — aislado de generarReporteDiarioSaber11_ para
+ * poder usarlo también en el resumen en vivo de una sola IE
+ * (obtenerResumenEnvioIE), sin tener que leer REPORTE DIARIO.
+ */
+function calcularDocentesIE_(sh, nombreIE) {
+  const primeraFila = CFG.PRIMERA_FILA;
+  const ultimaFila = Math.min(CFG.ULTIMA_FILA, sh.getLastRow());
+  const docentes = {};
+  let totalEstudiantesIE = 0;
+  const nivelesIE = new Set();
+  const esTecnicoIpc = norm_(nombreIE) === norm_('INSTITUTO TECNICO IPC ANDRES ROSA');
+  if (ultimaFila < primeraFila) return { docentes, totalEstudiantesIE, nivelesIE, esTecnicoIpc };
+  const datos = sh.getRange(primeraFila, CFG.COL.docente, ultimaFila - primeraFila + 1,
+    CFG.COL.academico - CFG.COL.docente + 1).getDisplayValues();
+  let docenteActual = '';
+  datos.forEach(fila => {
+    const docenteCelda = String(fila[0] || '').trim();
+    const estudiante = String(fila[1] || '').trim();
+    const curso = String(fila[4] || '').trim();
+    const nivel = norm_(fila[8] || '');
+    const esMarcador = norm_(docenteCelda) === norm_(CFG.MARCADOR);
+    if (docenteCelda && !esMarcador) docenteActual = docenteCelda;
+    if (!estudiante) return;
+    const nombreDocente = (!esMarcador && docenteCelda) ? docenteCelda : (docenteActual || 'DOCENTE NO REGISTRADO');
+    if (!docentes[nombreDocente]) {
+      docentes[nombreDocente] = {
+        grupos: {}, estudiantes: 0,
+        faltantes: { genero: false, tipoDoc: false, numeroDoc: false, tipoGrupo: false },
+        combinacionesGrupoInvalidas: {}
+      };
+    }
+    const registroDocente = docentes[nombreDocente];
+    if (esTecnicoIpc && /(CICLO|NOCTUR|SABAT)/i.test(norm_(curso))) return;
+    totalEstudiantesIE++;
+    if (nivel) nivelesIE.add(nivel);
+    docentes[nombreDocente].estudiantes++;
+    if (!String(fila[3] || '').trim()) registroDocente.faltantes.genero = true;
+    if (!String(fila[5] || '').trim()) registroDocente.faltantes.tipoDoc = true;
+    if (!String(fila[6] || '').trim()) registroDocente.faltantes.numeroDoc = true;
+    const tipoGrupo = [fila[9], fila[10], fila[11]].map(v => norm_(v || ''));
+    if (!tipoGrupo.includes('SI')) registroDocente.faltantes.tipoGrupo = true;
+    const condicionInvalida = condicionGrupoInvalida_(fila);
+    if (condicionInvalida) registroDocente.combinacionesGrupoInvalidas[condicionInvalida] = true;
+    if (curso) docentes[nombreDocente].grupos[curso] = true;
+  });
+  return { docentes, totalEstudiantesIE, nivelesIE, esTecnicoIpc };
+}
+
+/**
+ * Por curso de UNA IE: cuántos estudiantes tiene reportados y de qué
+ * tipo es (intensificación/SENA/académico) — mismo criterio de
+ * "totalesTodosPorCurso" de generarReporteB1BMas_, aislado para
+ * reusarlo en el resumen en vivo de una sola IE.
+ */
+function calcularCursosIE_(sh) {
+  const ultimaFila = Math.min(CFG.ULTIMA_FILA, sh.getLastRow());
+  const totalesPorCurso = new Map();
+  if (ultimaFila < CFG.PRIMERA_FILA) return totalesPorCurso;
+  const datos = sh.getRange(CFG.PRIMERA_FILA, CFG.COL.docente, ultimaFila - CFG.PRIMERA_FILA + 1,
+    CFG.COL.academico - CFG.COL.docente + 1).getDisplayValues();
+  datos.forEach(fila => {
+    const tieneRegistroEstudiante = fila.slice(1, 4).concat(fila.slice(5, 9)).some(valor => String(valor || '').trim() !== '');
+    if (!tieneRegistroEstudiante) return;
+    const nombreCurso = String(fila[4] || '').trim() || 'SIN CURSO';
+    const datosCurso = totalesPorCurso.get(nombreCurso) || { totalReportados: 0, intensificacion: false, sena: false, academico: false };
+    datosCurso.totalReportados++;
+    datosCurso.intensificacion = datosCurso.intensificacion || norm_(fila[9] || '') === 'SI';
+    datosCurso.sena = datosCurso.sena || norm_(fila[10] || '') === 'SI';
+    datosCurso.academico = datosCurso.academico || norm_(fila[11] || '') === 'SI';
+    totalesPorCurso.set(nombreCurso, datosCurso);
+  });
+  return totalesPorCurso;
+}
+
+/**
+ * Resumen en vivo de UNA IE (spec del usuario) — reemplaza la antigua
+ * pestaña "Reporte diario" (mostraba las 36 IE sin filtrar) por algo
+ * propio de la IE: estado con color, cursos reportados (nombre, tipo,
+ * cantidad de estudiantes), docentes que han reportado y observaciones.
+ * Se calcula directo de la hoja de la IE — no depende de que REPORTE
+ * DIARIO/B1+ ya se hayan actualizado.
+ */
+function obtenerResumenEnvioIE(nombreIE, token) {
+  const nombreReal = exigirAccesoIEoAdminComoIE_(nombreIE, token);
+  const ss = abrirSpreadsheet_();
+  const sh = ss.getSheetByName(nombreReal);
+  if (!sh) throw new Error('No se encontró la hoja de "' + nombreReal + '".');
+
+  const { docentes, esTecnicoIpc } = calcularDocentesIE_(sh, nombreReal);
+  const totalesPorCurso = calcularCursosIE_(sh);
+
+  const observaciones = [];
+  Object.keys(docentes).forEach(nombreDocente => {
+    const registro = docentes[nombreDocente];
+    const camposFaltantes = [
+      ['genero', 'Género'], ['tipoDoc', 'Tipo de documento'],
+      ['numeroDoc', 'Número de documento'], ['tipoGrupo', 'Tipo de Grupo']
+    ].filter(([clave]) => registro.faltantes[clave]).map(([, etiqueta]) => etiqueta);
+    if (camposFaltantes.length) observaciones.push(nombreDocente + ': falta ' + camposFaltantes.join(', ') + '.');
+    const gruposInvalidos = Object.keys(registro.combinacionesGrupoInvalidas);
+    if (gruposInvalidos.length) observaciones.push(nombreDocente + ': ' + mensajeGrupoInvalido_(gruposInvalidos));
+  });
+  if (Object.keys(docentes).some(n => norm_(n) === 'DOCENTE NO REGISTRADO')) {
+    observaciones.push('Hay estudiantes sin docente asignado (DOCENTE NO REGISTRADO).');
+  }
+  if (esTecnicoIpc) observaciones.push('No se deben reportar grupos diferentes a grado 11 (se excluyen ciclos nocturnos y sabatinos).');
+
+  const cursos = Array.from(totalesPorCurso.entries())
+    .sort((a, b) => a[0].localeCompare(b[0], 'es', { numeric: true, sensitivity: 'base' }))
+    .map(([nombreCurso, datosCurso]) => ({
+      nombreCurso: nombreCurso,
+      tipo: [
+        datosCurso.intensificacion ? 'INTENSIFICACIÓN' : '',
+        datosCurso.sena ? 'ARTICULACIÓN SENA' : '',
+        datosCurso.academico ? 'ACADÉMICO' : ''
+      ].filter(Boolean).join(' / ') || 'SIN DATO',
+      cantidadEstudiantes: datosCurso.totalReportados
+    }));
+
+  return {
+    colorEstado: sh.getTabColor() || '#9E9E9E',
+    totalCursos: cursos.length,
+    cursos: cursos,
+    docentes: Object.keys(docentes).filter(n => norm_(n) !== 'DOCENTE NO REGISTRADO'),
+    observaciones: observaciones
+  };
+}
+
+/**
  * Reconstruye REPORTE DIARIO leyendo las 36 hojas de IE — idéntico a
  * generarReporteDiarioSaber11() del script de la hoja, salvo que no usa
  * SpreadsheetApp.getUi() (no existe en una app web): devuelve los
@@ -310,46 +441,7 @@ function generarReporteDiarioSaber11_(ss) {
     const sh = ss.getSheetByName(nombreIE);
     if (!sh) return;
     if (!esHojaIE_(sh)) return;
-    const primeraFila = CFG.PRIMERA_FILA;
-    const ultimaFila = Math.min(CFG.ULTIMA_FILA, sh.getLastRow());
-    if (ultimaFila < primeraFila) return;
-    const datos = sh.getRange(primeraFila, CFG.COL.docente, ultimaFila - primeraFila + 1,
-      CFG.COL.academico - CFG.COL.docente + 1).getDisplayValues();
-    const docentes = {};
-    let docenteActual = '';
-    let totalEstudiantesIE = 0;
-    const nivelesIE = new Set();
-    const esTecnicoIpc = norm_(nombreIE) === norm_('INSTITUTO TECNICO IPC ANDRES ROSA');
-    datos.forEach(fila => {
-      const docenteCelda = String(fila[0] || '').trim();
-      const estudiante = String(fila[1] || '').trim();
-      const curso = String(fila[4] || '').trim();
-      const nivel = norm_(fila[8] || '');
-      const esMarcador = norm_(docenteCelda) === norm_(CFG.MARCADOR);
-      if (docenteCelda && !esMarcador) docenteActual = docenteCelda;
-      if (!estudiante) return;
-      const nombreDocente = (!esMarcador && docenteCelda) ? docenteCelda : (docenteActual || 'DOCENTE NO REGISTRADO');
-      if (!docentes[nombreDocente]) {
-        docentes[nombreDocente] = {
-          grupos: {}, estudiantes: 0,
-          faltantes: { genero: false, tipoDoc: false, numeroDoc: false, tipoGrupo: false },
-          combinacionesGrupoInvalidas: {}
-        };
-      }
-      const registroDocente = docentes[nombreDocente];
-      if (esTecnicoIpc && /(CICLO|NOCTUR|SABAT)/i.test(norm_(curso))) return;
-      totalEstudiantesIE++;
-      if (nivel) nivelesIE.add(nivel);
-      docentes[nombreDocente].estudiantes++;
-      if (!String(fila[3] || '').trim()) registroDocente.faltantes.genero = true;
-      if (!String(fila[5] || '').trim()) registroDocente.faltantes.tipoDoc = true;
-      if (!String(fila[6] || '').trim()) registroDocente.faltantes.numeroDoc = true;
-      const tipoGrupo = [fila[9], fila[10], fila[11]].map(v => norm_(v || ''));
-      if (!tipoGrupo.includes('SI')) registroDocente.faltantes.tipoGrupo = true;
-      const condicionInvalida = condicionGrupoInvalida_(fila);
-      if (condicionInvalida) registroDocente.combinacionesGrupoInvalidas[condicionInvalida] = true;
-      if (curso) docentes[nombreDocente].grupos[curso] = true;
-    });
+    const { docentes, totalEstudiantesIE, nivelesIE, esTecnicoIpc } = calcularDocentesIE_(sh, nombreIE);
     const nombresDocentes = Object.keys(docentes);
     if (nombresDocentes.length === 0) return;
     const soloNivelesAltos = totalEstudiantesIE > 0 && nivelesIE.size > 0 &&

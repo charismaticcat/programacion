@@ -56,8 +56,8 @@ function rpcObtenerResumenEnvios(token) {
 function rpcAdminEscribirTokensEnResumenEnvios(token) {
   return ejecutarRpcSeguro_(() => adminEscribirTokensEnResumenEnvios(token));
 }
-function rpcObtenerReporteDiario(nombreIE, token) {
-  return ejecutarRpcSeguro_(() => obtenerReporteDiario(nombreIE, token));
+function rpcObtenerResumenEnvioIE(nombreIE, token) {
+  return ejecutarRpcSeguro_(() => obtenerResumenEnvioIE(nombreIE, token));
 }
 function rpcGenerarGraficosIE(nombreIE, token) {
   return ejecutarRpcSeguro_(() => generarGraficosIE(nombreIE, token));

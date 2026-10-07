@@ -143,28 +143,39 @@ function cambiarPestanaIE_(nombre) {
   ['misDatos', 'reporteDiario'].forEach(function (v) {
     document.getElementById('vista' + v.charAt(0).toUpperCase() + v.slice(1)).classList.toggle('oculto', v !== nombre);
   });
-  if (nombre === 'reporteDiario') cargarTablaGenerica_('rpcObtenerReporteDiario', 'contenedorReporteDiario');
+  if (nombre === 'reporteDiario') cargarResumenEnvioIE_();
 }
 
-function cargarTablaGenerica_(rpc, idContenedor) {
-  var contenedor = document.getElementById(idContenedor);
+/**
+ * Resumen en vivo de la propia IE (spec del usuario) — estado con color,
+ * cursos reportados (nombre, tipo, cantidad de estudiantes), docentes
+ * que han reportado y observaciones.
+ */
+function cargarResumenEnvioIE_() {
+  document.getElementById('tituloResumenEnvioIE').textContent = 'Resumen de Envío IE ' + estado.nombreIE;
+  var contenedor = document.getElementById('contenedorResumenEnvioIE');
   contenedor.innerHTML = "<p class='mensaje info'>Cargando… <span class='spinner'></span></p>";
-  llamarServidor(rpc, [estado.nombreIE, estado.tokenIE], function (datos) {
-    if (!datos.encontrada || !datos.filas.length) {
-      contenedor.innerHTML = "<p class='mensaje info'>Todavía no hay información.</p>";
-      return;
-    }
-    var html = "<table class='tabla-generica'><tbody>";
-    datos.filas.forEach(function (fila, i) {
-      html += '<tr>';
-      fila.forEach(function (celda, j) {
-        var fondo = datos.fondos && datos.fondos[i] && datos.fondos[i][j];
-        var estilo = fondo && fondo !== '#ffffff' ? " style='background:" + fondo + "'" : '';
-        html += (i === 0 ? '<th' : '<td') + estilo + '>' + escapeHtml(celda) + (i === 0 ? '</th>' : '</td>');
+  llamarServidor('rpcObtenerResumenEnvioIE', [estado.nombreIE, estado.tokenIE], function (r) {
+    var textoEstado = r.colorEstado === '#34A853' ? 'Completo' :
+      r.colorEstado === '#F9AB00' ? 'Con observaciones' :
+      r.colorEstado === '#EA4335' ? 'No enviado' : 'Sin evaluar todavía';
+    var html = "<p><span class='badge-color' style='background:" + r.colorEstado + "'></span> <strong>Estado:</strong> " +
+      escapeHtml(textoEstado) + '</p>';
+    html += '<p><strong>Cursos reportados:</strong> ' + r.totalCursos + '</p>';
+    if (r.cursos.length) {
+      html += "<div class='tabla-desplazable'><table class='tabla-generica'><thead><tr>" +
+        '<th>Curso</th><th>Tipo</th><th>Estudiantes</th></tr></thead><tbody>';
+      r.cursos.forEach(function (c) {
+        html += '<tr><td>' + escapeHtml(c.nombreCurso) + '</td><td>' + escapeHtml(c.tipo) + '</td><td>' + c.cantidadEstudiantes + '</td></tr>';
       });
-      html += '</tr>';
-    });
-    html += '</tbody></table>';
+      html += '</tbody></table></div>';
+    } else {
+      html += "<p class='mensaje info'>Todavía no hay cursos reportados.</p>";
+    }
+    html += '<p><strong>Docentes que han reportado:</strong> ' +
+      (r.docentes.length ? r.docentes.map(escapeHtml).join(', ') : 'Ninguno todavía.') + '</p>';
+    html += '<p><strong>Observaciones:</strong><br>' +
+      (r.observaciones.length ? r.observaciones.map(escapeHtml).join('<br>') : 'Sin observaciones.') + '</p>';
     contenedor.innerHTML = html;
   }, function (e) {
     contenedor.innerHTML = "<p class='mensaje error'>" + escapeHtml(e.mensaje || 'Error al cargar.') + '</p>';
@@ -309,10 +320,29 @@ document.getElementById('cuerpoTablaIE').addEventListener('change', function (ev
   }
   guardarFilaIE_(tr);
 });
+/**
+ * Nivel según el puntaje obtenido (rangos ICFES, spec del usuario):
+ * A-: 0-47, A1: 48-57, A2: 58-67, B1: 68-78, B+: 79-100. Vacío mientras
+ * no haya un puntaje numérico — para que el docente vea el nivel al
+ * instante, sin esperar el guardado (que de todos modos confirma el
+ * valor real, calculado por la fórmula de la hoja).
+ */
+function nivelDePuntajeCliente_(valor) {
+  var n = Number(valor);
+  if (valor === '' || valor == null || !Number.isFinite(n)) return '';
+  if (n <= 47) return 'A-';
+  if (n <= 57) return 'A1';
+  if (n <= 67) return 'A2';
+  if (n <= 78) return 'B1';
+  return 'B+';
+}
 document.getElementById('cuerpoTablaIE').addEventListener('input', function (evento) {
   var campo = evento.target.closest('input[data-campo-ie]');
   if (!campo) return;
   var tr = campo.closest('[data-fila-ie]');
+  if (campo.getAttribute('data-campo-ie') === 'puntaje') {
+    tr.querySelector('.celda-nivel-ie').textContent = nivelDePuntajeCliente_(campo.value);
+  }
   clearTimeout(temporizadorGuardadoFilaIE_[tr.getAttribute('data-fila-ie')]);
   temporizadorGuardadoFilaIE_[tr.getAttribute('data-fila-ie')] = setTimeout(function () { guardarFilaIE_(tr); }, 1200);
 });
