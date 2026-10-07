@@ -161,7 +161,7 @@ function cargarReporteB1BMasPublico_() {
     document.getElementById('listaInstitucionesB1BMasPublico').innerHTML = r.instituciones.map(function (ie) {
       var imgSrc = ie.logoBase64 ? 'data:' + (ie.logoMime || 'image/png') + ';base64,' + ie.logoBase64 : '';
       var filasCursos = ie.cursos.map(function (c) {
-        return '<tr><td>' + escapeHtml(c.curso) + '</td><td>' + escapeHtml(c.tipo) + '</td><td>' + c.totalReportados + '</td><td>' + c.b1BMas + '</td><td>' + c.porcentaje + '%</td></tr>';
+        return '<tr><td>' + escapeHtml(c.curso) + '</td><td>' + escapeHtml(c.jornada) + '</td><td>' + escapeHtml(c.tipo) + '</td><td>' + c.totalReportados + '</td><td>' + c.b1BMas + '</td><td>' + c.porcentaje + '%</td></tr>';
       }).join('');
       return "<div class='bloque-ie-b1bmas' data-nombre-ie=\"" + escapeHtml(ie.nombreIE) + '">' +
         "<div class='encabezado-ie-b1bmas'>" + (imgSrc ? "<img src='" + imgSrc + "' alt=''>" : '') +
@@ -171,7 +171,7 @@ function cargarReporteB1BMasPublico_() {
         "<button type='button' class='btn-icono-ie-b1bmas btn-ver-grande-ie' title='Ver en pantalla completa'>👁️</button>" +
         "<button type='button' class='btn-icono-ie-b1bmas btn-descargar-logo-ie' title='Descargar imagen de este resumen'>📥</button>" +
         '</div></div>' +
-        (filasCursos ? "<table class='tabla-generica'><thead><tr><th>Curso</th><th>Tipo</th><th>Reportados</th><th>B1/B+</th><th>%</th></tr></thead><tbody>" + filasCursos + '</tbody></table>' : '') +
+        (filasCursos ? "<table class='tabla-generica'><thead><tr><th>Curso</th><th>Jornada</th><th>Tipo</th><th>Reportados</th><th>B1/B+</th><th>%</th></tr></thead><tbody>" + filasCursos + '</tbody></table>' : '') +
         '</div>';
     }).join('') || "<p class='mensaje info'>Todavía no hay información reportada.</p>";
   }, function (e) {

@@ -70,6 +70,9 @@ function obtenerReporteB1BMasPublico_() {
     const datos = leerFilasIE_(sh);
     if (!datos.length) return;
     let totalEvaluados = 0, totalB1BMas = 0;
+    // Agrupado por curso + jornada (spec del usuario: "discrimina por
+    // jornada... no juntes cursos de misma nomenclatura") — dos "1101"
+    // de jornadas distintas son grupos distintos, nunca se suman juntos.
     const porCurso = new Map();
     datos.forEach(fila => {
       const nivel = norm_(fila[8] || '');
@@ -81,20 +84,25 @@ function obtenerReporteB1BMasPublico_() {
       if (evaluado) totalEvaluados++;
       if (evaluado && esB1BMas) totalB1BMas++;
       const nombreCurso = String(fila[4] || '').trim() || 'SIN CURSO';
-      const dc = porCurso.get(nombreCurso) || { totalReportados: 0, b1BMas: 0, intensificacion: false, sena: false, academico: false };
+      const jornada = String(fila[2] || '').trim() || 'SIN JORNADA';
+      const claveCurso = nombreCurso + '||' + jornada;
+      const dc = porCurso.get(claveCurso) ||
+        { curso: nombreCurso, jornada: jornada, totalReportados: 0, b1BMas: 0, intensificacion: false, sena: false, academico: false };
       dc.totalReportados++;
       if (evaluado && esB1BMas) dc.b1BMas++;
       dc.intensificacion = dc.intensificacion || norm_(fila[9] || '') === 'SI';
       dc.sena = dc.sena || norm_(fila[10] || '') === 'SI';
       dc.academico = dc.academico || norm_(fila[11] || '') === 'SI';
-      porCurso.set(nombreCurso, dc);
+      porCurso.set(claveCurso, dc);
     });
     if (!porCurso.size) return; // nada reportado todavía en esta IE: no mostrarla en el público
     const logo = obtenerLogoBase64IE_(nombreIE, logos);
-    const cursos = Array.from(porCurso.entries())
-      .sort((a, b) => a[0].localeCompare(b[0], 'es', { numeric: true, sensitivity: 'base' }))
-      .map(([nombreCurso, dc]) => ({
-        curso: nombreCurso,
+    const cursos = Array.from(porCurso.values())
+      .sort((a, b) => a.curso.localeCompare(b.curso, 'es', { numeric: true, sensitivity: 'base' }) ||
+        a.jornada.localeCompare(b.jornada, 'es', { sensitivity: 'base' }))
+      .map(dc => ({
+        curso: dc.curso,
+        jornada: dc.jornada,
         tipo: [dc.intensificacion ? 'INTENSIFICACIÓN' : '', dc.sena ? 'ARTICULACIÓN SENA' : '', dc.academico ? 'ACADÉMICO' : '']
           .filter(Boolean).join(' / ') || 'SIN DATO',
         totalReportados: dc.totalReportados,
