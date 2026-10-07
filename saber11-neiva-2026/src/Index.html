@@ -114,13 +114,15 @@
         <a id="enlaceHojaReal" href="#" target="_blank" class="btn btn-secundario">Abrir hoja de cálculo original</a>
         <button type="button" class="btn btn-secundario" id="btnInstalarRedireccionHoja">Activar redirección al Portal al abrir la hoja original</button>
         <button type="button" class="btn btn-secundario" id="btnPrepararAvisoPublicacionWeb">Preparar pestaña de aviso para "Publicar en la Web"</button>
+        <button type="button" class="btn btn-secundario" id="btnProtegerTodasLasHojas">Proteger todas las hojas (solo editable desde el Portal)</button>
       </div>
       <p class="ayuda">Nota sobre el enlace "htmlview" (Publicar en la Web): es una vista estática que Google genera
-        aparte del editor — no ejecuta Apps Script, así que no hay forma de redirigirla por código. El botón de arriba
-        deja lista una pestaña "AVISO - USE EL PORTAL" con el enlace del Portal; para que sea lo único que se vea en
-        ese enlace, hay que ir a Archivo &gt; Compartir &gt; Publicar en la Web, en la hoja de cálculo original, y
-        elegir esa pestaña en vez de "Todo el documento" (o, si no se quiere usar ese enlace para nada, "Dejar de
-        publicar" ahí mismo).</p>
+        aparte del editor — no ejecuta Apps Script, así que no hay forma de redirigirla por código. <b>Importante:</b>
+        aunque se elija publicar solo una pestaña, Google sigue mostrando la barra de pestañas de TODO el archivo —
+        cualquiera puede hacer clic y ver los datos reales de las demás. La única forma real de que ese enlace no
+        muestre nada es dejar de publicar por completo: Archivo &gt; Compartir &gt; Publicar en la Web, en la hoja de
+        cálculo original, y "Detener la publicación" en cada elemento que aparezca en "Contenido publicado y
+        configuración" (puede haber más de uno — por ejemplo "Todo el documento" además de la pestaña de aviso).</p>
       <div class="fila-botones">
         <button type="button" class="btn btn-secundario" id="btnActualizarReporteDiario">Actualizar REPORTE DIARIO</button>
         <button type="button" class="btn btn-secundario" id="btnActualizarReporteB1BMas">Actualizar REPORTE B1 Y B+</button>

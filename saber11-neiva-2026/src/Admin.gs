@@ -190,6 +190,41 @@ function adminPrepararAvisoPublicacionWeb(token) {
   return { ok: true, nombreHoja: HOJA_AVISO_PUBLICACION_WEB_ };
 }
 
+/**
+ * Protege TODAS las hojas del archivo (las 36 IE + REPORTE DIARIO +
+ * REPORTE B1 Y B+ + RESUMEN DE ENVÍOS + TOKENS_PORTAL_IE) para que solo
+ * se puedan editar desde aquí (el script, autorizado por quien desplegó
+ * el Portal) — spec del usuario: "protege todas las hojas de este
+ * documento". Esto es independiente de "Publicar en la Web": protege
+ * contra ediciones directas de cualquiera con acceso de "editor" al
+ * archivo (p. ej. "cualquiera con el enlace puede editar"), no cambia
+ * quién puede VER el archivo ni lo publicado.
+ *
+ * Por defecto, una protección nueva hereda como editores a quienes ya
+ * tenían acceso de edición al archivo completo (no bloquea a nadie por
+ * sí sola) — hay que quitarlos explícitamente, dejando solo al dueño.
+ */
+function adminProtegerTodasLasHojas(token) {
+  exigirAccesoAdmin_(token);
+  const ss = abrirSpreadsheet_();
+  let protegidas = 0;
+  const problemas = [];
+  ss.getSheets().forEach(sh => {
+    try {
+      const existentes = sh.getProtections(SpreadsheetApp.ProtectionType.SHEET);
+      const proteccion = existentes.length ? existentes[0] : sh.protect();
+      proteccion.setDescription('Solo editable desde el Portal IE — ver ' + CFG.URL_PORTAL);
+      if (proteccion.canDomainEdit()) proteccion.setDomainEdit(false);
+      const editoresActuales = proteccion.getEditors();
+      if (editoresActuales.length) proteccion.removeEditors(editoresActuales);
+      protegidas++;
+    } catch (e) {
+      problemas.push(sh.getName() + ': ' + e.message);
+    }
+  });
+  return { ok: true, hojas: protegidas, problemas: problemas };
+}
+
 function adminRegenerarTokenIE(token, nombreIE) {
   exigirAccesoAdmin_(token);
   const clave = norm_(nombreIE);

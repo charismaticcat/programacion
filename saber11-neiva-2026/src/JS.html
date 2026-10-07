@@ -1020,6 +1020,15 @@ document.getElementById('btnPrepararAvisoPublicacionWeb').addEventListener('clic
     mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible preparar la pestaña.', 'error');
   });
 });
+document.getElementById('btnProtegerTodasLasHojas').addEventListener('click', function () {
+  mostrarMensaje('mensajeAdmin', 'Protegiendo todas las hojas… <span class="spinner"></span>', 'info');
+  llamarServidor('rpcAdminProtegerTodasLasHojas', [estado.tokenAdmin], function (r) {
+    mostrarMensaje('mensajeAdmin', '✅ ' + r.hojas + ' hojas protegidas (solo editables desde el Portal).' +
+      (r.problemas.length ? '<br>Problemas: ' + r.problemas.map(escapeHtml).join('; ') : ''), 'exito');
+  }, function (e) {
+    mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible proteger las hojas.', 'error');
+  });
+});
 document.getElementById('btnAplicarLetreroTodas').addEventListener('click', function () {
   mostrarMensaje('mensajeAdmin', 'Aplicando letrero en las 36 IE… <span class="spinner"></span>', 'info');
   llamarServidor('rpcAdminAplicarLetreroGraficos', [estado.tokenAdmin], function (r) {

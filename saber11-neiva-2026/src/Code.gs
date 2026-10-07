@@ -95,3 +95,6 @@ function rpcAdminInstalarRedireccionHojaReal(token) {
 function rpcAdminPrepararAvisoPublicacionWeb(token) {
   return ejecutarRpcSeguro_(() => adminPrepararAvisoPublicacionWeb(token));
 }
+function rpcAdminProtegerTodasLasHojas(token) {
+  return ejecutarRpcSeguro_(() => adminProtegerTodasLasHojas(token));
+}
