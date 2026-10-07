@@ -1107,10 +1107,13 @@ function eliminarFilasSeleccionadasIE_() {
     var tr = document.querySelector('[data-fila-ie="' + fila + '"]');
     if (!tr) return;
     tr.querySelectorAll('[data-campo-ie]').forEach(limpiarCampoIE_);
-    guardarFilaIE_(tr);
+    guardarFilaIE_(tr); // guarda en segundo plano con lo que ya se leyó de la fila; sigue aunque ya se quite de la vista
+    tr.remove(); // desaparece de la tabla al instante (spec del usuario: "no se están desapareciendo")
   });
   filasSeleccionadasIE_.clear();
   actualizarResaltadoSeleccionIE_();
+  renumerarFilasIE_();
+  actualizarResaltadoFaltantesIE_();
 }
 document.getElementById('btnEliminarSeleccionadas').addEventListener('click', eliminarFilasSeleccionadasIE_);
 document.addEventListener('keydown', function (evento) {
