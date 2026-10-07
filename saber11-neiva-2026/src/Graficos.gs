@@ -31,6 +31,25 @@ function letreroGraficos_(sh, nombreIE) {
     .setValue('📊 ' + TEXTO_LETRERO_GRAFICOS_.replace('{IE}', nombreSinPrefijoIE_(nombreIE)))
     .setBackground('#1A73E8').setFontColor('#FFFFFF').setFontWeight('bold')
     .setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(true);
+  botonGenerarGraficos_(sh);
+}
+
+/**
+ * "Botón" en L3:M3 (spec del usuario), junto al letrero — en Sheets no
+ * existe un botón real que pueda llamar a un script de OTRO proyecto (el
+ * Portal es un proyecto aparte de este que está atado a la hoja), así que
+ * se resuelve con un =HYPERLINK: al hacer clic abre el Portal IE en una
+ * pestaña nueva, donde la generación real ocurre (valida el token de la
+ * IE antes de tocar nada — un botón que generara los gráficos sin pasar
+ * por ahí sería una puerta trasera que salta esa validación).
+ */
+function botonGenerarGraficos_(sh) {
+  const rango = sh.getRange(CFG.FILA_IE, 12, 1, 2); // L3:M3
+  rango.breakApart();
+  rango.merge()
+    .setFormula(formulaHyperlink_(sh.getParent(), CFG.URL_PORTAL, '📊 GENERAR GRÁFICOS'))
+    .setBackground('#34A853').setFontColor('#FFFFFF').setFontWeight('bold').setFontSize(12)
+    .setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(true);
 }
 
 /** Admin: pone el letrero en las 36 IE de una vez. */

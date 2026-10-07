@@ -18,6 +18,33 @@ function letra_(n) {
   return s;
 }
 
+/**
+ * Separador de argumentos de fórmula ("," o ";") según la configuración
+ * regional del ARCHIVO (no del script) — mismo truco que el script atado
+ * a la hoja: se prueba con una hoja temporal y se borra enseguida.
+ * Necesario para cualquier fórmula que escriba este proyecto (p. ej. el
+ * botón HYPERLINK de Graficos.gs), porque escribir ";" en un archivo
+ * configurado en inglés (",") da #NAME? y viceversa.
+ */
+let SEPARADOR_FORMULA_ = null;
+function separadorFormula_(ss) {
+  if (SEPARADOR_FORMULA_) return SEPARADOR_FORMULA_;
+  const tmp = ss.insertSheet('_TMP_' + Date.now());
+  try {
+    const c = tmp.getRange('A1');
+    c.setFormula('=SUM(1,2)');
+    SpreadsheetApp.flush();
+    SEPARADOR_FORMULA_ = c.getDisplayValue() === '3' ? ',' : ';';
+  } finally {
+    ss.deleteSheet(tmp);
+  }
+  return SEPARADOR_FORMULA_;
+}
+/** Arma "=HYPERLINK(url<sep>"texto")" con el separador correcto del archivo. */
+function formulaHyperlink_(ss, url, texto) {
+  return '=HYPERLINK("' + url + '"' + separadorFormula_(ss) + '"' + texto + '")';
+}
+
 /** Nombre de IE sin el prefijo "I.E."/"IE" — para mostrar y para los letreros. */
 function nombreSinPrefijoIE_(nombreHoja) {
   return texto_(nombreHoja).replace(/^\s*(I\.?\s*E\.?|IE)\s+/i, '').trim();

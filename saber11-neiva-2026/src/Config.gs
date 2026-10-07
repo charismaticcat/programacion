@@ -51,9 +51,16 @@ const CFG = {
     [100, 'B+', '#1B5E20', '#FFFFFF']
   ],
 
+  // URL del despliegue como app web — usada para el botón "Generar gráficos"
+  // que se pone en la hoja real (L3:M3, ver letreroGraficos_ en Graficos.gs).
+  URL_PORTAL: 'https://script.google.com/macros/s/AKfycbwUxLvJ_arl63vRzDci65M6AlUJf79o_BAIpHvJ28L67wgOEre4-AjGTTep2Pq_qSYv/exec',
+
+  // Nombres EXACTOS de las pestañas — "CLARETIANO GUSTAVO TORRES PARRA" sin
+  // el prefijo "I.E." (la pestaña real del archivo no lo tiene, aunque el
+  // script original de la hoja sí lo escribía así en su propia lista).
   IES: [
     'AGUSTIN CODAZZI', 'AIPECITO', 'ANGEL MARIA PAREDES', 'ATANASIO GIRARDOT', 'CEINAR', 'CHAPINERO',
-    'I.E. CLARETIANO GUSTAVO TORRES PARRA', 'DEPARTAMENTAL TIERRA DE PROMISIÓN', 'EDUARDO SANTOS', 'EL CAGUAN',
+    'CLARETIANO GUSTAVO TORRES PARRA', 'DEPARTAMENTAL TIERRA DE PROMISIÓN', 'EDUARDO SANTOS', 'EL CAGUAN',
     'EL LIMONAR', 'ENRIQUE OLAYA HERRERA', 'ESCUELA NORMAL SUPERIOR', 'GABRIEL GARCIA MARQUEZ',
     'HUMBERTO TAFUR CHARRY', 'INEM JULIAN MOTTA SALAS', 'JAIRO MORERA LIZCANO', 'JAIRO MOSQUERA MORENO',
     'JOSE EUSTASIO RIVERA', 'JUAN DE CABRERA', 'LICEO DE SANTA LIBRADA', 'LUIS IGNACIO ANDRADE',
