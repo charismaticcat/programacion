@@ -53,6 +53,19 @@
 
   .fila-botones { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
 
+  /* Aviso fijo junto a "Género" (spec del usuario): recuerda revisar lo autoseleccionado por el sugeridor de género. */
+  .aviso-genero-autoseleccionado { background: #F9AB00; color: #000; border-radius: 50%; padding: 1px 5px; font-size: .75rem; cursor: help; }
+
+  /*
+   * Completitud por columna (spec del usuario): si a una IE le falta
+   * algún dato en una columna, el título de esa columna se pone rojo
+   * vivo y las celdas vacías en pálido — para que salte a la vista qué
+   * falta completar, por columna, de un vistazo.
+   */
+  table.tabla-ie th.encabezado-faltante-ie { background: #D93025; }
+  table.tabla-ie td.celda-faltante-ie { background: #FCE8E6; }
+  table.tabla-ie td.celda-faltante-ie input, table.tabla-ie td.celda-faltante-ie select { background: #FCE8E6; }
+
   /*
    * Un solo bloque de Docente/Correo/Cursos por grupo de estudiantes (spec
    * del usuario), en su propia sección "Docentes que reportan" — ya no

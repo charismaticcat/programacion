@@ -336,34 +336,70 @@ function pintarTablaIE_(filas) {
    * que queda visible es el último — el que sirve para agregar el
    * siguiente docente.
    */
-  var grupos = [];
+  var gruposSinHuecos = [];
   gruposCrudos.forEach(function (g, i) {
     var esUltimo = i === gruposCrudos.length - 1;
-    if (!g.clave && grupos.length && !esUltimo) {
-      grupos[grupos.length - 1].filas = grupos[grupos.length - 1].filas.concat(g.filas);
+    if (!g.clave && gruposSinHuecos.length && !esUltimo) {
+      gruposSinHuecos[gruposSinHuecos.length - 1].filas = gruposSinHuecos[gruposSinHuecos.length - 1].filas.concat(g.filas);
     } else {
-      grupos.push(g);
+      gruposSinHuecos.push(g);
     }
   });
-  if (!grupos.length) grupos.push({ clave: '', docente: '', correoRegistro: '', filas: [] }); // todavía sin estudiantes: un grupo en blanco para empezar
+  if (!gruposSinHuecos.length) gruposSinHuecos.push({ clave: '', docente: '', correoRegistro: '', filas: [] }); // todavía sin estudiantes: un grupo en blanco para empezar
 
-  var htmlEstudiantes = '';
-  var htmlDocentes = '';
-  grupos.forEach(function (g, indiceGrupo) {
-    htmlDocentes += filaGrupoDocenteHtml_(indiceGrupo, g.docente, g.correoRegistro);
-    g.filas.forEach(function (f) { htmlEstudiantes += filaIEHtml_(f, indiceGrupo); });
+  /**
+   * 3) Nunca debe quedar duplicado el nombre de un docente en dos
+   * casillas distintas (spec del usuario) — aunque sus filas no sean
+   * consecutivas en la hoja (p. ej. datos cargados en bloques
+   * separados), todas sus filas se combinan en UNA sola casilla. El
+   * orden de aparición en la tabla de estudiantes (indicePorFila) se
+   * conserva tal cual viene de la hoja; solo cambia a qué casilla de
+   * docente apunta cada fila.
+   */
+  var indicePorNombre = {};
+  var grupos = [];
+  var indicePorFila = {};
+  gruposSinHuecos.forEach(function (g) {
+    var indiceGrupo;
+    if (g.clave && indicePorNombre.hasOwnProperty(g.clave)) {
+      indiceGrupo = indicePorNombre[g.clave];
+      grupos[indiceGrupo].filas = grupos[indiceGrupo].filas.concat(g.filas);
+    } else {
+      indiceGrupo = grupos.length;
+      if (g.clave) indicePorNombre[g.clave] = indiceGrupo;
+      grupos.push(g);
+    }
+    g.filas.forEach(function (f) { indicePorFila[f.fila] = indiceGrupo; });
   });
+
+  var htmlDocentes = grupos.map(function (g, indiceGrupo) {
+    return filaGrupoDocenteHtml_(indiceGrupo, g.docente, g.correoRegistro, cursosDeGrupo_(g.filas));
+  }).join('');
+  // La tabla de estudiantes respeta el orden original de la hoja (filas), no el orden de los grupos.
+  var htmlEstudiantes = filas.map(function (f) { return filaIEHtml_(f, indicePorFila[f.fila]); }).join('');
+
   cuerpo.innerHTML = htmlEstudiantes;
   listaDocentes.innerHTML = htmlDocentes;
   filasSeleccionadasIE_.clear();
   ultimaFilaClicIE_ = null;
   actualizarResaltadoSeleccionIE_();
   renumerarFilasIE_();
+  actualizarResaltadoFaltantesIE_();
   // Deshacer (spec del usuario): punto de partida para cada fila, y se
   // olvida cualquier historial de una carga anterior.
   ultimoEstadoFilaIE_ = {};
   pilaDeshacerIE_ = [];
   filas.forEach(function (f) { ultimoEstadoFilaIE_[f.fila] = f; });
+}
+/** Cursos reales (1101-1109) que ya tienen estudiantes en este grupo — para preseleccionar "Cursos que reporta". */
+function cursosDeGrupo_(filasDelGrupo) {
+  var vistos = {};
+  var cursos = [];
+  filasDelGrupo.forEach(function (f) {
+    var c = texto_(f.curso).toUpperCase();
+    if (c && OPCIONES_CURSO_DOCENTE_.indexOf(c) >= 0 && !vistos[c]) { vistos[c] = true; cursos.push(c); }
+  });
+  return cursos;
 }
 function texto_(v) { return v == null ? '' : String(v).trim(); }
 /** Numera visualmente los estudiantes desde 1 (spec del usuario), sin tocar data-fila-ie (la fila real de la hoja). */
@@ -371,6 +407,31 @@ function renumerarFilasIE_() {
   document.querySelectorAll('[data-fila-ie]').forEach(function (tr, i) {
     var span = tr.querySelector('.numero-visible-ie');
     if (span) span.textContent = i + 1;
+  });
+}
+/**
+ * Completitud por columna (spec del usuario): si a esta IE le falta
+ * algún dato en una columna (jornada, género, curso, tipo/núm. de
+ * documento, puntaje), el título de esa columna se pone rojo vivo y las
+ * celdas vacías en pálido. Se recalcula después de pintar la tabla y
+ * después de cada guardado/deshacer, para que se vea al instante cuando
+ * ya se completó un dato.
+ */
+var CAMPOS_COMPLETITUD_IE_ = ['jornada', 'genero', 'curso', 'tipoDoc', 'numDoc', 'puntaje'];
+function actualizarResaltadoFaltantesIE_() {
+  var filas = document.querySelectorAll('[data-fila-ie]');
+  CAMPOS_COMPLETITUD_IE_.forEach(function (campo) {
+    var faltaAlguna = false;
+    filas.forEach(function (tr) {
+      var control = tr.querySelector('[data-campo-ie="' + campo + '"]');
+      if (!control) return;
+      var td = control.closest('td');
+      var vacio = !texto_(control.value);
+      td.classList.toggle('celda-faltante-ie', vacio);
+      if (vacio) faltaAlguna = true;
+    });
+    var encabezado = document.querySelector('[data-campo-encabezado-ie="' + campo + '"]');
+    if (encabezado) encabezado.classList.toggle('encabezado-faltante-ie', faltaAlguna);
   });
 }
 
@@ -418,25 +479,34 @@ function campoTextoOLista_(campo, valor) {
  * eso); el campo "Curso" de cada estudiante se sigue llenando aparte.
  */
 var OPCIONES_CURSO_DOCENTE_ = ['1101', '1102', '1103', '1104', '1105', '1106', '1107', '1108', '1109'];
-function selectCursoDocenteHtml_() {
-  var html = "<select class='select-curso-docente'><option value=''>Seleccione…</option>";
-  OPCIONES_CURSO_DOCENTE_.forEach(function (c) { html += "<option value='" + c + "'>" + c + '</option>'; });
+function selectCursoDocenteHtml_(valorSeleccionado) {
+  var html = "<select class='select-curso-docente'><option value=''" + (valorSeleccionado ? '' : ' selected') + '>Seleccione…</option>';
+  OPCIONES_CURSO_DOCENTE_.forEach(function (c) { html += "<option value='" + c + "'" + (c === valorSeleccionado ? ' selected' : '') + '>' + c + '</option>'; });
   html += '</select>';
   return html;
 }
-function filaCursoDocenteHtml_() {
-  return "<span class='fila-curso-docente'>" + selectCursoDocenteHtml_() +
+function filaCursoDocenteHtml_(valorSeleccionado) {
+  return "<span class='fila-curso-docente'>" + selectCursoDocenteHtml_(valorSeleccionado) +
     "<button type='button' class='btn-curso-docente btn-mas-curso-docente' title='Agregar otro curso'>+</button>" +
     "<button type='button' class='btn-curso-docente btn-menos-curso-docente' title='Quitar este curso'>×</button></span>";
 }
-function filaGrupoDocenteHtml_(indiceGrupo, docente, correoRegistro) {
+/**
+ * cursosPreseleccionados (spec del usuario: "usa la información que ya
+ * está subida... y cruza los datos") — en vez de arrancar siempre en
+ * blanco, "Cursos que reporta" ya trae marcados los cursos que ese
+ * docente efectivamente tiene reportados entre sus estudiantes actuales.
+ */
+function filaGrupoDocenteHtml_(indiceGrupo, docente, correoRegistro, cursosPreseleccionados) {
+  var htmlCursos = (cursosPreseleccionados && cursosPreseleccionados.length)
+    ? cursosPreseleccionados.map(filaCursoDocenteHtml_).join('')
+    : filaCursoDocenteHtml_('');
   return "<div class='caja-grupo-docente' data-grupo-docente-indice='" + indiceGrupo + "'>" +
     "<div class='fila-docente-correo'>" +
     "<label>Docente<input data-campo-grupo-ie='docente' value=\"" + escapeHtml(docente) + '"></label>' +
     "<label>Correo (quien reportó)<input data-campo-grupo-ie='correoRegistro' type='email' placeholder='correo@ejemplo.edu.co' value=\"" +
     escapeHtml(correoRegistro) + '"></label>' +
     '</div>' +
-    "<label>Cursos que reporta<span class='lista-cursos-docente'>" + filaCursoDocenteHtml_() + '</span></label>' +
+    "<label>Cursos que reporta<span class='lista-cursos-docente'>" + htmlCursos + '</span></label>' +
     '</div>';
 }
 document.getElementById('listaDocentesIE').addEventListener('click', function (evento) {
@@ -525,6 +595,7 @@ function guardarFilaIE_(tr) {
     ultimoEstadoFilaIE_[fila] = r.registro;
     aplicarRegistroEnFila_(tr, r.registro);
     sincronizarCabeceraGrupoIE_(tr);
+    actualizarResaltadoFaltantesIE_();
     actualizarCompletitudGraficos_();
     mostrarConfirmacionGuardadoIE_();
   }, function (e) {
@@ -574,6 +645,7 @@ function deshacerUltimoCambioIE_() {
     ultimoEstadoFilaIE_[cambio.fila] = r.registro;
     aplicarRegistroEnFila_(tr, r.registro);
     sincronizarCabeceraGrupoIE_(tr);
+    actualizarResaltadoFaltantesIE_();
     actualizarCompletitudGraficos_();
     mostrarMensaje('mensajeDatosIE', '↩️ Último cambio deshecho (fila ' + cambio.fila + ').', 'exito');
   }, function (e) {
@@ -927,6 +999,12 @@ function cargarTablaAdmin_() {
   var cuerpo = document.getElementById('cuerpoTablaAdmin');
   cuerpo.innerHTML = "<tr><td colspan='4'>Cargando… <span class='spinner'></span></td></tr>";
   llamarServidor('rpcAdminListarTokens', [estado.tokenAdmin], function (lista) {
+    var selectIE = document.getElementById('selectIELimpiezaCurso');
+    if (selectIE) {
+      selectIE.innerHTML = (lista || []).map(function (ie) {
+        return "<option value='" + escapeHtml(ie.nombreIE) + "'>" + escapeHtml(ie.nombreIE) + '</option>';
+      }).join('');
+    }
     cuerpo.innerHTML = (lista || []).map(function (ie) {
       return '<tr>' +
         '<td>' + escapeHtml(ie.nombreIE) + (ie.existeHoja ? '' : " <span class='mensaje error' style='display:inline;'>sin hoja</span>") + '</td>' +
@@ -1018,6 +1096,39 @@ document.getElementById('btnPrepararAvisoPublicacionWeb').addEventListener('clic
       'Compartir &gt; Publicar en la Web &gt; elija esa pestaña (no "Todo el documento") y publique.', 'exito');
   }, function (e) {
     mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible preparar la pestaña.', 'error');
+  });
+});
+document.getElementById('btnLimpiarDocentesDuplicados').addEventListener('click', function () {
+  mostrarMensaje('mensajeLimpiezaDatos', 'Quitando nombres de docente repetidos en las 36 IE… <span class="spinner"></span>', 'info');
+  llamarServidor('rpcAdminLimpiarDocentesDuplicados', [estado.tokenAdmin], function (r) {
+    mostrarMensaje('mensajeLimpiezaDatos', '✅ ' + r.totalCambios + ' repeticiones quitadas.' +
+      (r.detalle.length ? '<br>' + r.detalle.map(escapeHtml).join('<br>') : ''), 'exito');
+  }, function (e) {
+    mostrarMensaje('mensajeLimpiezaDatos', e.mensaje || 'No fue posible limpiar los docentes duplicados.', 'error');
+  });
+});
+document.getElementById('btnAutocompletarGenero').addEventListener('click', function () {
+  mostrarMensaje('mensajeLimpiezaDatos', 'Sugiriendo género faltante en las 36 IE… <span class="spinner"></span>', 'info');
+  llamarServidor('rpcAdminAutocompletarGenero', [estado.tokenAdmin], function (r) {
+    mostrarMensaje('mensajeLimpiezaDatos', '✅ ' + r.totalCambios + ' géneros sugeridos — revíselos en cada IE (quedan marcados con ⚠️).' +
+      (r.detalle.length ? '<br>' + r.detalle.map(escapeHtml).join('<br>') : ''), 'exito');
+  }, function (e) {
+    mostrarMensaje('mensajeLimpiezaDatos', e.mensaje || 'No fue posible sugerir el género.', 'error');
+  });
+});
+document.getElementById('btnEliminarEstudiantesPorCurso').addEventListener('click', function () {
+  var nombreIE = document.getElementById('selectIELimpiezaCurso').value;
+  var curso = document.getElementById('campoCursoLimpieza').value.trim();
+  if (!nombreIE || !curso) {
+    mostrarMensaje('mensajeLimpiezaDatos', 'Elija la IE y escriba el curso a eliminar.', 'error');
+    return;
+  }
+  if (!confirm('¿Borrar los estudiantes del curso "' + curso + '" en ' + nombreIE + '? Esta acción no se puede deshacer.')) return;
+  mostrarMensaje('mensajeLimpiezaDatos', 'Eliminando estudiantes de "' + escapeHtml(curso) + '" en ' + escapeHtml(nombreIE) + '… <span class="spinner"></span>', 'info');
+  llamarServidor('rpcAdminEliminarEstudiantesPorCurso', [estado.tokenAdmin, nombreIE, curso], function (r) {
+    mostrarMensaje('mensajeLimpiezaDatos', '✅ ' + r.eliminados + ' estudiante(s) eliminado(s) de "' + escapeHtml(curso) + '" en ' + escapeHtml(nombreIE) + '.', 'exito');
+  }, function (e) {
+    mostrarMensaje('mensajeLimpiezaDatos', e.mensaje || 'No fue posible eliminar esos estudiantes.', 'error');
   });
 });
 document.getElementById('btnProtegerTodasLasHojas').addEventListener('click', function () {

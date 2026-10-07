@@ -72,8 +72,14 @@
           <table class="tabla-generica tabla-ie">
             <thead>
               <tr>
-                <th>#</th><th>Nombre completo</th><th>Jornada</th><th>Género</th><th>Curso</th>
-                <th>Tipo doc.</th><th>Núm. doc.</th><th>Puntaje</th><th>Nivel</th>
+                <th>#</th><th>Nombre completo</th>
+                <th data-campo-encabezado-ie="jornada">Jornada</th>
+                <th data-campo-encabezado-ie="genero">Género <span class="aviso-genero-autoseleccionado" title="Por favor revisar género autoseleccionado por defecto">⚠️</span></th>
+                <th data-campo-encabezado-ie="curso">Curso</th>
+                <th data-campo-encabezado-ie="tipoDoc">Tipo doc.</th>
+                <th data-campo-encabezado-ie="numDoc">Núm. doc.</th>
+                <th data-campo-encabezado-ie="puntaje">Puntaje</th>
+                <th>Nivel</th>
                 <th>Intensif.</th><th>SENA</th><th>Académico</th>
               </tr>
             </thead>
@@ -147,6 +153,27 @@
           <tbody id="cuerpoTablaAdmin"></tbody>
         </table>
       </div>
+    </div>
+    <div class="tarjeta">
+      <h3>Limpieza y calidad de datos</h3>
+      <div class="fila-botones">
+        <button type="button" class="btn btn-secundario" id="btnLimpiarDocentesDuplicados">Quitar nombre de docente repetido en cada fila (todas las IE)</button>
+        <button type="button" class="btn btn-secundario" id="btnAutocompletarGenero">Sugerir género faltante (todas las IE)</button>
+      </div>
+      <p class="ayuda">"Quitar nombre de docente repetido": si el nombre del docente quedó escrito igual en varias
+        filas seguidas (en vez de solo en la primera), deja solo la primera y borra la repetición — nunca debe
+        aparecer el mismo nombre dos veces. "Sugerir género faltante": para estudiantes sin género, sugiere uno según
+        el nombre (aprendiendo de los géneros ya registrados en todas las IE); revíselo siempre, por eso queda
+        marcado con ⚠️ en la columna Género.</p>
+      <div class="fila-botones">
+        <select id="selectIELimpiezaCurso"></select>
+        <input type="text" id="campoCursoLimpieza" placeholder="Curso a eliminar, p. ej. C6" style="max-width:220px;">
+        <button type="button" class="btn btn-secundario" id="btnEliminarEstudiantesPorCurso">Eliminar estudiantes de ese curso en esa IE</button>
+      </div>
+      <p class="ayuda">Borra el nombre, documento, puntaje y demás datos de los estudiantes reportados en el curso
+        indicado, dentro de la IE elegida (el docente no se toca). Use esto para quitar grupos que no se deben
+        reportar — p. ej. ciclos nocturnos o sabatinos en el Instituto Técnico IPC Andrés Rosa.</p>
+      <div id="mensajeLimpiezaDatos"></div>
     </div>
   </section>
 

@@ -98,3 +98,12 @@ function rpcAdminPrepararAvisoPublicacionWeb(token) {
 function rpcAdminProtegerTodasLasHojas(token) {
   return ejecutarRpcSeguro_(() => adminProtegerTodasLasHojas(token));
 }
+function rpcAdminLimpiarDocentesDuplicados(token) {
+  return ejecutarRpcSeguro_(() => adminLimpiarDocentesDuplicados(token));
+}
+function rpcAdminEliminarEstudiantesPorCurso(token, nombreIE, curso) {
+  return ejecutarRpcSeguro_(() => adminEliminarEstudiantesPorCurso(token, nombreIE, curso));
+}
+function rpcAdminAutocompletarGenero(token) {
+  return ejecutarRpcSeguro_(() => adminAutocompletarGenero(token));
+}

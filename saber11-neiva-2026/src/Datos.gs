@@ -127,6 +127,18 @@ function normalizarTiposGrupo_(intensificacion, sena, academico) {
   return [0, 1, 2].map(i => (indiceSI >= 0 && i !== indiceSI) ? 'NO' : (valores[i] === 'SI' ? 'SI' : 'NO'));
 }
 
+/** Nombre de docente que "aplica" en una fila por arrastre (misma celda no vacía más cercana hacia arriba). */
+function docenteEfectivoHastaFila_(sh, filaDesde) {
+  const F = CFG.PRIMERA_FILA;
+  if (filaDesde < F) return '';
+  const valores = sh.getRange(F, CFG.COL.docente, filaDesde - F + 1, 1).getValues();
+  for (let i = valores.length - 1; i >= 0; i--) {
+    const v = texto_(valores[i][0]);
+    if (v) return v;
+  }
+  return '';
+}
+
 /**
  * Guarda una fila de estudiante (crea o actualiza). No escribe CANTIDAD
  * (A) ni NIVEL OBTENIDO (J): son fórmulas ya puestas por el script de la
@@ -166,7 +178,13 @@ function guardarFilaIE(nombreIE, token, fila, datos) {
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
-    sh.getRange(fila, C.docente).setValue(mayus(datos.docente));
+    // Nunca se debe duplicar el nombre del docente en filas seguidas
+    // (spec del usuario) — si coincide con el que ya aplica por arrastre
+    // desde la fila anterior (mismo criterio de calcularDocentesIE_,
+    // Reportes.gs), se deja la celda en blanco en vez de repetirlo.
+    const docenteNuevo = mayus(datos.docente);
+    const docenteHeredado = norm_(docenteEfectivoHastaFila_(sh, fila - 1));
+    sh.getRange(fila, C.docente).setValue(docenteNuevo && norm_(docenteNuevo) === docenteHeredado ? '' : docenteNuevo);
     // Registro de quién hizo el cambio (spec del usuario) — se guarda como
     // nota de la celda del docente, nunca como columna nueva. Solo se
     // sobrescribe cuando viene un correo nuevo, para no borrar el registro
