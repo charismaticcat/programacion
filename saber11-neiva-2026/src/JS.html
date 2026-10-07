@@ -101,20 +101,34 @@ var TEXTO_LETRERO_GRAFICOS_CLIENTE_ =
   'de cada IE es necesario tener toda la información completa. Una vez finalizada la información dar clic ' +
   'en el botón generar gráficos y revise al lado del cuadro donde ingresó la información la imagen.';
 
-function entrarPantallaIE_(nombreIE, token) {
+function entrarPantallaIE_(nombreIE, token, comoAdmin) {
   estado.nombreIE = nombreIE;
   estado.tokenIE = token;
+  estado.entroDesdeAdmin = !!comoAdmin;
   document.getElementById('pantallaDistribucion').classList.add('oculto');
   document.getElementById('pantallaAdmin').classList.add('oculto');
   document.getElementById('pantallaIE').classList.remove('oculto');
   document.getElementById('tituloIE').textContent = nombreIE;
+  document.getElementById('notaAdminViendoIE').classList.toggle('oculto', !comoAdmin);
+  document.getElementById('btnSalirIE').textContent = comoAdmin ? 'Volver al panel de administrador' : 'Salir';
   document.getElementById('letreroGraficosIE').textContent =
     '📊 ' + TEXTO_LETRERO_GRAFICOS_CLIENTE_.replace('{IE}', nombreIE.replace(/^\s*(I\.?\s*E\.?|IE)\s+/i, ''));
   cambiarPestanaIE_('misDatos');
   cargarDatosIE_();
 }
 
+/** Admin: entra a la vista de una IE sin salir del panel ni pedir su token — spec del usuario. */
+function entrarIEDesdeAdmin_(nombreIE) {
+  entrarPantallaIE_(nombreIE, estado.tokenAdmin, true);
+}
+
 document.getElementById('btnSalirIE').addEventListener('click', function () {
+  if (estado.entroDesdeAdmin) {
+    estado.entroDesdeAdmin = false;
+    document.getElementById('pantallaIE').classList.add('oculto');
+    document.getElementById('pantallaAdmin').classList.remove('oculto');
+    return;
+  }
   try { localStorage.removeItem(CLAVE_SESION_IE_); } catch (e) {}
   location.reload();
 });
@@ -245,6 +259,9 @@ function filaIEHtml_(f) {
     '</tr>';
 }
 
+/** Orden visual de las columnas editables (sin "#" ni "Nivel", que es de solo lectura) — para el pegado estilo Excel. */
+var ORDEN_CAMPOS_IE_ = ['docente', 'nombre', 'jornada', 'genero', 'curso', 'tipoDoc', 'numDoc', 'puntaje', 'intensificacion', 'sena', 'academico'];
+
 var temporizadorGuardadoFilaIE_ = {};
 function recolectarFilaIE_(tr) {
   var datos = {};
@@ -253,10 +270,28 @@ function recolectarFilaIE_(tr) {
   });
   return datos;
 }
+/**
+ * Pone en la fila lo que el servidor ya corrigió al guardar (nivel según
+ * puntaje, un solo "SI" entre intensificación/SENA/académico, mayúsculas,
+ * puntaje acotado a 0-100) — spec del usuario: "todos los criterios de
+ * Si/no, puntaje modifica nivel". Nunca pisa el campo que el docente
+ * tiene enfocado en este momento, para no perder lo que está escribiendo.
+ */
+function aplicarRegistroEnFila_(tr, registro) {
+  var activo = document.activeElement;
+  tr.querySelectorAll('[data-campo-ie]').forEach(function (campo) {
+    if (campo === activo) return;
+    var nombreCampo = campo.getAttribute('data-campo-ie');
+    if (!(nombreCampo in registro)) return;
+    var valor = registro[nombreCampo];
+    campo.value = valor == null ? '' : valor;
+  });
+  tr.querySelector('.celda-nivel-ie').textContent = registro.nivel;
+}
 function guardarFilaIE_(tr) {
   var fila = tr.getAttribute('data-fila-ie');
   llamarServidor('rpcGuardarFilaIE', [estado.nombreIE, estado.tokenIE, fila, recolectarFilaIE_(tr)], function (r) {
-    tr.querySelector('.celda-nivel-ie').textContent = r.registro.nivel;
+    aplicarRegistroEnFila_(tr, r.registro);
     actualizarCompletitudGraficos_();
   }, function (e) {
     mostrarMensaje('mensajeDatosIE', e.mensaje || 'No fue posible guardar.', 'error');
@@ -282,13 +317,88 @@ document.getElementById('cuerpoTablaIE').addEventListener('input', function (eve
   temporizadorGuardadoFilaIE_[tr.getAttribute('data-fila-ie')] = setTimeout(function () { guardarFilaIE_(tr); }, 1200);
 });
 
-document.getElementById('btnAgregarFilaIE').addEventListener('click', function () {
+/** Agrega una fila vacía al final y la devuelve — reusada por el botón, Enter en la última fila y el pegado tipo Excel. */
+function agregarFilaIE_() {
   var filas = document.querySelectorAll('[data-fila-ie]');
   var ultima = filas.length ? Number(filas[filas.length - 1].getAttribute('data-fila-ie')) : 4;
   document.getElementById('cuerpoTablaIE').insertAdjacentHTML('beforeend', filaIEHtml_({
     fila: ultima + 1, docente: '', nombre: '', jornada: '', genero: '', curso: '', tipoDoc: '', numDoc: '',
     puntaje: '', nivel: '', intensificacion: 'NO', sena: 'NO', academico: 'NO'
   }));
+  return document.getElementById('cuerpoTablaIE').lastElementChild;
+}
+document.getElementById('btnAgregarFilaIE').addEventListener('click', function () { agregarFilaIE_(); });
+
+/* --- Comportamiento tipo Excel (spec del usuario): Enter, copiar, pegar --- */
+
+// Al enfocar una celda de texto, seleccionar todo su contenido (como al hacer clic en una celda de Excel).
+document.getElementById('cuerpoTablaIE').addEventListener('focusin', function (evento) {
+  var campo = evento.target.closest('input[data-campo-ie]');
+  if (campo) campo.select();
+});
+
+// Enter: confirma la celda (si es de texto, guarda de inmediato, sin esperar el debounce) y baja a la misma columna de la fila siguiente, agregando una fila si ya estaba en la última.
+document.getElementById('cuerpoTablaIE').addEventListener('keydown', function (evento) {
+  if (evento.key !== 'Enter') return;
+  var campo = evento.target.closest('[data-campo-ie]');
+  if (!campo) return;
+  evento.preventDefault();
+  var tr = campo.closest('[data-fila-ie]');
+  if (campo.tagName === 'INPUT') {
+    clearTimeout(temporizadorGuardadoFilaIE_[tr.getAttribute('data-fila-ie')]);
+    guardarFilaIE_(tr);
+  }
+  var siguienteTr = tr.nextElementSibling || agregarFilaIE_();
+  var siguienteCampo = siguienteTr.querySelector('[data-campo-ie="' + campo.getAttribute('data-campo-ie') + '"]');
+  if (siguienteCampo) {
+    siguienteCampo.focus();
+    if (siguienteCampo.tagName === 'INPUT') siguienteCampo.select();
+  }
+});
+
+// Copiar: un <select> (jornada, género, curso…) no tiene texto que seleccionar, así que se copia su valor a mano.
+document.getElementById('cuerpoTablaIE').addEventListener('copy', function (evento) {
+  var campo = document.activeElement;
+  if (campo && campo.tagName === 'SELECT' && campo.hasAttribute('data-campo-ie')) {
+    evento.preventDefault();
+    (evento.clipboardData || window.clipboardData).setData('text/plain', campo.value);
+  }
+  // En un <input> se deja el comportamiento nativo del navegador (copia el texto seleccionado).
+});
+
+// Pegar: si lo copiado traía varias celdas (filas separadas por salto de línea, columnas por tabulador — como al
+// copiar un bloque de Excel/Sheets), se reparte celda por celda a partir de donde se pegó, creando filas si faltan.
+document.getElementById('cuerpoTablaIE').addEventListener('paste', function (evento) {
+  var campo = evento.target.closest('[data-campo-ie]');
+  if (!campo) return;
+  var texto = (evento.clipboardData || window.clipboardData).getData('text/plain');
+  if (!texto || !/[\t\r\n]/.test(texto)) return; // una sola celda: deja el pegado normal del navegador
+  evento.preventDefault();
+  var filasTexto = texto.replace(/\r/g, '').split('\n');
+  while (filasTexto.length > 1 && filasTexto[filasTexto.length - 1] === '') filasTexto.pop();
+  var idxCampoInicial = ORDEN_CAMPOS_IE_.indexOf(campo.getAttribute('data-campo-ie'));
+  if (idxCampoInicial < 0) return;
+  var trActual = campo.closest('[data-fila-ie]');
+  var filasAfectadas = [];
+  filasTexto.forEach(function (lineaTexto, r) {
+    if (r > 0) trActual = trActual.nextElementSibling || agregarFilaIE_();
+    lineaTexto.split('\t').forEach(function (valor, c) {
+      var nombreCampo = ORDEN_CAMPOS_IE_[idxCampoInicial + c];
+      if (!nombreCampo) return;
+      var destino = trActual.querySelector('[data-campo-ie="' + nombreCampo + '"]');
+      if (!destino) return;
+      valor = valor.trim();
+      if (destino.tagName === 'SELECT') {
+        var coincide = Array.prototype.some.call(destino.options, function (op) { return op.value.toUpperCase() === valor.toUpperCase(); });
+        if (coincide) destino.value = valor.toUpperCase();
+      } else {
+        destino.value = valor;
+      }
+    });
+    if (filasAfectadas.indexOf(trActual) < 0) filasAfectadas.push(trActual);
+  });
+  mostrarMensaje('mensajeDatosIE', 'Pegando ' + filasAfectadas.length + ' fila(s)… <span class="spinner"></span>', 'info');
+  filasAfectadas.forEach(function (tr) { guardarFilaIE_(tr); });
 });
 
 document.getElementById('btnGenerarGraficos').addEventListener('click', function () {
@@ -337,7 +447,9 @@ function cargarTablaAdmin_() {
         '<td>' + escapeHtml(ie.nombreIE) + (ie.existeHoja ? '' : " <span class='mensaje error' style='display:inline;'>sin hoja</span>") + '</td>' +
         "<td><span class='badge-color' style='background:" + ie.colorEstado + "'></span></td>" +
         "<td><code>" + escapeHtml(ie.token) + '</code></td>' +
-        "<td><button type='button' class='btn btn-secundario' data-regenerar-token='" + escapeHtml(ie.nombreIE) + "'>Regenerar</button></td>" +
+        "<td><button type='button' class='btn btn-secundario' data-regenerar-token='" + escapeHtml(ie.nombreIE) + "'>Regenerar</button> " +
+        "<button type='button' class='btn btn-secundario' data-entrar-ie='" + escapeHtml(ie.nombreIE) + "'>Entrar</button> " +
+        "<button type='button' class='btn btn-secundario' data-graficos-ie='" + escapeHtml(ie.nombreIE) + "'>Generar gráficos</button></td>" +
         '</tr>';
     }).join('');
   }, function (e) {
@@ -345,14 +457,34 @@ function cargarTablaAdmin_() {
   });
 }
 document.getElementById('cuerpoTablaAdmin').addEventListener('click', function (evento) {
-  var boton = evento.target.closest('[data-regenerar-token]');
-  if (!boton) return;
-  var nombreIE = boton.getAttribute('data-regenerar-token');
-  llamarServidor('rpcAdminRegenerarTokenIE', [estado.tokenAdmin, nombreIE], function () {
-    cargarTablaAdmin_();
-  }, function (e) {
-    mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible regenerar el token.', 'error');
-  });
+  var botonRegenerar = evento.target.closest('[data-regenerar-token]');
+  if (botonRegenerar) {
+    llamarServidor('rpcAdminRegenerarTokenIE', [estado.tokenAdmin, botonRegenerar.getAttribute('data-regenerar-token')], function () {
+      cargarTablaAdmin_();
+    }, function (e) {
+      mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible regenerar el token.', 'error');
+    });
+    return;
+  }
+  var botonEntrar = evento.target.closest('[data-entrar-ie]');
+  if (botonEntrar) {
+    entrarIEDesdeAdmin_(botonEntrar.getAttribute('data-entrar-ie'));
+    return;
+  }
+  var botonGraficos = evento.target.closest('[data-graficos-ie]');
+  if (botonGraficos) {
+    var nombreIE = botonGraficos.getAttribute('data-graficos-ie');
+    mostrarMensaje('mensajeAdmin', 'Generando gráficos de ' + escapeHtml(nombreIE) + '… <span class="spinner"></span>', 'info');
+    llamarServidor('rpcGenerarGraficosIE', [nombreIE, estado.tokenAdmin], function () {
+      mostrarMensaje('mensajeAdmin', 'Gráficos generados para ' + escapeHtml(nombreIE) + '.', 'exito');
+    }, function (e) {
+      if (e.faltantes && e.faltantes.length) {
+        mostrarMensaje('mensajeAdmin', 'Falta completar información en ' + escapeHtml(nombreIE) + ':<br>' + e.faltantes.map(escapeHtml).join('<br>'), 'error');
+        return;
+      }
+      mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible generar los gráficos.', 'error');
+    });
+  }
 });
 document.getElementById('btnAplicarLetreroTodas').addEventListener('click', function () {
   mostrarMensaje('mensajeAdmin', 'Aplicando letrero en las 36 IE… <span class="spinner"></span>', 'info');
@@ -369,6 +501,25 @@ document.getElementById('btnEscribirTokensResumen').addEventListener('click', fu
     mostrarMensaje('mensajeAdmin', 'Listo: ' + r.total + ' tokens de IE en la columna B (fila 10 en adelante, frente a cada institución) y el token de administrador en la fila ' + r.filaAdmin + '.', 'exito');
   }, function (e) {
     mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible escribir los tokens.', 'error');
+  });
+});
+document.getElementById('btnActualizarReporteDiario').addEventListener('click', function () {
+  mostrarMensaje('mensajeAdmin', 'Actualizando REPORTE DIARIO (lee las 36 IE, puede tardar)… <span class="spinner"></span>', 'info');
+  llamarServidor('rpcAdminActualizarReporteDiario', [estado.tokenAdmin], function (r) {
+    mostrarMensaje('mensajeAdmin', 'REPORTE DIARIO actualizado: ' + r.totalInstituciones + ' instituciones, ' +
+      r.totalDocentes + ' docentes, ' + r.totalEstudiantes + ' estudiantes.', 'exito');
+  }, function (e) {
+    mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible actualizar el REPORTE DIARIO.', 'error');
+  });
+});
+document.getElementById('btnActualizarReporteB1BMas').addEventListener('click', function () {
+  mostrarMensaje('mensajeAdmin', 'Actualizando REPORTE B1 Y B+ (lee las 36 IE, puede tardar)… <span class="spinner"></span>', 'info');
+  llamarServidor('rpcAdminActualizarReporteB1BMas', [estado.tokenAdmin], function (r) {
+    mostrarMensaje('mensajeAdmin', 'REPORTE B1 Y B+ actualizado: ' + r.instituciones + ' instituciones, ' +
+      r.totalB1BMas + ' estudiantes B1/B+ de ' + r.totalEvaluados + ' evaluados (' +
+      Math.round(r.porcentajeGeneral * 1000) / 10 + '%).', 'exito');
+  }, function (e) {
+    mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible actualizar el REPORTE B1 Y B+.', 'error');
   });
 });
 

@@ -75,6 +75,22 @@ function exigirAccesoIE_(nombreIE, token) {
   return r.nombreIE;
 }
 
+/**
+ * Para funciones que dan acceso de lectura/escritura a UNA IE concreta
+ * (Datos.gs, Graficos.gs): acepta el token de esa IE o el de
+ * administrador — spec del usuario: "desde admin debe permitirme
+ * ingresar a las IE sin necesidad de salir y ponerles el código de
+ * acceso". Devuelve el nombre real de la IE (con el mismo
+ * capitalización que CFG.IES).
+ */
+function exigirAccesoIEoAdminComoIE_(nombreIE, token) {
+  const clave = norm_(nombreIE);
+  const idx = CFG.IES.map(norm_).indexOf(clave);
+  if (idx < 0) throw new Error('Institución no reconocida.');
+  if (validarAccesoAdmin(token).ok) return CFG.IES[idx];
+  return exigirAccesoIE_(nombreIE, token);
+}
+
 function obtenerTokenAdmin_() {
   const props = PropertiesService.getScriptProperties();
   let token = props.getProperty(PROP_ADMIN_TOKEN_);

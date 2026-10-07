@@ -27,7 +27,13 @@ const CFG = {
 
   HOJA_RESUMEN_ENVIOS: 'RESUMEN DE ENVÍOS',
   HOJA_REPORTE_DIARIO: 'REPORTE DIARIO',
+  HOJA_REPORTE_B1_MAS: 'REPORTE B1 Y B+',
   HOJA_TOKENS: 'TOKENS_PORTAL_IE', // hoja de control oculta, creada por este proyecto en la misma hoja de cálculo
+
+  // Texto guía que el script de la hoja escribe en la celda del docente
+  // (desaparece al escribir encima) — Reportes.gs lo trata como vacío,
+  // igual que el script atado a la hoja.
+  MARCADOR: 'Escriba una sola vez su nombre por el grupo que reportará',
 
   FILA_IE: 3,
   FILA_ENCABEZADO: 4,

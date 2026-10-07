@@ -74,3 +74,9 @@ function rpcAdminAplicarLetreroGraficos(token) {
 function rpcAdminUrlHojaReal(token) {
   return ejecutarRpcSeguro_(() => { exigirAccesoAdmin_(token); return { url: abrirSpreadsheet_().getUrl() }; });
 }
+function rpcAdminActualizarReporteDiario(token) {
+  return ejecutarRpcSeguro_(() => adminActualizarReporteDiario(token));
+}
+function rpcAdminActualizarReporteB1BMas(token) {
+  return ejecutarRpcSeguro_(() => adminActualizarReporteB1BMas(token));
+}

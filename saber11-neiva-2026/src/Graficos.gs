@@ -134,7 +134,7 @@ function verificarInformacionCompleta_(registros) {
  * información ya está completa o todavía falta algo (spec del usuario).
  */
 function verificarCompletitudIE(nombreIE, token) {
-  const nombreReal = exigirAccesoIE_(nombreIE, token);
+  const nombreReal = exigirAccesoIEoAdminComoIE_(nombreIE, token);
   const ss = abrirSpreadsheet_();
   const sh = ss.getSheetByName(nombreReal);
   if (!sh) throw new Error('No se encontró la hoja de "' + nombreReal + '".');
@@ -243,7 +243,7 @@ function limpiarZonaGraficos_(sh) {
  * devuelve la lista de lo que falta para que el docente la complete.
  */
 function generarGraficosIE(nombreIE, token) {
-  const nombreReal = exigirAccesoIE_(nombreIE, token);
+  const nombreReal = exigirAccesoIEoAdminComoIE_(nombreIE, token);
   const ss = abrirSpreadsheet_();
   const sh = ss.getSheetByName(nombreReal);
   if (!sh) throw new Error('No se encontró la hoja de "' + nombreReal + '".');

@@ -42,7 +42,8 @@
   <!-- 2. PANTALLA DE LA IE -->
   <section id="pantallaIE" class="oculto">
     <div class="tarjeta">
-      <h2><span id="badgeColorIE" class="badge-color"></span><span id="tituloIE"></span></h2>
+      <h2><span id="badgeColorIE" class="badge-color"></span><span id="tituloIE"></span>
+        <span id="notaAdminViendoIE" class="oculto" style="margin-left:10px;font-weight:bold;color:#0B5394;font-size:0.6em;">(viendo como administrador)</span></h2>
       <button type="button" class="btn btn-secundario" id="btnSalirIE">Salir</button>
     </div>
 
@@ -99,9 +100,14 @@
         <button type="button" class="btn btn-secundario" id="btnEscribirTokensResumen">Escribir todos los tokens en Resumen de envíos (columna B)</button>
         <a id="enlaceHojaReal" href="#" target="_blank" class="btn btn-secundario">Abrir hoja de cálculo original</a>
       </div>
-      <p class="ayuda">Nota: "Actualizar resumen de envíos" (menú REPORTES de la hoja de cálculo) borra toda la hoja y la
-        vuelve a construir, incluida esta lista de tokens — después de usarlo, vuelva a dar clic aquí para
-        reponerla.</p>
+      <div class="fila-botones">
+        <button type="button" class="btn btn-secundario" id="btnActualizarReporteDiario">Actualizar REPORTE DIARIO</button>
+        <button type="button" class="btn btn-secundario" id="btnActualizarReporteB1BMas">Actualizar REPORTE B1 Y B+</button>
+      </div>
+      <p class="ayuda">Nota: "Actualizar resumen de envíos" (menú REPORTES de la hoja de cálculo), y también los dos
+        botones de arriba (Actualizar REPORTE DIARIO / REPORTE B1 Y B+), reconstruyen por completo RESUMEN DE
+        ENVÍOS (colores de pestaña y tabla de estado) — eso borra esta lista de tokens; después de usar
+        cualquiera de los tres, vuelva a dar clic en "Escribir todos los tokens…" para reponerla.</p>
       <div id="mensajeAdmin"></div>
     </div>
     <div class="tarjeta">

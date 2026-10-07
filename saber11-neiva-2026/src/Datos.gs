@@ -72,7 +72,7 @@ function opcionesColumnasIE_(sh) {
  * tener que traer las 500 filas completas en cada carga.
  */
 function obtenerDatosIE(nombreIE, token) {
-  const nombreReal = exigirAccesoIE_(nombreIE, token);
+  const nombreReal = exigirAccesoIEoAdminComoIE_(nombreIE, token);
   const ss = abrirSpreadsheet_();
   const sh = ss.getSheetByName(nombreReal);
   if (!sh) throw new Error('No se encontró la hoja de "' + nombreReal + '". Avise al administrador.');
@@ -105,7 +105,7 @@ function normalizarTiposGrupo_(intensificacion, sena, academico) {
  * aquí; sobrescribirlas rompería el cálculo automático.
  */
 function guardarFilaIE(nombreIE, token, fila, datos) {
-  const nombreReal = exigirAccesoIE_(nombreIE, token);
+  const nombreReal = exigirAccesoIEoAdminComoIE_(nombreIE, token);
   fila = Number(fila);
   if (!fila || fila < CFG.PRIMERA_FILA || fila > CFG.ULTIMA_FILA) {
     throw new Error('Fila fuera de rango.');
