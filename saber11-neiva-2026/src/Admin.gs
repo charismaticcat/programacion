@@ -34,14 +34,15 @@ function adminListarTokens(token) {
 
 /**
  * Escribe, en la columna B de RESUMEN DE ENVÍOS, el token de
- * administrador y el de las 36 IE (spec del usuario) — empezando bien
- * debajo del tablero que arma actualizarHojaResumenEnvios_ del script
- * atado a la hoja (título, conteos, listado de IE llega hasta la fila
- * ~46), para no pisarlo. Esa misma función hace `hoja.clear()` sobre
- * TODA la hoja cada vez que el administrador usa "Actualizar resumen de
- * envíos" (menú REPORTES) — eso también borra esta lista, así que hay
- * que volver a escribirla después (de ahí el botón, no una escritura
- * automática que se quedaría desactualizada sin avisar).
+ * administrador y el de las 36 IE (spec del usuario) — justo debajo del
+ * listado de las 36 IE que arma actualizarHojaResumenEnvios_ del script
+ * atado a la hoja (ese listado termina en la fila 45), con un título en
+ * azul bien visible para no tener que buscarlo. Esa misma función hace
+ * `hoja.clear()` sobre TODA la hoja cada vez que el administrador usa
+ * "Actualizar resumen de envíos" (menú REPORTES) — eso también borra
+ * esta lista, así que hay que volver a escribirla después (de ahí el
+ * botón, no una escritura automática que se quedaría desactualizada sin
+ * avisar).
  */
 function adminEscribirTokensEnResumenEnvios(token) {
   exigirAccesoAdmin_(token);
@@ -52,12 +53,17 @@ function adminEscribirTokensEnResumenEnvios(token) {
       '"Actualizar resumen de envíos" desde el menú REPORTES de la hoja de cálculo.');
   }
   const mapa = asegurarTokensIE_(ss);
-  const FILA_INICIO = 50; // debajo del tablero + listado de las 36 IE (termina alrededor de la fila 46)
-  const lineas = [['TOKENS DE ACCESO'], ['ADMINISTRADOR: ' + obtenerTokenAdmin_()]];
+  const FILA_INICIO = 47; // justo debajo del listado de las 36 IE (termina en la fila 45)
+  // Limpia cualquier escritura anterior (en esta posición o en la fila 50
+  // que usaba una versión previa) antes de volver a escribir.
+  hoja.getRange(46, 2, 50, 1).breakApart().clearContent().clearFormat();
+  hoja.getRange(FILA_INICIO, 2)
+    .setValue('🔑 TOKENS DE ACCESO (administrador + 36 IE)')
+    .setBackground('#0B5394').setFontColor('#FFFFFF').setFontWeight('bold');
+  const lineas = [['ADMINISTRADOR: ' + obtenerTokenAdmin_()]];
   CFG.IES.forEach(ie => lineas.push([ie + ': ' + (mapa[norm_(ie)] || '')]));
-  hoja.getRange(FILA_INICIO, 2, lineas.length, 1).setValues(lineas);
-  hoja.getRange(FILA_INICIO, 2).setFontWeight('bold');
-  return { ok: true, fila: FILA_INICIO, total: lineas.length - 2 };
+  hoja.getRange(FILA_INICIO + 1, 2, lineas.length, 1).setValues(lineas);
+  return { ok: true, fila: FILA_INICIO, total: lineas.length };
 }
 
 function adminRegenerarTokenIE(token, nombreIE) {
