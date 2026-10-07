@@ -326,17 +326,37 @@ document.getElementById('cuerpoTablaIE').addEventListener('input', function (eve
   temporizadorGuardadoFilaIE_[tr.getAttribute('data-fila-ie')] = setTimeout(function () { guardarFilaIE_(tr); }, 1200);
 });
 
-/** Agrega una fila vacía al final y la devuelve — reusada por el botón, Enter en la última fila y el pegado tipo Excel. */
-function agregarFilaIE_() {
+/**
+ * Agrega una fila vacía al final y la devuelve — reusada por el botón,
+ * Enter en la última fila y el pegado tipo Excel. Spec del usuario: no
+ * repetir el nombre del docente en cada fila — por defecto hereda el
+ * docente/correo de la última fila (así solo hay que escribirlo una
+ * vez por grupo); "+ Agregar docente" llama con heredarDocente=false
+ * para empezar un grupo nuevo con esos campos en blanco.
+ */
+function agregarFilaIE_(heredarDocente) {
   var filas = document.querySelectorAll('[data-fila-ie]');
   var ultima = filas.length ? Number(filas[filas.length - 1].getAttribute('data-fila-ie')) : 4;
+  var docentePrevio = '', correoPrevio = '';
+  if (heredarDocente !== false && filas.length) {
+    var trAnterior = filas[filas.length - 1];
+    var campoDocente = trAnterior.querySelector('[data-campo-ie="docente"]');
+    var campoCorreo = trAnterior.querySelector('[data-campo-ie="correoRegistro"]');
+    if (campoDocente) docentePrevio = campoDocente.value;
+    if (campoCorreo) correoPrevio = campoCorreo.value;
+  }
   document.getElementById('cuerpoTablaIE').insertAdjacentHTML('beforeend', filaIEHtml_({
-    fila: ultima + 1, docente: '', correoRegistro: '', nombre: '', jornada: '', genero: '', curso: '', tipoDoc: '', numDoc: '',
+    fila: ultima + 1, docente: docentePrevio, correoRegistro: correoPrevio, nombre: '', jornada: '', genero: '', curso: '', tipoDoc: '', numDoc: '',
     puntaje: '', nivel: '', intensificacion: 'NO', sena: 'NO', academico: 'NO'
   }));
   return document.getElementById('cuerpoTablaIE').lastElementChild;
 }
-document.getElementById('btnAgregarFilaIE').addEventListener('click', function () { agregarFilaIE_(); });
+document.getElementById('btnAgregarFilaIE').addEventListener('click', function () { agregarFilaIE_(true); });
+document.getElementById('btnAgregarDocente').addEventListener('click', function () {
+  var tr = agregarFilaIE_(false);
+  var campoDocente = tr.querySelector('[data-campo-ie="docente"]');
+  if (campoDocente) campoDocente.focus();
+});
 
 /* --- Selección múltiple de filas, como en Excel (spec del usuario): clic en el número, Shift/Ctrl para varias --- */
 var filasSeleccionadasIE_ = new Set();
