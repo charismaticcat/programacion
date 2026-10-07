@@ -108,7 +108,10 @@ function logoDe_(nombreIE, logos) {
  */
 function obtenerLogoBase64IE_(nombreIE, logos) {
   const cache = CacheService.getScriptCache();
-  const clave = 'LOGO_' + norm_(nombreIE);
+  // "V2": al agregar/cambiar un LOGOS_MANUALES el caché viejo (hasta 6h) ya
+  // no sirve — se cambia esta versión para invalidarlo de una vez, en vez
+  // de esperar a que expire solo.
+  const clave = 'LOGO_V2_' + norm_(nombreIE);
   const cacheado = cache.get(clave);
   if (cacheado) return JSON.parse(cacheado);
   const archivo = logoDe_(nombreIE, logos);

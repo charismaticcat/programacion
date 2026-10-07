@@ -23,7 +23,12 @@ const CFG = {
   SPREADSHEET_ID: '1xYaRpD6VxA6fz628zuPQaB5vJj0JCHuWjZtns4Gpz14',
   ANIO: 2026, // para los títulos de los gráficos ("EN LA IE <nombre>, 2026")
   CARPETA_LOGOS: '1QVfDyYjhjX5H60U7SyeLtikodQbhGu1B',
-  LOGOS_MANUALES: {},
+  // IE cuyo logo no se detectó bien por nombre — ID del archivo de Drive puesto a mano (spec del usuario).
+  LOGOS_MANUALES: {
+    'INEM JULIAN MOTTA SALAS': '1AResGxiz_RYP7hcWpQzjnVaC0lQ1ee0Z',
+    'JAIRO MOSQUERA MORENO': '1AResGxiz_RYP7hcWpQzjnVaC0lQ1ee0Z',
+    'SANTA LIBRADA': '1M2q_Pe0JLkCBdc78rdOsAfHvghcNMvYm'
+  },
 
   HOJA_RESUMEN_ENVIOS: 'RESUMEN DE ENVÍOS',
   HOJA_REPORTE_DIARIO: 'REPORTE DIARIO',
