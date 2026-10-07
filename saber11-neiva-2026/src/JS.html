@@ -107,10 +107,36 @@ function entrarIEDesdeAdmin_(nombreIE) {
 function volverASeleccionIE_() {
   estado.nombreIE = '';
   estado.tokenIE = '';
+  cancelarGuardadosPendientesIE_();
   document.getElementById('pantallaIE').classList.add('oculto');
   document.getElementById('pantallaAdmin').classList.add('oculto');
   document.getElementById('pantallaDistribucion').classList.remove('oculto');
+  // Feedback inmediato (spec del usuario: "redireccionar inmediatamente"):
+  // no esperar a que llegue la respuesta del servidor para mostrar que la
+  // pantalla ya cambió, y limpiar cualquier mensaje/galería que haya
+  // quedado de la IE anterior.
+  document.getElementById('rejillaInstituciones').innerHTML = "<p class='mensaje info'>Cargando instituciones… <span class='spinner'></span></p>";
+  mostrarMensaje('mensajeAccesoIE', '', '');
+  mostrarMensaje('mensajeDatosIE', '', '');
+  mostrarMensaje('mensajeAccionesIE', '', '');
+  mostrarMensaje('mensajeGraficosIE', '', '');
+  mostrarMensaje('mensajeCompletitudGraficos', '', '');
+  document.getElementById('galeriaGraficosIE').innerHTML = '';
   cargarDistribucion_();
+}
+/**
+ * Cancela cualquier autoguardado todavía pendiente (debounce de 1200ms)
+ * al salir de una IE — spec del usuario ("corregir errores de flujo"):
+ * sin esto, un guardado pendiente de la IE anterior podía disparase ya
+ * con otra IE cargada (estado.nombreIE cambiado) y escribir datos de la
+ * IE vieja en la hoja de la IE nueva si se entraba a otra en menos de
+ * 1.2 segundos.
+ */
+function cancelarGuardadosPendientesIE_() {
+  Object.keys(temporizadorGuardadoFilaIE_).forEach(function (fila) {
+    clearTimeout(temporizadorGuardadoFilaIE_[fila]);
+  });
+  temporizadorGuardadoFilaIE_ = {};
 }
 document.getElementById('btnSalirIE').addEventListener('click', function () {
   if (estado.entroDesdeAdmin) {
@@ -172,6 +198,7 @@ function cargarResumenEnvioIE_() {
 }
 
 function cargarDatosIE_() {
+  cancelarGuardadosPendientesIE_();
   mostrarMensaje('mensajeDatosIE', 'Cargando estudiantes… <span class="spinner"></span>', 'info');
   llamarServidor('rpcObtenerDatosIE', [estado.nombreIE, estado.tokenIE], function (datos) {
     document.getElementById('badgeColorIE').style.background = datos.colorEstado;
@@ -343,13 +370,47 @@ function campoTextoOLista_(campo, valor) {
  * guardando su propio docente/correo (como siempre), solo que ya no se
  * repite el campo visible en cada una.
  */
+/**
+ * "Cursos que reporta" por docente (spec del usuario): una lista de
+ * cursos 1101-1109 declarada en la casilla del docente, con "+" para
+ * agregar otro curso adicional — es solo una ayuda de planeación para
+ * quien reporta (no se guarda en la hoja real, no hay columna para
+ * eso); el campo "Curso" de cada estudiante se sigue llenando aparte.
+ */
+var OPCIONES_CURSO_DOCENTE_ = ['1101', '1102', '1103', '1104', '1105', '1106', '1107', '1108', '1109'];
+function selectCursoDocenteHtml_() {
+  var html = "<select class='select-curso-docente'><option value=''>Seleccione…</option>";
+  OPCIONES_CURSO_DOCENTE_.forEach(function (c) { html += "<option value='" + c + "'>" + c + '</option>'; });
+  html += '</select>';
+  return html;
+}
+function filaCursoDocenteHtml_() {
+  return "<span class='fila-curso-docente'>" + selectCursoDocenteHtml_() +
+    "<button type='button' class='btn-curso-docente btn-mas-curso-docente' title='Agregar otro curso'>+</button>" +
+    "<button type='button' class='btn-curso-docente btn-menos-curso-docente' title='Quitar este curso'>×</button></span>";
+}
 function filaGrupoDocenteHtml_(docente, correoRegistro) {
   return "<tr class='fila-grupo-docente'><td colspan='12'><div class='caja-grupo-docente'>" +
     "<label>Docente<input data-campo-grupo-ie='docente' value=\"" + escapeHtml(docente) + '"></label>' +
     "<label>Correo (quien reportó)<input data-campo-grupo-ie='correoRegistro' type='email' placeholder='correo@ejemplo.edu.co' value=\"" +
     escapeHtml(correoRegistro) + '"></label>' +
+    "<label>Cursos que reporta<span class='lista-cursos-docente'>" + filaCursoDocenteHtml_() + '</span></label>' +
     '</div></td></tr>';
 }
+document.getElementById('cuerpoTablaIE').addEventListener('click', function (evento) {
+  var botonMas = evento.target.closest('.btn-mas-curso-docente');
+  if (botonMas) {
+    botonMas.closest('.lista-cursos-docente').insertAdjacentHTML('beforeend', filaCursoDocenteHtml_());
+    return;
+  }
+  var botonMenos = evento.target.closest('.btn-menos-curso-docente');
+  if (botonMenos) {
+    var lista = botonMenos.closest('.lista-cursos-docente');
+    var filaCurso = botonMenos.closest('.fila-curso-docente');
+    if (lista.children.length > 1) filaCurso.remove();
+    else filaCurso.querySelector('select').value = '';
+  }
+});
 function filaIEHtml_(f) {
   return "<tr data-fila-ie='" + f.fila + "'>" +
     "<td><span class='numero-visible-ie'>" + f.fila + '</span>' +
@@ -885,6 +946,14 @@ function descargarArchivoBase64_(base64, mimeType, nombreArchivo) {
   document.body.removeChild(enlace);
   setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
 }
+document.getElementById('btnInstalarRedireccionHoja').addEventListener('click', function () {
+  mostrarMensaje('mensajeAdmin', 'Activando redirección al abrir la hoja original… <span class="spinner"></span>', 'info');
+  llamarServidor('rpcAdminInstalarRedireccionHojaReal', [estado.tokenAdmin], function () {
+    mostrarMensaje('mensajeAdmin', '✅ Listo: desde ahora, quien abra la hoja de cálculo original será redirigido al Portal.', 'exito');
+  }, function (e) {
+    mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible activar la redirección.', 'error');
+  });
+});
 document.getElementById('btnAplicarLetreroTodas').addEventListener('click', function () {
   mostrarMensaje('mensajeAdmin', 'Aplicando letrero en las 36 IE… <span class="spinner"></span>', 'info');
   llamarServidor('rpcAdminAplicarLetreroGraficos', [estado.tokenAdmin], function (r) {

@@ -59,6 +59,14 @@
   .caja-grupo-docente label { margin: 0; flex: 1 1 220px; }
   .caja-grupo-docente input { margin-top: 4px; }
 
+  /* "Cursos que reporta" por docente (spec del usuario): lista de 1101-1109 con "+" para agregar otro. */
+  .lista-cursos-docente { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .fila-curso-docente { display: inline-flex; align-items: center; gap: 2px; }
+  .fila-curso-docente select { width: auto; min-width: 90px; margin: 0; }
+  .btn-curso-docente { border: none; border-radius: 4px; width: 26px; height: 26px; cursor: pointer; font-weight: bold; font-size: 1rem; line-height: 1; padding: 0; flex: none; }
+  .btn-mas-curso-docente { background: var(--azul); color: #fff; }
+  .btn-menos-curso-docente { background: var(--gris-borde); color: #202124; }
+
   .galeria-graficos { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-top: 16px; }
   .galeria-graficos img { width: 100%; border: 1px solid var(--gris-borde); border-radius: 6px; cursor: zoom-in; }
   .galeria-graficos .ayuda-ampliar { font-size: .75rem; color: var(--gris-texto); margin: 4px 0 0; text-align: center; }

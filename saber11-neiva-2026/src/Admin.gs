@@ -111,6 +111,44 @@ function adminEscribirTokensEnResumenEnvios(token) {
   return { ok: true, total: total, filaAdmin: filaAdmin };
 }
 
+/**
+ * Redirección automática al abrir la hoja de cálculo real (spec del
+ * usuario): nadie debería trabajar directo ahí, todo pasa por el
+ * Portal. Como este es un proyecto APARTE del script atado a la hoja
+ * (ver nota en Config.gs), no se edita ese script — en vez de eso, este
+ * proyecto instala su PROPIO disparador instalable de "al abrir" sobre
+ * la hoja real, con el mismo acceso que ya tiene (SpreadsheetApp). Se
+ * ejecuta una sola vez (botón de administrador); después, cualquiera
+ * que abra el archivo original ve un aviso que lo manda de inmediato al
+ * Portal (con un botón por si el navegador bloquea la redirección
+ * automática de un iframe hacia la pestaña de arriba).
+ */
+function alAbrirHojaReal_(e) {
+  const html = HtmlService.createHtmlOutput(
+    '<!DOCTYPE html><html><head><base target="_top">' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+    '<style>body{font-family:Arial,sans-serif;text-align:center;padding:30px 24px;color:#202124;}' +
+    'a.boton{display:inline-block;margin-top:18px;background:#1A73E8;color:#fff;padding:14px 28px;' +
+    'border-radius:6px;text-decoration:none;font-weight:bold;font-size:1rem;}</style></head><body>' +
+    '<p>Este archivo se gestiona desde el <b>Portal IE — SABER 11º Neiva ' + CFG.ANIO + '</b>.<br>No se debe editar directamente aquí.</p>' +
+    '<p>Si no es redirigido automáticamente, dé clic en el botón:</p>' +
+    '<a class="boton" href="' + CFG.URL_PORTAL + '" target="_top">Ir al Portal IE</a>' +
+    '<script>try{top.location.href="' + CFG.URL_PORTAL + '";}catch(err){}</script>' +
+    '</body></html>'
+  ).setWidth(420).setHeight(230);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Portal IE — SABER 11º Neiva ' + CFG.ANIO);
+}
+
+/** Admin: instala (o reinstala, de forma idempotente) el disparador de arriba. */
+function adminInstalarRedireccionHojaReal(token) {
+  exigirAccesoAdmin_(token);
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === 'alAbrirHojaReal_') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('alAbrirHojaReal_').forSpreadsheet(CFG.SPREADSHEET_ID).onOpen().create();
+  return { ok: true };
+}
+
 function adminRegenerarTokenIE(token, nombreIE) {
   exigirAccesoAdmin_(token);
   const clave = norm_(nombreIE);

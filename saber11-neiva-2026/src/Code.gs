@@ -89,3 +89,6 @@ function rpcAdminDescargarReporteB1BMas(token, formato) {
 function rpcDescargarInformeIE(nombreIE, token, formato) {
   return ejecutarRpcSeguro_(() => descargarInformeIE(nombreIE, token, formato));
 }
+function rpcAdminInstalarRedireccionHojaReal(token) {
+  return ejecutarRpcSeguro_(() => adminInstalarRedireccionHojaReal(token));
+}

@@ -88,10 +88,17 @@ function tipoDominante_(registros) {
 
 /** Registros con nombre e información suficiente para graficar, leídos directo de la hoja. */
 function leerRegistrosParaGraficos_(sh) {
-  const F = CFG.PRIMERA_FILA, L = CFG.ULTIMA_FILA, N = L - F + 1, C = CFG.COL;
+  const F = CFG.PRIMERA_FILA, C = CFG.COL;
+  // Igual que en obtenerDatosIE (Datos.gs): leer solo hasta el último
+  // contenido real de la hoja, no las 500 filas fijas de CFG.ULTIMA_FILA
+  // — esto se llama en cada "Generar gráficos" y en cada revisión de
+  // completitud, así que leer de más ahí se notaba mucho más.
+  const ultimaFila = Math.min(CFG.ULTIMA_FILA, Math.max(F - 1, sh.getLastRow()));
+  const N = Math.max(0, ultimaFila - F + 1);
+  const registros = [];
+  if (!N) return registros;
   const valores = sh.getRange(F, 1, N, C.academico).getDisplayValues();
   const puntajes = sh.getRange(F, C.puntaje, N, 1).getValues();
-  const registros = [];
   valores.forEach((fila, i) => {
     if (!texto_(fila[C.nombre - 1])) return;
     registros.push({

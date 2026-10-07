@@ -84,7 +84,18 @@ function obtenerDatosIE(nombreIE, token) {
   const ss = abrirSpreadsheet_();
   const sh = ss.getSheetByName(nombreReal);
   if (!sh) throw new Error('No se encontró la hoja de "' + nombreReal + '". Avise al administrador.');
-  const F = CFG.PRIMERA_FILA, L = CFG.ULTIMA_FILA, N = L - F + 1;
+  const F = CFG.PRIMERA_FILA;
+  // Leer solo hasta donde ya hay contenido (+ 15 filas en blanco para
+  // seguir agregando), en vez de las 500 filas fijas de CFG.ULTIMA_FILA
+  // sin importar cuántos estudiantes tenga realmente la IE — eso era lo
+  // que hacía lenta la entrada a cada IE (spec del usuario: "debug
+  // profundo para evitar que se ponga lento al iniciar").
+  const ultimaConContenido = Math.min(CFG.ULTIMA_FILA, Math.max(F - 1, sh.getLastRow()));
+  const L = Math.min(CFG.ULTIMA_FILA, ultimaConContenido + 15);
+  const N = Math.max(0, L - F + 1);
+  if (!N) {
+    return { nombreIE: nombreReal, colorEstado: sh.getTabColor() || '#9E9E9E', opciones: opcionesColumnasIE_(sh), filas: [] };
+  }
   const valores = sh.getRange(F, 1, N, CFG.COL.academico).getValues();
   const notas = sh.getRange(F, CFG.COL.docente, N, 1).getNotes();
   let ultimaConDatos = -1;
