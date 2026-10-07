@@ -184,8 +184,14 @@ function limpiarZonaGraficos_(sh) {
   sh.getCharts().forEach(chart => sh.removeChart(chart));
   const ultimaFila = Math.max(sh.getMaxRows(), 200);
   const ultimaColumna = Math.max(sh.getMaxColumns(), CFG.COLUMNA_GRAFICOS + 20);
-  sh.getRange(1, CFG.COLUMNA_GRAFICOS, ultimaFila, ultimaColumna - CFG.COLUMNA_GRAFICOS + 1)
-    .breakApart().clearContent().clearFormat();
+  const zona = sh.getRange(1, CFG.COLUMNA_GRAFICOS, ultimaFila, ultimaColumna - CFG.COLUMNA_GRAFICOS + 1);
+  // breakApart() sobre un solo rango grande falla ("Debes seleccionar
+  // todas las celdas de un intervalo combinado…") si algún combinado de
+  // una generación anterior queda solo PARCIALMENTE dentro de ese
+  // rectángulo. Separar cada combinado por su propio rango exacto
+  // (getMergedRanges) nunca tiene ese problema.
+  zona.getMergedRanges().forEach(rango => rango.breakApart());
+  zona.clearContent().clearFormat();
 }
 
 /**
