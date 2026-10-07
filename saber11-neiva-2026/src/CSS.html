@@ -46,6 +46,10 @@
 
   table.tabla-ie input, table.tabla-ie select { margin: 0; font-size: .82rem; padding: 4px 6px; min-width: 90px; }
   table.tabla-ie td { padding: 3px; }
+  table.tabla-ie td:first-child { cursor: pointer; user-select: none; text-align: center; font-weight: 600; color: var(--gris-texto); }
+  table.tabla-ie td:first-child:hover { background: var(--gris-borde); }
+  table.tabla-ie tr.fila-seleccionada { background: #D2E3FC; }
+  table.tabla-ie tr.fila-seleccionada td:first-child { background: var(--azul); color: #fff; }
 
   .fila-botones { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
 

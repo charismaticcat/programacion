@@ -228,6 +228,9 @@ function pintarTablaIE_(filas) {
   var html = '';
   filas.forEach(function (f) { html += filaIEHtml_(f); });
   cuerpo.innerHTML = html;
+  filasSeleccionadasIE_.clear();
+  ultimaFilaClicIE_ = null;
+  actualizarResaltadoSeleccionIE_();
 }
 
 function selectSiNo_(fila, campo) {
@@ -364,6 +367,95 @@ function agregarFilaIE_() {
   return document.getElementById('cuerpoTablaIE').lastElementChild;
 }
 document.getElementById('btnAgregarFilaIE').addEventListener('click', function () { agregarFilaIE_(); });
+
+/* --- Selección múltiple de filas, como en Excel (spec del usuario): clic en el número, Shift/Ctrl para varias --- */
+var filasSeleccionadasIE_ = new Set();
+var ultimaFilaClicIE_ = null;
+
+function actualizarResaltadoSeleccionIE_() {
+  document.querySelectorAll('[data-fila-ie]').forEach(function (tr) {
+    tr.classList.toggle('fila-seleccionada', filasSeleccionadasIE_.has(Number(tr.getAttribute('data-fila-ie'))));
+  });
+  var hay = filasSeleccionadasIE_.size > 0;
+  document.getElementById('btnDuplicarSeleccionadas').disabled = !hay;
+  document.getElementById('btnEliminarSeleccionadas').disabled = !hay;
+}
+document.getElementById('cuerpoTablaIE').addEventListener('click', function (evento) {
+  var celdaNumero = evento.target.closest('td:first-child');
+  if (!celdaNumero) return;
+  var tr = celdaNumero.closest('[data-fila-ie]');
+  var fila = Number(tr.getAttribute('data-fila-ie'));
+  if (evento.shiftKey && ultimaFilaClicIE_ != null) {
+    var desde = Math.min(ultimaFilaClicIE_, fila), hasta = Math.max(ultimaFilaClicIE_, fila);
+    document.querySelectorAll('[data-fila-ie]').forEach(function (f) {
+      var n = Number(f.getAttribute('data-fila-ie'));
+      if (n >= desde && n <= hasta) filasSeleccionadasIE_.add(n);
+    });
+  } else if (evento.ctrlKey || evento.metaKey) {
+    if (filasSeleccionadasIE_.has(fila)) filasSeleccionadasIE_.delete(fila);
+    else filasSeleccionadasIE_.add(fila);
+    ultimaFilaClicIE_ = fila;
+  } else {
+    filasSeleccionadasIE_.clear();
+    filasSeleccionadasIE_.add(fila);
+    ultimaFilaClicIE_ = fila;
+  }
+  actualizarResaltadoSeleccionIE_();
+});
+
+/** Deja el valor de un campo como si nunca se hubiera escrito (NO para los Sí/No, vacío para el resto). */
+function limpiarCampoIE_(campo) {
+  var nombreCampo = campo.getAttribute('data-campo-ie');
+  if (campo.tagName === 'SELECT') {
+    campo.value = (nombreCampo === 'intensificacion' || nombreCampo === 'sena' || nombreCampo === 'academico') ? 'NO' : '';
+  } else {
+    campo.value = '';
+  }
+}
+function eliminarFilasSeleccionadasIE_() {
+  if (!filasSeleccionadasIE_.size) return;
+  var filas = Array.from(filasSeleccionadasIE_).sort(function (a, b) { return a - b; });
+  if (!confirm('¿Borrar la información de ' + filas.length + ' fila(s) seleccionada(s)? Esta acción no se puede deshacer.')) return;
+  mostrarMensaje('mensajeDatosIE', 'Borrando ' + filas.length + ' fila(s)… <span class="spinner"></span>', 'info');
+  filas.forEach(function (fila) {
+    var tr = document.querySelector('[data-fila-ie="' + fila + '"]');
+    if (!tr) return;
+    tr.querySelectorAll('[data-campo-ie]').forEach(limpiarCampoIE_);
+    guardarFilaIE_(tr);
+  });
+  filasSeleccionadasIE_.clear();
+  actualizarResaltadoSeleccionIE_();
+}
+document.getElementById('btnEliminarSeleccionadas').addEventListener('click', eliminarFilasSeleccionadasIE_);
+document.addEventListener('keydown', function (evento) {
+  if (evento.key !== 'Delete' && evento.key !== 'Backspace') return;
+  if (!filasSeleccionadasIE_.size) return;
+  var activo = document.activeElement;
+  if (activo && (activo.tagName === 'INPUT' || activo.tagName === 'SELECT' || activo.isContentEditable)) return;
+  evento.preventDefault();
+  eliminarFilasSeleccionadasIE_();
+});
+
+document.getElementById('btnDuplicarSeleccionadas').addEventListener('click', function () {
+  if (!filasSeleccionadasIE_.size) return;
+  var filas = Array.from(filasSeleccionadasIE_).sort(function (a, b) { return a - b; });
+  mostrarMensaje('mensajeDatosIE', 'Duplicando ' + filas.length + ' fila(s)… <span class="spinner"></span>', 'info');
+  var nuevasFilas = [];
+  filas.forEach(function (fila) {
+    var trOriginal = document.querySelector('[data-fila-ie="' + fila + '"]');
+    if (!trOriginal) return;
+    var datos = recolectarFilaIE_(trOriginal);
+    var trNueva = agregarFilaIE_();
+    Object.keys(datos).forEach(function (campo) {
+      var el = trNueva.querySelector('[data-campo-ie="' + campo + '"]');
+      if (el) el.value = datos[campo];
+    });
+    nuevasFilas.push(trNueva);
+  });
+  nuevasFilas.forEach(function (tr) { guardarFilaIE_(tr); });
+  filasSeleccionadasIE_.clear();
+  actualizarResaltadoSeleccionIE_();
+});
 
 /* --- Comportamiento tipo Excel (spec del usuario): Enter, copiar, pegar --- */
 
