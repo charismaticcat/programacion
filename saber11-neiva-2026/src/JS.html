@@ -366,7 +366,7 @@ document.getElementById('btnAplicarLetreroTodas').addEventListener('click', func
 document.getElementById('btnEscribirTokensResumen').addEventListener('click', function () {
   mostrarMensaje('mensajeAdmin', 'Escribiendo tokens en Resumen de envíos… <span class="spinner"></span>', 'info');
   llamarServidor('rpcAdminEscribirTokensEnResumenEnvios', [estado.tokenAdmin], function (r) {
-    mostrarMensaje('mensajeAdmin', 'Listo: ' + r.total + ' tokens (administrador + IE) en la columna B, fila ' + r.fila + ' en adelante.', 'exito');
+    mostrarMensaje('mensajeAdmin', 'Listo: ' + r.total + ' tokens de IE en la columna B (fila 10 en adelante, frente a cada institución) y el token de administrador en la fila ' + r.filaAdmin + '.', 'exito');
   }, function (e) {
     mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible escribir los tokens.', 'error');
   });

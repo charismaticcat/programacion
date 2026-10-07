@@ -33,16 +33,21 @@ function adminListarTokens(token) {
 }
 
 /**
- * Escribe, en la columna B de RESUMEN DE ENVÍOS, el token de
- * administrador y el de las 36 IE (spec del usuario) — justo debajo del
- * listado de las 36 IE que arma actualizarHojaResumenEnvios_ del script
- * atado a la hoja (ese listado termina en la fila 45), con un título en
- * azul bien visible para no tener que buscarlo. Esa misma función hace
- * `hoja.clear()` sobre TODA la hoja cada vez que el administrador usa
- * "Actualizar resumen de envíos" (menú REPORTES) — eso también borra
- * esta lista, así que hay que volver a escribirla después (de ahí el
- * botón, no una escritura automática que se quedaría desactualizada sin
- * avisar).
+ * Pone el token de acceso de cada IE en la columna B de RESUMEN DE
+ * ENVÍOS, justo al frente del nombre de la IE (columna A) — spec del
+ * usuario. La tabla original (actualizarHojaResumenEnvios_ del script
+ * atado a la hoja) ya usaba esa columna para "ESTADO DEL REPORTE" y la
+ * C para "OBSERVACIONES / PENDIENTES"; para no perder esa información
+ * se corre un lugar a la derecha: B (estado) -> C, C (observaciones) ->
+ * D, dejando B libre para el token. El token de administrador (no es
+ * de ninguna IE en particular) se deja en un letrero aparte justo
+ * debajo de la tabla.
+ *
+ * Esa misma hoja se recrea por completo (`hoja.clear()`) cada vez que
+ * el administrador usa "Actualizar resumen de envíos" (menú REPORTES)
+ * — eso borra este acomodo también, así que hay que volver a usar este
+ * botón después (de ahí el botón, no una escritura automática que
+ * quedaría desactualizada sin avisar).
  */
 function adminEscribirTokensEnResumenEnvios(token) {
   exigirAccesoAdmin_(token);
@@ -53,17 +58,57 @@ function adminEscribirTokensEnResumenEnvios(token) {
       '"Actualizar resumen de envíos" desde el menú REPORTES de la hoja de cálculo.');
   }
   const mapa = asegurarTokensIE_(ss);
-  const FILA_INICIO = 47; // justo debajo del listado de las 36 IE (termina en la fila 45)
-  // Limpia cualquier escritura anterior (en esta posición o en la fila 50
-  // que usaba una versión previa) antes de volver a escribir.
-  hoja.getRange(46, 2, 50, 1).breakApart().clearContent().clearFormat();
-  hoja.getRange(FILA_INICIO, 2)
-    .setValue('🔑 TOKENS DE ACCESO (administrador + 36 IE)')
-    .setBackground('#0B5394').setFontColor('#FFFFFF').setFontWeight('bold');
-  const lineas = [['ADMINISTRADOR: ' + obtenerTokenAdmin_()]];
-  CFG.IES.forEach(ie => lineas.push([ie + ': ' + (mapa[norm_(ie)] || '')]));
-  hoja.getRange(FILA_INICIO + 1, 2, lineas.length, 1).setValues(lineas);
-  return { ok: true, fila: FILA_INICIO, total: lineas.length };
+  const FILA_ENCABEZADO = 9;
+  const FILA_INICIO = 10; // primera fila de IE en la tabla de actualizarHojaResumenEnvios_
+
+  // ¿Cuántas IE tiene realmente el listado (columna A, desde la fila 10)?
+  const filasDisponibles = Math.max(hoja.getLastRow() - FILA_INICIO + 1, 1);
+  const columnaA = hoja.getRange(FILA_INICIO, 1, filasDisponibles, 1).getDisplayValues();
+  let total = 0;
+  while (total < columnaA.length && texto_(columnaA[total][0])) total++;
+  if (!total) {
+    throw new Error('La tabla de instituciones está vacía. Ejecute primero "Actualizar resumen de envíos" desde el menú REPORTES.');
+  }
+  const nombres = columnaA.slice(0, total).map(f => f[0]);
+  const estados = hoja.getRange(FILA_INICIO, 2, total, 1).getValues();
+  const coloresEstado = hoja.getRange(FILA_INICIO, 2, total, 1).getBackgrounds();
+  const observaciones = hoja.getRange(FILA_INICIO, 3, total, 1).getValues();
+
+  // Corre el contenido existente: observaciones (C) -> D, estado (B) -> C.
+  hoja.getRange(FILA_INICIO, 3, total, 1).copyTo(hoja.getRange(FILA_INICIO, 4, total, 1), SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
+  hoja.getRange(FILA_INICIO, 4, total, 1).setValues(observaciones);
+  hoja.getRange(FILA_INICIO, 3, total, 1).setValues(estados).setBackgrounds(coloresEstado);
+
+  // Columna B, ahora libre: el token de cada IE, frente a su nombre.
+  hoja.getRange(FILA_INICIO, 2, total, 1)
+    .setValues(nombres.map(nombre => [mapa[norm_(nombre)] || '']))
+    .setBackground('#FFFFFF').setFontColor('#000000').setFontWeight('bold')
+    .setFontFamily('Courier New').setHorizontalAlignment('center').setVerticalAlignment('middle');
+
+  // Encabezados: mismo corrimiento.
+  hoja.getRange(FILA_ENCABEZADO, 3).copyTo(hoja.getRange(FILA_ENCABEZADO, 4), SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
+  const headerB = hoja.getRange(FILA_ENCABEZADO, 2).getValue();
+  const headerC = hoja.getRange(FILA_ENCABEZADO, 3).getValue();
+  hoja.getRange(FILA_ENCABEZADO, 4).setValue(headerC);
+  hoja.getRange(FILA_ENCABEZADO, 3).setValue(headerB);
+  hoja.getRange(FILA_ENCABEZADO, 2).setValue('TOKEN DE ACCESO');
+
+  hoja.setColumnWidth(2, 170);
+  hoja.setColumnWidth(3, 300);
+  hoja.setColumnWidth(4, 720);
+
+  // Token de administrador: letrero aparte justo debajo de la tabla.
+  // Antes de escribirlo, borra cualquier bloque de una versión anterior
+  // de este botón (quedaba más abajo, en la fila 46, 47 o 50 según la
+  // versión).
+  const filaAdmin = FILA_INICIO + total;
+  hoja.getRange(filaAdmin, 1, 60, 8).breakApart().clearContent().clearFormat();
+  hoja.getRange(filaAdmin, 1, 1, 2).merge()
+    .setValue('🔑 TOKEN DE ADMINISTRADOR: ' + obtenerTokenAdmin_())
+    .setBackground('#0B5394').setFontColor('#FFFFFF').setFontWeight('bold')
+    .setHorizontalAlignment('center').setVerticalAlignment('middle');
+
+  return { ok: true, total: total, filaAdmin: filaAdmin };
 }
 
 function adminRegenerarTokenIE(token, nombreIE) {
