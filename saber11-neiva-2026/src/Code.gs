@@ -80,3 +80,6 @@ function rpcAdminActualizarReporteDiario(token) {
 function rpcAdminActualizarReporteB1BMas(token) {
   return ejecutarRpcSeguro_(() => adminActualizarReporteB1BMas(token));
 }
+function rpcAdminDescargarInformeIE(token, nombreIE, formato) {
+  return ejecutarRpcSeguro_(() => adminDescargarInformeIE(token, nombreIE, formato));
+}

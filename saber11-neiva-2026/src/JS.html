@@ -407,7 +407,8 @@ document.getElementById('btnGenerarGraficos').addEventListener('click', function
   llamarServidor('rpcGenerarGraficosIE', [estado.nombreIE, estado.tokenIE], function (r) {
     mostrarMensaje('mensajeGraficosIE', 'Gráficos generados correctamente.', 'exito');
     document.getElementById('galeriaGraficosIE').innerHTML = (r.imagenes || []).map(function (img) {
-      return "<div><h4>" + escapeHtml(img.titulo) + "</h4><img src='data:image/png;base64," + img.imagenBase64 + "'></div>";
+      return "<div><h4>" + escapeHtml(img.titulo) + "</h4><img src='data:image/png;base64," + img.imagenBase64 +
+        "' data-ver-grande><p class='ayuda-ampliar'>Clic en el gráfico para verlo en pantalla completa</p></div>";
     }).join('');
   }, function (e) {
     // generarGraficosIE devuelve {ok:false, faltantes:[...]} cuando la
@@ -421,6 +422,25 @@ document.getElementById('btnGenerarGraficos').addEventListener('click', function
     }
     mostrarMensaje('mensajeGraficosIE', e.mensaje || 'No fue posible generar los gráficos.', 'error');
   });
+});
+
+/* --- Visor de gráficos en pantalla completa (spec del usuario) --- */
+document.getElementById('galeriaGraficosIE').addEventListener('click', function (evento) {
+  var img = evento.target.closest('img[data-ver-grande]');
+  if (!img) return;
+  document.getElementById('imgGraficoGrande').src = img.src;
+  document.getElementById('overlayGraficoGrande').classList.remove('oculto');
+});
+function cerrarGraficoGrande_() {
+  document.getElementById('overlayGraficoGrande').classList.add('oculto');
+  document.getElementById('imgGraficoGrande').src = '';
+}
+document.getElementById('btnCerrarGraficoGrande').addEventListener('click', cerrarGraficoGrande_);
+document.getElementById('overlayGraficoGrande').addEventListener('click', function (evento) {
+  if (evento.target.id === 'overlayGraficoGrande') cerrarGraficoGrande_();
+});
+document.addEventListener('keydown', function (evento) {
+  if (evento.key === 'Escape') cerrarGraficoGrande_();
 });
 
 /* ============================== ADMINISTRADOR ============================== */
@@ -449,7 +469,11 @@ function cargarTablaAdmin_() {
         "<td><code>" + escapeHtml(ie.token) + '</code></td>' +
         "<td><button type='button' class='btn btn-secundario' data-regenerar-token='" + escapeHtml(ie.nombreIE) + "'>Regenerar</button> " +
         "<button type='button' class='btn btn-secundario' data-entrar-ie='" + escapeHtml(ie.nombreIE) + "'>Entrar</button> " +
-        "<button type='button' class='btn btn-secundario' data-graficos-ie='" + escapeHtml(ie.nombreIE) + "'>Generar gráficos</button></td>" +
+        "<button type='button' class='btn btn-secundario' data-graficos-ie='" + escapeHtml(ie.nombreIE) + "'>Generar gráficos</button>" +
+        "<div class='fila-descarga-informe'>" +
+        "<select data-formato-informe><option value='pdf'>PDF</option><option value='xlsx'>Excel</option></select>" +
+        "<button type='button' class='btn btn-secundario' data-descargar-informe='" + escapeHtml(ie.nombreIE) + "'>Descargar informe</button>" +
+        '</div></td>' +
         '</tr>';
     }).join('');
   }, function (e) {
@@ -484,8 +508,35 @@ document.getElementById('cuerpoTablaAdmin').addEventListener('click', function (
       }
       mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible generar los gráficos.', 'error');
     });
+    return;
+  }
+  var botonDescargar = evento.target.closest('[data-descargar-informe]');
+  if (botonDescargar) {
+    var nombreIEDescargar = botonDescargar.getAttribute('data-descargar-informe');
+    var formato = botonDescargar.closest('tr').querySelector('[data-formato-informe]').value;
+    mostrarMensaje('mensajeAdmin', 'Generando informe (' + formato.toUpperCase() + ') de ' + escapeHtml(nombreIEDescargar) + '… <span class="spinner"></span>', 'info');
+    llamarServidor('rpcAdminDescargarInformeIE', [estado.tokenAdmin, nombreIEDescargar, formato], function (r) {
+      descargarArchivoBase64_(r.archivoBase64, r.mimeType, r.nombreArchivo);
+      mostrarMensaje('mensajeAdmin', 'Informe de ' + escapeHtml(nombreIEDescargar) + ' descargado.', 'exito');
+    }, function (e) {
+      mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible generar el informe.', 'error');
+    });
   }
 });
+/** Convierte un archivo en base64 (RPC) en una descarga real del navegador. */
+function descargarArchivoBase64_(base64, mimeType, nombreArchivo) {
+  var binario = atob(base64);
+  var bytes = new Uint8Array(binario.length);
+  for (var i = 0; i < binario.length; i++) bytes[i] = binario.charCodeAt(i);
+  var url = URL.createObjectURL(new Blob([bytes], { type: mimeType }));
+  var enlace = document.createElement('a');
+  enlace.href = url;
+  enlace.download = nombreArchivo;
+  document.body.appendChild(enlace);
+  enlace.click();
+  document.body.removeChild(enlace);
+  setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+}
 document.getElementById('btnAplicarLetreroTodas').addEventListener('click', function () {
   mostrarMensaje('mensajeAdmin', 'Aplicando letrero en las 36 IE… <span class="spinner"></span>', 'info');
   llamarServidor('rpcAdminAplicarLetreroGraficos', [estado.tokenAdmin], function (r) {
