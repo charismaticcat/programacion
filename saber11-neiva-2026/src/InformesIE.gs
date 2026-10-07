@@ -44,6 +44,32 @@ function exportarHojaComoXLSX_(sh, nombreArchivo) {
   }
 }
 
+/**
+ * La propia IE descarga su informe (PDF o Excel) — spec del usuario:
+ * "otro [botón] que diga generar y descargar informe" en la pantalla de
+ * la IE, sin tener que pasar por el administrador. Mismo contenido que
+ * adminDescargarInformeIE, pero exige el token de la IE (o de
+ * administrador) en vez del token de administrador exclusivamente.
+ */
+function descargarInformeIE(nombreIE, token, formato) {
+  const nombreReal = exigirAccesoIEoAdminComoIE_(nombreIE, token);
+  const ss = abrirSpreadsheet_();
+  const sh = ss.getSheetByName(nombreReal);
+  if (!sh) throw new Error('No se encontró la hoja de "' + nombreReal + '".');
+  if (!sh.getCharts().length) {
+    throw new Error('Todavía no hay gráficos generados. Genere los gráficos primero.');
+  }
+  const nombreBase = 'Informe ' + nombreSinPrefijoIE_(nombreReal) + ' - SABER 11 ' + CFG.ANIO;
+  const esExcel = formato === 'xlsx';
+  const blob = esExcel ? exportarHojaComoXLSX_(sh, nombreBase) : exportarHojaComoPDF_(sh);
+  return {
+    ok: true,
+    archivoBase64: Utilities.base64Encode(blob.getBytes()),
+    mimeType: esExcel ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'application/pdf',
+    nombreArchivo: nombreBase + (esExcel ? '.xlsx' : '.pdf')
+  };
+}
+
 /** Admin: descarga el informe (PDF o Excel) de una IE — exige que ya tenga los gráficos generados. */
 function adminDescargarInformeIE(token, nombreIE, formato) {
   exigirAccesoAdmin_(token);

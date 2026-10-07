@@ -38,6 +38,19 @@
       <button type="button" class="btn btn-secundario" id="btnSalirIE">Salir</button>
     </div>
 
+    <div class="tarjeta">
+      <div class="fila-botones">
+        <button type="button" class="btn btn-secundario" id="btnGuardarProgresoIE">💾 Guardar progreso y seguir después</button>
+        <button type="button" class="btn btn-primario" id="btnEnviarTodoIE">✅ Enviar todo</button>
+        <button type="button" class="btn btn-secundario" id="btnGenerarGraficosTop">📊 Generar gráficos</button>
+        <div class="fila-descarga-informe">
+          <select id="selectFormatoInformePropioIE"><option value="pdf">PDF</option><option value="xlsx">Excel</option></select>
+          <button type="button" class="btn btn-secundario" id="btnGenerarYDescargarInformeIE">📥 Generar y descargar informe</button>
+        </div>
+      </div>
+      <div id="mensajeAccionesIE"></div>
+    </div>
+
     <div class="pestanas">
       <div class="pestana activa" data-pestana-ie="misDatos">Mi institución</div>
       <div class="pestana" data-pestana-ie="reporteDiario">Resumen de envío</div>
@@ -52,7 +65,7 @@
           <table class="tabla-generica tabla-ie">
             <thead>
               <tr>
-                <th>#</th><th>Docente</th><th>Correo (quien reportó)</th><th>Nombre completo</th><th>Jornada</th><th>Género</th><th>Curso</th>
+                <th>#</th><th>Nombre completo</th><th>Jornada</th><th>Género</th><th>Curso</th>
                 <th>Tipo doc.</th><th>Núm. doc.</th><th>Puntaje</th><th>Nivel</th>
                 <th>Intensif.</th><th>SENA</th><th>Académico</th>
               </tr>

@@ -98,6 +98,20 @@ function entrarIEDesdeAdmin_(nombreIE) {
   entrarPantallaIE_(nombreIE, estado.tokenAdmin, true);
 }
 
+/**
+ * Volver a la pantalla de selección de IE (spec del usuario: "no debe
+ * quedar en blanco") — en vez de location.reload() (puede quedar en
+ * blanco dentro del iframe sandbox de Apps Script), se muestra de nuevo
+ * la pantalla de distribución directamente, igual que al entrar.
+ */
+function volverASeleccionIE_() {
+  estado.nombreIE = '';
+  estado.tokenIE = '';
+  document.getElementById('pantallaIE').classList.add('oculto');
+  document.getElementById('pantallaAdmin').classList.add('oculto');
+  document.getElementById('pantallaDistribucion').classList.remove('oculto');
+  cargarDistribucion_();
+}
 document.getElementById('btnSalirIE').addEventListener('click', function () {
   if (estado.entroDesdeAdmin) {
     estado.entroDesdeAdmin = false;
@@ -105,7 +119,7 @@ document.getElementById('btnSalirIE').addEventListener('click', function () {
     document.getElementById('pantallaAdmin').classList.remove('oculto');
     return;
   }
-  location.reload();
+  volverASeleccionIE_();
 });
 
 document.querySelectorAll('[data-pestana-ie]').forEach(function (p) {
@@ -193,19 +207,104 @@ function actualizarCompletitudGraficos_() {
   });
 }
 
+/**
+ * Guarda de inmediato cualquier campo que todavía esté esperando el
+ * debounce de autoguardado (spec del usuario: "no se pierdan los
+ * avances hechos") — usado por "Guardar progreso" y antes de "Enviar
+ * todo", para que la revisión vea siempre lo último escrito.
+ */
+function guardarTodoPendienteIE_() {
+  Object.keys(temporizadorGuardadoFilaIE_).forEach(function (fila) {
+    clearTimeout(temporizadorGuardadoFilaIE_[fila]);
+    delete temporizadorGuardadoFilaIE_[fila];
+    var tr = document.querySelector('[data-fila-ie="' + fila + '"]');
+    if (tr) guardarFilaIE_(tr);
+  });
+}
+document.getElementById('btnGuardarProgresoIE').addEventListener('click', function () {
+  guardarTodoPendienteIE_();
+  mostrarMensaje('mensajeAccionesIE',
+    '💾 Todo su progreso está guardado en la hoja de cálculo original. Puede cerrar esta ventana y continuar más tarde desde el mismo enlace.', 'exito');
+});
+/**
+ * "Enviar todo" (spec del usuario): no hay un paso de envío aparte —
+ * cada dato ya se guarda solo en la hoja real — así que esto revisa la
+ * información con el mismo criterio de observaciones del reporte
+ * original (Reportes.gs) y, si encuentra algo, sugiere qué corregir.
+ */
+document.getElementById('btnEnviarTodoIE').addEventListener('click', function () {
+  guardarTodoPendienteIE_();
+  mostrarMensaje('mensajeAccionesIE', 'Revisando la información antes de enviar… <span class="spinner"></span>', 'info');
+  llamarServidor('rpcObtenerResumenEnvioIE', [estado.nombreIE, estado.tokenIE], function (r) {
+    if (r.observaciones && r.observaciones.length) {
+      mostrarMensaje('mensajeAccionesIE',
+        '⚠️ Antes de enviar, corrija lo siguiente:<br>' + r.observaciones.map(escapeHtml).join('<br>'), 'error');
+      return;
+    }
+    mostrarMensaje('mensajeAccionesIE', '✅ Todo enviado sin observaciones. La información ya está guardada en la hoja de cálculo original.', 'exito');
+  }, function (e) {
+    mostrarMensaje('mensajeAccionesIE', e.mensaje || 'No fue posible revisar la información.', 'error');
+  });
+});
+/** Mismo botón de siempre ("Gráficos de la IE"), accesible también desde arriba (spec del usuario). */
+document.getElementById('btnGenerarGraficosTop').addEventListener('click', function () {
+  document.getElementById('btnGenerarGraficos').click();
+});
+/** Genera los gráficos y, si quedan bien, descarga de una vez el informe (PDF/Excel) — spec del usuario. */
+document.getElementById('btnGenerarYDescargarInformeIE').addEventListener('click', function () {
+  var formato = document.getElementById('selectFormatoInformePropioIE').value;
+  mostrarMensaje('mensajeAccionesIE', 'Generando gráficos e informe… puede tardar unos segundos. <span class="spinner"></span>', 'info');
+  llamarServidor('rpcGenerarGraficosIE', [estado.nombreIE, estado.tokenIE], function (r) {
+    document.getElementById('galeriaGraficosIE').innerHTML = (r.imagenes || []).map(function (img) {
+      return "<div><h4>" + escapeHtml(img.titulo) + "</h4><img src='data:image/png;base64," + img.imagenBase64 +
+        "' data-ver-grande><p class='ayuda-ampliar'>Clic en el gráfico para verlo en pantalla completa</p></div>";
+    }).join('');
+    llamarServidor('rpcDescargarInformeIE', [estado.nombreIE, estado.tokenIE, formato], function (r2) {
+      descargarArchivoBase64_(r2.archivoBase64, r2.mimeType, r2.nombreArchivo);
+      mostrarMensaje('mensajeAccionesIE', 'Informe (' + formato.toUpperCase() + ') descargado.', 'exito');
+    }, function (e2) {
+      mostrarMensaje('mensajeAccionesIE', e2.mensaje || 'No fue posible descargar el informe.', 'error');
+    });
+  }, function (e) {
+    if (e.faltantes && e.faltantes.length) {
+      mostrarMensaje('mensajeAccionesIE',
+        'Falta completar información antes de generar el informe:<br>' + e.faltantes.map(escapeHtml).join('<br>'), 'error');
+      return;
+    }
+    mostrarMensaje('mensajeAccionesIE', e.mensaje || 'No fue posible generar los gráficos.', 'error');
+  });
+});
+
 function pintarTablaIE_(filas) {
   var cuerpo = document.getElementById('cuerpoTablaIE');
   var html = '';
-  filas.forEach(function (f) { html += filaIEHtml_(f); });
+  var docenteGrupoActual = null;
+  filas.forEach(function (f) {
+    var clave = texto_(f.docente).toUpperCase();
+    if (docenteGrupoActual === null || clave !== docenteGrupoActual) {
+      html += filaGrupoDocenteHtml_(f.docente, f.correoRegistro);
+      docenteGrupoActual = clave;
+    }
+    html += filaIEHtml_(f);
+  });
   cuerpo.innerHTML = html;
   filasSeleccionadasIE_.clear();
   ultimaFilaClicIE_ = null;
   actualizarResaltadoSeleccionIE_();
+  renumerarFilasIE_();
   // Deshacer (spec del usuario): punto de partida para cada fila, y se
   // olvida cualquier historial de una carga anterior.
   ultimoEstadoFilaIE_ = {};
   pilaDeshacerIE_ = [];
   filas.forEach(function (f) { ultimoEstadoFilaIE_[f.fila] = f; });
+}
+function texto_(v) { return v == null ? '' : String(v).trim(); }
+/** Numera visualmente los estudiantes desde 1 (spec del usuario), sin tocar data-fila-ie (la fila real de la hoja). */
+function renumerarFilasIE_() {
+  document.querySelectorAll('[data-fila-ie]').forEach(function (tr, i) {
+    var span = tr.querySelector('.numero-visible-ie');
+    if (span) span.textContent = i + 1;
+  });
 }
 
 function selectSiNo_(fila, campo) {
@@ -235,11 +334,28 @@ function campoTextoOLista_(campo, valor) {
   html += '</select>';
   return html;
 }
+/**
+ * Encabezado de grupo (spec del usuario: "una sola vez cada docente"):
+ * una sola fila de ancho completo, antes de sus estudiantes, con el
+ * docente y el correo editables en un solo lugar. Al cambiarlos se
+ * propagan a todos los estudiantes de ese grupo (ver el listener de
+ * 'change' sobre [data-campo-grupo-ie]) — cada fila de estudiante sigue
+ * guardando su propio docente/correo (como siempre), solo que ya no se
+ * repite el campo visible en cada una.
+ */
+function filaGrupoDocenteHtml_(docente, correoRegistro) {
+  return "<tr class='fila-grupo-docente'><td colspan='12'><div class='caja-grupo-docente'>" +
+    "<label>Docente<input data-campo-grupo-ie='docente' value=\"" + escapeHtml(docente) + '"></label>' +
+    "<label>Correo (quien reportó)<input data-campo-grupo-ie='correoRegistro' type='email' placeholder='correo@ejemplo.edu.co' value=\"" +
+    escapeHtml(correoRegistro) + '"></label>' +
+    '</div></td></tr>';
+}
 function filaIEHtml_(f) {
   return "<tr data-fila-ie='" + f.fila + "'>" +
-    '<td>' + f.fila + '</td>' +
-    "<td><input data-campo-ie='docente' value=\"" + escapeHtml(f.docente) + '"></td>' +
-    "<td><input data-campo-ie='correoRegistro' type='email' placeholder='correo@ejemplo.edu.co' value=\"" + escapeHtml(f.correoRegistro) + '"></td>' +
+    "<td><span class='numero-visible-ie'>" + f.fila + '</span>' +
+    "<input type='hidden' data-campo-ie='docente' value=\"" + escapeHtml(f.docente) + '">' +
+    "<input type='hidden' data-campo-ie='correoRegistro' value=\"" + escapeHtml(f.correoRegistro) + '">' +
+    '</td>' +
     "<td><input data-campo-ie='nombre' value=\"" + escapeHtml(f.nombre) + '"></td>' +
     '<td>' + campoTextoOLista_('jornada', f.jornada) + '</td>' +
     '<td>' + campoTextoOLista_('genero', f.genero) + '</td>' +
@@ -254,8 +370,13 @@ function filaIEHtml_(f) {
     '</tr>';
 }
 
-/** Orden visual de las columnas editables (sin "#" ni "Nivel", que es de solo lectura) — para el pegado estilo Excel. */
-var ORDEN_CAMPOS_IE_ = ['docente', 'correoRegistro', 'nombre', 'jornada', 'genero', 'curso', 'tipoDoc', 'numDoc', 'puntaje', 'intensificacion', 'sena', 'academico'];
+/**
+ * Orden visual de las columnas editables de cada fila de estudiante
+ * (sin "#" ni "Nivel", que es de solo lectura) — para el pegado estilo
+ * Excel. Docente/correo ya no están aquí: ahora se editan una sola vez
+ * por grupo (encabezado de grupo, [data-campo-grupo-ie]), no por fila.
+ */
+var ORDEN_CAMPOS_IE_ = ['nombre', 'jornada', 'genero', 'curso', 'tipoDoc', 'numDoc', 'puntaje', 'intensificacion', 'sena', 'academico'];
 
 var temporizadorGuardadoFilaIE_ = {};
 /**
@@ -300,10 +421,26 @@ function guardarFilaIE_(tr) {
     if (estadoAntesDeEsteCambio) pilaDeshacerIE_.push({ fila: fila, anterior: estadoAntesDeEsteCambio });
     ultimoEstadoFilaIE_[fila] = r.registro;
     aplicarRegistroEnFila_(tr, r.registro);
+    sincronizarCabeceraGrupoIE_(tr);
     actualizarCompletitudGraficos_();
     mostrarConfirmacionGuardadoIE_();
   }, function (e) {
     mostrarMensaje('mensajeDatosIE', e.mensaje || 'No fue posible guardar.', 'error');
+  });
+}
+/**
+ * Si esta fila es la primera de su grupo (justo debajo del encabezado de
+ * docente), refleja en ese encabezado lo que el servidor confirmó — por
+ * ejemplo, al deshacer un cambio de docente en la primera fila del grupo.
+ * Nunca pisa el encabezado si alguien lo tiene enfocado en este momento.
+ */
+function sincronizarCabeceraGrupoIE_(tr) {
+  var cabecera = tr.previousElementSibling;
+  if (!cabecera || !cabecera.classList.contains('fila-grupo-docente')) return;
+  ['docente', 'correoRegistro'].forEach(function (campo) {
+    var oculto = tr.querySelector('[data-campo-ie="' + campo + '"]');
+    var visible = cabecera.querySelector('[data-campo-grupo-ie="' + campo + '"]');
+    if (oculto && visible && document.activeElement !== visible) visible.value = oculto.value;
   });
 }
 /** Aviso breve de que el cambio ya quedó guardado en la hoja de cálculo real (spec del usuario). */
@@ -330,6 +467,7 @@ function deshacerUltimoCambioIE_() {
   llamarServidor('rpcGuardarFilaIE', [estado.nombreIE, estado.tokenIE, cambio.fila, recolectarFilaIE_(tr)], function (r) {
     ultimoEstadoFilaIE_[cambio.fila] = r.registro;
     aplicarRegistroEnFila_(tr, r.registro);
+    sincronizarCabeceraGrupoIE_(tr);
     actualizarCompletitudGraficos_();
     mostrarMensaje('mensajeDatosIE', '↩️ Último cambio deshecho (fila ' + cambio.fila + ').', 'exito');
   }, function (e) {
@@ -357,6 +495,26 @@ document.getElementById('cuerpoTablaIE').addEventListener('change', function (ev
     }
   }
   guardarFilaIE_(tr);
+});
+/**
+ * El docente/correo se edita una sola vez en el encabezado del grupo
+ * (spec del usuario) y se propaga a todas las filas de estudiante de ese
+ * grupo (hasta la siguiente cabecera o el final de la tabla), guardando
+ * cada una en la hoja real.
+ */
+document.getElementById('cuerpoTablaIE').addEventListener('change', function (evento) {
+  var campoGrupo = evento.target.closest('[data-campo-grupo-ie]');
+  if (!campoGrupo) return;
+  var nombreCampo = campoGrupo.getAttribute('data-campo-grupo-ie');
+  var filaMiembro = campoGrupo.closest('tr').nextElementSibling;
+  var filasAfectadas = [];
+  while (filaMiembro && filaMiembro.hasAttribute('data-fila-ie')) {
+    var campoOculto = filaMiembro.querySelector('[data-campo-ie="' + nombreCampo + '"]');
+    if (campoOculto) campoOculto.value = campoGrupo.value;
+    filasAfectadas.push(filaMiembro);
+    filaMiembro = filaMiembro.nextElementSibling;
+  }
+  filasAfectadas.forEach(function (tr) { guardarFilaIE_(tr); });
 });
 /**
  * Nivel según el puntaje obtenido (rangos ICFES, spec del usuario):
@@ -408,14 +566,24 @@ function agregarFilaIE_(heredarDocente) {
     fila: ultima + 1, docente: docentePrevio, correoRegistro: correoPrevio, nombre: '', jornada: '', genero: '', curso: '', tipoDoc: '', numDoc: '',
     puntaje: '', nivel: '', intensificacion: 'NO', sena: 'NO', academico: 'NO'
   };
-  document.getElementById('cuerpoTablaIE').insertAdjacentHTML('beforeend', filaIEHtml_(datosIniciales));
+  var cuerpo = document.getElementById('cuerpoTablaIE');
+  // Un grupo nuevo (sin fila anterior que heredar, o "+ Agregar docente")
+  // necesita su propio encabezado de docente; al continuar el grupo
+  // actual ("+ Agregar estudiante") no, porque ya tiene uno arriba.
+  if (heredarDocente === false || !filas.length) {
+    cuerpo.insertAdjacentHTML('beforeend', filaGrupoDocenteHtml_(docentePrevio, correoPrevio));
+  }
+  cuerpo.insertAdjacentHTML('beforeend', filaIEHtml_(datosIniciales));
   ultimoEstadoFilaIE_[datosIniciales.fila] = datosIniciales; // punto de partida para poder deshacer el primer cambio de esta fila
-  return document.getElementById('cuerpoTablaIE').lastElementChild;
+  renumerarFilasIE_();
+  return cuerpo.lastElementChild;
 }
 document.getElementById('btnAgregarFilaIE').addEventListener('click', function () { agregarFilaIE_(true); });
 document.getElementById('btnAgregarDocente').addEventListener('click', function () {
-  var tr = agregarFilaIE_(false);
-  var campoDocente = tr.querySelector('[data-campo-ie="docente"]');
+  agregarFilaIE_(false);
+  var cabeceras = document.querySelectorAll('.fila-grupo-docente');
+  var ultimaCabecera = cabeceras[cabeceras.length - 1];
+  var campoDocente = ultimaCabecera && ultimaCabecera.querySelector('[data-campo-grupo-ie="docente"]');
   if (campoDocente) campoDocente.focus();
 });
 
@@ -635,7 +803,8 @@ function entrarPantallaAdmin_(token) {
 }
 document.getElementById('btnSalirAdmin').addEventListener('click', function () {
   try { localStorage.removeItem(CLAVE_SESION_ADMIN_); } catch (e) {}
-  location.reload();
+  estado.tokenAdmin = '';
+  volverASeleccionIE_();
 });
 function cargarTablaAdmin_() {
   var cuerpo = document.getElementById('cuerpoTablaAdmin');

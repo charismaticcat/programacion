@@ -86,3 +86,6 @@ function rpcAdminDescargarInformeIE(token, nombreIE, formato) {
 function rpcAdminDescargarReporteB1BMas(token, formato) {
   return ejecutarRpcSeguro_(() => adminDescargarReporteB1BMas(token, formato));
 }
+function rpcDescargarInformeIE(nombreIE, token, formato) {
+  return ejecutarRpcSeguro_(() => descargarInformeIE(nombreIE, token, formato));
+}
