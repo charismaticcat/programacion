@@ -134,13 +134,14 @@
           <table class="tabla-generica tabla-ie">
             <thead>
               <tr>
-                <th>#</th><th>Nombre completo</th>
-                <th data-campo-encabezado-ie="jornada">Jornada</th>
-                <th data-campo-encabezado-ie="genero">Género <span class="aviso-genero-autoseleccionado" title="Por favor revisar género autoseleccionado por defecto">⚠️</span></th>
-                <th data-campo-encabezado-ie="curso">Curso</th>
-                <th data-campo-encabezado-ie="tipoDoc">Tipo doc.</th>
-                <th data-campo-encabezado-ie="numDoc">Núm. doc.</th>
-                <th data-campo-encabezado-ie="puntaje">Puntaje</th>
+                <th>#</th>
+                <th data-campo-encabezado-ie="nombre">Nombre completo <span class="chequeo-completo-ie" title="Completo, sin datos faltantes">✓</span></th>
+                <th data-campo-encabezado-ie="jornada">Jornada <span class="chequeo-completo-ie" title="Completo, sin datos faltantes">✓</span></th>
+                <th data-campo-encabezado-ie="genero">Género <span class="aviso-genero-autoseleccionado" title="Por favor revisar género autoseleccionado por defecto">⚠️</span> <span class="chequeo-completo-ie" title="Completo, sin datos faltantes">✓</span></th>
+                <th data-campo-encabezado-ie="curso">Curso <span class="chequeo-completo-ie" title="Completo, sin datos faltantes">✓</span></th>
+                <th data-campo-encabezado-ie="tipoDoc">Tipo doc. <span class="chequeo-completo-ie" title="Completo, sin datos faltantes">✓</span></th>
+                <th data-campo-encabezado-ie="numDoc">Núm. doc. <span class="chequeo-completo-ie" title="Completo, sin datos faltantes">✓</span></th>
+                <th data-campo-encabezado-ie="puntaje">Puntaje <span class="chequeo-completo-ie" title="Completo, sin datos faltantes">✓</span></th>
                 <th>Nivel</th>
                 <th>Intensif.</th><th>SENA</th><th>Académico</th>
               </tr>
@@ -253,6 +254,8 @@
     <div id="contenidoBloqueGrande" class="contenido-bloque-grande"></div>
   </div>
 </div>
+<!-- Para "descargar imagen" del resumen completo de cada IE (spec del usuario), no solo el logo. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <?!= incluir_('JS'); ?>
 </body>
 </html>

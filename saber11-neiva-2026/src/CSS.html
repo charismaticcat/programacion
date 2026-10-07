@@ -66,6 +66,19 @@
   table.tabla-ie td.celda-faltante-ie { background: #FCE8E6; }
   table.tabla-ie td.celda-faltante-ie input, table.tabla-ie td.celda-faltante-ie select { background: #FCE8E6; }
 
+  /* √ verde junto al título de columna cuando ya no falta ningún dato (spec del usuario). */
+  .chequeo-completo-ie { display: none; color: var(--verde); font-weight: 700; }
+  table.tabla-ie th.encabezado-completo-ie .chequeo-completo-ie { display: inline; }
+
+  /*
+   * Selección de un rango de celdas de UNA sola columna, arrastrando con
+   * el cursor presionado o con Shift+clic (spec del usuario: "copie
+   * únicamente lo que se desea de la columna") — para copiar (Ctrl/Cmd+C)
+   * solo esas celdas, no toda la columna ni una fila completa.
+   */
+  table.tabla-ie td.celda-rango-seleccionado-ie { background: #FFF3C4; }
+  table.tabla-ie td.celda-rango-seleccionado-ie input, table.tabla-ie td.celda-rango-seleccionado-ie select { background: #FFF3C4; }
+
   /*
    * Un solo bloque de Docente/Correo/Cursos por grupo de estudiantes (spec
    * del usuario), en su propia sección "Docentes que reportan" — ya no

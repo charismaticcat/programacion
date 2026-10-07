@@ -150,7 +150,7 @@ function cargarReporteB1BMasPublico_() {
         '<p>' + ie.totalB1BMas + ' de ' + ie.totalEvaluados + ' evaluados en B1/B+ (' + ie.porcentaje + '%)</p></div>' +
         "<div class='acciones-ie-b1bmas'>" +
         "<button type='button' class='btn-icono-ie-b1bmas btn-ver-grande-ie' title='Ver en pantalla completa'>👁️</button>" +
-        (imgSrc ? "<button type='button' class='btn-icono-ie-b1bmas btn-descargar-logo-ie' title='Descargar logo de la IE'>📥</button>" : '') +
+        "<button type='button' class='btn-icono-ie-b1bmas btn-descargar-logo-ie' title='Descargar imagen de este resumen'>📥</button>" +
         '</div></div>' +
         (filasCursos ? "<table class='tabla-generica'><thead><tr><th>Curso</th><th>Tipo</th><th>Reportados</th><th>B1/B+</th><th>%</th></tr></thead><tbody>" + filasCursos + '</tbody></table>' : '') +
         '</div>';
@@ -170,14 +170,36 @@ document.getElementById('listaInstitucionesB1BMasPublico').addEventListener('cli
   }
   var botonDescargar = evento.target.closest('.btn-descargar-logo-ie');
   if (botonDescargar) {
-    var bloqueDescarga = botonDescargar.closest('.bloque-ie-b1bmas');
-    var img = bloqueDescarga.querySelector('img');
-    var coincide = img && /^data:([^;]+);base64,(.+)$/.exec(img.src);
-    if (!coincide) return;
-    var extension = (coincide[1].split('/')[1] || 'png').split('+')[0];
-    descargarArchivoBase64_(coincide[2], coincide[1], bloqueDescarga.getAttribute('data-nombre-ie') + ' - logo.' + extension);
+    descargarImagenBloqueIEB1BMas_(botonDescargar.closest('.bloque-ie-b1bmas'));
   }
 });
+/**
+ * Descarga una imagen de TODO el resumen de la IE (logo + texto + tabla
+ * de cursos), no solo el logo (spec del usuario: "no se permite
+ * descargar la imagen de todo el resumen de cada IE"), usando
+ * html2canvas (cargado en Index.html) para capturar el bloque completo
+ * tal cual se ve en pantalla.
+ */
+function descargarImagenBloqueIEB1BMas_(bloque) {
+  if (typeof html2canvas !== 'function') {
+    mostrarMensaje('mensajeReporteB1BMasPublico', 'No fue posible generar la imagen (librería no disponible).', 'error');
+    return;
+  }
+  var acciones = bloque.querySelector('.acciones-ie-b1bmas');
+  if (acciones) acciones.style.visibility = 'hidden';
+  html2canvas(bloque, { backgroundColor: '#ffffff', scale: 2 }).then(function (canvas) {
+    if (acciones) acciones.style.visibility = '';
+    var enlace = document.createElement('a');
+    enlace.href = canvas.toDataURL('image/png');
+    enlace.download = bloque.getAttribute('data-nombre-ie') + ' - resumen B1-B+.png';
+    document.body.appendChild(enlace);
+    enlace.click();
+    document.body.removeChild(enlace);
+  }).catch(function () {
+    if (acciones) acciones.style.visibility = '';
+    mostrarMensaje('mensajeReporteB1BMasPublico', 'No fue posible generar la imagen.', 'error');
+  });
+}
 function cerrarBloqueGrande_() {
   document.getElementById('overlayBloqueGrande').classList.add('oculto');
   document.getElementById('contenidoBloqueGrande').innerHTML = '';
@@ -525,6 +547,7 @@ function pintarTablaIE_(filas) {
   filasSeleccionadasIE_.clear();
   ultimaFilaClicIE_ = null;
   actualizarResaltadoSeleccionIE_();
+  limpiarRangoCeldasIE_();
   renumerarFilasIE_();
   actualizarResaltadoFaltantesIE_();
   // Deshacer (spec del usuario): punto de partida para cada fila, y se
@@ -559,7 +582,7 @@ function renumerarFilasIE_() {
  * después de cada guardado/deshacer, para que se vea al instante cuando
  * ya se completó un dato.
  */
-var CAMPOS_COMPLETITUD_IE_ = ['jornada', 'genero', 'curso', 'tipoDoc', 'numDoc', 'puntaje'];
+var CAMPOS_COMPLETITUD_IE_ = ['nombre', 'jornada', 'genero', 'curso', 'tipoDoc', 'numDoc', 'puntaje'];
 function actualizarResaltadoFaltantesIE_() {
   var filas = document.querySelectorAll('[data-fila-ie]');
   CAMPOS_COMPLETITUD_IE_.forEach(function (campo) {
@@ -573,7 +596,11 @@ function actualizarResaltadoFaltantesIE_() {
       if (vacio) faltaAlguna = true;
     });
     var encabezado = document.querySelector('[data-campo-encabezado-ie="' + campo + '"]');
-    if (encabezado) encabezado.classList.toggle('encabezado-faltante-ie', faltaAlguna);
+    if (encabezado) {
+      encabezado.classList.toggle('encabezado-faltante-ie', faltaAlguna);
+      // √ verde (spec del usuario: "lo que esté completo se pone un √ al lado del título") — solo si ya hay estudiantes.
+      encabezado.classList.toggle('encabezado-completo-ie', !faltaAlguna && filas.length > 0);
+    }
   });
 }
 
@@ -863,6 +890,73 @@ document.getElementById('cuerpoTablaIE').addEventListener('input', function (eve
 });
 
 /**
+ * Sugerencia de género al instante (spec del usuario: "Genero debe
+ * autocompletarse inmediatamente se termina de escribir el nombre"),
+ * en el navegador, sin esperar al servidor — mismo diccionario curado
+ * que usa el admin en LimpiezaDatos.gs (adminAutocompletarGenero), más
+ * la terminación del nombre (-A/-O) como último recurso. Nunca pisa un
+ * género que el docente ya puso a mano.
+ */
+var NOMBRES_FEMENINOS_IE_ = ['ANA', 'ANDREA', 'ALEJANDRA', 'ALEXANDRA', 'AMPARO', 'ANGELA', 'ANGIE', 'ARACELY',
+  'AURORA', 'BEATRIZ', 'BLANCA', 'BRIGITTE', 'CAMILA', 'CARMEN', 'CAROLINA', 'CECILIA', 'CLAUDIA', 'CONSTANZA',
+  'CONSUELO', 'DAMARIS', 'DANA', 'DANIELA', 'DANNA', 'DAYANA', 'DEICY', 'DEISY', 'DIANA', 'DOLORES', 'DORIS',
+  'EDNA', 'ELENA', 'EMMA', 'ESPERANZA', 'ESTEFANIA', 'ESTHER', 'FERNANDA', 'FLOR', 'GABRIELA', 'GLADYS', 'GLORIA',
+  'GUADALUPE', 'HELENA', 'INES', 'IRENE', 'ISABELLA', 'JENNIFER', 'JESSICA', 'JUANA', 'JUDITH', 'JULIANA', 'KAREN',
+  'KARLA', 'KATHERINE', 'KELLY', 'LAURA', 'LEIDY', 'LESLY', 'LIDA', 'LIDIA', 'LIGIA', 'LORENA', 'LUCELA', 'LUCIA',
+  'LUZ', 'MABEL', 'MARCELA', 'MARGARITA', 'MARIA', 'MARIANA', 'MARTHA', 'MELISSA', 'MILENA', 'MIRIAM', 'MONICA',
+  'MYRIAM', 'NANCY', 'NATALIA', 'NICOLE', 'NOEMI', 'NORMA', 'NUBIA', 'OLGA', 'PAOLA', 'PATRICIA', 'PAULA', 'PILAR',
+  'RAQUEL', 'REBECA', 'ROSA', 'RUTH', 'SAMANTHA', 'SANDRA', 'SARA', 'SARAH', 'SHIRLEY', 'SILVIA', 'SOCORRO',
+  'SOFIA', 'STEFANY', 'STEPHANIE', 'TATIANA', 'TERESA', 'VALENTINA', 'VALERIA', 'VANESSA', 'VERONICA', 'VICTORIA',
+  'VIVIANA', 'XIMENA', 'XIOMARA', 'YAMILE', 'YENI', 'YENILCE', 'YENNY', 'YESENIA', 'YOLANDA', 'YULI', 'YULIANA',
+  'YURANY', 'YURI', 'ZULMA'];
+var NOMBRES_MASCULINOS_IE_ = ['ADRIAN', 'ALBERTO', 'ALEJANDRO', 'ALVARO', 'ANDRES', 'ANTONIO', 'ARMANDO', 'ARTURO',
+  'BRAYAN', 'BRYAN', 'CARLOS', 'CESAR', 'CRISTIAN', 'DANIEL', 'DARIO', 'DAVID', 'DEIBY', 'DEIVY', 'DIEGO',
+  'DUVAN', 'EDGAR', 'EDUARDO', 'EDWIN', 'ELKIN', 'EMILIO', 'ENRIQUE', 'ERNESTO', 'FABIAN', 'FELIPE', 'FERNANDO',
+  'FRANCISCO', 'FREDDY', 'FREDY', 'GERMAN', 'GUILLERMO', 'GUSTAVO', 'HAROLD', 'HECTOR', 'HENRY', 'HUGO', 'IVAN',
+  'JAIME', 'JAIR', 'JAIRO', 'JEFFERSON', 'JEISON', 'JHON', 'JOHN', 'JONATHAN', 'JORGE', 'JOSE', 'JUAN', 'JULIAN',
+  'KEVIN', 'LEONARDO', 'LUIS', 'MANUEL', 'MARIO', 'MARTIN', 'MATEO', 'MAURICIO', 'MIGUEL', 'NELSON', 'NICOLAS',
+  'ORLANDO', 'OSCAR', 'PABLO', 'PEDRO', 'RAFAEL', 'RAUL', 'RICARDO', 'ROBERTO', 'RODOLFO', 'RODRIGO', 'SAMUEL',
+  'SANTIAGO', 'SEBASTIAN', 'SIMON', 'STIVEN', 'STEVEN', 'TOMAS', 'VICTOR', 'WILLIAM', 'WILMER', 'WILSON', 'YAIR',
+  'YEFERSON', 'YEISON', 'YESID'];
+function normalizarClienteIE_(v) {
+  return (v || '').toString().trim().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+function generoSegunNombreClienteIE_(nombreCompleto) {
+  var clave = normalizarClienteIE_(nombreCompleto).split(' ')[0];
+  if (!clave) return '';
+  if (NOMBRES_FEMENINOS_IE_.indexOf(clave) >= 0) return 'FEMENINO';
+  if (NOMBRES_MASCULINOS_IE_.indexOf(clave) >= 0) return 'MASCULINO';
+  if (/A$/.test(clave)) return 'FEMENINO';
+  if (/O$/.test(clave)) return 'MASCULINO';
+  return '';
+}
+/** Pone la sugerencia en la casilla real de Género de esta fila (select de lista o input libre, según la hoja). */
+function aplicarGeneroSugeridoIE_(campoGenero, sugerido) {
+  if (campoGenero.tagName === 'SELECT') {
+    var candidatas = sugerido === 'FEMENINO' ? ['FEMENINO', 'F', 'MUJER'] : ['MASCULINO', 'M', 'HOMBRE'];
+    var opcion = Array.prototype.find.call(campoGenero.options, function (op) {
+      return candidatas.indexOf(op.value.toUpperCase()) >= 0;
+    });
+    if (!opcion) return false;
+    campoGenero.value = opcion.value;
+  } else {
+    campoGenero.value = sugerido;
+  }
+  return true;
+}
+document.getElementById('cuerpoTablaIE').addEventListener('focusout', function (evento) {
+  var campoNombre = evento.target.closest('input[data-campo-ie="nombre"]');
+  if (!campoNombre) return;
+  var tr = campoNombre.closest('[data-fila-ie]');
+  var campoGenero = tr.querySelector('[data-campo-ie="genero"]');
+  if (!campoGenero || texto_(campoGenero.value)) return; // nunca pisa un género ya puesto, a mano o antes
+  var sugerido = generoSegunNombreClienteIE_(campoNombre.value);
+  if (!sugerido || !aplicarGeneroSugeridoIE_(campoGenero, sugerido)) return;
+  clearTimeout(temporizadorGuardadoFilaIE_[tr.getAttribute('data-fila-ie')]);
+  guardarFilaIE_(tr);
+});
+
+/**
  * Agrega una fila vacía al final y la devuelve — reusada por el botón,
  * Enter en la última fila y el pegado tipo Excel. Spec del usuario: no
  * repetir el nombre del docente en cada fila — por defecto hereda el
@@ -1007,6 +1101,77 @@ document.getElementById('btnDuplicarSeleccionadas').addEventListener('click', fu
   actualizarResaltadoSeleccionIE_();
 });
 
+/*
+ * Selección de un rango de celdas de UNA sola columna (spec del
+ * usuario: "permitir copiar usando Shift o arrastrando sobre una
+ * casilla con cursor presionado para que copie únicamente lo que se
+ * desea de la columna") — independiente de la selección de filas
+ * completas (filasSeleccionadasIE_) de más arriba. Arrastrar con el
+ * botón del mouse presionado, o Shift+clic, extiende el rango dentro
+ * de la misma columna donde empezó; al copiar (Ctrl/Cmd+C) con más de
+ * una celda en el rango, se copia solo esa columna, fila por fila.
+ */
+var arrastrandoCeldaIE_ = false;
+var anclaCeldaIE_ = null; // { fila, campo }
+var columnaRangoSeleccionadoIE_ = null;
+var filasRangoSeleccionadoIE_ = new Set();
+
+function limpiarRangoCeldasIE_() {
+  document.querySelectorAll('.celda-rango-seleccionado-ie').forEach(function (td) {
+    td.classList.remove('celda-rango-seleccionado-ie');
+  });
+  filasRangoSeleccionadoIE_.clear();
+  columnaRangoSeleccionadoIE_ = null;
+  anclaCeldaIE_ = null;
+}
+function resaltarRangoCeldasIE_() {
+  document.querySelectorAll('.celda-rango-seleccionado-ie').forEach(function (td) {
+    td.classList.remove('celda-rango-seleccionado-ie');
+  });
+  if (!columnaRangoSeleccionadoIE_) return;
+  filasRangoSeleccionadoIE_.forEach(function (fila) {
+    var control = document.querySelector('[data-fila-ie="' + fila + '"] [data-campo-ie="' + columnaRangoSeleccionadoIE_ + '"]');
+    if (control) control.closest('td').classList.add('celda-rango-seleccionado-ie');
+  });
+}
+function extenderRangoCeldaIE_(filaDesde, filaHasta) {
+  var desde = Math.min(filaDesde, filaHasta), hasta = Math.max(filaDesde, filaHasta);
+  filasRangoSeleccionadoIE_.clear();
+  document.querySelectorAll('[data-fila-ie]').forEach(function (tr) {
+    var n = Number(tr.getAttribute('data-fila-ie'));
+    if (n >= desde && n <= hasta) filasRangoSeleccionadoIE_.add(n);
+  });
+  resaltarRangoCeldasIE_();
+}
+document.getElementById('cuerpoTablaIE').addEventListener('mousedown', function (evento) {
+  var td = evento.target.closest('td');
+  if (!td) return;
+  var campo = td.querySelector('[data-campo-ie]');
+  if (!campo) return;
+  var nombreCampo = campo.getAttribute('data-campo-ie');
+  var fila = Number(td.closest('[data-fila-ie]').getAttribute('data-fila-ie'));
+  if (evento.shiftKey && anclaCeldaIE_ && anclaCeldaIE_.campo === nombreCampo) {
+    columnaRangoSeleccionadoIE_ = nombreCampo;
+    extenderRangoCeldaIE_(anclaCeldaIE_.fila, fila);
+    evento.preventDefault();
+    return;
+  }
+  anclaCeldaIE_ = { fila: fila, campo: nombreCampo };
+  columnaRangoSeleccionadoIE_ = nombreCampo;
+  arrastrandoCeldaIE_ = true;
+  extenderRangoCeldaIE_(fila, fila);
+});
+document.getElementById('cuerpoTablaIE').addEventListener('mouseover', function (evento) {
+  if (!arrastrandoCeldaIE_ || !anclaCeldaIE_) return;
+  var td = evento.target.closest('td');
+  if (!td) return;
+  var campo = td.querySelector('[data-campo-ie="' + columnaRangoSeleccionadoIE_ + '"]');
+  if (!campo) return;
+  var fila = Number(td.closest('[data-fila-ie]').getAttribute('data-fila-ie'));
+  extenderRangoCeldaIE_(anclaCeldaIE_.fila, fila);
+});
+document.addEventListener('mouseup', function () { arrastrandoCeldaIE_ = false; });
+
 /* --- Comportamiento tipo Excel (spec del usuario): Enter, copiar, pegar --- */
 
 // Al enfocar una celda de texto, seleccionar todo su contenido (como al hacer clic en una celda de Excel).
@@ -1034,14 +1199,25 @@ document.getElementById('cuerpoTablaIE').addEventListener('keydown', function (e
   }
 });
 
-// Copiar: un <select> (jornada, género, curso…) no tiene texto que seleccionar, así que se copia su valor a mano.
+// Copiar: con un rango de más de una celda seleccionado (arrastre o Shift+clic), se copia solo esa columna,
+// fila por fila. Si no hay rango, un <select> (jornada, género, curso…) no tiene texto que seleccionar, así
+// que se copia su valor a mano; en un <input> se deja el comportamiento nativo (copia el texto seleccionado).
 document.getElementById('cuerpoTablaIE').addEventListener('copy', function (evento) {
+  if (columnaRangoSeleccionadoIE_ && filasRangoSeleccionadoIE_.size > 1) {
+    var filasOrdenadas = Array.from(filasRangoSeleccionadoIE_).sort(function (a, b) { return a - b; });
+    var valores = filasOrdenadas.map(function (fila) {
+      var control = document.querySelector('[data-fila-ie="' + fila + '"] [data-campo-ie="' + columnaRangoSeleccionadoIE_ + '"]');
+      return control ? control.value : '';
+    });
+    evento.preventDefault();
+    (evento.clipboardData || window.clipboardData).setData('text/plain', valores.join('\n'));
+    return;
+  }
   var campo = document.activeElement;
   if (campo && campo.tagName === 'SELECT' && campo.hasAttribute('data-campo-ie')) {
     evento.preventDefault();
     (evento.clipboardData || window.clipboardData).setData('text/plain', campo.value);
   }
-  // En un <input> se deja el comportamiento nativo del navegador (copia el texto seleccionado).
 });
 
 // Pegar: si lo copiado traía varias celdas (filas separadas por salto de línea, columnas por tabulador — como al
