@@ -165,8 +165,32 @@ function cargarDatosIE_() {
     mostrarMensaje('mensajeDatosIE', '', '');
     estado.opcionesColumnasIE = datos.opciones || {};
     pintarTablaIE_(datos.filas);
+    actualizarCompletitudGraficos_();
   }, function (e) {
     mostrarMensaje('mensajeDatosIE', e.mensaje || 'Error al cargar los datos.', 'error');
+  });
+}
+
+/**
+ * Aviso pasivo, sin necesidad de dar clic en "Generar gráficos" (spec del
+ * usuario): si ya está completo o qué falta, para que el docente sepa de
+ * una vez si puede generar o le falta completar algo.
+ */
+function actualizarCompletitudGraficos_() {
+  llamarServidor('rpcVerificarCompletitudIE', [estado.nombreIE, estado.tokenIE], function (r) {
+    if (r.completo) {
+      mostrarMensaje('mensajeCompletitudGraficos', '✅ Información completa — ya puede generar los gráficos.', 'exito');
+    } else {
+      mostrarMensaje('mensajeCompletitudGraficos',
+        '⚠️ Gráficos disponibles solo cuando la información esté completa. Falta:<br>' + (r.faltantes || []).map(escapeHtml).join('<br>'), 'info');
+    }
+  }, function (e) {
+    if (e.faltantes) {
+      mostrarMensaje('mensajeCompletitudGraficos',
+        '⚠️ Gráficos disponibles solo cuando la información esté completa. Falta:<br>' + e.faltantes.map(escapeHtml).join('<br>'), 'info');
+      return;
+    }
+    mostrarMensaje('mensajeCompletitudGraficos', '', '');
   });
 }
 
@@ -234,6 +258,7 @@ function guardarFilaIE_(tr) {
   var fila = tr.getAttribute('data-fila-ie');
   llamarServidor('rpcGuardarFilaIE', [estado.nombreIE, estado.tokenIE, fila, recolectarFilaIE_(tr)], function (r) {
     tr.querySelector('.celda-nivel-ie').textContent = r.registro.nivel;
+    actualizarCompletitudGraficos_();
   }, function (e) {
     mostrarMensaje('mensajeDatosIE', e.mensaje || 'No fue posible guardar.', 'error');
   });

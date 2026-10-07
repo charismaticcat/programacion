@@ -21,6 +21,7 @@
  */
 const CFG = {
   SPREADSHEET_ID: '1xYaRpD6VxA6fz628zuPQaB5vJj0JCHuWjZtns4Gpz14',
+  ANIO: 2026, // para los títulos de los gráficos ("EN LA IE <nombre>, 2026")
   CARPETA_LOGOS: '1QVfDyYjhjX5H60U7SyeLtikodQbhGu1B',
   LOGOS_MANUALES: {},
 

@@ -13,11 +13,11 @@
  * Nota de diseño: "nivel alcanzado promedio" (gráficos 3-5) no es un
  * promedio real de un texto (A-, A1, A2, B1, B+) — se calcula el PUNTAJE
  * promedio del grupo y, a partir de ese puntaje, el nivel que le
- * correspondería (mismos rangos ICFES del script de la hoja). En la
- * tabla-resumen se deja el texto real (B1, B+, …); en el gráfico se usa
- * el equivalente numérico de 1 (A-) a 5 (B+) en un eje secundario, porque
- * los gráficos nativos de Sheets no permiten poner una letra como altura
- * de barra.
+ * correspondería (mismos rangos ICFES del script de la hoja). No se
+ * grafica como número (spec del usuario: "no poner niveles por números"):
+ * cada categoría es una sola barra (el puntaje promedio) y el nivel real
+ * (B1, B+, …) va como parte de la etiqueta de esa barra, nunca como un
+ * segundo eje/serie numérico.
  */
 const TEXTO_LETRERO_GRAFICOS_ =
   'Se generarán los gráficos de la IE {IE} de acuerdo a la información ingresada. Para generar el gráfico ' +
@@ -66,15 +66,24 @@ function aplicarLetreroGraficosTodasLasIE(token) {
   return { ok: true, hechas: hechas.length, problemas: problemas };
 }
 
-function nivelDeIndice_(indice) { return CFG.NIVELES[Math.max(0, Math.min(CFG.NIVELES.length - 1, indice))][1]; }
 /** Nivel (texto) que corresponde a un puntaje, con los mismos rangos ICFES del script de la hoja. */
 function nivelDePuntaje_(puntaje) {
   for (let i = 0; i < CFG.NIVELES.length; i++) if (puntaje <= CFG.NIVELES[i][0]) return CFG.NIVELES[i][1];
   return CFG.NIVELES[CFG.NIVELES.length - 1][1];
 }
-function rangoDeNivel_(nivelTexto) {
-  const i = CFG.NIVELES.findIndex(n => n[1] === nivelTexto);
-  return i < 0 ? '' : i + 1; // 1 (A-) .. 5 (B+)
+
+/** Tipo de grupo dominante entre varios estudiantes (para etiquetar un curso) — mismas etiquetas de los encabezados oficiales. */
+const ETIQUETA_TIPO_GRUPO_ = { intensificacion: 'INTENSIFICACIÓN', sena: 'ARTICULACIÓN SENA', academico: 'ACADÉMICO' };
+function tipoDominante_(registros) {
+  const conteos = { intensificacion: 0, sena: 0, academico: 0 };
+  registros.forEach(r => {
+    if (r.intensificacion) conteos.intensificacion++;
+    else if (r.sena) conteos.sena++;
+    else if (r.academico) conteos.academico++;
+  });
+  let mejor = '', max = 0;
+  Object.keys(conteos).forEach(clave => { if (conteos[clave] > max) { max = conteos[clave]; mejor = clave; } });
+  return mejor ? ETIQUETA_TIPO_GRUPO_[mejor] : '';
 }
 
 /** Registros con nombre e información suficiente para graficar, leídos directo de la hoja. */
@@ -119,6 +128,21 @@ function verificarInformacionCompleta_(registros) {
   return { completo: faltantes.length === 0, faltantes: faltantes };
 }
 
+/**
+ * Mismo chequeo que al generar, pero de solo lectura — para mostrar en el
+ * portal, antes de que el docente dé clic en "Generar gráficos", si la
+ * información ya está completa o todavía falta algo (spec del usuario).
+ */
+function verificarCompletitudIE(nombreIE, token) {
+  const nombreReal = exigirAccesoIE_(nombreIE, token);
+  const ss = abrirSpreadsheet_();
+  const sh = ss.getSheetByName(nombreReal);
+  if (!sh) throw new Error('No se encontró la hoja de "' + nombreReal + '".');
+  const registros = leerRegistrosParaGraficos_(sh);
+  if (!registros.length) return { completo: false, faltantes: ['Todavía no hay ningún estudiante registrado en esta IE.'] };
+  return verificarInformacionCompleta_(registros);
+}
+
 function totalesDe_(registros) {
   const evaluados = registros.filter(r => r.puntaje != null);
   const b1bMas = evaluados.filter(r => r.nivel === 'B1' || r.nivel === 'B+');
@@ -130,21 +154,40 @@ function totalesDe_(registros) {
   };
 }
 
-/** Agrupa por la clave dada (jornada/género/curso) y calcula puntaje promedio + nivel promedio por grupo. */
-function agruparPromedios_(registros, claveFn) {
+/**
+ * Agrupa por la clave dada (jornada/género/curso) y calcula puntaje
+ * promedio + nivel promedio por grupo. `categoria` ya trae el nivel (y,
+ * si opciones.conTipo, el tipo de grupo dominante) metido en el mismo
+ * texto — así el gráfico de una sola barra por categoría (spec del
+ * usuario: "solo deja una columna") muestra el nivel en la propia
+ * etiqueta del eje, sin necesitar un segundo eje numérico.
+ */
+function agruparPromedios_(registros, claveFn, opciones) {
+  opciones = opciones || {};
   const grupos = new Map();
   registros.forEach(r => {
     if (r.puntaje == null) return;
     const clave = claveFn(r) || 'SIN DATO';
     if (!grupos.has(clave)) grupos.set(clave, []);
-    grupos.get(clave).push(r.puntaje);
+    grupos.get(clave).push(r);
   });
   return Array.from(grupos.entries())
     .sort((a, b) => a[0].localeCompare(b[0], 'es', { numeric: true, sensitivity: 'base' }))
-    .map(([clave, puntajes]) => {
+    .map(([clave, regs]) => {
+      const puntajes = regs.map(r => r.puntaje);
       const promedio = Math.round((puntajes.reduce((a, b) => a + b, 0) / puntajes.length) * 10) / 10;
       const nivel = nivelDePuntaje_(promedio);
-      return { categoria: clave, totalEvaluados: puntajes.length, puntajePromedio: promedio, nivelPromedio: nivel, nivelRango: rangoDeNivel_(nivel) };
+      let etiqueta = clave;
+      if (opciones.conTipo) {
+        const tipo = tipoDominante_(regs);
+        if (tipo) etiqueta += ' (' + tipo + ')';
+      }
+      return {
+        categoria: etiqueta + ' — Nivel ' + nivel,
+        totalEvaluados: puntajes.length,
+        puntajePromedio: promedio,
+        nivelPromedio: nivel
+      };
     });
 }
 
@@ -221,18 +264,13 @@ function generarGraficosIE(nombreIE, token) {
     limpiarZonaGraficos_(sh);
     let fila = CFG.FILA_ENCABEZADO;
     const col = CFG.COLUMNA_GRAFICOS;
-    const ejeDual = b => b
-      .setOption('vAxes', { 0: { title: 'Cantidad / %' }, 1: { title: 'Nivel (1=A-, 5=B+)', minValue: 0, maxValue: 5 } })
-      .setOption('series', { 1: { targetAxisIndex: 1 } });
-    const ejeDualNivel = b => b
-      .setOption('vAxes', { 0: { title: 'Puntaje promedio (0-100)', minValue: 0, maxValue: 100 }, 1: { title: 'Nivel (1=A-, 5=B+)', minValue: 0, maxValue: 5 } })
-      .setOption('series', { 1: { targetAxisIndex: 1 } });
+    const etiquetaIE = nombreSinPrefijoIE_(nombreReal) + ', ' + CFG.ANIO;
 
     const bloques = [];
     // Gráfico 1: totales generales de la IE.
     const t1 = totalesDe_(registros);
     bloques.push(bloqueTablaYGrafico_(sh, fila, col,
-      'TOTAL ESTUDIANTES EVALUADOS / B1-B+ / % B1-B+ EN LA IE',
+      'TOTAL ESTUDIANTES EVALUADOS / B1-B+ / % B1-B+ EN LA IE ' + etiquetaIE + '.',
       ['CONCEPTO', 'VALOR'],
       [['TOTAL ESTUDIANTES EVALUADOS', t1.totalEvaluados], ['TOTAL ESTUDIANTES B1/B+', t1.totalB1BMas], ['% B1 Y B+ EN LA IE', t1.porcentajeB1BMas]],
       [[0, 2]]));
@@ -241,37 +279,37 @@ function generarGraficosIE(nombreIE, token) {
     // Gráfico 2: igual, solo el grupo de intensificación.
     const t2 = totalesDe_(registros.filter(r => r.intensificacion));
     bloques.push(bloqueTablaYGrafico_(sh, fila, col,
-      'TOTAL EVALUADOS / B1-B+ / % B1-B+ EN INTENSIFICACIÓN',
+      'TOTAL EVALUADOS / B1-B+ / % B1-B+ EN INTENSIFICACIÓN EN LA IE ' + etiquetaIE,
       ['CONCEPTO', 'VALOR'],
       [['TOTAL EVALUADOS EN INTENSIFICACIÓN', t2.totalEvaluados], ['TOTAL B1/B+ EN INTENSIFICACIÓN', t2.totalB1BMas], ['% B1/B+ EN INTENSIFICACIÓN', t2.porcentajeB1BMas]],
       [[0, 2]]));
     fila = bloques[1].filaSiguiente;
 
-    // Gráfico 3: por género.
+    // Gráfico 3: por género — una sola barra por género (puntaje promedio); el nivel va en la etiqueta, no como número.
     const porGenero = agruparPromedios_(registros, r => r.genero);
     bloques.push(bloqueTablaYGrafico_(sh, fila, col,
-      'PUNTAJE Y NIVEL ALCANZADO PROMEDIO POR GÉNERO',
-      ['GÉNERO', 'TOTAL EVALUADOS', 'PUNTAJE PROMEDIO', 'NIVEL PROMEDIO', 'NIVEL (1-5)'],
-      porGenero.map(g => [g.categoria, g.totalEvaluados, g.puntajePromedio, g.nivelPromedio, g.nivelRango]),
-      [[0, 1], [2, 1], [4, 1]], ejeDualNivel));
+      'PUNTAJE Y NIVEL ALCANZADO PROMEDIO POR GÉNERO EN LA IE ' + etiquetaIE,
+      ['GÉNERO (con nivel)', 'TOTAL EVALUADOS', 'PUNTAJE PROMEDIO'],
+      porGenero.map(g => [g.categoria, g.totalEvaluados, g.puntajePromedio]),
+      [[0, 1], [2, 1]]));
     fila = bloques[2].filaSiguiente;
 
-    // Gráfico 4: por jornada.
+    // Gráfico 4: por jornada — igual, una sola barra.
     const porJornada = agruparPromedios_(registros, r => r.jornada);
     bloques.push(bloqueTablaYGrafico_(sh, fila, col,
-      'PUNTAJE Y NIVEL ALCANZADO POR JORNADA',
-      ['JORNADA', 'TOTAL EVALUADOS', 'PUNTAJE PROMEDIO', 'NIVEL PROMEDIO', 'NIVEL (1-5)'],
-      porJornada.map(g => [g.categoria, g.totalEvaluados, g.puntajePromedio, g.nivelPromedio, g.nivelRango]),
-      [[0, 1], [2, 1], [4, 1]], ejeDualNivel));
+      'PUNTAJE Y NIVEL ALCANZADO POR JORNADA EN LA IE ' + etiquetaIE,
+      ['JORNADA (con nivel)', 'TOTAL EVALUADOS', 'PUNTAJE PROMEDIO'],
+      porJornada.map(g => [g.categoria, g.totalEvaluados, g.puntajePromedio]),
+      [[0, 1], [2, 1]]));
     fila = bloques[3].filaSiguiente;
 
-    // Gráfico 5: por curso (todos los cursos reportados).
-    const porCurso = agruparPromedios_(registros, r => r.curso);
+    // Gráfico 5: por curso (todos los reportados) — etiqueta con el tipo de grupo dominante (intensificación/articulación SENA/académico).
+    const porCurso = agruparPromedios_(registros, r => r.curso, { conTipo: true });
     bloques.push(bloqueTablaYGrafico_(sh, fila, col,
-      'PUNTAJE Y NIVEL ALCANZADO POR CURSO',
-      ['CURSO', 'TOTAL EVALUADOS', 'PUNTAJE PROMEDIO', 'NIVEL PROMEDIO', 'NIVEL (1-5)'],
-      porCurso.map(g => [g.categoria, g.totalEvaluados, g.puntajePromedio, g.nivelPromedio, g.nivelRango]),
-      [[0, 1], [2, 1], [4, 1]], ejeDualNivel));
+      'PUNTAJE Y NIVEL ALCANZADO POR CURSO EN LA IE ' + etiquetaIE,
+      ['CURSO (tipo y nivel)', 'TOTAL EVALUADOS', 'PUNTAJE PROMEDIO'],
+      porCurso.map(g => [g.categoria, g.totalEvaluados, g.puntajePromedio]),
+      [[0, 1], [2, 1]]));
 
     SpreadsheetApp.flush();
     const imagenes = bloques.map((b, i) => ({

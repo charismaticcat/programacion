@@ -44,6 +44,9 @@ function rpcValidarAccesoAdmin(token) {
 function rpcObtenerDatosIE(nombreIE, token) {
   return ejecutarRpcSeguro_(() => obtenerDatosIE(nombreIE, token));
 }
+function rpcVerificarCompletitudIE(nombreIE, token) {
+  return ejecutarRpcSeguro_(() => verificarCompletitudIE(nombreIE, token));
+}
 function rpcGuardarFilaIE(nombreIE, token, fila, datos) {
   return ejecutarRpcSeguro_(() => guardarFilaIE(nombreIE, token, fila, datos));
 }
