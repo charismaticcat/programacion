@@ -113,16 +113,33 @@ function cargarResumenGeneralIE_() {
       "<div class='barra-progreso-general'><div class='relleno-barra-progreso' style='width:" + r.porcentaje + "%'></div></div>" +
       '<p>' + r.totalReportadas + ' de ' + r.totalIE + ' instituciones han reportado (' + r.porcentaje + '%).</p>';
     document.getElementById('cuerpoResumenGeneral').innerHTML = r.instituciones.map(function (ie) {
+      var observacionesHtml = ie.observaciones.length
+        ? ie.observaciones.map(escapeHtml).join('<br>') +
+          " <button type='button' class='btn-ver-correcciones-ie' data-ir-correcciones-ie=\"" + escapeHtml(ie.nombreIE) + "\">Ver correcciones aquí →</button>"
+        : 'Sin observaciones.';
       return '<tr><td>' + escapeHtml(ie.nombreIE) + '</td>' +
         "<td><span class='badge-color' style='background:" + ie.colorEstado + "'></span></td>" +
         '<td>' + (ie.docentes.length ? ie.docentes.map(escapeHtml).join(', ') : '—') + '</td>' +
         '<td>' + ie.totalEstudiantes + '</td>' +
-        '<td>' + (ie.observaciones.length ? ie.observaciones.map(escapeHtml).join('<br>') : 'Sin observaciones.') + '</td></tr>';
+        '<td>' + observacionesHtml + '</td></tr>';
     }).join('');
   }, function (e) {
     mostrarMensaje('mensajeResumenGeneral', e.mensaje || 'Error al cargar.', 'error');
   });
 }
+/**
+ * "Ver correcciones aquí" (spec del usuario: "direccionar directamente
+ * a donde se debe hacer el cambio") — entra de una vez a la pantalla de
+ * esa institución, igual que al elegirla desde "Elija su institución
+ * educativa" (el acceso de las IE es automático, sin token).
+ */
+document.getElementById('cuerpoResumenGeneral').addEventListener('click', function (evento) {
+  var boton = evento.target.closest('[data-ir-correcciones-ie]');
+  if (!boton) return;
+  detenerRefrescoPublico_();
+  document.getElementById('pantallaResumenGeneral').classList.add('oculto');
+  entrarPantallaIE_(boton.getAttribute('data-ir-correcciones-ie'), '');
+});
 
 document.getElementById('btnVerReporteB1BMasPublico').addEventListener('click', function () {
   document.getElementById('pantallaDistribucion').classList.add('oculto');

@@ -17,31 +17,58 @@
  * Solo para el administrador (botón "Descargar informe" en su panel).
  */
 
+/**
+ * Google Sheets exporta en blanco (PDF o Excel) una pestaña que esté
+ * oculta en ese momento — "Ocultar todas las pestañas (dejar solo
+ * Aviso)" del panel admin oculta justo las 36 hojas de IE, así que
+ * todo informe generado después quedaba en blanco (reporte del
+ * usuario). Esta envoltura la muestra solo mientras dura la
+ * exportación y la vuelve a ocultar al terminar, para no perder esa
+ * protección de "Publicar en la Web".
+ */
+function conHojaVisibleParaExportar_(sh, generar) {
+  const estabaOculta = sh.isSheetHidden();
+  if (estabaOculta) {
+    sh.showSheet();
+    SpreadsheetApp.flush();
+  }
+  try {
+    return generar();
+  } finally {
+    if (estabaOculta) sh.hideSheet();
+  }
+}
+
 /** PDF de una sola pestaña, apaisado y ajustado al ancho — incluye los gráficos incrustados. */
 function exportarHojaComoPDF_(sh) {
-  const url = 'https://docs.google.com/spreadsheets/d/' + CFG.SPREADSHEET_ID + '/export' +
-    '?format=pdf&gid=' + sh.getSheetId() +
-    '&portrait=false&size=A4&fitw=true&gridlines=false&printtitle=false&sheetnames=false&pagenumbers=false' +
-    '&horizontal_alignment=CENTER&vertical_alignment=TOP';
-  const resp = UrlFetchApp.fetch(url, { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() } });
-  return resp.getBlob();
+  return conHojaVisibleParaExportar_(sh, () => {
+    const url = 'https://docs.google.com/spreadsheets/d/' + CFG.SPREADSHEET_ID + '/export' +
+      '?format=pdf&gid=' + sh.getSheetId() +
+      '&portrait=false&size=A4&fitw=true&gridlines=false&printtitle=false&sheetnames=false&pagenumbers=false' +
+      '&horizontal_alignment=CENTER&vertical_alignment=TOP';
+    const resp = UrlFetchApp.fetch(url, { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() } });
+    return resp.getBlob();
+  });
 }
 
 /** .xlsx de una sola pestaña: se copia a una hoja de cálculo temporal (con solo esa pestaña) y se exporta esa. */
 function exportarHojaComoXLSX_(sh, nombreArchivo) {
-  const temp = SpreadsheetApp.create(nombreArchivo);
-  const tempId = temp.getId();
-  try {
-    const copiada = sh.copyTo(temp);
-    copiada.setName(sh.getName());
-    temp.getSheets().filter(s => s.getSheetId() !== copiada.getSheetId()).forEach(s => temp.deleteSheet(s));
-    SpreadsheetApp.flush();
-    const url = 'https://docs.google.com/spreadsheets/d/' + tempId + '/export?format=xlsx';
-    const resp = UrlFetchApp.fetch(url, { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() } });
-    return resp.getBlob();
-  } finally {
-    DriveApp.getFileById(tempId).setTrashed(true);
-  }
+  return conHojaVisibleParaExportar_(sh, () => {
+    const temp = SpreadsheetApp.create(nombreArchivo);
+    const tempId = temp.getId();
+    try {
+      const copiada = sh.copyTo(temp);
+      copiada.setName(sh.getName());
+      if (copiada.isSheetHidden()) copiada.showSheet(); // la copia puede heredar "oculta" de la original
+      temp.getSheets().filter(s => s.getSheetId() !== copiada.getSheetId()).forEach(s => temp.deleteSheet(s));
+      SpreadsheetApp.flush();
+      const url = 'https://docs.google.com/spreadsheets/d/' + tempId + '/export?format=xlsx';
+      const resp = UrlFetchApp.fetch(url, { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() } });
+      return resp.getBlob();
+    } finally {
+      DriveApp.getFileById(tempId).setTrashed(true);
+    }
+  });
 }
 
 /**

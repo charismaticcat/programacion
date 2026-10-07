@@ -22,18 +22,26 @@
  */
 function obtenerResumenEnvioTodasLasIE() {
   const ss = abrirSpreadsheet_();
+  const detalleRevision = obtenerDetalleRevisionPorIE_(ss);
   const instituciones = CFG.IES.map(nombreIE => {
     const sh = resolverHojaIE_(ss, nombreIE);
-    if (!sh) return { nombreIE: nombreIE, colorEstado: '#9E9E9E', docentes: [], totalEstudiantes: 0, reportada: false, observaciones: [] };
+    if (!sh) return { nombreIE: nombreIE, colorEstado: '#9E9E9E', docentes: [], totalEstudiantes: 0, reportada: false, observaciones: ['No se encontró la hoja de esta institución.'] };
     const { docentes, totalEstudiantesIE, esTecnicoIpc } = calcularDocentesIE_(sh, nombreIE);
     const nombresDocentes = Object.keys(docentes).filter(n => norm_(n) !== 'DOCENTE NO REGISTRADO');
+    const revision = detalleRevision.get(norm_(nombreIE));
+    // Mismo cálculo que fija el color de la pestaña (actualizarMarcasRevisionIE_, vía
+    // "Actualizar REPORTE DIARIO/B1 Y B+"); si todavía no se ha generado, se usa el chequeo
+    // en vivo de datos faltantes por docente como mejor aproximación disponible.
+    const observaciones = revision
+      ? observacionesDesdeDetalleRevision_(revision.detalle)
+      : construirObservacionesIE_(docentes, esTecnicoIpc);
     return {
       nombreIE: nombreIE,
       colorEstado: sh.getTabColor() || '#9E9E9E',
       docentes: nombresDocentes,
       totalEstudiantes: totalEstudiantesIE,
       reportada: totalEstudiantesIE > 0,
-      observaciones: construirObservacionesIE_(docentes, esTecnicoIpc)
+      observaciones: observaciones
     };
   });
   const totalReportadas = instituciones.filter(i => i.reportada).length;

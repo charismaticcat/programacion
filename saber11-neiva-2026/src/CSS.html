@@ -145,6 +145,13 @@
   .leyenda-colores-estado { display: flex; flex-wrap: wrap; gap: 16px; margin: 10px 0; font-size: .85rem; color: var(--gris-texto); }
   .leyenda-colores-estado span { white-space: nowrap; }
 
+  /* "Ver correcciones aquí" en la columna Observaciones del resumen general (spec del usuario). */
+  .btn-ver-correcciones-ie {
+    display: inline-block; margin-top: 4px; border: none; border-radius: 6px; padding: 4px 10px;
+    background: var(--azul); color: #fff; font-size: .78rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+  }
+  .btn-ver-correcciones-ie:hover { background: var(--azul-oscuro); }
+
   /* Bloques por IE del reporte estadístico B1/B+ público (spec del usuario: "incluye toda la info de IE+logo"). */
   .bloque-ie-b1bmas { border: 1px solid var(--gris-borde); border-radius: 8px; padding: 14px; margin-bottom: 14px; }
   .encabezado-ie-b1bmas { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
