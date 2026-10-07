@@ -53,12 +53,20 @@
 
   .fila-botones { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
 
-  /* Un solo bloque de Docente/Correo por grupo de estudiantes (spec del usuario), en vez de repetirlo en cada fila. */
-  tr.fila-grupo-docente td { background: #EEF3FC; padding: 10px; border-top: 2px solid var(--azul); }
-  /* Apilado en vertical (spec del usuario: "Cursos que reporta" no aparecía porque
-     quedaba empujado fuera de la pantalla en un solo renglón horizontal) — así
-     siempre queda visible debajo de Docente/Correo, sin depender del scroll. */
-  .caja-grupo-docente { display: flex; flex-direction: column; gap: 10px; }
+  /*
+   * Un solo bloque de Docente/Correo/Cursos por grupo de estudiantes (spec
+   * del usuario), en su propia sección "Docentes que reportan" — ya no
+   * intercalado entre las filas de la tabla de estudiantes, para dejar esa
+   * sección limpia. Apilado en vertical (spec del usuario: "Cursos que
+   * reporta" no aparecía porque quedaba empujado fuera de la pantalla en un
+   * solo renglón horizontal) — así siempre queda visible sin depender del
+   * scroll.
+   */
+  #listaDocentesIE { display: flex; flex-direction: column; gap: 12px; }
+  .caja-grupo-docente {
+    display: flex; flex-direction: column; gap: 10px;
+    background: #EEF3FC; border-left: 3px solid var(--azul); border-radius: 6px; padding: 14px 16px;
+  }
   .caja-grupo-docente label { margin: 0; }
   .caja-grupo-docente input { margin-top: 4px; }
   .fila-docente-correo { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
