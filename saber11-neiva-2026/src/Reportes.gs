@@ -39,7 +39,7 @@ function mensajeGrupoInvalido_(condiciones) {
 }
 
 function richTextHipervinculoIE_(ss, nombreIE) {
-  const hojaIE = ss.getSheetByName(nombreIE);
+  const hojaIE = resolverHojaIE_(ss, nombreIE);
   if (!hojaIE) return SpreadsheetApp.newRichTextValue().setText(nombreIE).build();
   const url = ss.getUrl() + '#gid=' + hojaIE.getSheetId() + '&range=A1';
   return SpreadsheetApp.newRichTextValue().setText(nombreIE).setLinkUrl(url).build();
@@ -70,7 +70,7 @@ function mayusculasEn_(area) {
 /** Normaliza a mayúsculas lo escrito desde la fila 36 en adelante (jornada..académico) en todas las IE. */
 function normalizarMayusculasDesdeD36_(ss) {
   CFG.IES.forEach(nombreIE => {
-    const sh = ss.getSheetByName(nombreIE);
+    const sh = resolverHojaIE_(ss, nombreIE);
     if (!sh || !esHojaIE_(sh)) return;
     const ultimaFila = Math.min(sh.getLastRow(), CFG.ULTIMA_FILA);
     if (ultimaFila < 36) return;
@@ -139,7 +139,7 @@ function actualizarMarcasRevisionIE_(ss) {
     const tieneObsDiario = tieneObservacionNoGrupo(observacionesDiario.get(clave));
     const tieneObsB1 = tieneObservacionNoGrupo(observacionesB1.get(clave));
     const tieneAmbosReportes = filasD.length > 0 && filasR.length > 0;
-    const hojaIE = ss.getSheetByName(nombreIE);
+    const hojaIE = resolverHojaIE_(ss, nombreIE);
     let tieneDatosFuente = false;
     const cursosConTiposInvalidos = new Map();
     if (hojaIE && esHojaIE_(hojaIE)) {
@@ -371,15 +371,14 @@ function calcularCursosIE_(sh) {
  * Se calcula directo de la hoja de la IE — no depende de que REPORTE
  * DIARIO/B1+ ya se hayan actualizado.
  */
-function obtenerResumenEnvioIE(nombreIE, token) {
-  const nombreReal = exigirAccesoIEoAdminComoIE_(nombreIE, token);
-  const ss = abrirSpreadsheet_();
-  const sh = ss.getSheetByName(nombreReal);
-  if (!sh) throw new Error('No se encontró la hoja de "' + nombreReal + '".');
-
-  const { docentes, esTecnicoIpc } = calcularDocentesIE_(sh, nombreReal);
-  const totalesPorCurso = calcularCursosIE_(sh);
-
+/**
+ * Observaciones personalizadas de una IE (spec del usuario: "realiza
+ * observaciones personalizadas para cada dependiendo de lo que falte")
+ * — una por cada cosa concreta que le falta a cada docente, aislado
+ * para reusarlo también en el resumen público de todas las IE
+ * (VistasPublicas.gs), sin duplicar el criterio.
+ */
+function construirObservacionesIE_(docentes, esTecnicoIpc) {
   const observaciones = [];
   Object.keys(docentes).forEach(nombreDocente => {
     const registro = docentes[nombreDocente];
@@ -395,6 +394,18 @@ function obtenerResumenEnvioIE(nombreIE, token) {
     observaciones.push('Hay estudiantes sin docente asignado (DOCENTE NO REGISTRADO).');
   }
   if (esTecnicoIpc) observaciones.push('No se deben reportar grupos diferentes a grado 11 (se excluyen ciclos nocturnos y sabatinos).');
+  return observaciones;
+}
+
+function obtenerResumenEnvioIE(nombreIE, token) {
+  const nombreReal = exigirAccesoIEoAdminComoIE_(nombreIE, token);
+  const ss = abrirSpreadsheet_();
+  const sh = resolverHojaIE_(ss, nombreReal);
+  if (!sh) throw new Error('No se encontró la hoja de "' + nombreReal + '".');
+
+  const { docentes, esTecnicoIpc } = calcularDocentesIE_(sh, nombreReal);
+  const totalesPorCurso = calcularCursosIE_(sh);
+  const observaciones = construirObservacionesIE_(docentes, esTecnicoIpc);
 
   const cursos = Array.from(totalesPorCurso.entries())
     .sort((a, b) => a[0].localeCompare(b[0], 'es', { numeric: true, sensitivity: 'base' }))
@@ -438,7 +449,7 @@ function generarReporteDiarioSaber11_(ss) {
   let totalInstituciones = 0, totalDocentes = 0, totalEstudiantes = 0;
 
   CFG.IES.forEach(nombreIE => {
-    const sh = ss.getSheetByName(nombreIE);
+    const sh = resolverHojaIE_(ss, nombreIE);
     if (!sh) return;
     if (!esHojaIE_(sh)) return;
     const { docentes, totalEstudiantesIE, nivelesIE, esTecnicoIpc } = calcularDocentesIE_(sh, nombreIE);
@@ -552,7 +563,7 @@ function generarReporteB1BMas_(ss) {
   const fecha = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
   const porIE = new Map();
   CFG.IES.forEach(nombreIE => {
-    const sh = ss.getSheetByName(nombreIE);
+    const sh = resolverHojaIE_(ss, nombreIE);
     if (!sh || !esHojaIE_(sh)) return;
     const ultimaFila = Math.min(CFG.ULTIMA_FILA, sh.getLastRow());
     const cantidadFilas = Math.max(0, ultimaFila - CFG.PRIMERA_FILA + 1);

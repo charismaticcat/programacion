@@ -74,9 +74,24 @@ document.getElementById('btnEntrarAdmin').addEventListener('click', function () 
 /**
  * Tres vistas públicas (spec del usuario), accesibles antes de elegir
  * una IE y sin ningún token: resumen de envío de todas las IE, reporte
- * estadístico B1/B+ y listado de estudiantes B1/B+.
+ * estadístico B1/B+ y listado de estudiantes B1/B+. Cada una se
+ * recalcula en vivo al abrirla (nunca queda en caché) y, mientras
+ * siguen abiertas, se refrescan solas cada 30 segundos (spec del
+ * usuario: "actualiza reportes públicos cada vez que haya un
+ * ingreso... guardado en la hoja original") para reflejar lo que vaya
+ * entrando sin tener que recargar la página a mano.
  */
+var TEMPORIZADOR_REFRESCO_PUBLICO_ = null;
+function iniciarRefrescoPublico_(funcionCargar) {
+  detenerRefrescoPublico_();
+  TEMPORIZADOR_REFRESCO_PUBLICO_ = setInterval(funcionCargar, 30000);
+}
+function detenerRefrescoPublico_() {
+  clearTimeout(TEMPORIZADOR_REFRESCO_PUBLICO_);
+  TEMPORIZADOR_REFRESCO_PUBLICO_ = null;
+}
 function volverAPantallaDistribucionDesde_(idSeccion) {
+  detenerRefrescoPublico_();
   document.getElementById(idSeccion).classList.add('oculto');
   document.getElementById('pantallaDistribucion').classList.remove('oculto');
 }
@@ -85,14 +100,13 @@ document.getElementById('btnVerResumenGeneral').addEventListener('click', functi
   document.getElementById('pantallaDistribucion').classList.add('oculto');
   document.getElementById('pantallaResumenGeneral').classList.remove('oculto');
   cargarResumenGeneralIE_();
+  iniciarRefrescoPublico_(cargarResumenGeneralIE_);
 });
 document.getElementById('btnSalirResumenGeneral').addEventListener('click', function () {
   volverAPantallaDistribucionDesde_('pantallaResumenGeneral');
 });
 function cargarResumenGeneralIE_() {
   mostrarMensaje('mensajeResumenGeneral', 'Cargando… <span class="spinner"></span>', 'info');
-  document.getElementById('barraProgresoGeneralIE').innerHTML = '';
-  document.getElementById('cuerpoResumenGeneral').innerHTML = '';
   llamarServidor('rpcObtenerResumenEnvioTodasLasIE', [], function (r) {
     mostrarMensaje('mensajeResumenGeneral', '', '');
     document.getElementById('barraProgresoGeneralIE').innerHTML =
@@ -102,7 +116,8 @@ function cargarResumenGeneralIE_() {
       return '<tr><td>' + escapeHtml(ie.nombreIE) + '</td>' +
         "<td><span class='badge-color' style='background:" + ie.colorEstado + "'></span></td>" +
         '<td>' + (ie.docentes.length ? ie.docentes.map(escapeHtml).join(', ') : '—') + '</td>' +
-        '<td>' + ie.totalEstudiantes + '</td></tr>';
+        '<td>' + ie.totalEstudiantes + '</td>' +
+        '<td>' + (ie.observaciones.length ? ie.observaciones.map(escapeHtml).join('<br>') : 'Sin observaciones.') + '</td></tr>';
     }).join('');
   }, function (e) {
     mostrarMensaje('mensajeResumenGeneral', e.mensaje || 'Error al cargar.', 'error');
@@ -113,14 +128,13 @@ document.getElementById('btnVerReporteB1BMasPublico').addEventListener('click', 
   document.getElementById('pantallaDistribucion').classList.add('oculto');
   document.getElementById('pantallaReporteB1BMasPublico').classList.remove('oculto');
   cargarReporteB1BMasPublico_();
+  iniciarRefrescoPublico_(cargarReporteB1BMasPublico_);
 });
 document.getElementById('btnSalirReporteB1BMasPublico').addEventListener('click', function () {
   volverAPantallaDistribucionDesde_('pantallaReporteB1BMasPublico');
 });
 function cargarReporteB1BMasPublico_() {
   mostrarMensaje('mensajeReporteB1BMasPublico', 'Cargando… <span class="spinner"></span>', 'info');
-  document.getElementById('totalGeneralB1BMasPublico').textContent = '';
-  document.getElementById('listaInstitucionesB1BMasPublico').innerHTML = '';
   llamarServidor('rpcObtenerReporteB1BMasPublico', [], function (r) {
     mostrarMensaje('mensajeReporteB1BMasPublico', '', '');
     document.getElementById('totalGeneralB1BMasPublico').textContent =
@@ -130,10 +144,14 @@ function cargarReporteB1BMasPublico_() {
       var filasCursos = ie.cursos.map(function (c) {
         return '<tr><td>' + escapeHtml(c.curso) + '</td><td>' + escapeHtml(c.tipo) + '</td><td>' + c.totalReportados + '</td><td>' + c.b1BMas + '</td><td>' + c.porcentaje + '%</td></tr>';
       }).join('');
-      return "<div class='bloque-ie-b1bmas'>" +
+      return "<div class='bloque-ie-b1bmas' data-nombre-ie=\"" + escapeHtml(ie.nombreIE) + '">' +
         "<div class='encabezado-ie-b1bmas'>" + (imgSrc ? "<img src='" + imgSrc + "' alt=''>" : '') +
         '<div><h3>' + escapeHtml(ie.nombreIE) + '</h3>' +
-        '<p>' + ie.totalB1BMas + ' de ' + ie.totalEvaluados + ' evaluados en B1/B+ (' + ie.porcentaje + '%)</p></div></div>' +
+        '<p>' + ie.totalB1BMas + ' de ' + ie.totalEvaluados + ' evaluados en B1/B+ (' + ie.porcentaje + '%)</p></div>' +
+        "<div class='acciones-ie-b1bmas'>" +
+        "<button type='button' class='btn-icono-ie-b1bmas btn-ver-grande-ie' title='Ver en pantalla completa'>👁️</button>" +
+        (imgSrc ? "<button type='button' class='btn-icono-ie-b1bmas btn-descargar-logo-ie' title='Descargar logo de la IE'>📥</button>" : '') +
+        '</div></div>' +
         (filasCursos ? "<table class='tabla-generica'><thead><tr><th>Curso</th><th>Tipo</th><th>Reportados</th><th>B1/B+</th><th>%</th></tr></thead><tbody>" + filasCursos + '</tbody></table>' : '') +
         '</div>';
     }).join('') || "<p class='mensaje info'>Todavía no hay información reportada.</p>";
@@ -141,18 +159,48 @@ function cargarReporteB1BMasPublico_() {
     mostrarMensaje('mensajeReporteB1BMasPublico', e.mensaje || 'Error al cargar.', 'error');
   });
 }
+/** 👁️ ver en pantalla completa / 📥 descargar el logo — spec del usuario. */
+document.getElementById('listaInstitucionesB1BMasPublico').addEventListener('click', function (evento) {
+  var botonVer = evento.target.closest('.btn-ver-grande-ie');
+  if (botonVer) {
+    var bloque = botonVer.closest('.bloque-ie-b1bmas');
+    document.getElementById('contenidoBloqueGrande').innerHTML = bloque.innerHTML;
+    document.getElementById('overlayBloqueGrande').classList.remove('oculto');
+    return;
+  }
+  var botonDescargar = evento.target.closest('.btn-descargar-logo-ie');
+  if (botonDescargar) {
+    var bloqueDescarga = botonDescargar.closest('.bloque-ie-b1bmas');
+    var img = bloqueDescarga.querySelector('img');
+    var coincide = img && /^data:([^;]+);base64,(.+)$/.exec(img.src);
+    if (!coincide) return;
+    var extension = (coincide[1].split('/')[1] || 'png').split('+')[0];
+    descargarArchivoBase64_(coincide[2], coincide[1], bloqueDescarga.getAttribute('data-nombre-ie') + ' - logo.' + extension);
+  }
+});
+function cerrarBloqueGrande_() {
+  document.getElementById('overlayBloqueGrande').classList.add('oculto');
+  document.getElementById('contenidoBloqueGrande').innerHTML = '';
+}
+document.getElementById('btnCerrarBloqueGrande').addEventListener('click', cerrarBloqueGrande_);
+document.getElementById('overlayBloqueGrande').addEventListener('click', function (evento) {
+  if (evento.target.id === 'overlayBloqueGrande') cerrarBloqueGrande_();
+});
+document.addEventListener('keydown', function (evento) {
+  if (evento.key === 'Escape') cerrarBloqueGrande_();
+});
 
 document.getElementById('btnVerListadoB1BMas').addEventListener('click', function () {
   document.getElementById('pantallaDistribucion').classList.add('oculto');
   document.getElementById('pantallaListadoB1BMas').classList.remove('oculto');
   cargarListadoB1BMasPublico_();
+  iniciarRefrescoPublico_(cargarListadoB1BMasPublico_);
 });
 document.getElementById('btnSalirListadoB1BMas').addEventListener('click', function () {
   volverAPantallaDistribucionDesde_('pantallaListadoB1BMas');
 });
 function cargarListadoB1BMasPublico_() {
   mostrarMensaje('mensajeListadoB1BMas', 'Cargando… <span class="spinner"></span>', 'info');
-  document.getElementById('cuerpoListadoB1BMas').innerHTML = '';
   llamarServidor('rpcObtenerListadoEstudiantesB1BMasPublico', [], function (r) {
     document.getElementById('anioListadoB1BMas').textContent = r.anio;
     mostrarMensaje('mensajeListadoB1BMas', r.total + ' estudiante(s) en nivel B1 o B+.', 'info');
@@ -1101,7 +1149,9 @@ function cargarTablaAdmin_() {
     }
     cuerpo.innerHTML = (lista || []).map(function (ie) {
       return '<tr>' +
-        '<td>' + escapeHtml(ie.nombreIE) + (ie.existeHoja ? '' : " <span class='mensaje error' style='display:inline;'>sin hoja</span>") + '</td>' +
+        '<td>' + escapeHtml(ie.nombreIE) +
+        (ie.existeHoja ? '' : " <span class='mensaje error' style='display:inline;'>sin hoja</span>") +
+        (ie.nombreHojaReal ? " <span class='mensaje info' style='display:inline;'>vinculada a pestaña similar: \"" + escapeHtml(ie.nombreHojaReal) + "\" — revisar nombre</span>" : '') + '</td>' +
         "<td><span class='badge-color' style='background:" + ie.colorEstado + "'></span></td>" +
         "<td><code>" + escapeHtml(ie.token) + '</code></td>' +
         "<td><button type='button' class='btn btn-secundario' data-regenerar-token='" + escapeHtml(ie.nombreIE) + "'>Regenerar</button> " +
@@ -1190,6 +1240,23 @@ document.getElementById('btnPrepararAvisoPublicacionWeb').addEventListener('clic
       'Compartir &gt; Publicar en la Web &gt; elija esa pestaña (no "Todo el documento") y publique.', 'exito');
   }, function (e) {
     mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible preparar la pestaña.', 'error');
+  });
+});
+document.getElementById('btnOcultarTodasExceptoAviso').addEventListener('click', function () {
+  if (!confirm('¿Ocultar las 36 IE y las hojas de control, dejando visible solo "AVISO - USE EL PORTAL"? Puede revertirlo con el botón "Mostrar todas las pestañas".')) return;
+  mostrarMensaje('mensajeAdmin', 'Ocultando pestañas… <span class="spinner"></span>', 'info');
+  llamarServidor('rpcAdminOcultarTodasExceptoAviso', [estado.tokenAdmin], function (r) {
+    mostrarMensaje('mensajeAdmin', '✅ ' + r.ocultadas + ' pestañas ocultadas. Solo queda visible "AVISO - USE EL PORTAL".', 'exito');
+  }, function (e) {
+    mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible ocultar las pestañas.', 'error');
+  });
+});
+document.getElementById('btnMostrarTodasLasHojas').addEventListener('click', function () {
+  mostrarMensaje('mensajeAdmin', 'Mostrando todas las pestañas… <span class="spinner"></span>', 'info');
+  llamarServidor('rpcAdminMostrarTodasLasHojas', [estado.tokenAdmin], function (r) {
+    mostrarMensaje('mensajeAdmin', '✅ ' + r.mostradas + ' pestañas vueltas a mostrar.', 'exito');
+  }, function (e) {
+    mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible mostrar las pestañas.', 'error');
   });
 });
 document.getElementById('btnLimpiarDocentesDuplicados').addEventListener('click', function () {

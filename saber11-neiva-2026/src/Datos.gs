@@ -91,7 +91,7 @@ function opcionesColumnasIE_(sh) {
 function obtenerDatosIE(nombreIE, token) {
   const nombreReal = exigirAccesoIEoAdminComoIE_(nombreIE, token);
   const ss = abrirSpreadsheet_();
-  const sh = ss.getSheetByName(nombreReal);
+  const sh = resolverHojaIE_(ss, nombreReal);
   if (!sh) throw new Error('No se encontró la hoja de "' + nombreReal + '". Avise al administrador.');
   const F = CFG.PRIMERA_FILA;
   // Leer solo hasta donde ya hay contenido (+ 15 filas en blanco para
@@ -152,7 +152,7 @@ function guardarFilaIE(nombreIE, token, fila, datos) {
     throw new Error('Fila fuera de rango.');
   }
   const ss = abrirSpreadsheet_();
-  const sh = ss.getSheetByName(nombreReal);
+  const sh = resolverHojaIE_(ss, nombreReal);
   if (!sh) throw new Error('No se encontró la hoja de "' + nombreReal + '".');
   datos = datos || {};
   const C = CFG.COL;

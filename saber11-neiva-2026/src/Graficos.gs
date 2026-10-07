@@ -58,7 +58,7 @@ function aplicarLetreroGraficosTodasLasIE(token) {
   const ss = abrirSpreadsheet_();
   const hechas = [], problemas = [];
   CFG.IES.forEach(nombreIE => {
-    const sh = ss.getSheetByName(nombreIE);
+    const sh = resolverHojaIE_(ss, nombreIE);
     if (!sh) { problemas.push(nombreIE + ': no existe la hoja'); return; }
     try { letreroGraficos_(sh, nombreIE); hechas.push(nombreIE); }
     catch (e) { problemas.push(nombreIE + ': ' + e.message); }
@@ -143,7 +143,7 @@ function verificarInformacionCompleta_(registros) {
 function verificarCompletitudIE(nombreIE, token) {
   const nombreReal = exigirAccesoIEoAdminComoIE_(nombreIE, token);
   const ss = abrirSpreadsheet_();
-  const sh = ss.getSheetByName(nombreReal);
+  const sh = resolverHojaIE_(ss, nombreReal);
   if (!sh) throw new Error('No se encontró la hoja de "' + nombreReal + '".');
   const registros = leerRegistrosParaGraficos_(sh);
   if (!registros.length) return { completo: false, faltantes: ['Todavía no hay ningún estudiante registrado en esta IE.'] };
@@ -252,7 +252,7 @@ function limpiarZonaGraficos_(sh) {
 function generarGraficosIE(nombreIE, token) {
   const nombreReal = exigirAccesoIEoAdminComoIE_(nombreIE, token);
   const ss = abrirSpreadsheet_();
-  const sh = ss.getSheetByName(nombreReal);
+  const sh = resolverHojaIE_(ss, nombreReal);
   if (!sh) throw new Error('No se encontró la hoja de "' + nombreReal + '".');
 
   const registros = leerRegistrosParaGraficos_(sh);

@@ -16,18 +16,28 @@
  * por IE y el letrero de gráficos.
  */
 
-/** Lista de IE con su token y su estado (color de pestaña) — para distribuir los enlaces. */
+/**
+ * Lista de IE con su token y su estado (color de pestaña) — para
+ * distribuir los enlaces. Spec del usuario: si el nombre exacto de
+ * CFG.IES no tiene pestaña (p. ej. la pestaña real quedó creada como
+ * "IE CLARETIANO GUSTAVO TORRES" en vez de "CLARETIANO GUSTAVO TORRES
+ * PARRA"), nombreHojaReal muestra a qué pestaña real quedó vinculada
+ * por nombre similar (resolverHojaIE_, Utilidades.gs) — para que se
+ * note la diferencia en el panel, aunque los datos sigan funcionando.
+ */
 function adminListarTokens(token) {
   exigirAccesoAdmin_(token);
   const ss = abrirSpreadsheet_();
   const mapa = asegurarTokensIE_(ss);
   return CFG.IES.map(ie => {
-    const sh = ss.getSheetByName(ie);
+    const shExacta = ss.getSheetByName(ie);
+    const sh = shExacta || resolverHojaIE_(ss, ie);
     return {
       nombreIE: ie,
       token: mapa[norm_(ie)] || '',
       colorEstado: sh ? (sh.getTabColor() || '#9E9E9E') : '#9E9E9E',
-      existeHoja: !!sh
+      existeHoja: !!sh,
+      nombreHojaReal: (sh && !shExacta) ? sh.getName() : ''
     };
   });
 }
@@ -109,6 +119,38 @@ function adminEscribirTokensEnResumenEnvios(token) {
     .setHorizontalAlignment('center').setVerticalAlignment('middle');
 
   return { ok: true, total: total, filaAdmin: filaAdmin };
+}
+
+/**
+ * Oculta todas las pestañas del archivo real EXCEPTO "AVISO - USE EL
+ * PORTAL" (spec del usuario) — así, aunque alguien tenga acceso directo
+ * a la hoja (por compartir o por "Publicar en la Web"), la barra de
+ * pestañas de Google solo muestra el aviso, nunca las 36 IE ni las
+ * hojas de control. Reversible con adminMostrarTodasLasHojas.
+ */
+function adminOcultarTodasExceptoAviso(token) {
+  exigirAccesoAdmin_(token);
+  const ss = abrirSpreadsheet_();
+  let ocultadas = 0;
+  ss.getSheets().forEach(sh => {
+    if (sh.getName() === HOJA_AVISO_PUBLICACION_WEB_) {
+      if (sh.isSheetHidden()) sh.showSheet();
+      return;
+    }
+    if (!sh.isSheetHidden()) { sh.hideSheet(); ocultadas++; }
+  });
+  return { ok: true, ocultadas: ocultadas };
+}
+
+/** Vuelve a mostrar todas las pestañas ocultadas por adminOcultarTodasExceptoAviso. */
+function adminMostrarTodasLasHojas(token) {
+  exigirAccesoAdmin_(token);
+  const ss = abrirSpreadsheet_();
+  let mostradas = 0;
+  ss.getSheets().forEach(sh => {
+    if (sh.isSheetHidden()) { sh.showSheet(); mostradas++; }
+  });
+  return { ok: true, mostradas: mostradas };
 }
 
 /**

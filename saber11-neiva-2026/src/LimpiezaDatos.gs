@@ -41,7 +41,7 @@ function adminLimpiarDocentesDuplicados(token) {
   let total = 0;
   const detalle = [];
   CFG.IES.forEach(nombreIE => {
-    const sh = ss.getSheetByName(nombreIE);
+    const sh = resolverHojaIE_(ss, nombreIE);
     if (!sh) return;
     const cambios = limpiarDocentesDuplicadosEnHoja_(sh);
     if (cambios) { total += cambios; detalle.push(nombreIE + ': ' + cambios); }
@@ -65,7 +65,7 @@ function adminEliminarEstudiantesPorCurso(token, nombreIE, curso) {
   const cursoClave = norm_(curso);
   if (!cursoClave) throw new Error('Escriba el curso a eliminar.');
   const ss = abrirSpreadsheet_();
-  const sh = ss.getSheetByName(nombreReal);
+  const sh = resolverHojaIE_(ss, nombreReal);
   if (!sh) throw new Error('No se encontró la hoja de "' + nombreReal + '".');
   const F = CFG.PRIMERA_FILA, C = CFG.COL;
   const ultimaFila = Math.min(CFG.ULTIMA_FILA, sh.getLastRow());
@@ -151,7 +151,7 @@ function generoSegunNombre_(primerNombre, mapaAprendido) {
 function construirMapaGeneroAprendido_(ss) {
   const mapa = {};
   CFG.IES.forEach(nombreIE => {
-    const sh = ss.getSheetByName(nombreIE);
+    const sh = resolverHojaIE_(ss, nombreIE);
     if (!sh) return;
     const F = CFG.PRIMERA_FILA;
     const ultimaFila = Math.min(CFG.ULTIMA_FILA, sh.getLastRow());
@@ -193,7 +193,7 @@ function adminAutocompletarGenero(token) {
   let total = 0;
   const detalle = [];
   CFG.IES.forEach(nombreIE => {
-    const sh = ss.getSheetByName(nombreIE);
+    const sh = resolverHojaIE_(ss, nombreIE);
     if (!sh) return;
     const F = CFG.PRIMERA_FILA;
     const ultimaFila = Math.min(CFG.ULTIMA_FILA, sh.getLastRow());

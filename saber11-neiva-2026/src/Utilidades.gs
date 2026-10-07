@@ -12,6 +12,33 @@ function norm_(v) {
   return texto_(v).normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/\s+/g, ' ').trim();
 }
 
+/**
+ * Encuentra la hoja de una IE aunque el nombre exacto de CFG.IES no
+ * coincida con el nombre real de la pestaña — spec del usuario: "revisa
+ * y cruza información... debería relacionarse con la hoja que le
+ * corresponde a nombre similar". Primero intenta el nombre exacto;
+ * luego, ignorando un posible prefijo "IE"/"I.E." al inicio; y por
+ * último, si el nombre de una pestaña real contiene (o está contenido
+ * en) el nombre buscado, la usa — así una pestaña creada como "IE
+ * CLARETIANO GUSTAVO TORRES" o solo "CLARETIANO GUSTAVO TORRES" se
+ * sigue encontrando aunque CFG.IES tenga "CLARETIANO GUSTAVO TORRES
+ * PARRA".
+ */
+function resolverHojaIE_(ss, nombreIE) {
+  let sh = ss.getSheetByName(nombreIE);
+  if (sh) return sh;
+  const sinPrefijo = v => norm_(v).replace(/^I\.?\s*E\.?\s+/, '').trim();
+  const clave = sinPrefijo(nombreIE);
+  if (!clave) return null;
+  const hojas = ss.getSheets();
+  sh = hojas.find(h => sinPrefijo(h.getName()) === clave);
+  if (sh) return sh;
+  return hojas.find(h => {
+    const n = sinPrefijo(h.getName());
+    return n.length > 4 && (n.indexOf(clave) >= 0 || clave.indexOf(n) >= 0);
+  }) || null;
+}
+
 function letra_(n) {
   let s = '';
   while (n) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }

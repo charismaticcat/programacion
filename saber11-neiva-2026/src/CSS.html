@@ -117,12 +117,21 @@
   .barra-progreso-general { background: var(--gris-borde); border-radius: 8px; height: 16px; overflow: hidden; margin: 10px 0 4px; }
   .relleno-barra-progreso { background: var(--verde); height: 100%; transition: width .3s; }
 
+  /* Leyenda de colores del resumen general (spec del usuario: "debe explicar que significa cada color"). */
+  .leyenda-colores-estado { display: flex; flex-wrap: wrap; gap: 16px; margin: 10px 0; font-size: .85rem; color: var(--gris-texto); }
+  .leyenda-colores-estado span { white-space: nowrap; }
+
   /* Bloques por IE del reporte estadístico B1/B+ público (spec del usuario: "incluye toda la info de IE+logo"). */
   .bloque-ie-b1bmas { border: 1px solid var(--gris-borde); border-radius: 8px; padding: 14px; margin-bottom: 14px; }
   .encabezado-ie-b1bmas { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
   .encabezado-ie-b1bmas img { max-width: 56px; max-height: 56px; object-fit: contain; }
   .encabezado-ie-b1bmas h3 { margin: 0; }
   .encabezado-ie-b1bmas p { margin: 4px 0 0; color: var(--gris-texto); }
+  .encabezado-ie-b1bmas .acciones-ie-b1bmas { margin-left: auto; display: flex; gap: 6px; }
+  .btn-icono-ie-b1bmas { border: none; background: var(--gris-borde); border-radius: 6px; width: 34px; height: 34px; font-size: 1.05rem; cursor: pointer; }
+  .btn-icono-ie-b1bmas:hover { background: #c6c6c6; }
+  .contenido-bloque-grande { background: #fff; border-radius: 12px; padding: 30px; max-width: 90vw; max-height: 90vh; overflow: auto; }
+  .contenido-bloque-grande .acciones-ie-b1bmas { display: none; }
 
   .spinner { border: 3px solid var(--gris-borde); border-top-color: var(--azul); border-radius: 50%; width: 22px; height: 22px; animation: girar 0.8s linear infinite; display: inline-block; vertical-align: middle; }
   @keyframes girar { to { transform: rotate(360deg); } }

@@ -92,6 +92,12 @@ function rpcDescargarInformeIE(nombreIE, token, formato) {
 function rpcAdminInstalarRedireccionHojaReal(token) {
   return ejecutarRpcSeguro_(() => adminInstalarRedireccionHojaReal(token));
 }
+function rpcAdminOcultarTodasExceptoAviso(token) {
+  return ejecutarRpcSeguro_(() => adminOcultarTodasExceptoAviso(token));
+}
+function rpcAdminMostrarTodasLasHojas(token) {
+  return ejecutarRpcSeguro_(() => adminMostrarTodasLasHojas(token));
+}
 function rpcAdminPrepararAvisoPublicacionWeb(token) {
   return ejecutarRpcSeguro_(() => adminPrepararAvisoPublicacionWeb(token));
 }

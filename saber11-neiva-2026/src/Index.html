@@ -47,9 +47,15 @@
     <div class="tarjeta">
       <div id="mensajeResumenGeneral"></div>
       <div id="barraProgresoGeneralIE"></div>
+      <div class="leyenda-colores-estado">
+        <span><span class="badge-color" style="background:#34A853"></span> Verde: reporte completo, sin observaciones</span>
+        <span><span class="badge-color" style="background:#F9AB00"></span> Naranja: reportó, pero con observaciones pendientes</span>
+        <span><span class="badge-color" style="background:#EA4335"></span> Rojo: todavía no ha reportado</span>
+        <span><span class="badge-color" style="background:#9E9E9E"></span> Gris: sin evaluar todavía</span>
+      </div>
       <div class="tabla-desplazable">
         <table class="tabla-generica">
-          <thead><tr><th>Institución</th><th>Estado</th><th>Docentes que han reportado</th><th>Estudiantes reportados</th></tr></thead>
+          <thead><tr><th>Institución</th><th>Estado</th><th>Docentes que han reportado</th><th>Estudiantes reportados</th><th>Observaciones</th></tr></thead>
           <tbody id="cuerpoResumenGeneral"></tbody>
         </table>
       </div>
@@ -177,6 +183,8 @@
         <button type="button" class="btn btn-secundario" id="btnInstalarRedireccionHoja">Activar redirección al Portal al abrir la hoja original</button>
         <button type="button" class="btn btn-secundario" id="btnPrepararAvisoPublicacionWeb">Preparar pestaña de aviso para "Publicar en la Web"</button>
         <button type="button" class="btn btn-secundario" id="btnProtegerTodasLasHojas">Proteger todas las hojas (solo editable desde el Portal)</button>
+        <button type="button" class="btn btn-secundario" id="btnOcultarTodasExceptoAviso">🙈 Ocultar todas las pestañas (dejar solo Aviso)</button>
+        <button type="button" class="btn btn-secundario" id="btnMostrarTodasLasHojas">👁️ Mostrar todas las pestañas</button>
       </div>
       <p class="ayuda">Nota sobre el enlace "htmlview" (Publicar en la Web): es una vista estática que Google genera
         aparte del editor — no ejecuta Apps Script, así que no hay forma de redirigirla por código. <b>Importante:</b>
@@ -237,6 +245,12 @@
   <div id="overlayGraficoGrande" class="oculto overlay-grafico">
     <button type="button" id="btnCerrarGraficoGrande" class="btn-cerrar-overlay">✕</button>
     <img id="imgGraficoGrande" src="" alt="Gráfico en pantalla completa">
+  </div>
+
+  <!-- Visor de pantalla completa para el bloque de una IE en el reporte estadístico B1/B+ (spec del usuario: "ojito para mostrar en pantalla completa") -->
+  <div id="overlayBloqueGrande" class="oculto overlay-grafico">
+    <button type="button" id="btnCerrarBloqueGrande" class="btn-cerrar-overlay">✕</button>
+    <div id="contenidoBloqueGrande" class="contenido-bloque-grande"></div>
   </div>
 </div>
 <?!= incluir_('JS'); ?>

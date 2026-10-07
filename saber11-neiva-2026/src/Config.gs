@@ -35,7 +35,7 @@ const CFG = {
   // IE cuyo logo no se detectó bien por nombre — ID del archivo de Drive puesto a mano (spec del usuario).
   LOGOS_MANUALES: {
     'INEM JULIAN MOTTA SALAS': '1AResGxiz_RYP7hcWpQzjnVaC0lQ1ee0Z',
-    'JAIRO MOSQUERA MORENO': '1AResGxiz_RYP7hcWpQzjnVaC0lQ1ee0Z',
+    'JAIRO MOSQUERA MORENO': '1n66NFNmaQUx4eZ_kPdBETLujzTOSeP2w',
     'SANTA LIBRADA': '1M2q_Pe0JLkCBdc78rdOsAfHvghcNMvYm'
   },
 

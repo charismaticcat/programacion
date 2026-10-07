@@ -14,20 +14,26 @@
  *      documento, y sin el docente que reportó.
  */
 
-/** 1) Docentes que han reportado + total de estudiantes, en las 36 IE, con barra de progreso. */
+/**
+ * 1) Docentes que han reportado + total de estudiantes + observaciones
+ * personalizadas (spec del usuario: "realiza observaciones
+ * personalizadas para cada dependiendo de lo que falte"), en las 36 IE,
+ * con barra de progreso.
+ */
 function obtenerResumenEnvioTodasLasIE() {
   const ss = abrirSpreadsheet_();
   const instituciones = CFG.IES.map(nombreIE => {
-    const sh = ss.getSheetByName(nombreIE);
-    if (!sh) return { nombreIE: nombreIE, colorEstado: '#9E9E9E', docentes: [], totalEstudiantes: 0, reportada: false };
-    const { docentes, totalEstudiantesIE } = calcularDocentesIE_(sh, nombreIE);
+    const sh = resolverHojaIE_(ss, nombreIE);
+    if (!sh) return { nombreIE: nombreIE, colorEstado: '#9E9E9E', docentes: [], totalEstudiantes: 0, reportada: false, observaciones: [] };
+    const { docentes, totalEstudiantesIE, esTecnicoIpc } = calcularDocentesIE_(sh, nombreIE);
     const nombresDocentes = Object.keys(docentes).filter(n => norm_(n) !== 'DOCENTE NO REGISTRADO');
     return {
       nombreIE: nombreIE,
       colorEstado: sh.getTabColor() || '#9E9E9E',
       docentes: nombresDocentes,
       totalEstudiantes: totalEstudiantesIE,
-      reportada: totalEstudiantesIE > 0
+      reportada: totalEstudiantesIE > 0,
+      observaciones: construirObservacionesIE_(docentes, esTecnicoIpc)
     };
   });
   const totalReportadas = instituciones.filter(i => i.reportada).length;
@@ -46,7 +52,7 @@ function obtenerReporteB1BMasPublico_() {
   const instituciones = [];
   let totalEvaluadosGeneral = 0, totalB1BMasGeneral = 0;
   CFG.IES.forEach(nombreIE => {
-    const sh = ss.getSheetByName(nombreIE);
+    const sh = resolverHojaIE_(ss, nombreIE);
     if (!sh || !esHojaIE_(sh)) return;
     const ultimaFila = Math.min(CFG.ULTIMA_FILA, sh.getLastRow());
     const cantidadFilas = Math.max(0, ultimaFila - CFG.PRIMERA_FILA + 1);
@@ -109,7 +115,7 @@ function obtenerListadoEstudiantesB1BMasPublico_() {
   const ss = abrirSpreadsheet_();
   const estudiantes = [];
   CFG.IES.forEach(nombreIE => {
-    const sh = ss.getSheetByName(nombreIE);
+    const sh = resolverHojaIE_(ss, nombreIE);
     if (!sh || !esHojaIE_(sh)) return;
     const ultimaFila = Math.min(CFG.ULTIMA_FILA, sh.getLastRow());
     const cantidadFilas = Math.max(0, ultimaFila - CFG.PRIMERA_FILA + 1);

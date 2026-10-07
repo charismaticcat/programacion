@@ -54,7 +54,7 @@ function exportarHojaComoXLSX_(sh, nombreArchivo) {
 function descargarInformeIE(nombreIE, token, formato) {
   const nombreReal = exigirAccesoIEoAdminComoIE_(nombreIE, token);
   const ss = abrirSpreadsheet_();
-  const sh = ss.getSheetByName(nombreReal);
+  const sh = resolverHojaIE_(ss, nombreReal);
   if (!sh) throw new Error('No se encontró la hoja de "' + nombreReal + '".');
   if (!sh.getCharts().length) {
     throw new Error('Todavía no hay gráficos generados. Genere los gráficos primero.');
@@ -78,7 +78,7 @@ function adminDescargarInformeIE(token, nombreIE, formato) {
   if (idx < 0) throw new Error('Institución no reconocida.');
   const nombreReal = CFG.IES[idx];
   const ss = abrirSpreadsheet_();
-  const sh = ss.getSheetByName(nombreReal);
+  const sh = resolverHojaIE_(ss, nombreReal);
   if (!sh) throw new Error('No se encontró la hoja de "' + nombreReal + '".');
   if (!sh.getCharts().length) {
     throw new Error('"' + nombreReal + '" todavía no tiene gráficos generados. Genere los gráficos primero (botón "Generar gráficos").');
