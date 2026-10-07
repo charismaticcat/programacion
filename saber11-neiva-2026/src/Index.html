@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <?!= incluir_('CSS'); ?>
+</head>
+<body>
+<div class="contenedor">
+  <h1 style="text-align:center;">📊 Portal IE — Resultados PRUEBA SABER 11º · Neiva 2026</h1>
+
+  <!-- 1. PANTALLA DE DISTRIBUCIÓN DE LINKS -->
+  <section id="pantallaDistribucion">
+    <div class="tarjeta">
+      <h2>Elija su institución educativa</h2>
+      <p>Seleccione el logo de su IE y escriba el token de ingreso que le entregó la Secretaría de Educación.</p>
+      <div id="rejillaInstituciones" class="grid-instituciones">
+        <p class="mensaje info">Cargando instituciones… <span class="spinner"></span></p>
+      </div>
+      <div id="bloqueToken" class="oculto">
+        <p><strong>Institución elegida:</strong> <span id="nombreIEElegida"></span>
+          <button type="button" class="btn btn-secundario" id="btnCambiarIE" style="margin-left:10px;">Cambiar</button></p>
+        <label for="campoTokenIE">Token de ingreso</label>
+        <input type="text" id="campoTokenIE" autocomplete="off" placeholder="Ej: 7K4P9XQ2">
+        <div id="mensajeAccesoIE"></div>
+        <div class="fila-botones">
+          <button type="button" class="btn btn-primario" id="btnEntrarIE">Entrar</button>
+        </div>
+      </div>
+      <a href="#" id="enlaceSoyAdmin" class="enlace-admin">Soy administrador</a>
+      <div id="bloqueTokenAdmin" class="oculto">
+        <label for="campoTokenAdmin">Token de administrador</label>
+        <input type="password" id="campoTokenAdmin" autocomplete="off">
+        <div id="mensajeAccesoAdmin"></div>
+        <div class="fila-botones">
+          <button type="button" class="btn btn-primario" id="btnEntrarAdmin">Entrar como administrador</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. PANTALLA DE LA IE -->
+  <section id="pantallaIE" class="oculto">
+    <div class="tarjeta">
+      <h2><span id="badgeColorIE" class="badge-color"></span><span id="tituloIE"></span></h2>
+      <button type="button" class="btn btn-secundario" id="btnSalirIE">Salir</button>
+    </div>
+
+    <div class="pestanas">
+      <div class="pestana activa" data-pestana-ie="misDatos">Mi institución</div>
+      <div class="pestana" data-pestana-ie="resumenEnvios">Resumen de envíos</div>
+      <div class="pestana" data-pestana-ie="reporteDiario">Reporte diario</div>
+    </div>
+
+    <div id="vistaMisDatos">
+      <div class="letrero-graficos" id="letreroGraficosIE"></div>
+      <div class="tarjeta">
+        <h3>Estudiantes reportados</h3>
+        <div id="mensajeDatosIE"></div>
+        <div class="tabla-desplazable">
+          <table class="tabla-generica tabla-ie">
+            <thead>
+              <tr>
+                <th>#</th><th>Docente</th><th>Nombre completo</th><th>Jornada</th><th>Género</th><th>Curso</th>
+                <th>Tipo doc.</th><th>Núm. doc.</th><th>Puntaje</th><th>Nivel</th>
+                <th>Intensif.</th><th>SENA</th><th>Académico</th>
+              </tr>
+            </thead>
+            <tbody id="cuerpoTablaIE"></tbody>
+          </table>
+        </div>
+        <div class="fila-botones">
+          <button type="button" class="btn btn-secundario" id="btnAgregarFilaIE">+ Agregar estudiante</button>
+        </div>
+      </div>
+      <div class="tarjeta">
+        <h3>Gráficos de la IE</h3>
+        <div class="fila-botones">
+          <button type="button" class="btn btn-primario" id="btnGenerarGraficos">Generar gráficos</button>
+        </div>
+        <div id="mensajeGraficosIE"></div>
+        <div id="galeriaGraficosIE" class="galeria-graficos"></div>
+      </div>
+    </div>
+
+    <div id="vistaResumenEnvios" class="oculto tarjeta">
+      <h3>Resumen de envíos (todas las IE)</h3>
+      <div id="contenedorResumenEnvios" class="tabla-desplazable"></div>
+    </div>
+
+    <div id="vistaReporteDiario" class="oculto tarjeta">
+      <h3>Reporte diario (todas las IE)</h3>
+      <div id="contenedorReporteDiario" class="tabla-desplazable"></div>
+    </div>
+  </section>
+
+  <!-- 5. PANTALLA DE ADMINISTRADOR -->
+  <section id="pantallaAdmin" class="oculto">
+    <div class="tarjeta">
+      <h2>🔐 Panel de administrador</h2>
+      <button type="button" class="btn btn-secundario" id="btnSalirAdmin">Salir</button>
+      <div class="fila-botones">
+        <button type="button" class="btn btn-secundario" id="btnAplicarLetreroTodas">Aplicar letrero de gráficos a todas las IE</button>
+        <a id="enlaceHojaReal" href="#" target="_blank" class="btn btn-secundario">Abrir hoja de cálculo original</a>
+      </div>
+      <div id="mensajeAdmin"></div>
+    </div>
+    <div class="tarjeta">
+      <h3>Tokens de acceso por IE</h3>
+      <div class="tabla-desplazable">
+        <table class="tabla-generica">
+          <thead><tr><th>Institución</th><th>Estado</th><th>Token</th><th></th></tr></thead>
+          <tbody id="cuerpoTablaAdmin"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+<?!= incluir_('JS'); ?>
+</body>
+</html>

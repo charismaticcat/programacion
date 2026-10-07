@@ -1,0 +1,340 @@
+<script>
+/**
+ * JS.html — Portal IE SABER 11 Neiva 2026
+ * Mismo patrón que el Foro Comunal: wrapper único sobre google.script.run,
+ * estado en localStorage para no repetir el token en cada visita, y
+ * autoguardado por fila con debounce.
+ */
+var CLAVE_SESION_IE_ = 'saber11_sesion_ie';
+var CLAVE_SESION_ADMIN_ = 'saber11_sesion_admin';
+var estado = { nombreIE: '', tokenIE: '', tokenAdmin: '', ieElegidaPendiente: '' };
+
+function llamarServidor(nombreFn, args, exito, error) {
+  google.script.run
+    .withSuccessHandler(function (r) {
+      if (r && r.ok === false) { (error || function () {})(r); return; }
+      exito(r && 'datos' in r ? r.datos : r);
+    })
+    .withFailureHandler(function (e) {
+      (error || function () {})({ mensaje: 'Error de comunicación con el servidor. Intente de nuevo.' });
+      console.error(nombreFn, e);
+    })[nombreFn].apply(null, args || []);
+}
+
+function mostrarMensaje(id, texto, tipo) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = texto ? "<p class='mensaje " + (tipo || 'info') + "'>" + texto + '</p>' : '';
+}
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+
+/* ============================== DISTRIBUCIÓN ============================== */
+function cargarDistribucion_() {
+  llamarServidor('rpcListarInstituciones', [], function (lista) {
+    var contenedor = document.getElementById('rejillaInstituciones');
+    var html = '';
+    (lista || []).forEach(function (ie) {
+      var imgSrc = ie.logoBase64 ? 'data:' + (ie.logoMime || 'image/png') + ';base64,' + ie.logoBase64 : '';
+      html += "<div class='tarjeta-ie' data-elegir-ie='" + escapeHtml(ie.nombreIE) + "'>" +
+        (imgSrc ? "<img src='" + imgSrc + "' alt=''>" : "<div style='height:64px;'></div>") +
+        "<div class='nombre-ie'>" + escapeHtml(ie.nombreIE) + '</div></div>';
+    });
+    contenedor.innerHTML = html || "<p class='mensaje error'>No se pudo cargar la lista de instituciones.</p>";
+  }, function (e) {
+    document.getElementById('rejillaInstituciones').innerHTML =
+      "<p class='mensaje error'>" + escapeHtml(e.mensaje || 'Error al cargar instituciones.') + '</p>';
+  });
+}
+
+document.getElementById('rejillaInstituciones').addEventListener('click', function (evento) {
+  var tarjeta = evento.target.closest('[data-elegir-ie]');
+  if (!tarjeta) return;
+  document.querySelectorAll('.tarjeta-ie').forEach(function (t) { t.classList.remove('seleccionada'); });
+  tarjeta.classList.add('seleccionada');
+  estado.ieElegidaPendiente = tarjeta.getAttribute('data-elegir-ie');
+  document.getElementById('nombreIEElegida').textContent = estado.ieElegidaPendiente;
+  document.getElementById('bloqueToken').classList.remove('oculto');
+  document.getElementById('campoTokenIE').focus();
+});
+document.getElementById('btnCambiarIE').addEventListener('click', function () {
+  estado.ieElegidaPendiente = '';
+  document.getElementById('bloqueToken').classList.add('oculto');
+  document.querySelectorAll('.tarjeta-ie').forEach(function (t) { t.classList.remove('seleccionada'); });
+});
+
+document.getElementById('btnEntrarIE').addEventListener('click', function () {
+  var token = document.getElementById('campoTokenIE').value.trim();
+  if (!estado.ieElegidaPendiente || !token) {
+    mostrarMensaje('mensajeAccesoIE', 'Elija su institución y escriba el token.', 'error');
+    return;
+  }
+  llamarServidor('rpcValidarAccesoIE', [estado.ieElegidaPendiente, token], function (r) {
+    try { localStorage.setItem(CLAVE_SESION_IE_, JSON.stringify({ nombreIE: r.nombreIE, token: token })); } catch (e) {}
+    entrarPantallaIE_(r.nombreIE, token);
+  }, function (e) {
+    mostrarMensaje('mensajeAccesoIE', e.mensaje || 'No fue posible validar el acceso.', 'error');
+  });
+});
+
+document.getElementById('enlaceSoyAdmin').addEventListener('click', function (evento) {
+  evento.preventDefault();
+  document.getElementById('bloqueTokenAdmin').classList.toggle('oculto');
+});
+document.getElementById('btnEntrarAdmin').addEventListener('click', function () {
+  var token = document.getElementById('campoTokenAdmin').value.trim();
+  llamarServidor('rpcValidarAccesoAdmin', [token], function () {
+    try { localStorage.setItem(CLAVE_SESION_ADMIN_, token); } catch (e) {}
+    entrarPantallaAdmin_(token);
+  }, function (e) {
+    mostrarMensaje('mensajeAccesoAdmin', e.mensaje || 'Token incorrecto.', 'error');
+  });
+});
+
+/* ============================== VISTA DE IE ============================== */
+var TEXTO_LETRERO_GRAFICOS_CLIENTE_ =
+  'Se generarán los gráficos de la IE {IE} de acuerdo a la información ingresada. Para generar el gráfico ' +
+  'de cada IE es necesario tener toda la información completa. Una vez finalizada la información dar clic ' +
+  'en el botón generar gráficos y revise al lado del cuadro donde ingresó la información la imagen.';
+
+function entrarPantallaIE_(nombreIE, token) {
+  estado.nombreIE = nombreIE;
+  estado.tokenIE = token;
+  document.getElementById('pantallaDistribucion').classList.add('oculto');
+  document.getElementById('pantallaAdmin').classList.add('oculto');
+  document.getElementById('pantallaIE').classList.remove('oculto');
+  document.getElementById('tituloIE').textContent = nombreIE;
+  document.getElementById('letreroGraficosIE').textContent =
+    '📊 ' + TEXTO_LETRERO_GRAFICOS_CLIENTE_.replace('{IE}', nombreIE.replace(/^\s*(I\.?\s*E\.?|IE)\s+/i, ''));
+  cambiarPestanaIE_('misDatos');
+  cargarDatosIE_();
+}
+
+document.getElementById('btnSalirIE').addEventListener('click', function () {
+  try { localStorage.removeItem(CLAVE_SESION_IE_); } catch (e) {}
+  location.reload();
+});
+
+document.querySelectorAll('[data-pestana-ie]').forEach(function (p) {
+  p.addEventListener('click', function () { cambiarPestanaIE_(p.getAttribute('data-pestana-ie')); });
+});
+function cambiarPestanaIE_(nombre) {
+  document.querySelectorAll('[data-pestana-ie]').forEach(function (p) {
+    p.classList.toggle('activa', p.getAttribute('data-pestana-ie') === nombre);
+  });
+  ['misDatos', 'resumenEnvios', 'reporteDiario'].forEach(function (v) {
+    document.getElementById('vista' + v.charAt(0).toUpperCase() + v.slice(1)).classList.toggle('oculto', v !== nombre);
+  });
+  if (nombre === 'resumenEnvios') cargarTablaGenerica_('rpcObtenerResumenEnvios', 'contenedorResumenEnvios');
+  if (nombre === 'reporteDiario') cargarTablaGenerica_('rpcObtenerReporteDiario', 'contenedorReporteDiario');
+}
+
+function cargarTablaGenerica_(rpc, idContenedor) {
+  var contenedor = document.getElementById(idContenedor);
+  contenedor.innerHTML = "<p class='mensaje info'>Cargando… <span class='spinner'></span></p>";
+  llamarServidor(rpc, [estado.nombreIE, estado.tokenIE], function (datos) {
+    if (!datos.encontrada || !datos.filas.length) {
+      contenedor.innerHTML = "<p class='mensaje info'>Todavía no hay información.</p>";
+      return;
+    }
+    var html = "<table class='tabla-generica'><tbody>";
+    datos.filas.forEach(function (fila, i) {
+      html += '<tr>';
+      fila.forEach(function (celda, j) {
+        var fondo = datos.fondos && datos.fondos[i] && datos.fondos[i][j];
+        var estilo = fondo && fondo !== '#ffffff' ? " style='background:" + fondo + "'" : '';
+        html += (i === 0 ? '<th' : '<td') + estilo + '>' + escapeHtml(celda) + (i === 0 ? '</th>' : '</td>');
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    contenedor.innerHTML = html;
+  }, function (e) {
+    contenedor.innerHTML = "<p class='mensaje error'>" + escapeHtml(e.mensaje || 'Error al cargar.') + '</p>';
+  });
+}
+
+function cargarDatosIE_() {
+  mostrarMensaje('mensajeDatosIE', 'Cargando estudiantes… <span class="spinner"></span>', 'info');
+  llamarServidor('rpcObtenerDatosIE', [estado.nombreIE, estado.tokenIE], function (datos) {
+    document.getElementById('badgeColorIE').style.background = datos.colorEstado;
+    mostrarMensaje('mensajeDatosIE', '', '');
+    pintarTablaIE_(datos.filas);
+  }, function (e) {
+    mostrarMensaje('mensajeDatosIE', e.mensaje || 'Error al cargar los datos.', 'error');
+  });
+}
+
+function pintarTablaIE_(filas) {
+  var cuerpo = document.getElementById('cuerpoTablaIE');
+  var html = '';
+  filas.forEach(function (f) { html += filaIEHtml_(f); });
+  cuerpo.innerHTML = html;
+}
+
+function selectSiNo_(fila, campo) {
+  var v = fila[campo];
+  return "<select data-campo-ie='" + campo + "'>" +
+    "<option value='NO'" + (v !== 'SI' ? ' selected' : '') + '>NO</option>' +
+    "<option value='SI'" + (v === 'SI' ? ' selected' : '') + '>SI</option></select>';
+}
+function filaIEHtml_(f) {
+  return "<tr data-fila-ie='" + f.fila + "'>" +
+    '<td>' + f.fila + '</td>' +
+    "<td><input data-campo-ie='docente' value=\"" + escapeHtml(f.docente) + '"></td>' +
+    "<td><input data-campo-ie='nombre' value=\"" + escapeHtml(f.nombre) + '"></td>' +
+    "<td><input data-campo-ie='jornada' value=\"" + escapeHtml(f.jornada) + '"></td>' +
+    "<td><input data-campo-ie='genero' value=\"" + escapeHtml(f.genero) + '"></td>' +
+    "<td><input data-campo-ie='curso' value=\"" + escapeHtml(f.curso) + '"></td>' +
+    "<td><input data-campo-ie='tipoDoc' value=\"" + escapeHtml(f.tipoDoc) + '"></td>' +
+    "<td><input data-campo-ie='numDoc' value=\"" + escapeHtml(f.numDoc) + '"></td>' +
+    "<td><input data-campo-ie='puntaje' type='number' min='0' max='100' value=\"" + escapeHtml(f.puntaje) + '"></td>' +
+    "<td class='celda-nivel-ie'>" + escapeHtml(f.nivel) + '</td>' +
+    '<td>' + selectSiNo_(f, 'intensificacion') + '</td>' +
+    '<td>' + selectSiNo_(f, 'sena') + '</td>' +
+    '<td>' + selectSiNo_(f, 'academico') + '</td>' +
+    '</tr>';
+}
+
+var temporizadorGuardadoFilaIE_ = {};
+function recolectarFilaIE_(tr) {
+  var datos = {};
+  tr.querySelectorAll('[data-campo-ie]').forEach(function (campo) {
+    datos[campo.getAttribute('data-campo-ie')] = campo.value;
+  });
+  return datos;
+}
+function guardarFilaIE_(tr) {
+  var fila = tr.getAttribute('data-fila-ie');
+  llamarServidor('rpcGuardarFilaIE', [estado.nombreIE, estado.tokenIE, fila, recolectarFilaIE_(tr)], function (r) {
+    tr.querySelector('.celda-nivel-ie').textContent = r.registro.nivel;
+  }, function (e) {
+    mostrarMensaje('mensajeDatosIE', e.mensaje || 'No fue posible guardar.', 'error');
+  });
+}
+document.getElementById('cuerpoTablaIE').addEventListener('change', function (evento) {
+  var campo = evento.target.closest('[data-campo-ie]');
+  if (!campo) return;
+  var tr = campo.closest('[data-fila-ie]');
+  if (campo.getAttribute('data-campo-ie') === 'intensificacion' ||
+      campo.getAttribute('data-campo-ie') === 'sena' || campo.getAttribute('data-campo-ie') === 'academico') {
+    if (campo.value === 'SI') {
+      tr.querySelectorAll('select[data-campo-ie]').forEach(function (s) { if (s !== campo) s.value = 'NO'; });
+    }
+  }
+  guardarFilaIE_(tr);
+});
+document.getElementById('cuerpoTablaIE').addEventListener('input', function (evento) {
+  var campo = evento.target.closest('input[data-campo-ie]');
+  if (!campo) return;
+  var tr = campo.closest('[data-fila-ie]');
+  clearTimeout(temporizadorGuardadoFilaIE_[tr.getAttribute('data-fila-ie')]);
+  temporizadorGuardadoFilaIE_[tr.getAttribute('data-fila-ie')] = setTimeout(function () { guardarFilaIE_(tr); }, 1200);
+});
+
+document.getElementById('btnAgregarFilaIE').addEventListener('click', function () {
+  var filas = document.querySelectorAll('[data-fila-ie]');
+  var ultima = filas.length ? Number(filas[filas.length - 1].getAttribute('data-fila-ie')) : 4;
+  document.getElementById('cuerpoTablaIE').insertAdjacentHTML('beforeend', filaIEHtml_({
+    fila: ultima + 1, docente: '', nombre: '', jornada: '', genero: '', curso: '', tipoDoc: '', numDoc: '',
+    puntaje: '', nivel: '', intensificacion: 'NO', sena: 'NO', academico: 'NO'
+  }));
+});
+
+document.getElementById('btnGenerarGraficos').addEventListener('click', function () {
+  mostrarMensaje('mensajeGraficosIE', 'Generando gráficos… puede tardar unos segundos. <span class="spinner"></span>', 'info');
+  document.getElementById('galeriaGraficosIE').innerHTML = '';
+  llamarServidor('rpcGenerarGraficosIE', [estado.nombreIE, estado.tokenIE], function (r) {
+    if (!r.ok) {
+      mostrarMensaje('mensajeGraficosIE',
+        'Falta completar información antes de generar los gráficos:<br>' + (r.faltantes || []).map(escapeHtml).join('<br>'), 'error');
+      return;
+    }
+    mostrarMensaje('mensajeGraficosIE', 'Gráficos generados correctamente.', 'exito');
+    document.getElementById('galeriaGraficosIE').innerHTML = (r.imagenes || []).map(function (img) {
+      return "<div><h4>" + escapeHtml(img.titulo) + "</h4><img src='data:image/png;base64," + img.imagenBase64 + "'></div>";
+    }).join('');
+  }, function (e) {
+    mostrarMensaje('mensajeGraficosIE', e.mensaje || 'No fue posible generar los gráficos.', 'error');
+  });
+});
+
+/* ============================== ADMINISTRADOR ============================== */
+function entrarPantallaAdmin_(token) {
+  estado.tokenAdmin = token;
+  document.getElementById('pantallaDistribucion').classList.add('oculto');
+  document.getElementById('pantallaIE').classList.add('oculto');
+  document.getElementById('pantallaAdmin').classList.remove('oculto');
+  cargarTablaAdmin_();
+  llamarServidor('rpcAdminUrlHojaReal', [token], function (r) {
+    document.getElementById('enlaceHojaReal').href = r.url;
+  }, function () {});
+}
+document.getElementById('btnSalirAdmin').addEventListener('click', function () {
+  try { localStorage.removeItem(CLAVE_SESION_ADMIN_); } catch (e) {}
+  location.reload();
+});
+function cargarTablaAdmin_() {
+  var cuerpo = document.getElementById('cuerpoTablaAdmin');
+  cuerpo.innerHTML = "<tr><td colspan='4'>Cargando… <span class='spinner'></span></td></tr>";
+  llamarServidor('rpcAdminListarTokens', [estado.tokenAdmin], function (lista) {
+    cuerpo.innerHTML = (lista || []).map(function (ie) {
+      return '<tr>' +
+        '<td>' + escapeHtml(ie.nombreIE) + (ie.existeHoja ? '' : " <span class='mensaje error' style='display:inline;'>sin hoja</span>") + '</td>' +
+        "<td><span class='badge-color' style='background:" + ie.colorEstado + "'></span></td>" +
+        "<td><code>" + escapeHtml(ie.token) + '</code></td>' +
+        "<td><button type='button' class='btn btn-secundario' data-regenerar-token='" + escapeHtml(ie.nombreIE) + "'>Regenerar</button></td>" +
+        '</tr>';
+    }).join('');
+  }, function (e) {
+    cuerpo.innerHTML = "<tr><td colspan='4' class='mensaje error'>" + escapeHtml(e.mensaje || 'Error al cargar.') + '</td></tr>';
+  });
+}
+document.getElementById('cuerpoTablaAdmin').addEventListener('click', function (evento) {
+  var boton = evento.target.closest('[data-regenerar-token]');
+  if (!boton) return;
+  var nombreIE = boton.getAttribute('data-regenerar-token');
+  llamarServidor('rpcAdminRegenerarTokenIE', [estado.tokenAdmin, nombreIE], function () {
+    cargarTablaAdmin_();
+  }, function (e) {
+    mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible regenerar el token.', 'error');
+  });
+});
+document.getElementById('btnAplicarLetreroTodas').addEventListener('click', function () {
+  mostrarMensaje('mensajeAdmin', 'Aplicando letrero en las 36 IE… <span class="spinner"></span>', 'info');
+  llamarServidor('rpcAdminAplicarLetreroGraficos', [estado.tokenAdmin], function (r) {
+    mostrarMensaje('mensajeAdmin', 'Letrero aplicado en ' + r.hechas + ' instituciones.' +
+      (r.problemas.length ? '<br>Problemas: ' + r.problemas.map(escapeHtml).join('; ') : ''), 'exito');
+  }, function (e) {
+    mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible aplicar el letrero.', 'error');
+  });
+});
+
+/* ============================== ARRANQUE ============================== */
+(function iniciar_() {
+  var sesionIE = null, tokenAdminGuardado = null;
+  try { sesionIE = JSON.parse(localStorage.getItem(CLAVE_SESION_IE_) || 'null'); } catch (e) {}
+  try { tokenAdminGuardado = localStorage.getItem(CLAVE_SESION_ADMIN_); } catch (e) {}
+  if (sesionIE && sesionIE.nombreIE && sesionIE.token) {
+    llamarServidor('rpcValidarAccesoIE', [sesionIE.nombreIE, sesionIE.token], function (r) {
+      entrarPantallaIE_(r.nombreIE, sesionIE.token);
+    }, function () {
+      try { localStorage.removeItem(CLAVE_SESION_IE_); } catch (e) {}
+      cargarDistribucion_();
+    });
+  } else if (tokenAdminGuardado) {
+    llamarServidor('rpcValidarAccesoAdmin', [tokenAdminGuardado], function () {
+      entrarPantallaAdmin_(tokenAdminGuardado);
+    }, function () {
+      try { localStorage.removeItem(CLAVE_SESION_ADMIN_); } catch (e) {}
+      cargarDistribucion_();
+    });
+  } else {
+    cargarDistribucion_();
+  }
+})();
+</script>

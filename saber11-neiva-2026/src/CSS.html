@@ -1,0 +1,59 @@
+<style>
+  :root {
+    --azul: #1A73E8; --azul-oscuro: #0B5394; --verde: #34A853; --naranja: #F9AB00; --rojo: #EA4335;
+    --gris-fondo: #F4F6F8; --gris-borde: #D9D9D9; --gris-texto: #5F6368; --blanco: #FFFFFF;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Roboto, Arial, sans-serif; background: var(--gris-fondo); margin: 0; color: #202124; }
+  .oculto { display: none !important; }
+  .contenedor { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1, h2, h3 { color: var(--azul-oscuro); }
+  .tarjeta { background: var(--blanco); border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+  .btn { display: inline-block; border: none; border-radius: 6px; padding: 10px 18px; font-size: .95rem; font-weight: 600; cursor: pointer; }
+  .btn-primario { background: var(--azul); color: #fff; }
+  .btn-primario:hover { background: var(--azul-oscuro); }
+  .btn-secundario { background: var(--gris-borde); color: #202124; }
+  .btn-secundario:hover { background: #c6c6c6; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  input[type=text], input[type=password], input[type=number], select, textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--gris-borde); border-radius: 6px; font-size: .95rem; margin-top: 4px;
+  }
+  label { font-weight: 600; font-size: .85rem; color: var(--gris-texto); display: block; margin-top: 10px; }
+
+  .grid-instituciones { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; margin: 16px 0; }
+  .tarjeta-ie { border: 2px solid var(--gris-borde); border-radius: 10px; padding: 12px; text-align: center; cursor: pointer; background: #fff; transition: border-color .15s; }
+  .tarjeta-ie:hover, .tarjeta-ie.seleccionada { border-color: var(--azul); }
+  .tarjeta-ie img { max-width: 100%; max-height: 64px; object-fit: contain; margin-bottom: 8px; }
+  .tarjeta-ie .nombre-ie { font-size: .78rem; font-weight: 600; line-height: 1.2; }
+
+  .mensaje { padding: 10px 14px; border-radius: 6px; margin: 10px 0; font-size: .9rem; }
+  .mensaje.error { background: #FCE8E6; color: #B31412; }
+  .mensaje.exito { background: #E6F4EA; color: #137333; }
+  .mensaje.info { background: #E8F0FE; color: #1967D2; }
+
+  .letrero-graficos { background: var(--azul); color: #fff; font-weight: 600; padding: 14px; border-radius: 8px; margin-bottom: 16px; }
+
+  .badge-color { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+
+  .pestanas { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  .pestana { padding: 8px 14px; border-radius: 6px 6px 0 0; background: var(--gris-borde); cursor: pointer; font-weight: 600; font-size: .9rem; }
+  .pestana.activa { background: var(--azul); color: #fff; }
+
+  table.tabla-generica { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  table.tabla-generica th, table.tabla-generica td { border: 1px solid var(--gris-borde); padding: 6px 8px; text-align: left; }
+  table.tabla-generica th { background: var(--azul-oscuro); color: #fff; }
+  .tabla-desplazable { overflow-x: auto; }
+
+  table.tabla-ie input, table.tabla-ie select { margin: 0; font-size: .82rem; padding: 4px 6px; min-width: 90px; }
+  table.tabla-ie td { padding: 3px; }
+
+  .fila-botones { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+
+  .galeria-graficos { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-top: 16px; }
+  .galeria-graficos img { width: 100%; border: 1px solid var(--gris-borde); border-radius: 6px; }
+
+  .enlace-admin { display: block; text-align: center; margin-top: 24px; font-size: .8rem; color: var(--gris-texto); }
+
+  .spinner { border: 3px solid var(--gris-borde); border-top-color: var(--azul); border-radius: 50%; width: 22px; height: 22px; animation: girar 0.8s linear infinite; display: inline-block; vertical-align: middle; }
+  @keyframes girar { to { transform: rotate(360deg); } }
+</style>

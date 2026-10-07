@@ -1,0 +1,69 @@
+/**
+ * Config.gs — Portal IE SABER 11 Neiva 2026
+ *
+ * App web INDEPENDIENTE (proyecto de Apps Script aparte, NO el script atado
+ * a la hoja de cálculo) que lee y escribe la MISMA hoja de cálculo
+ * "REPORTE DE RESULTADOS PRUEBA SABER 11º.2026" (CFG.SPREADSHEET_ID) vía
+ * SpreadsheetApp.openById — nunca toca el script atado a la hoja (menú
+ * REPORTES, CONFIGURAR_TODO, etc.), que sigue intacto para el administrador.
+ *
+ * Por qué un proyecto aparte: la hoja de cálculo original se compartía
+ * como "cualquiera con el enlace puede editar" — cualquier persona con el
+ * link veía y editaba las 36 pestañas de IE. Compartir por pestaña no es
+ * posible en Sheets (la protección de rangos solo bloquea edición, nunca
+ * oculta contenido). La única forma real de que cada IE vea y edite SOLO
+ * su información es que nunca reciba acceso directo a la hoja: en vez de
+ * eso, entra a esta app web (ejecuta como el propietario, acceso
+ * "cualquiera"), que filtra todo del lado del servidor según el token que
+ * ingresó. Antes de poner esto en producción, el archivo original debe
+ * pasar de "cualquiera con el enlace" a "restringido" — si no, el link
+ * viejo sigue siendo una puerta trasera sin filtro.
+ */
+const CFG = {
+  SPREADSHEET_ID: '1xYaRpD6VxA6fz628zuPQaB5vJj0JCHuWjZtns4Gpz14',
+  CARPETA_LOGOS: '1QVfDyYjhjX5H60U7SyeLtikodQbhGu1B',
+  LOGOS_MANUALES: {},
+
+  HOJA_RESUMEN_ENVIOS: 'RESUMEN DE ENVÍOS',
+  HOJA_REPORTE_DIARIO: 'REPORTE DIARIO',
+  HOJA_TOKENS: 'TOKENS_PORTAL_IE', // hoja de control oculta, creada por este proyecto en la misma hoja de cálculo
+
+  FILA_IE: 3,
+  FILA_ENCABEZADO: 4,
+  PRIMERA_FILA: 5,
+  ULTIMA_FILA: 504,
+  COLUMNA_GRAFICOS: 14, // N — donde empiezan las tablas-resumen y los gráficos de cada IE
+
+  COL: {
+    cantidad: 1, docente: 2, nombre: 3, jornada: 4, genero: 5, grupo: 6,
+    tipoDoc: 7, numDoc: 8, puntaje: 9, nivel: 10, intensificacion: 11, sena: 12, academico: 13
+  },
+  ENCABEZADOS: ['CANTIDAD', 'ESCRIBA AQUI EL NOMBRE DEL DOCENTE QUE REPORTA', 'NOMBRE COMPLETO DE ESTUDIANTE',
+    'JORNADA', 'GÉNERO', 'CURSO', 'TIPO DE DOCUMENTO', 'NÚMERO DE DOCUMENTO', 'PUNTAJE OBTENIDO',
+    'NIVEL OBTENIDO', 'GRUPO DE INTENSIFICACIÓN', 'GRUPO DE ARTICULACIÓN SENA', 'GRUPO ACADÉMICO'],
+
+  // [puntaje máximo, nivel, color de fondo, color de letra] — igual que el script de la hoja.
+  NIVELES: [
+    [47, 'A-', '#D32F2F', '#FFFFFF'],
+    [57, 'A1', '#E65100', '#FFFFFF'],
+    [67, 'A2', '#FFB74D', '#000000'],
+    [78, 'B1', '#A5D6A7', '#000000'],
+    [100, 'B+', '#1B5E20', '#FFFFFF']
+  ],
+
+  IES: [
+    'AGUSTIN CODAZZI', 'AIPECITO', 'ANGEL MARIA PAREDES', 'ATANASIO GIRARDOT', 'CEINAR', 'CHAPINERO',
+    'I.E. CLARETIANO GUSTAVO TORRES PARRA', 'DEPARTAMENTAL TIERRA DE PROMISIÓN', 'EDUARDO SANTOS', 'EL CAGUAN',
+    'EL LIMONAR', 'ENRIQUE OLAYA HERRERA', 'ESCUELA NORMAL SUPERIOR', 'GABRIEL GARCIA MARQUEZ',
+    'HUMBERTO TAFUR CHARRY', 'INEM JULIAN MOTTA SALAS', 'JAIRO MORERA LIZCANO', 'JAIRO MOSQUERA MORENO',
+    'JOSE EUSTASIO RIVERA', 'JUAN DE CABRERA', 'LICEO DE SANTA LIBRADA', 'LUIS IGNACIO ANDRADE',
+    'MARIA AUXILIADORA FORTALECILLAS', 'MISAEL PASTRANA BORRERO', 'OLIVERIO LARA BORRERO', 'PROMOCION SOCIAL',
+    'RICARDO BORRERO ALVAREZ', 'ROBERTO DURAN ALVIRA', 'RODRIGO LARA BONILLA', 'SAN ANTONIO DE ANACONIA',
+    'SAN LUIS BELTRAN', 'SAN MIGUEL ARCANGEL', 'SANTA LIBRADA', 'SANTA TERESA',
+    'INSTITUTO TECNICO IPC ANDRES ROSA', 'TECNICO SUPERIOR'
+  ]
+};
+
+function abrirSpreadsheet_() {
+  return SpreadsheetApp.openById(CFG.SPREADSHEET_ID);
+}
