@@ -149,6 +149,47 @@ function adminInstalarRedireccionHojaReal(token) {
   return { ok: true };
 }
 
+/**
+ * "Publicar en la Web" (la URL .../htmlview) es una vista ESTÁTICA que
+ * Google genera aparte del editor de Sheets — nunca ejecuta Apps
+ * Script, así que ningún disparador (ni alAbrirHojaReal_ de arriba)
+ * puede interceptarla ni redirigirla; tampoco existe una API de Sheets
+ * o de Apps Script para activar/desactivar esa publicación por código.
+ *
+ * Lo que sí se puede preparar desde aquí: una pestaña que, en vez de
+ * datos reales, solo diga "use este enlace para registrar sus
+ * respuestas" con el link del Portal — para que el administrador la
+ * seleccione a mano como la ÚNICA pestaña publicada (Archivo > Compartir
+ * > Publicar en la Web > elegir esta hoja en vez de "Todo el
+ * documento"). Así, quien entre por el enlace publicado ve nada más que
+ * este aviso, nunca los datos reales de las 36 IE.
+ */
+const HOJA_AVISO_PUBLICACION_WEB_ = 'AVISO - USE EL PORTAL';
+function adminPrepararAvisoPublicacionWeb(token) {
+  exigirAccesoAdmin_(token);
+  const ss = abrirSpreadsheet_();
+  let hoja = ss.getSheetByName(HOJA_AVISO_PUBLICACION_WEB_);
+  if (!hoja) hoja = ss.insertSheet(HOJA_AVISO_PUBLICACION_WEB_, 0);
+  hoja.getRange(1, 1, hoja.getMaxRows(), hoja.getMaxColumns()).breakApart();
+  hoja.clear();
+  hoja.getRange('A1:F1').merge()
+    .setValue('⚠️ Este archivo no se diligencia aquí')
+    .setBackground('#EA4335').setFontColor('#FFFFFF').setFontWeight('bold').setFontSize(18)
+    .setHorizontalAlignment('center').setVerticalAlignment('middle');
+  hoja.setRowHeight(1, 44);
+  hoja.getRange('A3:F3').merge()
+    .setValue('Use el siguiente enlace para registrar sus respuestas:')
+    .setFontSize(14).setHorizontalAlignment('center');
+  hoja.getRange('A5:F5').merge()
+    .setFormula(formulaHyperlink_(ss, CFG.URL_PORTAL, '📊 Ir al Portal IE — SABER 11º Neiva ' + CFG.ANIO))
+    .setBackground('#1A73E8').setFontColor('#FFFFFF').setFontWeight('bold').setFontSize(16)
+    .setHorizontalAlignment('center').setVerticalAlignment('middle');
+  hoja.setRowHeight(5, 50);
+  for (let col = 1; col <= 6; col++) hoja.setColumnWidth(col, 180);
+  hoja.setTabColor('#EA4335');
+  return { ok: true, nombreHoja: HOJA_AVISO_PUBLICACION_WEB_ };
+}
+
 function adminRegenerarTokenIE(token, nombreIE) {
   exigirAccesoAdmin_(token);
   const clave = norm_(nombreIE);

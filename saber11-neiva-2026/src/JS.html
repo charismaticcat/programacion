@@ -984,6 +984,16 @@ document.getElementById('btnInstalarRedireccionHoja').addEventListener('click', 
     mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible activar la redirección.', 'error');
   });
 });
+document.getElementById('btnPrepararAvisoPublicacionWeb').addEventListener('click', function () {
+  mostrarMensaje('mensajeAdmin', 'Preparando la pestaña de aviso… <span class="spinner"></span>', 'info');
+  llamarServidor('rpcAdminPrepararAvisoPublicacionWeb', [estado.tokenAdmin], function (r) {
+    mostrarMensaje('mensajeAdmin',
+      '✅ Lista la pestaña "' + escapeHtml(r.nombreHoja) + '". Ahora, en la hoja de cálculo original: Archivo &gt; ' +
+      'Compartir &gt; Publicar en la Web &gt; elija esa pestaña (no "Todo el documento") y publique.', 'exito');
+  }, function (e) {
+    mostrarMensaje('mensajeAdmin', e.mensaje || 'No fue posible preparar la pestaña.', 'error');
+  });
+});
 document.getElementById('btnAplicarLetreroTodas').addEventListener('click', function () {
   mostrarMensaje('mensajeAdmin', 'Aplicando letrero en las 36 IE… <span class="spinner"></span>', 'info');
   llamarServidor('rpcAdminAplicarLetreroGraficos', [estado.tokenAdmin], function (r) {
