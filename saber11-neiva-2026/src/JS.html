@@ -696,10 +696,34 @@ function selectCursoDocenteHtml_(valorSeleccionado) {
   html += '</select>';
   return html;
 }
-function filaCursoDocenteHtml_(valorSeleccionado) {
-  return "<span class='fila-curso-docente'>" + selectCursoDocenteHtml_(valorSeleccionado) +
+/** Mismas opciones de jornada que ya acepta la hoja real (spec del usuario: "mañana, tarde, Unica" como respaldo si la hoja todavía no trae lista). */
+function opcionesJornadaCursoDocente_() {
+  var opciones = (estado.opcionesColumnasIE || {}).jornada;
+  return (opciones && opciones.length) ? opciones : ['MAÑANA', 'TARDE', 'ÚNICA'];
+}
+function selectJornadaCursoDocenteHtml_(valorSeleccionado) {
+  var html = "<select class='select-jornada-curso-docente'><option value=''" + (valorSeleccionado ? '' : ' selected') + '>Jornada…</option>';
+  opcionesJornadaCursoDocente_().forEach(function (j) {
+    html += "<option value='" + escapeHtml(j) + "'" + (j === valorSeleccionado ? ' selected' : '') + '>' + escapeHtml(j) + '</option>';
+  });
+  html += '</select>';
+  return html;
+}
+/**
+ * Cada curso que reporta el docente, con su jornada y la cantidad de
+ * estudiantes que va a agregar (spec del usuario: "debajo de cada
+ * curso pon la jornada... y cantidad de estudiantes") — jornada y
+ * cantidad solo sirven para "Guardar este docente" (más abajo), no se
+ * guardan por sí solas en la hoja real.
+ */
+function filaCursoDocenteHtml_(valorSeleccionado, jornadaSeleccionada, cantidadSeleccionada) {
+  return "<span class='fila-curso-docente'>" +
+    "<span class='fila-principal-curso-docente'>" + selectCursoDocenteHtml_(valorSeleccionado) +
     "<button type='button' class='btn-curso-docente btn-mas-curso-docente' title='Agregar otro curso'>+</button>" +
-    "<button type='button' class='btn-curso-docente btn-menos-curso-docente' title='Quitar este curso'>×</button></span>";
+    "<button type='button' class='btn-curso-docente btn-menos-curso-docente' title='Quitar este curso'>×</button></span>" +
+    "<span class='fila-detalle-curso-docente'>" + selectJornadaCursoDocenteHtml_(jornadaSeleccionada) +
+    "<input type='number' class='input-cantidad-curso-docente' min='0' placeholder='Cant. estudiantes' value=\"" +
+    escapeHtml(cantidadSeleccionada || '') + '"></span></span>';
 }
 /**
  * cursosPreseleccionados (spec del usuario: "usa la información que ya
@@ -709,7 +733,7 @@ function filaCursoDocenteHtml_(valorSeleccionado) {
  */
 function filaGrupoDocenteHtml_(indiceGrupo, docente, correoRegistro, cursosPreseleccionados) {
   var htmlCursos = (cursosPreseleccionados && cursosPreseleccionados.length)
-    ? cursosPreseleccionados.map(filaCursoDocenteHtml_).join('')
+    ? cursosPreseleccionados.map(function (c) { return filaCursoDocenteHtml_(c); }).join('')
     : filaCursoDocenteHtml_('');
   return "<div class='caja-grupo-docente' data-grupo-docente-indice='" + indiceGrupo + "'>" +
     "<div class='fila-docente-correo'>" +
@@ -718,7 +742,9 @@ function filaGrupoDocenteHtml_(indiceGrupo, docente, correoRegistro, cursosPrese
     escapeHtml(correoRegistro) + '"></label>' +
     '</div>' +
     "<label>Cursos que reporta<span class='lista-cursos-docente'>" + htmlCursos + '</span></label>' +
-    '</div>';
+    "<div class='fila-botones'>" +
+    "<button type='button' class='btn btn-secundario btn-guardar-docente' title='Crea en Estudiantes reportados, por cada curso, la cantidad de filas indicada, con el docente, el curso y la jornada ya puestos'>💾 Guardar este docente</button>" +
+    '</div></div>';
 }
 document.getElementById('listaDocentesIE').addEventListener('click', function (evento) {
   var botonMas = evento.target.closest('.btn-mas-curso-docente');
@@ -730,10 +756,57 @@ document.getElementById('listaDocentesIE').addEventListener('click', function (e
   if (botonMenos) {
     var lista = botonMenos.closest('.lista-cursos-docente');
     var filaCurso = botonMenos.closest('.fila-curso-docente');
-    if (lista.children.length > 1) filaCurso.remove();
-    else filaCurso.querySelector('select').value = '';
+    if (lista.children.length > 1) {
+      filaCurso.remove();
+    } else {
+      filaCurso.querySelectorAll('select').forEach(function (s) { s.value = ''; });
+      var campoCantidad = filaCurso.querySelector('.input-cantidad-curso-docente');
+      if (campoCantidad) campoCantidad.value = '';
+    }
+    return;
   }
+  var botonGuardarDocente = evento.target.closest('.btn-guardar-docente');
+  if (botonGuardarDocente) guardarDocenteConCursosIE_(botonGuardarDocente.closest('.caja-grupo-docente'));
 });
+/**
+ * "Guardar este docente" (spec del usuario): traslada el docente y cada
+ * curso de "Cursos que reporta" a "Estudiantes reportados", agregando
+ * tantas filas en blanco como la cantidad indicada para cada curso —
+ * cada fila nueva ya trae el docente, el curso y la jornada puestos,
+ * para que solo falte completar los datos propios de cada estudiante.
+ */
+function guardarDocenteConCursosIE_(caja) {
+  var indiceGrupo = caja.getAttribute('data-grupo-docente-indice');
+  var docente = texto_(caja.querySelector('[data-campo-grupo-ie="docente"]').value);
+  var correoRegistro = texto_(caja.querySelector('[data-campo-grupo-ie="correoRegistro"]').value);
+  if (!docente) {
+    mostrarMensaje('mensajeDatosIE', 'Escriba primero el nombre del docente.', 'error');
+    return;
+  }
+  var entradas = [];
+  caja.querySelectorAll('.fila-curso-docente').forEach(function (fila) {
+    var curso = fila.querySelector('.select-curso-docente').value;
+    var jornada = fila.querySelector('.select-jornada-curso-docente').value;
+    var cantidad = Math.floor(Number(fila.querySelector('.input-cantidad-curso-docente').value)) || 0;
+    if (curso && cantidad > 0) entradas.push({ curso: curso, jornada: jornada, cantidad: cantidad });
+  });
+  if (!entradas.length) {
+    mostrarMensaje('mensajeDatosIE', 'Indique al menos un curso con la cantidad de estudiantes a agregar.', 'error');
+    return;
+  }
+  var totalFilas = 0;
+  entradas.forEach(function (entrada) {
+    for (var i = 0; i < entrada.cantidad; i++) {
+      var tr = agregarFilaConValoresIE_(indiceGrupo, {
+        docente: docente, correoRegistro: correoRegistro, curso: entrada.curso, jornada: entrada.jornada
+      });
+      guardarFilaIE_(tr);
+      totalFilas++;
+    }
+  });
+  actualizarResaltadoFaltantesIE_();
+  mostrarMensaje('mensajeDatosIE', '✅ ' + totalFilas + ' fila(s) agregada(s) para ' + escapeHtml(docente) + ' en Estudiantes reportados. Complete el nombre de cada estudiante.', 'exito');
+}
 function filaIEHtml_(f, indiceGrupo) {
   return "<tr data-fila-ie='" + f.fila + "' data-grupo-docente-indice='" + indiceGrupo + "'>" +
     "<td><span class='numero-visible-ie'>" + f.fila + '</span>' +
@@ -1013,9 +1086,26 @@ function ultimoIndiceGrupoDocenteIE_() {
   cajas.forEach(function (c) { maximo = Math.max(maximo, Number(c.getAttribute('data-grupo-docente-indice'))); });
   return maximo;
 }
-function agregarFilaIE_(heredarDocente) {
+/**
+ * Agrega una fila al final con los valores dados (el resto en blanco) —
+ * base compartida por agregarFilaIE_ y por "Guardar este docente"
+ * (guardarDocenteConCursosIE_), que ya trae docente/curso/jornada
+ * puestos de antemano.
+ */
+function agregarFilaConValoresIE_(indiceGrupo, valores) {
   var filas = document.querySelectorAll('[data-fila-ie]');
   var ultima = filas.length ? Number(filas[filas.length - 1].getAttribute('data-fila-ie')) : 4;
+  var datosIniciales = Object.assign({
+    fila: ultima + 1, docente: '', correoRegistro: '', nombre: '', jornada: '', genero: '', curso: '', tipoDoc: '', numDoc: '',
+    puntaje: '', nivel: '', intensificacion: 'NO', sena: 'NO', academico: 'NO'
+  }, valores);
+  var cuerpo = document.getElementById('cuerpoTablaIE');
+  cuerpo.insertAdjacentHTML('beforeend', filaIEHtml_(datosIniciales, indiceGrupo));
+  ultimoEstadoFilaIE_[datosIniciales.fila] = datosIniciales; // punto de partida para poder deshacer el primer cambio de esta fila
+  renumerarFilasIE_();
+  return cuerpo.lastElementChild;
+}
+function agregarFilaIE_(heredarDocente) {
   var listaDocentes = document.getElementById('listaDocentesIE');
   var indiceUltimo = ultimoIndiceGrupoDocenteIE_();
   var docentePrevio = '', correoPrevio = '', indiceGrupo;
@@ -1035,15 +1125,7 @@ function agregarFilaIE_(heredarDocente) {
       if (campoCorreo) correoPrevio = campoCorreo.value;
     }
   }
-  var datosIniciales = {
-    fila: ultima + 1, docente: docentePrevio, correoRegistro: correoPrevio, nombre: '', jornada: '', genero: '', curso: '', tipoDoc: '', numDoc: '',
-    puntaje: '', nivel: '', intensificacion: 'NO', sena: 'NO', academico: 'NO'
-  };
-  var cuerpo = document.getElementById('cuerpoTablaIE');
-  cuerpo.insertAdjacentHTML('beforeend', filaIEHtml_(datosIniciales, indiceGrupo));
-  ultimoEstadoFilaIE_[datosIniciales.fila] = datosIniciales; // punto de partida para poder deshacer el primer cambio de esta fila
-  renumerarFilasIE_();
-  return cuerpo.lastElementChild;
+  return agregarFilaConValoresIE_(indiceGrupo, { docente: docentePrevio, correoRegistro: correoPrevio });
 }
 document.getElementById('btnAgregarFilaIE').addEventListener('click', function () { agregarFilaIE_(true); });
 document.getElementById('btnAgregarDocente').addEventListener('click', function () {
