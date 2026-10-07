@@ -3,7 +3,8 @@
  *
  * Una sola pantalla (Index.html) con 3 vistas en el cliente: distribución
  * de links, vista de IE, y administrador — todas por `google.script.run`,
- * nunca por parámetros de doGet (así no queda ningún dato en la URL).
+ * nunca por parámetros de doGet (así no queda ningún dato en la URL). Un
+ * solo link para todos: cada IE elige su logo y escribe su token.
  */
 function doGet() {
   return HtmlService.createTemplateFromFile('Index')
