@@ -598,13 +598,14 @@ function pintarTablaIE_(filas) {
   pilaDeshacerIE_ = [];
   filas.forEach(function (f) { ultimoEstadoFilaIE_[f.fila] = f; });
 }
-/** Cursos reales (1101-1109) que ya tienen estudiantes en este grupo — para preseleccionar "Cursos que reporta". */
+/** Cursos reales que ya tienen estudiantes en este grupo — para preseleccionar "Cursos que reporta". */
 function cursosDeGrupo_(filasDelGrupo) {
+  var opciones = opcionesCursoDocente_();
   var vistos = {};
   var cursos = [];
   filasDelGrupo.forEach(function (f) {
     var c = texto_(f.curso).toUpperCase();
-    if (c && OPCIONES_CURSO_DOCENTE_.indexOf(c) >= 0 && !vistos[c]) { vistos[c] = true; cursos.push(c); }
+    if (c && opciones.indexOf(c) >= 0 && !vistos[c]) { vistos[c] = true; cursos.push(c); }
   });
   return cursos;
 }
@@ -689,10 +690,22 @@ function campoTextoOLista_(campo, valor) {
  * quien reporta (no se guarda en la hoja real, no hay columna para
  * eso); el campo "Curso" de cada estudiante se sigue llenando aparte.
  */
+/**
+ * Respaldo si la hoja todavía no trae una lista desplegable de "Curso"
+ * — cuando SÍ la trae, se usa esa (opcionesCursoDocente_), para que lo
+ * elegido aquí siempre sea un valor válido en la fila real; antes este
+ * listado era fijo y, si no coincidía exactamente con la lista real de
+ * la hoja, "Guardar este docente" dejaba el curso en blanco (reporte
+ * del usuario: "no incluye... el curso").
+ */
 var OPCIONES_CURSO_DOCENTE_ = ['1101', '1102', '1103', '1104', '1105', '1106', '1107', '1108', '1109'];
+function opcionesCursoDocente_() {
+  var opciones = (estado.opcionesColumnasIE || {}).curso;
+  return (opciones && opciones.length) ? opciones : OPCIONES_CURSO_DOCENTE_;
+}
 function selectCursoDocenteHtml_(valorSeleccionado) {
   var html = "<select class='select-curso-docente'><option value=''" + (valorSeleccionado ? '' : ' selected') + '>Seleccione…</option>';
-  OPCIONES_CURSO_DOCENTE_.forEach(function (c) { html += "<option value='" + c + "'" + (c === valorSeleccionado ? ' selected' : '') + '>' + c + '</option>'; });
+  opcionesCursoDocente_().forEach(function (c) { html += "<option value='" + escapeHtml(c) + "'" + (c === valorSeleccionado ? ' selected' : '') + '>' + escapeHtml(c) + '</option>'; });
   html += '</select>';
   return html;
 }
@@ -784,14 +797,21 @@ function guardarDocenteConCursosIE_(caja) {
     return;
   }
   var entradas = [];
+  var faltaJornada = false;
   caja.querySelectorAll('.fila-curso-docente').forEach(function (fila) {
     var curso = fila.querySelector('.select-curso-docente').value;
     var jornada = fila.querySelector('.select-jornada-curso-docente').value;
     var cantidad = Math.floor(Number(fila.querySelector('.input-cantidad-curso-docente').value)) || 0;
-    if (curso && cantidad > 0) entradas.push({ curso: curso, jornada: jornada, cantidad: cantidad });
+    if (!curso || cantidad <= 0) return;
+    if (!jornada) { faltaJornada = true; return; } // nunca generar filas con la jornada sin poner (reporte del usuario)
+    entradas.push({ curso: curso, jornada: jornada, cantidad: cantidad });
   });
+  if (faltaJornada) {
+    mostrarMensaje('mensajeDatosIE', 'Seleccione la jornada de cada curso (con cantidad mayor que 0) antes de guardar.', 'error');
+    return;
+  }
   if (!entradas.length) {
-    mostrarMensaje('mensajeDatosIE', 'Indique al menos un curso con la cantidad de estudiantes a agregar.', 'error');
+    mostrarMensaje('mensajeDatosIE', 'Indique al menos un curso, su jornada y la cantidad de estudiantes a agregar.', 'error');
     return;
   }
   var totalFilas = 0;
