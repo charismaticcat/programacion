@@ -8,6 +8,25 @@
 var CLAVE_SESION_ADMIN_ = 'saber11_sesion_admin';
 var estado = { nombreIE: '', tokenIE: '', tokenAdmin: '' };
 
+/**
+ * Recuerda en qué pantalla estaba (una IE, un reporte público o el
+ * panel admin) para volver ahí mismo al recargar la página, en vez de
+ * salir siempre a "Elija su institución educativa" (spec del usuario).
+ */
+var CLAVE_ULTIMO_LUGAR_ = 'saber11_ultimo_lugar';
+function guardarUltimoLugar_(lugar) {
+  try { localStorage.setItem(CLAVE_ULTIMO_LUGAR_, JSON.stringify(lugar)); } catch (e) {}
+}
+function borrarUltimoLugar_() {
+  try { localStorage.removeItem(CLAVE_ULTIMO_LUGAR_); } catch (e) {}
+}
+function leerUltimoLugar_() {
+  try {
+    var guardado = localStorage.getItem(CLAVE_ULTIMO_LUGAR_);
+    return guardado ? JSON.parse(guardado) : null;
+  } catch (e) { return null; }
+}
+
 function llamarServidor(nombreFn, args, exito, error) {
   google.script.run
     .withSuccessHandler(function (r) {
@@ -92,11 +111,13 @@ function detenerRefrescoPublico_() {
 }
 function volverAPantallaDistribucionDesde_(idSeccion) {
   detenerRefrescoPublico_();
+  borrarUltimoLugar_();
   document.getElementById(idSeccion).classList.add('oculto');
   document.getElementById('pantallaDistribucion').classList.remove('oculto');
 }
 
 document.getElementById('btnVerResumenGeneral').addEventListener('click', function () {
+  guardarUltimoLugar_({ tipo: 'resumenGeneral' });
   document.getElementById('pantallaDistribucion').classList.add('oculto');
   document.getElementById('pantallaResumenGeneral').classList.remove('oculto');
   cargarResumenGeneralIE_();
@@ -144,6 +165,7 @@ document.getElementById('cuerpoResumenGeneral').addEventListener('click', functi
 });
 
 document.getElementById('btnVerReporteB1BMasPublico').addEventListener('click', function () {
+  guardarUltimoLugar_({ tipo: 'reporteB1BMasPublico' });
   document.getElementById('pantallaDistribucion').classList.add('oculto');
   document.getElementById('pantallaReporteB1BMasPublico').classList.remove('oculto');
   cargarReporteB1BMasPublico_();
@@ -255,6 +277,7 @@ document.addEventListener('keydown', function (evento) {
 });
 
 document.getElementById('btnVerListadoB1BMas').addEventListener('click', function () {
+  guardarUltimoLugar_({ tipo: 'listadoB1BMas' });
   document.getElementById('pantallaDistribucion').classList.add('oculto');
   document.getElementById('pantallaListadoB1BMas').classList.remove('oculto');
   cargarListadoB1BMasPublico_();
@@ -287,6 +310,7 @@ function entrarPantallaIE_(nombreIE, token, comoAdmin) {
   estado.nombreIE = nombreIE;
   estado.tokenIE = token;
   estado.entroDesdeAdmin = !!comoAdmin;
+  guardarUltimoLugar_(comoAdmin ? { tipo: 'ieAdmin', nombreIE: nombreIE } : { tipo: 'ie', nombreIE: nombreIE, token: token });
   document.getElementById('pantallaDistribucion').classList.add('oculto');
   document.getElementById('pantallaAdmin').classList.add('oculto');
   document.getElementById('pantallaIE').classList.remove('oculto');
@@ -313,6 +337,7 @@ function entrarIEDesdeAdmin_(nombreIE) {
 function volverASeleccionIE_() {
   estado.nombreIE = '';
   estado.tokenIE = '';
+  borrarUltimoLugar_();
   cancelarGuardadosPendientesIE_();
   document.getElementById('pantallaIE').classList.add('oculto');
   document.getElementById('pantallaAdmin').classList.add('oculto');
@@ -347,6 +372,7 @@ function cancelarGuardadosPendientesIE_() {
 document.getElementById('btnSalirIE').addEventListener('click', function () {
   if (estado.entroDesdeAdmin) {
     estado.entroDesdeAdmin = false;
+    guardarUltimoLugar_({ tipo: 'admin' });
     document.getElementById('pantallaIE').classList.add('oculto');
     document.getElementById('pantallaAdmin').classList.remove('oculto');
     return;
@@ -1447,6 +1473,7 @@ document.addEventListener('keydown', function (evento) {
 /* ============================== ADMINISTRADOR ============================== */
 function entrarPantallaAdmin_(token) {
   estado.tokenAdmin = token;
+  guardarUltimoLugar_({ tipo: 'admin' });
   document.getElementById('pantallaDistribucion').classList.add('oculto');
   document.getElementById('pantallaIE').classList.add('oculto');
   document.getElementById('pantallaAdmin').classList.remove('oculto');
@@ -1683,18 +1710,35 @@ document.getElementById('btnDescargarReporteB1BMas').addEventListener('click', f
 });
 
 /* ============================== ARRANQUE ============================== */
+/**
+ * Al recargar la página, vuelve al mismo lugar donde estaba (una IE, un
+ * reporte público o el panel admin) en vez de salir siempre a "Elija su
+ * institución educativa" (spec del usuario).
+ */
 (function iniciar_() {
   var tokenAdminGuardado = null;
   try { tokenAdminGuardado = localStorage.getItem(CLAVE_SESION_ADMIN_); } catch (e) {}
+  var lugar = leerUltimoLugar_();
   if (tokenAdminGuardado) {
     llamarServidor('rpcValidarAccesoAdmin', [tokenAdminGuardado], function () {
       entrarPantallaAdmin_(tokenAdminGuardado);
+      if (lugar && lugar.tipo === 'ieAdmin' && lugar.nombreIE) entrarIEDesdeAdmin_(lugar.nombreIE);
     }, function () {
       try { localStorage.removeItem(CLAVE_SESION_ADMIN_); } catch (e) {}
+      borrarUltimoLugar_();
       cargarDistribucion_();
     });
-  } else {
-    cargarDistribucion_();
+    return;
+  }
+  cargarDistribucion_();
+  if (lugar && lugar.tipo === 'ie' && lugar.nombreIE) {
+    entrarPantallaIE_(lugar.nombreIE, lugar.token || '', false);
+  } else if (lugar && lugar.tipo === 'resumenGeneral') {
+    document.getElementById('btnVerResumenGeneral').click();
+  } else if (lugar && lugar.tipo === 'reporteB1BMasPublico') {
+    document.getElementById('btnVerReporteB1BMasPublico').click();
+  } else if (lugar && lugar.tipo === 'listadoB1BMas') {
+    document.getElementById('btnVerListadoB1BMas').click();
   }
 })();
 </script>
